@@ -1,0 +1,246 @@
+# Nestify Frontend — Remaining Work (Module Task Board)
+
+**Status as of 2026-06-13:** Phase 0 (Foundation) is complete and merged to `main`.
+**Full design spec:** `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — read the relevant section before starting a module.
+**API contract:** `BE_Nestify/docs/FE_AI_CONTEXT.md` (BE repo).
+
+Each phase below is a roughly independent module. Pick one, branch off `main`, and follow TDD
+(Vitest + RTL) per the testing strategy in spec Section J. Keep pages thin — put API calls and
+hooks in `features/<domain>/api.js` and `features/<domain>/hooks.js`, compose them in `pages/`.
+
+---
+
+## Working with an AI assistant on a module
+
+`AGENTS.md` (repo root) is the standing context file — Claude Code and most AI coding tools
+load it automatically. It covers the stack, conventions, and reference files from Phase 0.
+If your tool doesn't auto-load it, paste it in manually.
+
+**Starter prompt template** — fill in the bracketed parts for the module you're picking up:
+
+```
+Read AGENTS.md for project conventions and stack.
+
+I'm implementing [Phase N — Module Name] for the Nestify frontend (see docs/TASKS.md,
+section "[Phase N — Module Name]" for the task checklist).
+
+Relevant design spec sections: docs/superpowers/specs/2026-06-13-fe-nestify-design.md,
+Section(s) [E / G / ...] — read these for the exact routes, BE endpoints, and edge cases.
+
+Follow the existing Phase 0 patterns referenced in AGENTS.md (Zustand store, apiClient,
+ApiError, pagination hooks, feature folder layout with api.js + hooks.js).
+
+Work in a feature branch off main. Use TDD (Vitest + RTL): write a failing test, implement,
+verify it passes. Run `npm run lint` and `npm test -- --run` before each commit — both must
+be clean. Make small, frequent commits.
+
+Start with: [first checklist item, e.g. "features/auth/api.js — register, login, logout, me"]
+```
+
+**For a whole phase at once** (multi-task, same session): the Phase 0 work was executed using
+the `superpowers` plugin's `brainstorming` → `writing-plans` → `subagent-driven-development`
+skills. `docs/superpowers/plans/2026-06-13-phase0-foundation.md` is a worked example of the
+plan format those skills produce — useful as a reference if your AI tool supports the same
+plugin and you want to generate a similar task-by-task plan for a new phase before implementing.
+
+**Sanity checks before opening a PR:**
+- `npm run lint` — 0 errors
+- `npm test -- --run` — all tests pass
+- `npm run build` — succeeds
+- No raw hex colors, no `.ts`/`.tsx` files, no new translation strings (Vietnamese only)
+
+---
+
+## Already built in Phase 0 — reuse these, don't recreate
+
+- **Components** (`src/components/`): `Button`, `Card`, `Input`, `Badge`, `Modal`, `Toast` (+ `Toaster`), `Pagination`, `Spinner`
+- **Layout** (`src/components/layout/`): `Header`, `Footer`, `Layout`
+- **Lib** (`src/lib/`): `apiClient.js` (axios + interceptors), `errors.js` (`ApiError`/`normalizeError`), `pagination.js` (offset/cursor helpers), `queryClient.js`
+- **Store** (`src/store/`): `authStore` (token/user, persisted), `uiStore` (cart drawer, mobile nav), `toastStore`
+- **Routing** (`src/app/router.jsx`, `src/routes/`): `ProtectedRoute`, `AdminRoute`, route tree wired into `App.jsx`
+- **Design tokens**: `src/styles/tokens.css` (Organic Editorial palette, Tailwind v4 `@theme`)
+
+Placeholder pages exist for: Home, Login, Account, Admin dashboard, 404 — replace these in-place
+as each phase lands rather than creating duplicates.
+
+---
+
+## Phase 1 — Auth & Account
+
+**Folders:** `src/features/auth/`, `src/features/addresses/`, `src/pages/auth/`, `src/pages/account/`
+
+- [ ] `features/auth/api.js` — `register`, `login`, `logout`, `me`, `forgotPassword`, `resetPassword`, `verifyEmail`
+- [ ] `features/auth/hooks.js` — TanStack Query mutations/queries wrapping the above; on login success call `authStore.login(token, user)`
+- [ ] `/login` page — form (React Hook Form + Yup), map `VALIDATION_FAILED` → field errors, distinct messages for `401` (bad credentials) vs `403 ACCOUNT_INACTIVE`
+- [ ] `/register` page — same pattern
+- [ ] `/forgot-password`, `/reset-password` pages
+- [ ] `/verify-email` landing page (consumes link token)
+- [ ] Email-verification gating: unauthenticated-but-unverified users see a blocking "verify your email" screen (no resend endpoint — see open question #4)
+- [ ] `/account` page — replace placeholder, show profile from `GET /api/auth/me`, link to password change
+- [ ] `features/addresses/api.js` + `hooks.js` — CRUD + `PATCH /addresses/{id}/default`
+- [ ] `/account/addresses` page — list, add/edit/delete, set default
+- [ ] Tests: login/register form validation + success/error paths, `authStore` actions (already partially covered), `ProtectedRoute` redirect behavior with real auth flow
+
+**Spec refs:** Section E (Public + Authenticated routes), Section G (Auth, Addresses), Section H item 4 (cross-user `404`)
+
+---
+
+## Phase 2 — Catalog
+
+**Folders:** `src/features/catalog/`, `src/pages/home/`, `src/pages/catalog/`, `src/pages/product/`
+
+- [ ] `features/catalog/api.js` — `getCategories`, `getCategory(slug)`, `getProducts(filters, cursor)`, `getProduct(slug)`, `getProductReviews(slug, cursor)`
+- [ ] `features/catalog/hooks.js` — `useCategories`, `useInfiniteProducts` (cursor `useInfiniteQuery`), `useProduct`, `useProductReviews`
+- [ ] Category nav / mega-menu (top of Header) from `GET /api/categories` (nested `children`)
+- [ ] `/` Home — replace placeholder: hero + featured/newest product sections
+- [ ] `/c/:categorySlug` — category listing: filters (`filter[category]`, `filter[brand]`), sort, infinite-scroll/"load more" grid
+- [ ] `/p/:productSlug` — product detail: variant selector (price/stock/3D model per variant), media gallery (image/video by `sort_order`), `description` sanitized with DOMPurify
+- [ ] Reviews display section on product page (approved reviews only, cursor pagination)
+- [ ] `available_stock` per variant drives Add-to-cart disabled state + quantity max
+- [ ] Tests: product card rendering, variant selection updates price/stock, category filter changes query key
+
+**Spec refs:** Section E (public routes), Section G (Catalog)
+
+---
+
+## Phase 3 — Cart & Wishlist
+
+**Folders:** `src/features/cart/`, `src/features/wishlist/`, `src/pages/cart/`, `src/pages/wishlist/`
+
+- [ ] `features/cart/api.js` — `getCart`, `addItem`, `updateItem`, `removeItem`, `applyVoucher`
+- [ ] `features/cart/hooks.js` — `useCart`, mutations invalidate `['cart']`; voucher preview as separate non-persisted query
+- [ ] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
+- [ ] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
+- [ ] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
+- [ ] `/wishlist` page — list, toggle restock notify, move-to-cart (handle `409 INSUFFICIENT_STOCK` → inline error, keep item)
+- [ ] Cart drawer (uses `uiStore.toggleCart`, already wired in Header) — mini cart summary
+- [ ] Tests: cart add/update/remove incl. stock-error handling, voucher preview applies to summary only
+
+**Spec refs:** Section G (Cart, Wishlist), Section H item 5 (single voucher per order)
+
+---
+
+## Phase 4 — Checkout & Orders
+
+**Folders:** `src/features/checkout/`, `src/features/orders/`, `src/pages/checkout/`, `src/pages/orders/`
+
+- [ ] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
+- [ ] `features/checkout/api.js` — `getAddresses`, `applyVoucher`, `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)`
+- [ ] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **gateway picker** (`payos` | `stripe`), submit → create order → create payment session → redirect
+- [ ] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
+- [ ] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder`, `createPaymentSession` (retry)
+- [ ] `/orders` page — order history list
+- [ ] `/orders/:id` page — status, items, **Cancel** (enabled only while `pending_payment`), **Retry payment** (enabled only while `pending_payment`; handle `409 ORDER_ALREADY_PAID` → refetch + show paid state)
+- [ ] Rate-limit handling: disable "Pay now" while in-flight, surface `429 RATE_LIMITED`
+- [ ] Tests: checkout happy path (address → voucher → gateway → order creation, mocked API), cancel/retry button enable logic
+
+**Spec refs:** Section C (Idempotency-Key), Section G (Orders & Checkout), Section H items 2–4
+
+---
+
+## Phase 5 — Reviews
+
+**Folders:** `src/features/reviews/`, integrates into `pages/orders/` and `pages/product/`
+
+- [ ] `features/reviews/api.js` + `hooks.js` — `createReview(productId, orderId, ...)`, `getReviewComments`, `createComment(reviewId, body)`
+- [ ] Review form on `/orders/:id` — scoped to delivered orders' line items, `order_id` passed automatically (verified purchase)
+- [ ] "Submitted, awaiting approval" confirmation after submit (new reviews are `pending`, not shown immediately)
+- [ ] Comments UI on `/p/:productSlug` review list — 1-level only (no nested replies)
+- [ ] Tests: review form only renders for delivered orders, submit shows pending confirmation
+
+**Spec refs:** Section G (Reviews)
+
+---
+
+## Phase 6 — 3D Room Planner
+
+**Folders:** `src/features/rooms/`, `src/pages/rooms/`
+
+- [ ] Add deps: `three`, `@react-three/fiber`, `@react-three/drei`
+- [ ] `features/rooms/api.js` + `hooks.js` — CRUD `/api/room-scenes` (offset pagination), `share`, `convert-to-order`
+- [ ] `/rooms` page — scene list (offset `<Pagination>`)
+- [ ] `/rooms/new`, `/rooms/:id` — 3D editor: room-bounds helper from `width/depth/height`, load variant `model_3d_url` via `useGLTF`, drag/transform controls (place/move/rotate/scale)
+- [ ] Save: `PATCH /api/room-scenes/{id}` sends the **full** current `items[]` (no diffing)
+- [ ] Share: call `POST .../share` (idempotent) → build `/rooms/share/{token}` public URL
+- [ ] `/rooms/share/:token` — public read-only viewer (no auth)
+- [ ] Convert-to-order: confirm dialog warning cart will be replaced, then `POST .../convert-to-order`
+- [ ] Tests: scene save sends full item list, share URL construction
+
+**Spec refs:** Section A (3D stack), Section G (Room Scenes)
+
+---
+
+## Phase 7 — AI Chat
+
+**Folders:** `src/features/chat/`, `src/pages/chat/`
+
+- [ ] `features/chat/api.js` + `hooks.js` — `POST /api/ai/chat`
+- [ ] Persistent chat widget (mountable from `Layout`) + dedicated `/chat` page
+- [ ] Render `sources[]` as "referenced products" links (`entity_type` → product → `/p/:slug`, resolve slug via product cache/lookup)
+- [ ] `429 AI_TOKEN_BUDGET_EXCEEDED` → disable input, generic "daily limit reached" message
+- [ ] Tests: sources render as links, budget-exceeded disables input
+
+**Spec refs:** Section G (AI Chat), Section H item 6
+
+---
+
+## Phase 8 — Admin Catalog & Orders
+
+**Folders:** `src/features/admin/`, `src/pages/admin/{categories,products,orders}/`
+
+- [ ] `features/admin/api.js` — categories, products (+variants, +media), orders, refund — split into per-domain files if it grows large
+- [ ] `/admin/categories` — list + create/update/delete (small dataset, plain list)
+- [ ] `/admin/products`, `/admin/products/:id` — offset-paginated list, create/edit form; **edit hydrates from list-cache** (no working `GET /admin/products/{id}`)
+- [ ] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
+- [ ] Media: multipart upload, reorder, delete
+- [ ] `/admin/orders`, `/admin/orders/:id` — offset list + detail
+- [ ] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
+- [ ] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
+- [ ] Tests: admin product list + create form validation, order status transition options match current status
+
+**Spec refs:** Section E (Admin routes + detail-view caveat), Section G (Admin), Section H items 1–2
+
+---
+
+## Phase 9 — Admin Moderation & Config
+
+**Folders:** `src/pages/admin/{reviews,vouchers,users,audit}/`
+
+- [ ] `/admin/reviews` — cursor-paginated moderation queue, approve/reject, optimistic removal from list on action
+- [ ] `/admin/vouchers` — full CRUD (`type: percentage|fixed`, usage limits, date range); form validation mirrors BE constraints (`min_order_value`, `max_discount` only for `percentage`)
+- [ ] `/admin/users` — list + `PATCH /admin/users/{id}/roles` (`role_ids` multi-select) — **blocked on open question #2** (no `GET /api/roles` endpoint documented; confirm source for role options before building the multi-select)
+- [ ] `/admin/audit-logs` — read-only paginated table (offset)
+- [ ] Tests: voucher form validation rules, review queue optimistic removal
+
+**Spec refs:** Section G (Admin), Section I item 2
+
+---
+
+## Phase 10 — Polish & Testing
+
+- [ ] Accessibility pass: contrast, focus rings, keyboard nav across all new pages
+- [ ] Responsive QA across breakpoints (mobile/tablet/desktop) for every page built in Phases 1–9
+- [ ] Fill out Vitest/RTL coverage per spec Section J for any flows not yet covered
+- [ ] Performance pass: image lazy-loading, route-level code splitting, bundle size check
+- [ ] Final `prefers-reduced-motion` audit on hero/motion sections
+
+---
+
+## Open questions to confirm with BE (don't block on these unless noted)
+
+From spec Section I:
+
+1. **`POST /api/media/sign`** — no documented FE consumer currently; ignore unless a future feature needs direct Cloudinary upload from the customer side.
+2. **Roles list for `PATCH /admin/users/{id}/roles`** — no `GET /api/roles` endpoint documented. **Blocks Phase 9 Users page** — confirm with BE before starting.
+3. **Refund UX** — confirm synchronous refund (current code) is final before/while building Phase 8 refund UI, or whether a 2-step flow is coming.
+4. **Resend verification email** — no documented resend endpoint. Relevant to Phase 1 auth UX polish (the "verify your email" screen can't offer a resend button until this is confirmed).
+
+---
+
+## Workflow reminders
+
+- Branch off `main` per module (or per phase, if a teammate is taking a whole phase).
+- Follow TDD: write the failing test, implement, run tests, commit in small steps.
+- Run `npm run lint` and `npm test -- --run` before opening a PR — both must be clean.
+- Reuse design tokens (`src/styles/tokens.css`) and shared components — don't introduce raw hex colors or duplicate Button/Card/etc. variants.
+- Vietnamese-language UI throughout (per spec — no i18n in scope).
