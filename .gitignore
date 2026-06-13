@@ -35,3 +35,6 @@ yarn-error.log*
 .vercel
 
 BE-Nestify/
+
+# claude code worktrees/sessions
+.claude/
