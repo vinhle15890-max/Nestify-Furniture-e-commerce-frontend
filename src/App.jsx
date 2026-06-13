@@ -1,8 +1,12 @@
+import { RouterProvider } from 'react-router-dom'
+import { Providers } from './app/providers'
+import { router } from './app/router'
+
 function App() {
   return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <h1 className="text-2xl font-bold">Nestify</h1>
-    </div>
+    <Providers>
+      <RouterProvider router={router} />
+    </Providers>
   )
 }
 
