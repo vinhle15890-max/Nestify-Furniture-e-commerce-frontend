@@ -32,6 +32,8 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      // This is a plain JavaScript (JSX, no TypeScript) codebase and does not use PropTypes.
+      'react/prop-types': 'off',
     },
   },
 ]
