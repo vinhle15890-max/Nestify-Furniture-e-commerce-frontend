@@ -1,0 +1,25 @@
+@theme {
+  /* Colors */
+  --color-background: #F5F0E1;
+  --color-surface: #FBF8F3;
+  --color-foreground: #2B2420;
+  --color-muted-foreground: #8C8275;
+  --color-border: #E3D7C8;
+  --color-primary: #C67B5C;
+  --color-primary-hover: #B5651D;
+  --color-secondary: #6B7B3C;
+  --color-accent: #D97706;
+  --color-destructive: #C0392B;
+  --color-ring: #C67B5C;
+
+  /* Typography */
+  --font-display: "Fraunces Variable", "Fraunces", serif;
+  --font-sans: "Inter Variable", "Inter", sans-serif;
+
+  /* Radii */
+  --radius-control: 12px;
+  --radius-card: 20px;
+
+  /* Shadows */
+  --shadow-soft: 0 4px 16px rgba(43, 36, 32, 0.06);
+}
