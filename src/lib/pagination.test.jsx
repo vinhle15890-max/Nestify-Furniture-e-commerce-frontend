@@ -7,9 +7,10 @@ function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  return ({ children }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
+  function Wrapper({ children }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  }
+  return Wrapper
 }
 
 describe('useCursorQuery', () => {

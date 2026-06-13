@@ -33,20 +33,20 @@ if (typeof global.localStorage === 'undefined' || !global.localStorage.clear) {
 // option and retry, since these tests don't rely on request cancellation.
 if (typeof globalThis.Request === 'function') {
   const NativeRequest = globalThis.Request
-  class PatchedRequest extends NativeRequest {
-    constructor(input, init) {
-      try {
-        super(input, init)
-      } catch (error) {
-        if (init && 'signal' in init && error instanceof TypeError) {
-          const { signal, ...rest } = init
-          super(input, rest)
-          return
-        }
-        throw error
+  function PatchedRequest(input, init) {
+    try {
+      return Reflect.construct(NativeRequest, [input, init], PatchedRequest)
+    } catch (error) {
+      if (init && 'signal' in init && error instanceof TypeError) {
+        const rest = { ...init }
+        delete rest.signal
+        return Reflect.construct(NativeRequest, [input, rest], PatchedRequest)
       }
+      throw error
     }
   }
+  PatchedRequest.prototype = Object.create(NativeRequest.prototype)
+  PatchedRequest.prototype.constructor = PatchedRequest
   globalThis.Request = PatchedRequest
   if (typeof window !== 'undefined') {
     window.Request = PatchedRequest
