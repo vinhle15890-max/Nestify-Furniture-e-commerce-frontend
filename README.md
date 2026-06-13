@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nestify — Furniture E-commerce Frontend
+
+A Vite + React 18 single-page app (plain JavaScript, no TypeScript) for the Nestify furniture
+e-commerce platform — customer storefront + admin back-office, consuming a separate Laravel API.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Copy the environment file and point it at your API:
+
+```bash
+cp .env.example .env
+```
+
+```
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+
+Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:5173](http://localhost:5173) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview the production build locally |
+| `npm test` | Run the Vitest test suite once |
+| `npm run test:watch` | Run Vitest in watch mode |
+| `npm run lint` | Run ESLint |
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Build:** Vite
+- **UI:** React 18, React Router v6
+- **Server state:** TanStack Query v5
+- **Client state:** Zustand (+ `persist`)
+- **HTTP:** Axios (single instance with interceptors)
+- **Styling:** Tailwind CSS v4 (CSS-first `@theme`, design tokens for the "Organic Editorial" theme)
+- **Headless UI:** Radix UI primitives
+- **Icons:** lucide-react
+- **Forms:** React Hook Form + Yup
+- **Testing:** Vitest + React Testing Library + jsdom
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [`AGENTS.md`](./AGENTS.md) — conventions and reference patterns (for contributors and AI assistants)
+- [`docs/superpowers/specs/2026-06-13-fe-nestify-design.md`](./docs/superpowers/specs/2026-06-13-fe-nestify-design.md) — full design spec: architecture, project structure, routing, design system, FE/BE contract
+- [`docs/TASKS.md`](./docs/TASKS.md) — remaining work broken down by phase/module
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/        # Root component, router, providers
+  pages/      # Route-level components (thin — compose features)
+  features/   # Domain logic: api.js + hooks.js per domain
+  components/ # Shared design-system primitives
+  lib/        # apiClient, error handling, pagination helpers
+  store/      # Zustand stores (auth, ui, toast)
+  routes/     # Route guards (ProtectedRoute, AdminRoute)
+  styles/     # Design tokens and global styles
+  test/       # Vitest setup
+```
