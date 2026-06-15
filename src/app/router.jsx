@@ -18,7 +18,17 @@ import { CheckoutPage } from '../pages/checkout/CheckoutPage'
 import { CheckoutReturnPage } from '../pages/checkout/CheckoutReturnPage'
 import { OrdersPage } from '../pages/orders/OrdersPage'
 import { OrderDetailPage } from '../pages/orders/OrderDetailPage'
+import { AdminLayout } from '../pages/admin/AdminLayout'
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage'
+import { AdminCategoriesPage } from '../pages/admin/categories/AdminCategoriesPage'
+import { AdminProductsPage } from '../pages/admin/products/AdminProductsPage'
+import { AdminProductEditPage } from '../pages/admin/products/AdminProductEditPage'
+import { AdminOrdersPage } from '../pages/admin/orders/AdminOrdersPage'
+import { AdminOrderDetailPage } from '../pages/admin/orders/AdminOrderDetailPage'
+import { AdminReviewsPage } from '../pages/admin/reviews/AdminReviewsPage'
+import { AdminVouchersPage } from '../pages/admin/vouchers/AdminVouchersPage'
+import { AdminUsersPage } from '../pages/admin/users/AdminUsersPage'
+import { AdminAuditLogsPage } from '../pages/admin/auditLogs/AdminAuditLogsPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 
 export const routes = [
@@ -50,7 +60,23 @@ export const routes = [
       {
         path: 'admin',
         element: <AdminRoute />,
-        children: [{ index: true, element: <AdminDashboardPage /> }],
+        children: [
+          {
+            element: <AdminLayout />,
+            children: [
+              { index: true, element: <AdminDashboardPage /> },
+              { path: 'categories', element: <AdminCategoriesPage /> },
+              { path: 'products', element: <AdminProductsPage /> },
+              { path: 'products/:id', element: <AdminProductEditPage /> },
+              { path: 'orders', element: <AdminOrdersPage /> },
+              { path: 'orders/:id', element: <AdminOrderDetailPage /> },
+              { path: 'reviews', element: <AdminReviewsPage /> },
+              { path: 'vouchers', element: <AdminVouchersPage /> },
+              { path: 'users', element: <AdminUsersPage /> },
+              { path: 'audit-logs', element: <AdminAuditLogsPage /> },
+            ],
+          },
+        ],
       },
       { path: '*', element: <NotFoundPage /> },
     ],

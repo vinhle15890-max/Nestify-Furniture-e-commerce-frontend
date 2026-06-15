@@ -1,8 +1,10 @@
 # Nestify Frontend — Remaining Work (Module Task Board)
 
 **Status as of 2026-06-15:** Phase 0 (Foundation) is complete and merged to `main`. Phases 1–5
-(Auth & Account, Catalog, Cart & Wishlist, Checkout & Orders, Reviews) are implemented and
-verified (tests/lint/build clean) on branch `feat/phase-1-auth-account`, pending review/merge.
+(Auth & Account, Catalog, Cart & Wishlist, Checkout & Orders, Reviews), Phase 8 (Admin
+Catalog & Orders), and Phase 9 (Admin Moderation & Config) are implemented and verified
+(tests/lint/build clean) on branch `feat/phase-1-auth-account`, pending review/merge. Phases
+6–7 (3D Room Planner, AI Chat) are deferred for now; Phase 10 (Polish & Testing) is next.
 **Full design spec:** `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — read the relevant section before starting a module.
 **API contract:** `BE_Nestify/docs/FE_AI_CONTEXT.md` (BE repo).
 
@@ -199,31 +201,48 @@ orders pointing the user to the product page.
 
 **Folders:** `src/features/admin/`, `src/pages/admin/{categories,products,orders}/`
 
-- [ ] `features/admin/api.js` — categories, products (+variants, +media), orders, refund — split into per-domain files if it grows large
-- [ ] `/admin/categories` — list + create/update/delete (small dataset, plain list)
-- [ ] `/admin/products`, `/admin/products/:id` — offset-paginated list, create/edit form; **edit hydrates from list-cache** (no working `GET /admin/products/{id}`)
-- [ ] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
-- [ ] Media: multipart upload, reorder, delete
-- [ ] `/admin/orders`, `/admin/orders/:id` — offset list + detail
-- [ ] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
-- [ ] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
-- [ ] Tests: admin product list + create form validation, order status transition options match current status
+- [x] `features/admin/{categories,products,orders}/api.js` + `hooks.js` — categories, products (+variants, +media), orders, refund — split into per-domain files
+- [x] `/admin/categories` — list + create/update/delete (small dataset, plain list)
+- [x] `/admin/products`, `/admin/products/:id` — offset-paginated list, create/edit form; **edit hydrates from list-cache** (no working `GET /admin/products/{id}`)
+- [x] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
+- [x] Media: multipart upload, reorder, delete
+- [x] `/admin/orders`, `/admin/orders/:id` — offset list + detail
+- [x] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
+- [x] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
+- [x] Tests: admin product list + create form validation, order status transition options match current status
 
 **Spec refs:** Section E (Admin routes + detail-view caveat), Section G (Admin), Section H items 1–2
+
+**Deviations from `FE_AI_CONTEXT.md` / spec:**
+1. **Media reorder payload** — `PATCH /admin/products/{product}/media/reorder` actually expects
+   `{ids: [...]}` (a flat, ordered array of media IDs; `sort_order` = position in the array),
+   not `media_order: [{id, sort_order}]` as documented. Confirmed against
+   `ProductMediaController::reorder`'s validation rules. FE sends `{ids}`.
+2. **No admin detail endpoints** — `GET /admin/products/{id}` and `GET /admin/orders/{id}` are
+   not implemented (only `index`/`store`/`update`/`destroy` and
+   `index`/`updateStatus`/`refund` respectively). `AdminProductEditPage` and
+   `AdminOrderDetailPage` hydrate from `location.state` (passed by the list pages' "Sửa"/"Xem"
+   links) and fall back to searching the `['admin','products']` / `['admin','orders']` query
+   cache for a matching `id`; if neither yields data, the page shows a "not found" message with
+   a link back to the list.
 
 ---
 
 ## Phase 9 — Admin Moderation & Config
 
-**Folders:** `src/pages/admin/{reviews,vouchers,users,audit}/`
+**Folders:** `src/features/admin/{reviews,vouchers,users,auditLogs}/`, `src/pages/admin/{reviews,vouchers,users,auditLogs}/`
 
-- [ ] `/admin/reviews` — cursor-paginated moderation queue, approve/reject, optimistic removal from list on action
-- [ ] `/admin/vouchers` — full CRUD (`type: percentage|fixed`, usage limits, date range); form validation mirrors BE constraints (`min_order_value`, `max_discount` only for `percentage`)
-- [ ] `/admin/users` — list + `PATCH /admin/users/{id}/roles` (`role_ids` multi-select) — **blocked on open question #2** (no `GET /api/roles` endpoint documented; confirm source for role options before building the multi-select)
-- [ ] `/admin/audit-logs` — read-only paginated table (offset)
-- [ ] Tests: voucher form validation rules, review queue optimistic removal
+- [x] `/admin/reviews` — cursor-paginated moderation queue, approve/reject, optimistic removal from list on action
+- [x] `/admin/vouchers` — full CRUD (`type: percentage|fixed`, usage limits, date range); form validation mirrors BE constraints (`min_order_value`, `max_discount` shown only for `percentage` as a UX nicety)
+- [x] `/admin/users` — **read-only** list (id, name, email, status, roles, email-verified) — `PATCH /admin/users/{id}/roles` (`role_ids` multi-select) remains **blocked on open question #2** (no `GET /api/roles` endpoint and `UserResource.roles` returns role names, not ids; no reliable name→id mapping for the FE)
+- [x] `/admin/audit-logs` — read-only paginated table (offset), expandable `old_values`/`new_values` diff per row
+- [x] Tests: voucher form validation rules (incl. server 422 mapping), review queue optimistic removal, users list, audit log pagination + expansion
 
 **Spec refs:** Section G (Admin), Section I item 2
+
+**Deviations from `FE_AI_CONTEXT.md` / spec:**
+1. **`/admin/users` is read-only** — role assignment (`PATCH /admin/users/{id}/roles`) was not
+   built; see open question #2 below.
 
 ---
 
@@ -242,8 +261,13 @@ orders pointing the user to the product page.
 From spec Section I:
 
 1. **`POST /api/media/sign`** — no documented FE consumer currently; ignore unless a future feature needs direct Cloudinary upload from the customer side.
-2. **Roles list for `PATCH /admin/users/{id}/roles`** — no `GET /api/roles` endpoint documented. **Blocks Phase 9 Users page** — confirm with BE before starting.
-3. **Refund UX** — confirm synchronous refund (current code) is final before/while building Phase 8 refund UI, or whether a 2-step flow is coming.
+2. **Roles list for `PATCH /admin/users/{id}/roles`** — no `GET /api/roles` endpoint documented,
+   and `UserResource.roles` returns role *names* (strings), not ids, so there's no reliable
+   name→id mapping for the FE either. **Phase 9 implemented `/admin/users` as read-only**;
+   revisit role assignment once a roles-lookup endpoint (or id-returning `UserResource`) exists.
+3. **Refund UX** — Phase 8 implemented the refund form against the current synchronous
+   `POST /admin/orders/{id}/refund` (amount+reason → immediate result). Revisit if a 2-step
+   flow is introduced later.
 4. **Resend verification email** — no documented resend endpoint. Relevant to Phase 1 auth UX polish (the "verify your email" screen can't offer a resend button until this is confirmed).
 
 ---
