@@ -38,7 +38,7 @@ describe('App routes', () => {
   })
 
   it('renders /account when authenticated', () => {
-    renderAt('/account', { id: 1, name: 'Bao', roles: ['customer'] })
+    renderAt('/account', { id: 1, name: 'Bao', roles: ['customer'], email_verified_at: '2026-01-01T00:00:00Z' })
     expect(screen.getByRole('heading', { name: 'Tài khoản' })).toBeInTheDocument()
   })
 

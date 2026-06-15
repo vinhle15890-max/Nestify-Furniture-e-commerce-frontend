@@ -1,4 +1,6 @@
-export function Input({ label, id, error, className = '', ...props }) {
+import { forwardRef } from 'react'
+
+export const Input = forwardRef(function Input({ label, id, error, className = '', ...props }, ref) {
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -7,6 +9,7 @@ export function Input({ label, id, error, className = '', ...props }) {
         </label>
       )}
       <input
+        ref={ref}
         id={id}
         className={`rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring ${error ? 'border-destructive' : ''} ${className}`}
         aria-invalid={error ? 'true' : undefined}
@@ -20,4 +23,4 @@ export function Input({ label, id, error, className = '', ...props }) {
       )}
     </div>
   )
-}
+})
