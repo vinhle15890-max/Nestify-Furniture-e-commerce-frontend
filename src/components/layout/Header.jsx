@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { ShoppingCart, Menu, User } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
+import { CategoryNav } from './CategoryNav'
 
 const navLinkClass = ({ isActive }) =>
   `text-sm tracking-wide transition-colors duration-200 ease-out ${
@@ -73,6 +74,8 @@ export function Header() {
           </button>
         </div>
       </div>
+
+      <CategoryNav />
     </header>
   )
 }

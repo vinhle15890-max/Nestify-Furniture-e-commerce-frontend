@@ -1,6 +1,8 @@
 # Nestify Frontend — Remaining Work (Module Task Board)
 
-**Status as of 2026-06-13:** Phase 0 (Foundation) is complete and merged to `main`.
+**Status as of 2026-06-15:** Phase 0 (Foundation) is complete and merged to `main`. Phases 1–2
+(Auth & Account, Catalog) are implemented and verified (tests/lint/build clean) on branch
+`feat/phase-1-auth-account`, pending review/merge.
 **Full design spec:** `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — read the relevant section before starting a module.
 **API contract:** `BE_Nestify/docs/FE_AI_CONTEXT.md` (BE repo).
 
@@ -69,17 +71,17 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/auth/`, `src/features/addresses/`, `src/pages/auth/`, `src/pages/account/`
 
-- [ ] `features/auth/api.js` — `register`, `login`, `logout`, `me`, `forgotPassword`, `resetPassword`, `verifyEmail`
-- [ ] `features/auth/hooks.js` — TanStack Query mutations/queries wrapping the above; on login success call `authStore.login(token, user)`
-- [ ] `/login` page — form (React Hook Form + Yup), map `VALIDATION_FAILED` → field errors, distinct messages for `401` (bad credentials) vs `403 ACCOUNT_INACTIVE`
-- [ ] `/register` page — same pattern
-- [ ] `/forgot-password`, `/reset-password` pages
-- [ ] `/verify-email` landing page (consumes link token)
-- [ ] Email-verification gating: unauthenticated-but-unverified users see a blocking "verify your email" screen (no resend endpoint — see open question #4)
-- [ ] `/account` page — replace placeholder, show profile from `GET /api/auth/me`, link to password change
-- [ ] `features/addresses/api.js` + `hooks.js` — CRUD + `PATCH /addresses/{id}/default`
-- [ ] `/account/addresses` page — list, add/edit/delete, set default
-- [ ] Tests: login/register form validation + success/error paths, `authStore` actions (already partially covered), `ProtectedRoute` redirect behavior with real auth flow
+- [x] `features/auth/api.js` — `register`, `login`, `logout`, `me`, `forgotPassword`, `resetPassword`, `verifyEmail`
+- [x] `features/auth/hooks.js` — TanStack Query mutations/queries wrapping the above; on login success call `authStore.login(token, user)`
+- [x] `/login` page — form (React Hook Form + Yup), map `VALIDATION_FAILED` → field errors, distinct messages for `401` (bad credentials) vs `403 ACCOUNT_INACTIVE`
+- [x] `/register` page — same pattern
+- [x] `/forgot-password`, `/reset-password` pages
+- [x] `/verify-email` landing page (consumes link token)
+- [x] Email-verification gating: unauthenticated-but-unverified users see a blocking "verify your email" screen (no resend endpoint — see open question #4)
+- [x] `/account` page — replace placeholder, show profile from `GET /api/auth/me`, link to password change
+- [x] `features/addresses/api.js` + `hooks.js` — CRUD + `PATCH /addresses/{id}/default`
+- [x] `/account/addresses` page — list, add/edit/delete, set default
+- [x] Tests: login/register form validation + success/error paths, `authStore` actions (already partially covered), `ProtectedRoute` redirect behavior with real auth flow
 
 **Spec refs:** Section E (Public + Authenticated routes), Section G (Auth, Addresses), Section H item 4 (cross-user `404`)
 
@@ -89,15 +91,15 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/catalog/`, `src/pages/home/`, `src/pages/catalog/`, `src/pages/product/`
 
-- [ ] `features/catalog/api.js` — `getCategories`, `getCategory(slug)`, `getProducts(filters, cursor)`, `getProduct(slug)`, `getProductReviews(slug, cursor)`
-- [ ] `features/catalog/hooks.js` — `useCategories`, `useInfiniteProducts` (cursor `useInfiniteQuery`), `useProduct`, `useProductReviews`
-- [ ] Category nav / mega-menu (top of Header) from `GET /api/categories` (nested `children`)
-- [ ] `/` Home — replace placeholder: hero + featured/newest product sections
-- [ ] `/c/:categorySlug` — category listing: filters (`filter[category]`, `filter[brand]`), sort, infinite-scroll/"load more" grid
-- [ ] `/p/:productSlug` — product detail: variant selector (price/stock/3D model per variant), media gallery (image/video by `sort_order`), `description` sanitized with DOMPurify
-- [ ] Reviews display section on product page (approved reviews only, cursor pagination)
-- [ ] `available_stock` per variant drives Add-to-cart disabled state + quantity max
-- [ ] Tests: product card rendering, variant selection updates price/stock, category filter changes query key
+- [x] `features/catalog/api.js` — `getCategories`, `getCategory(slug)`, `getProducts(filters, cursor)`, `getProduct(slug)`, `getProductReviews(slug, cursor)`
+- [x] `features/catalog/hooks.js` — `useCategories`, `useInfiniteProducts` (cursor `useInfiniteQuery`), `useProduct`, `useProductReviews`
+- [x] Category nav / mega-menu (top of Header) from `GET /api/categories` (nested `children`)
+- [x] `/` Home — replace placeholder: hero + featured/newest product sections
+- [x] `/c/:categorySlug` — category listing: filters (`filter[category]`, `filter[brand]`), sort, infinite-scroll/"load more" grid
+- [x] `/p/:productSlug` — product detail: variant selector (price/stock/3D model per variant), media gallery (image/video by `sort_order`), `description` sanitized with DOMPurify
+- [x] Reviews display section on product page (approved reviews only, cursor pagination)
+- [x] `available_stock` per variant drives Add-to-cart disabled state + quantity max
+- [x] Tests: product card rendering, variant selection updates price/stock, category filter changes query key
 
 **Spec refs:** Section E (public routes), Section G (Catalog)
 

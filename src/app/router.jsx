@@ -3,6 +3,8 @@ import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { AdminRoute } from '../routes/AdminRoute'
 import { HomePage } from '../pages/home/HomePage'
+import { CategoryPage } from '../pages/catalog/CategoryPage'
+import { ProductPage } from '../pages/product/ProductPage'
 import { LoginPage } from '../pages/auth/LoginPage'
 import { RegisterPage } from '../pages/auth/RegisterPage'
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage'
@@ -19,6 +21,8 @@ export const routes = [
     element: <Layout />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'c/:categorySlug', element: <CategoryPage /> },
+      { path: 'p/:productSlug', element: <ProductPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
