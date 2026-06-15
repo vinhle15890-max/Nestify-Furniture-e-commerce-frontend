@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
-import { Heart } from 'lucide-react'
+import { Heart, Star } from 'lucide-react'
 import { Button } from '../../components/Button'
+import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
-import { formatPrice } from '../../lib/format'
+import { formatPrice, formatDate } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
 import { useAddWishlistItem } from '../../features/wishlist/hooks'
+import { useOrders } from '../../features/orders/hooks'
+import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
 import { useToastStore } from '../../store/toastStore'
@@ -27,7 +30,7 @@ export function ProductPage() {
     () => [...(product?.media ?? [])].sort((a, b) => a.sort_order - b.sort_order),
     [product],
   )
-  const variants = product?.variants ?? []
+  const variants = useMemo(() => product?.variants ?? [], [product])
 
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0)
   const [selectedVariantId, setSelectedVariantId] = useState(null)
@@ -90,6 +93,54 @@ export function ProductPage() {
     () => reviewsQuery.data?.pages.flatMap((page) => page.data) ?? [],
     [reviewsQuery.data],
   )
+
+  const { data: ordersData } = useOrders({ enabled: !!token })
+  const createReview = useCreateReview()
+  const createComment = useCreateComment(productSlug)
+
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewTitle, setReviewTitle] = useState('')
+  const [reviewBody, setReviewBody] = useState('')
+  const [reviewSubmitted, setReviewSubmitted] = useState(false)
+  const [reviewError, setReviewError] = useState(null)
+  const [commentDrafts, setCommentDrafts] = useState({})
+
+  const variantIds = useMemo(() => new Set(variants.map((variant) => variant.id)), [variants])
+  const verifiedOrder = useMemo(
+    () =>
+      ordersData?.data?.find(
+        (order) => order.status === 'delivered' && order.items.some((item) => variantIds.has(item.variant_id)),
+      ),
+    [ordersData, variantIds],
+  )
+
+  async function handleSubmitReview(event) {
+    event.preventDefault()
+    setReviewError(null)
+    try {
+      await createReview.mutateAsync({
+        productId: product.id,
+        order_id: verifiedOrder.id,
+        rating: reviewRating,
+        title: reviewTitle.trim() || undefined,
+        body: reviewBody.trim(),
+      })
+      setReviewSubmitted(true)
+    } catch (error) {
+      setReviewError(error.message)
+    }
+  }
+
+  function handleSubmitComment(event, reviewId) {
+    event.preventDefault()
+    const body = (commentDrafts[reviewId] ?? '').trim()
+    if (!body) return
+
+    createComment.mutate(
+      { reviewId, body },
+      { onSuccess: () => setCommentDrafts((prev) => ({ ...prev, [reviewId]: '' })) },
+    )
+  }
 
   if (isLoading) {
     return (
@@ -246,6 +297,66 @@ export function ProductPage() {
       <section className="mt-16">
         <h2 className="font-display text-2xl text-foreground">Đánh giá</h2>
 
+        {token && verifiedOrder && !reviewSubmitted && (
+          <form
+            onSubmit={handleSubmitReview}
+            className="mt-4 flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-soft"
+          >
+            <p className="text-sm font-medium text-foreground">Viết đánh giá của bạn</p>
+
+            <div className="flex gap-1 text-accent">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-label={`Đánh giá ${value} sao`}
+                  aria-pressed={value <= reviewRating}
+                  onClick={() => setReviewRating(value)}
+                >
+                  <Star size={20} fill={value <= reviewRating ? 'currentColor' : 'none'} />
+                </button>
+              ))}
+            </div>
+
+            <Input
+              id="review-title"
+              label="Tiêu đề (không bắt buộc)"
+              value={reviewTitle}
+              onChange={(event) => setReviewTitle(event.target.value)}
+              maxLength={200}
+            />
+
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor="review-body">
+              Nội dung đánh giá
+              <textarea
+                id="review-body"
+                value={reviewBody}
+                onChange={(event) => setReviewBody(event.target.value)}
+                maxLength={5000}
+                rows={4}
+                required
+                className="rounded-control border border-border bg-surface px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+
+            {reviewError && (
+              <p role="alert" className="text-sm text-destructive">
+                {reviewError}
+              </p>
+            )}
+
+            <Button type="submit" disabled={reviewRating === 0 || !reviewBody.trim() || createReview.isPending}>
+              {createReview.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
+            </Button>
+          </form>
+        )}
+
+        {reviewSubmitted && (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Đánh giá của bạn đã được gửi và đang chờ kiểm duyệt.
+          </p>
+        )}
+
         {reviews.length === 0 ? (
           <p className="mt-4 text-muted-foreground">Chưa có đánh giá nào.</p>
         ) : (
@@ -258,6 +369,50 @@ export function ProductPage() {
                 </div>
                 {review.title && <p className="mt-1 font-medium text-foreground">{review.title}</p>}
                 <p className="mt-1 text-sm text-foreground">{review.body}</p>
+
+                {review.comments?.length > 0 && (
+                  <ul className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+                    {review.comments.map((comment) => (
+                      <li key={comment.id} className="pl-4 text-sm">
+                        <p className="font-medium text-foreground">
+                          {comment.user?.name}{' '}
+                          <span className="font-normal text-muted-foreground">· {formatDate(comment.created_at)}</span>
+                        </p>
+                        <p className="text-muted-foreground">{comment.body}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {token && (
+                  <form
+                    onSubmit={(event) => handleSubmitComment(event, review.id)}
+                    className="mt-3 flex flex-col gap-2 border-t border-border pt-3"
+                  >
+                    <label className="text-sm text-foreground" htmlFor={`comment-${review.id}`}>
+                      Bình luận
+                      <textarea
+                        id={`comment-${review.id}`}
+                        value={commentDrafts[review.id] ?? ''}
+                        onChange={(event) =>
+                          setCommentDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))
+                        }
+                        maxLength={2000}
+                        rows={2}
+                        className="mt-1.5 block w-full rounded-control border border-border bg-surface px-3 py-2 text-sm font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </label>
+                    <div>
+                      <Button
+                        type="submit"
+                        variant="secondary"
+                        disabled={!commentDrafts[review.id]?.trim() || createComment.isPending}
+                      >
+                        Gửi bình luận
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </li>
             ))}
           </ul>

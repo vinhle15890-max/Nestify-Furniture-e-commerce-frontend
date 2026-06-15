@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as ordersApi from './api'
 
-export function useOrders() {
-  return useQuery({ queryKey: ['orders'], queryFn: ordersApi.getOrders })
+export function useOrders(options = {}) {
+  return useQuery({ queryKey: ['orders'], queryFn: ordersApi.getOrders, ...options })
 }
 
 export function useOrder(id, options = {}) {

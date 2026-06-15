@@ -1,8 +1,8 @@
 # Nestify Frontend — Remaining Work (Module Task Board)
 
-**Status as of 2026-06-15:** Phase 0 (Foundation) is complete and merged to `main`. Phases 1–4
-(Auth & Account, Catalog, Cart & Wishlist, Checkout & Orders) are implemented and verified
-(tests/lint/build clean) on branch `feat/phase-1-auth-account`, pending review/merge.
+**Status as of 2026-06-15:** Phase 0 (Foundation) is complete and merged to `main`. Phases 1–5
+(Auth & Account, Catalog, Cart & Wishlist, Checkout & Orders, Reviews) are implemented and
+verified (tests/lint/build clean) on branch `feat/phase-1-auth-account`, pending review/merge.
 **Full design spec:** `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — read the relevant section before starting a module.
 **API contract:** `BE_Nestify/docs/FE_AI_CONTEXT.md` (BE repo).
 
@@ -144,11 +144,20 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/reviews/`, integrates into `pages/orders/` and `pages/product/`
 
-- [ ] `features/reviews/api.js` + `hooks.js` — `createReview(productId, orderId, ...)`, `getReviewComments`, `createComment(reviewId, body)`
-- [ ] Review form on `/orders/:id` — scoped to delivered orders' line items, `order_id` passed automatically (verified purchase)
-- [ ] "Submitted, awaiting approval" confirmation after submit (new reviews are `pending`, not shown immediately)
-- [ ] Comments UI on `/p/:productSlug` review list — 1-level only (no nested replies)
-- [ ] Tests: review form only renders for delivered orders, submit shows pending confirmation
+- [x] `features/reviews/api.js` + `hooks.js` — `createReview(productId, payload)`, `createComment(reviewId, body)`
+- [x] Review form on `/p/:productSlug` — scoped to delivered orders' line items, `order_id` passed automatically (verified purchase)
+- [x] "Submitted, awaiting approval" confirmation after submit (new reviews are `pending`, not shown immediately)
+- [x] Comments UI on `/p/:productSlug` review list — 1-level only (no nested replies)
+- [x] Tests: review form only renders for a verified (delivered) purchase, submit shows pending confirmation
+
+**Deviation from spec wording:** the review-submission form lives on `/p/:productSlug`, not
+`/orders/:id`. `OrderItemResource`/`variant_snapshot` (BE `SnapshotOrderData.php`) contain no
+`product_id` or product slug, and no documented endpoint resolves `variant_id → product`, so
+`/orders/:id` cannot drive `POST /api/products/{id}/reviews` or link to a product page.
+Instead, `/p/:productSlug` (where `product.id` and `product.variants[].id` are already loaded)
+cross-references `useOrders()` for a `delivered` order containing one of this product's
+variants, and auto-fills `order_id` from it. `/orders/:id` shows a passive hint for delivered
+orders pointing the user to the product page.
 
 **Spec refs:** Section G (Reviews)
 

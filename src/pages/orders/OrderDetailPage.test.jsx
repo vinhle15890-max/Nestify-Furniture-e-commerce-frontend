@@ -68,15 +68,17 @@ describe('OrderDetailPage', () => {
     expect(screen.getByText('Ghế Sofa Nâu')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Hủy đơn' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Thanh toán lại' })).toBeInTheDocument()
+    expect(screen.queryByText(/Hãy để lại đánh giá/)).not.toBeInTheDocument()
   })
 
-  it('hides cancel and retry actions for a delivered order', async () => {
+  it('hides cancel and retry actions and shows a review hint for a delivered order', async () => {
     ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'delivered' } })
     renderPage()
 
     expect(await screen.findByText('Đơn hàng #99')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Hủy đơn' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Thanh toán lại' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Hãy để lại đánh giá/)).toBeInTheDocument()
   })
 
   it('cancels the order on confirmation', async () => {

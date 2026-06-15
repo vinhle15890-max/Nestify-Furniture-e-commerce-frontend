@@ -130,6 +130,12 @@ export function OrderDetailPage() {
             <span>{formatPrice(order.total)}</span>
           </div>
         </div>
+
+        {order.status === 'delivered' && (
+          <p className="border-t border-border pt-4 text-sm text-muted-foreground">
+            Đơn hàng đã giao. Hãy để lại đánh giá trên trang sản phẩm.
+          </p>
+        )}
       </Card>
 
       {isPendingPayment && (

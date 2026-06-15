@@ -7,12 +7,16 @@ import { ProductPage } from './ProductPage'
 import * as catalogApi from '../../features/catalog/api'
 import * as cartApi from '../../features/cart/api'
 import * as wishlistApi from '../../features/wishlist/api'
+import * as ordersApi from '../../features/orders/api'
+import * as reviewsApi from '../../features/reviews/api'
 import { useAuthStore } from '../../store/authStore'
 import { ApiError } from '../../lib/errors'
 
 vi.mock('../../features/catalog/api')
 vi.mock('../../features/cart/api')
 vi.mock('../../features/wishlist/api')
+vi.mock('../../features/orders/api')
+vi.mock('../../features/reviews/api')
 
 function renderPage(slug = 'ghe-sofa-da') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -77,7 +81,9 @@ const reviewsResponse = {
       body: 'Rất hài lòng với sản phẩm',
       status: 'approved',
       user: { id: 1, name: 'Bao' },
-      comments: [],
+      comments: [
+        { id: 1, body: 'Đồng ý!', user: { id: 2, name: 'Lan' }, created_at: '2026-01-02T00:00:00Z' },
+      ],
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-01T00:00:00Z',
     },
@@ -93,6 +99,7 @@ describe('ProductPage', () => {
     catalogApi.getProductReviews.mockResolvedValue(reviewsResponse)
     cartApi.addItem.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
     wishlistApi.addItem.mockResolvedValue({ data: { id: 1 } })
+    ordersApi.getOrders.mockResolvedValue({ data: [] })
   })
 
   it('renders product details, sanitized description, and approved reviews', async () => {
@@ -148,5 +155,53 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào yêu thích' }))
 
     expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 1 })
+  })
+
+  it('does not show a review form without a delivered order containing this product', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.queryByRole('button', { name: 'Gửi đánh giá' })).not.toBeInTheDocument()
+  })
+
+  it('shows a review form for a verified purchase and submits a pending review', async () => {
+    ordersApi.getOrders.mockResolvedValue({
+      data: [
+        {
+          id: 55,
+          status: 'delivered',
+          items: [{ id: 1, variant_id: 1, variant_snapshot: {}, quantity: 1, unit_price: 5000000, subtotal: 5000000 }],
+        },
+      ],
+    })
+    reviewsApi.createReview.mockResolvedValue({ data: { id: 10, status: 'pending' } })
+
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Đánh giá 5 sao' }))
+    await userEvent.type(screen.getByLabelText('Nội dung đánh giá'), 'Rất tốt')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi đánh giá' }))
+
+    expect(reviewsApi.createReview).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ order_id: 55, rating: 5, body: 'Rất tốt' }),
+    )
+    expect(await screen.findByText(/đang chờ kiểm duyệt/)).toBeInTheDocument()
+  })
+
+  it('renders existing comments and submits a new comment', async () => {
+    reviewsApi.createComment.mockResolvedValue({ data: { id: 2, body: 'Cảm ơn', user: { id: 1, name: 'Bao' }, created_at: '2026-01-03T00:00:00Z' } })
+
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(await screen.findByText('Đồng ý!')).toBeInTheDocument()
+    expect(screen.getByText('Lan', { exact: false })).toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText('Bình luận'), 'Cảm ơn')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
+
+    expect(reviewsApi.createComment).toHaveBeenCalledWith(1, 'Cảm ơn')
   })
 })
