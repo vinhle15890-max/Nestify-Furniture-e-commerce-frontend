@@ -1,8 +1,8 @@
 # Nestify Frontend — Remaining Work (Module Task Board)
 
-**Status as of 2026-06-15:** Phase 0 (Foundation) is complete and merged to `main`. Phases 1–2
-(Auth & Account, Catalog) are implemented and verified (tests/lint/build clean) on branch
-`feat/phase-1-auth-account`, pending review/merge.
+**Status as of 2026-06-15:** Phase 0 (Foundation) is complete and merged to `main`. Phases 1–4
+(Auth & Account, Catalog, Cart & Wishlist, Checkout & Orders) are implemented and verified
+(tests/lint/build clean) on branch `feat/phase-1-auth-account`, pending review/merge.
 **Full design spec:** `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — read the relevant section before starting a module.
 **API contract:** `BE_Nestify/docs/FE_AI_CONTEXT.md` (BE repo).
 
@@ -109,14 +109,14 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/cart/`, `src/features/wishlist/`, `src/pages/cart/`, `src/pages/wishlist/`
 
-- [ ] `features/cart/api.js` — `getCart`, `addItem`, `updateItem`, `removeItem`, `applyVoucher`
-- [ ] `features/cart/hooks.js` — `useCart`, mutations invalidate `['cart']`; voucher preview as separate non-persisted query
-- [ ] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
-- [ ] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
-- [ ] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
-- [ ] `/wishlist` page — list, toggle restock notify, move-to-cart (handle `409 INSUFFICIENT_STOCK` → inline error, keep item)
-- [ ] Cart drawer (uses `uiStore.toggleCart`, already wired in Header) — mini cart summary
-- [ ] Tests: cart add/update/remove incl. stock-error handling, voucher preview applies to summary only
+- [x] `features/cart/api.js` — `getCart`, `addItem`, `updateItem`, `removeItem`, `applyVoucher`
+- [x] `features/cart/hooks.js` — `useCart`, mutations invalidate `['cart']`; voucher preview as separate non-persisted query
+- [x] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
+- [x] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
+- [x] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
+- [x] `/wishlist` page — list, toggle restock notify, move-to-cart (handle `409 INSUFFICIENT_STOCK` → inline error, keep item)
+- [x] Cart drawer (uses `uiStore.toggleCart`, already wired in Header) — mini cart summary
+- [x] Tests: cart add/update/remove incl. stock-error handling, voucher preview applies to summary only
 
 **Spec refs:** Section G (Cart, Wishlist), Section H item 5 (single voucher per order)
 
@@ -126,15 +126,15 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/checkout/`, `src/features/orders/`, `src/pages/checkout/`, `src/pages/orders/`
 
-- [ ] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
-- [ ] `features/checkout/api.js` — `getAddresses`, `applyVoucher`, `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)`
-- [ ] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **gateway picker** (`payos` | `stripe`), submit → create order → create payment session → redirect
-- [ ] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
-- [ ] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder`, `createPaymentSession` (retry)
-- [ ] `/orders` page — order history list
-- [ ] `/orders/:id` page — status, items, **Cancel** (enabled only while `pending_payment`), **Retry payment** (enabled only while `pending_payment`; handle `409 ORDER_ALREADY_PAID` → refetch + show paid state)
-- [ ] Rate-limit handling: disable "Pay now" while in-flight, surface `429 RATE_LIMITED`
-- [ ] Tests: checkout happy path (address → voucher → gateway → order creation, mocked API), cancel/retry button enable logic
+- [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
+- [x] `features/checkout/api.js` — `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)` (addresses/voucher reused from existing `features/addresses` and `features/cart`)
+- [x] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **gateway picker** (`payos` | `stripe`), submit → create order → create payment session → redirect
+- [x] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
+- [x] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder` (retry payment reuses `useCreatePaymentSession` from `features/checkout/hooks.js`)
+- [x] `/orders` page — order history list
+- [x] `/orders/:id` page — status, items, **Cancel** (enabled only while `pending_payment`), **Retry payment** (enabled only while `pending_payment`; handle `409 ORDER_ALREADY_PAID` → refetch + show paid state)
+- [x] Rate-limit handling: disable "Pay now" while in-flight, surface `429 RATE_LIMITED`
+- [x] Tests: checkout happy path (address → voucher → gateway → order creation, mocked API), cancel/retry button enable logic
 
 **Spec refs:** Section C (Idempotency-Key), Section G (Orders & Checkout), Section H items 2–4
 

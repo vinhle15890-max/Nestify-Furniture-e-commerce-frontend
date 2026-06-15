@@ -5,8 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { ProductPage } from './ProductPage'
 import * as catalogApi from '../../features/catalog/api'
+import * as cartApi from '../../features/cart/api'
+import * as wishlistApi from '../../features/wishlist/api'
+import { useAuthStore } from '../../store/authStore'
+import { ApiError } from '../../lib/errors'
 
 vi.mock('../../features/catalog/api')
+vi.mock('../../features/cart/api')
+vi.mock('../../features/wishlist/api')
 
 function renderPage(slug = 'ghe-sofa-da') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -82,8 +88,11 @@ const reviewsResponse = {
 describe('ProductPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao', roles: ['customer'] } })
     catalogApi.getProduct.mockResolvedValue(productResponse)
     catalogApi.getProductReviews.mockResolvedValue(reviewsResponse)
+    cartApi.addItem.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
+    wishlistApi.addItem.mockResolvedValue({ data: { id: 1 } })
   })
 
   it('renders product details, sanitized description, and approved reviews', async () => {
@@ -108,5 +117,36 @@ describe('ProductPage', () => {
     expect(screen.getByText('5.500.000 ₫')).toBeInTheDocument()
     expect(screen.getByText('Hết hàng')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeDisabled()
+  })
+
+  it('adds the selected variant to the cart', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
+
+    expect(cartApi.addItem).toHaveBeenCalledWith({ variant_id: 1, quantity: 1 })
+  })
+
+  it('shows an inline message and clamps quantity on insufficient stock', async () => {
+    cartApi.addItem.mockRejectedValue(
+      new ApiError('INSUFFICIENT_STOCK', 'Không đủ hàng trong kho', { variant_id: 1, requested: 1, available: 2 }, 409),
+    )
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
+
+    expect(await screen.findByText('Chỉ còn 2 sản phẩm trong kho')).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(2)
+  })
+
+  it('adds the selected variant to the wishlist', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào yêu thích' }))
+
+    expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 1 })
   })
 })

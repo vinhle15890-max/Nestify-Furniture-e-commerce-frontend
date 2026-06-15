@@ -5,8 +5,10 @@ import { routes } from './app/router'
 import { Providers } from './app/providers'
 import { useAuthStore } from './store/authStore'
 import * as catalogApi from './features/catalog/api'
+import * as cartApi from './features/cart/api'
 
 vi.mock('./features/catalog/api')
+vi.mock('./features/cart/api')
 
 function renderAt(initialPath, user = null) {
   if (user) {
@@ -52,6 +54,7 @@ describe('App routes', () => {
       data: [],
       meta: { pagination: { has_more: false, next_cursor: null, limit: 20 } },
     })
+    cartApi.getCart.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
   })
 
   it('renders the home page at "/"', () => {
@@ -67,6 +70,37 @@ describe('App routes', () => {
   it('renders a product page at "/p/:productSlug"', async () => {
     renderAt('/p/ghe-sofa')
     expect(await screen.findByRole('heading', { name: 'Ghế sofa', level: 1 })).toBeInTheDocument()
+  })
+
+  it('renders a guest cart shell at "/cart"', () => {
+    renderAt('/cart')
+    expect(screen.getByRole('heading', { name: 'Giỏ hàng', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText(/đăng nhập/)).toBeInTheDocument()
+  })
+
+  it('redirects /wishlist to /login when not authenticated', () => {
+    renderAt('/wishlist')
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
+  })
+
+  it('redirects /checkout to /login when not authenticated', () => {
+    renderAt('/checkout')
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
+  })
+
+  it('redirects /checkout/return to /login when not authenticated', () => {
+    renderAt('/checkout/return')
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
+  })
+
+  it('redirects /orders to /login when not authenticated', () => {
+    renderAt('/orders')
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
+  })
+
+  it('redirects /orders/:id to /login when not authenticated', () => {
+    renderAt('/orders/1')
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
   })
 
   it('renders the not-found page for an unknown route', () => {

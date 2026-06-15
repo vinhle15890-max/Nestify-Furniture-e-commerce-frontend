@@ -50,6 +50,9 @@ export function AccountPage() {
         <Link to="/account/addresses" className="text-primary hover:text-primary-hover">
           Sổ địa chỉ
         </Link>
+        <Link to="/orders" className="text-primary hover:text-primary-hover">
+          Đơn hàng của tôi
+        </Link>
         <Link to="/forgot-password" className="text-primary hover:text-primary-hover">
           Đổi mật khẩu
         </Link>

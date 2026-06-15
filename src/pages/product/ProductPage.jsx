@@ -1,15 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
+import { Heart } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 import { formatPrice } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
+import { useAddCartItem } from '../../features/cart/hooks'
+import { useAddWishlistItem } from '../../features/wishlist/hooks'
+import { useAuthStore } from '../../store/authStore'
+import { useUiStore } from '../../store/uiStore'
+import { useToastStore } from '../../store/toastStore'
 
 export function ProductPage() {
   const { productSlug } = useParams()
   const { data, isLoading } = useProduct(productSlug)
   const product = data?.data
+  const token = useAuthStore((state) => state.token)
+  const openCart = useUiStore((state) => state.openCart)
+  const addToast = useToastStore((state) => state.addToast)
+  const addCartItem = useAddCartItem()
+  const addWishlistItem = useAddWishlistItem()
+  const [stockError, setStockError] = useState(null)
 
   const media = useMemo(
     () => [...(product?.media ?? [])].sort((a, b) => a.sort_order - b.sort_order),
@@ -36,6 +48,42 @@ export function ProductPage() {
   useEffect(() => {
     setQuantity((current) => Math.min(Math.max(current, 1), Math.max(availableStock, 1)))
   }, [availableStock])
+
+  useEffect(() => {
+    setStockError(null)
+  }, [selectedVariantId])
+
+  function handleAddToCart() {
+    addCartItem.mutate(
+      { variant_id: selectedVariant.id, quantity },
+      {
+        onSuccess: () => {
+          setStockError(null)
+          addToast({ title: 'Đã thêm vào giỏ hàng', variant: 'success' })
+          openCart()
+        },
+        onError: (error) => {
+          if (error.code === 'INSUFFICIENT_STOCK') {
+            const available = error.details?.available ?? 0
+            setStockError(available)
+            setQuantity(Math.max(available, 1))
+          } else {
+            addToast({ title: 'Không thể thêm vào giỏ hàng', description: error.message, variant: 'error' })
+          }
+        },
+      },
+    )
+  }
+
+  function handleAddToWishlist() {
+    addWishlistItem.mutate(
+      { variant_id: selectedVariant.id },
+      {
+        onSuccess: () => addToast({ title: 'Đã thêm vào yêu thích', variant: 'success' }),
+        onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: error.message, variant: 'error' }),
+      },
+    )
+  }
 
   const reviewsQuery = useProductReviews(productSlug)
   const reviews = useMemo(
@@ -146,19 +194,45 @@ export function ProductPage() {
               <input
                 type="number"
                 min={1}
-                max={Math.max(availableStock, 1)}
+                max={Math.max(stockError ?? availableStock, 1)}
                 value={quantity}
                 disabled={outOfStock}
                 onChange={(event) => {
                   const next = Number(event.target.value)
-                  setQuantity(Math.min(Math.max(next, 1), Math.max(availableStock, 1)))
+                  const max = Math.max(stockError ?? availableStock, 1)
+                  setQuantity(Math.min(Math.max(next, 1), max))
                 }}
                 className="w-20 rounded-control border border-border bg-surface px-3 py-2"
               />
             </label>
 
-            <Button disabled={outOfStock}>Thêm vào giỏ</Button>
+            {token ? (
+              <>
+                <Button onClick={handleAddToCart} disabled={outOfStock || addCartItem.isPending}>
+                  Thêm vào giỏ
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  aria-label="Thêm vào yêu thích"
+                  onClick={handleAddToWishlist}
+                  disabled={addWishlistItem.isPending}
+                >
+                  <Heart size={18} />
+                </Button>
+              </>
+            ) : (
+              <Link to="/login" className="text-sm text-primary hover:underline">
+                Đăng nhập để mua hàng
+              </Link>
+            )}
           </div>
+
+          {stockError !== null && (
+            <p role="alert" className="mt-2 text-sm text-destructive">
+              Chỉ còn {stockError} sản phẩm trong kho
+            </p>
+          )}
 
           {sanitizedDescription && (
             <div

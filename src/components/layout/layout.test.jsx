@@ -7,8 +7,10 @@ import { Footer } from './Footer'
 import { Layout } from './Layout'
 import { useAuthStore } from '../../store/authStore'
 import * as catalogApi from '../../features/catalog/api'
+import * as cartApi from '../../features/cart/api'
 
 vi.mock('../../features/catalog/api')
+vi.mock('../../features/cart/api')
 
 function renderWithProviders(children) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -24,6 +26,7 @@ describe('Header', () => {
     vi.clearAllMocks()
     useAuthStore.setState({ token: null, user: null })
     catalogApi.getCategories.mockResolvedValue({ data: [] })
+    cartApi.getCart.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
   })
 
   it('shows "Đăng nhập" when logged out', () => {
