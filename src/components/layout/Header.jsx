@@ -2,9 +2,14 @@ import { Link, NavLink } from 'react-router-dom'
 import { ShoppingCart, Menu, User } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
+import { Logo } from '../Logo'
+import { CategoryNav } from './CategoryNav'
+
+const focusRing =
+  'rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
 
 const navLinkClass = ({ isActive }) =>
-  `text-sm tracking-wide transition-colors duration-200 ease-out ${
+  `text-sm tracking-wide transition-colors duration-200 ease-out ${focusRing} ${
     isActive ? 'text-primary' : 'text-foreground hover:text-primary'
   }`
 
@@ -19,8 +24,8 @@ export function Header() {
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-        <Link to="/" className="font-display text-2xl text-foreground">
-          Nestify
+        <Link to="/" aria-label="Nestify — trang chủ" className={`flex items-center ${focusRing}`}>
+          <Logo className="h-12 w-auto" />
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
@@ -38,7 +43,7 @@ export function Header() {
           <button
             type="button"
             aria-label="Giỏ hàng"
-            className="cursor-pointer text-foreground hover:text-primary"
+            className={`cursor-pointer text-foreground hover:text-primary ${focusRing}`}
             onClick={toggleCart}
           >
             <ShoppingCart size={20} />
@@ -46,19 +51,19 @@ export function Header() {
 
           {user ? (
             <>
-              <Link to="/account" aria-label="Tài khoản" className="text-foreground hover:text-primary">
+              <Link to="/account" aria-label="Tài khoản" className={`text-foreground hover:text-primary ${focusRing}`}>
                 <User size={20} />
               </Link>
               <button
                 type="button"
                 onClick={logout}
-                className="cursor-pointer text-sm text-foreground hover:text-primary"
+                className={`cursor-pointer text-sm text-foreground hover:text-primary ${focusRing}`}
               >
                 Đăng xuất
               </button>
             </>
           ) : (
-            <Link to="/login" className="text-sm text-foreground hover:text-primary">
+            <Link to="/login" className={`text-sm text-foreground hover:text-primary ${focusRing}`}>
               Đăng nhập
             </Link>
           )}
@@ -66,13 +71,15 @@ export function Header() {
           <button
             type="button"
             aria-label="Mở menu"
-            className="cursor-pointer text-foreground hover:text-primary md:hidden"
+            className={`cursor-pointer text-foreground hover:text-primary md:hidden ${focusRing}`}
             onClick={toggleMobileNav}
           >
             <Menu size={20} />
           </button>
         </div>
       </div>
+
+      <CategoryNav />
     </header>
   )
 }

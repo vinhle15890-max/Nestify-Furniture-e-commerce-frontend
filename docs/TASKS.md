@@ -1,6 +1,11 @@
 # Nestify Frontend — Remaining Work (Module Task Board)
 
-**Status as of 2026-06-13:** Phase 0 (Foundation) is complete and merged to `main`.
+**Status as of 2026-06-16:** Phase 0 (Foundation) is complete and merged to `main`. Phases 1–5
+(Auth & Account, Catalog, Cart & Wishlist, Checkout & Orders, Reviews), Phase 8 (Admin
+Catalog & Orders), Phase 9 (Admin Moderation & Config), and Phase 10 (Polish & Testing) are
+implemented and verified (tests/lint/build clean) on branch `feat/phase-1-auth-account`,
+pending review/merge. Phases 6–7 (3D Room Planner, AI Chat) remain deferred. **All non-deferred
+phases are now complete.**
 **Full design spec:** `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — read the relevant section before starting a module.
 **API contract:** `BE_Nestify/docs/FE_AI_CONTEXT.md` (BE repo).
 
@@ -69,17 +74,17 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/auth/`, `src/features/addresses/`, `src/pages/auth/`, `src/pages/account/`
 
-- [ ] `features/auth/api.js` — `register`, `login`, `logout`, `me`, `forgotPassword`, `resetPassword`, `verifyEmail`
-- [ ] `features/auth/hooks.js` — TanStack Query mutations/queries wrapping the above; on login success call `authStore.login(token, user)`
-- [ ] `/login` page — form (React Hook Form + Yup), map `VALIDATION_FAILED` → field errors, distinct messages for `401` (bad credentials) vs `403 ACCOUNT_INACTIVE`
-- [ ] `/register` page — same pattern
-- [ ] `/forgot-password`, `/reset-password` pages
-- [ ] `/verify-email` landing page (consumes link token)
-- [ ] Email-verification gating: unauthenticated-but-unverified users see a blocking "verify your email" screen (no resend endpoint — see open question #4)
-- [ ] `/account` page — replace placeholder, show profile from `GET /api/auth/me`, link to password change
-- [ ] `features/addresses/api.js` + `hooks.js` — CRUD + `PATCH /addresses/{id}/default`
-- [ ] `/account/addresses` page — list, add/edit/delete, set default
-- [ ] Tests: login/register form validation + success/error paths, `authStore` actions (already partially covered), `ProtectedRoute` redirect behavior with real auth flow
+- [x] `features/auth/api.js` — `register`, `login`, `logout`, `me`, `forgotPassword`, `resetPassword`, `verifyEmail`
+- [x] `features/auth/hooks.js` — TanStack Query mutations/queries wrapping the above; on login success call `authStore.login(token, user)`
+- [x] `/login` page — form (React Hook Form + Yup), map `VALIDATION_FAILED` → field errors, distinct messages for `401` (bad credentials) vs `403 ACCOUNT_INACTIVE`
+- [x] `/register` page — same pattern
+- [x] `/forgot-password`, `/reset-password` pages
+- [x] `/verify-email` landing page (consumes link token)
+- [x] Email-verification gating: unauthenticated-but-unverified users see a blocking "verify your email" screen (no resend endpoint — see open question #4)
+- [x] `/account` page — replace placeholder, show profile from `GET /api/auth/me`, link to password change
+- [x] `features/addresses/api.js` + `hooks.js` — CRUD + `PATCH /addresses/{id}/default`
+- [x] `/account/addresses` page — list, add/edit/delete, set default
+- [x] Tests: login/register form validation + success/error paths, `authStore` actions (already partially covered), `ProtectedRoute` redirect behavior with real auth flow
 
 **Spec refs:** Section E (Public + Authenticated routes), Section G (Auth, Addresses), Section H item 4 (cross-user `404`)
 
@@ -89,15 +94,15 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/catalog/`, `src/pages/home/`, `src/pages/catalog/`, `src/pages/product/`
 
-- [ ] `features/catalog/api.js` — `getCategories`, `getCategory(slug)`, `getProducts(filters, cursor)`, `getProduct(slug)`, `getProductReviews(slug, cursor)`
-- [ ] `features/catalog/hooks.js` — `useCategories`, `useInfiniteProducts` (cursor `useInfiniteQuery`), `useProduct`, `useProductReviews`
-- [ ] Category nav / mega-menu (top of Header) from `GET /api/categories` (nested `children`)
-- [ ] `/` Home — replace placeholder: hero + featured/newest product sections
-- [ ] `/c/:categorySlug` — category listing: filters (`filter[category]`, `filter[brand]`), sort, infinite-scroll/"load more" grid
-- [ ] `/p/:productSlug` — product detail: variant selector (price/stock/3D model per variant), media gallery (image/video by `sort_order`), `description` sanitized with DOMPurify
-- [ ] Reviews display section on product page (approved reviews only, cursor pagination)
-- [ ] `available_stock` per variant drives Add-to-cart disabled state + quantity max
-- [ ] Tests: product card rendering, variant selection updates price/stock, category filter changes query key
+- [x] `features/catalog/api.js` — `getCategories`, `getCategory(slug)`, `getProducts(filters, cursor)`, `getProduct(slug)`, `getProductReviews(slug, cursor)`
+- [x] `features/catalog/hooks.js` — `useCategories`, `useInfiniteProducts` (cursor `useInfiniteQuery`), `useProduct`, `useProductReviews`
+- [x] Category nav / mega-menu (top of Header) from `GET /api/categories` (nested `children`)
+- [x] `/` Home — replace placeholder: hero + featured/newest product sections
+- [x] `/c/:categorySlug` — category listing: filters (`filter[category]`, `filter[brand]`), sort, infinite-scroll/"load more" grid
+- [x] `/p/:productSlug` — product detail: variant selector (price/stock/3D model per variant), media gallery (image/video by `sort_order`), `description` sanitized with DOMPurify
+- [x] Reviews display section on product page (approved reviews only, cursor pagination)
+- [x] `available_stock` per variant drives Add-to-cart disabled state + quantity max
+- [x] Tests: product card rendering, variant selection updates price/stock, category filter changes query key
 
 **Spec refs:** Section E (public routes), Section G (Catalog)
 
@@ -107,14 +112,14 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/cart/`, `src/features/wishlist/`, `src/pages/cart/`, `src/pages/wishlist/`
 
-- [ ] `features/cart/api.js` — `getCart`, `addItem`, `updateItem`, `removeItem`, `applyVoucher`
-- [ ] `features/cart/hooks.js` — `useCart`, mutations invalidate `['cart']`; voucher preview as separate non-persisted query
-- [ ] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
-- [ ] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
-- [ ] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
-- [ ] `/wishlist` page — list, toggle restock notify, move-to-cart (handle `409 INSUFFICIENT_STOCK` → inline error, keep item)
-- [ ] Cart drawer (uses `uiStore.toggleCart`, already wired in Header) — mini cart summary
-- [ ] Tests: cart add/update/remove incl. stock-error handling, voucher preview applies to summary only
+- [x] `features/cart/api.js` — `getCart`, `addItem`, `updateItem`, `removeItem`, `applyVoucher`
+- [x] `features/cart/hooks.js` — `useCart`, mutations invalidate `['cart']`; voucher preview as separate non-persisted query
+- [x] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
+- [x] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
+- [x] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
+- [x] `/wishlist` page — list, toggle restock notify, move-to-cart (handle `409 INSUFFICIENT_STOCK` → inline error, keep item)
+- [x] Cart drawer (uses `uiStore.toggleCart`, already wired in Header) — mini cart summary
+- [x] Tests: cart add/update/remove incl. stock-error handling, voucher preview applies to summary only
 
 **Spec refs:** Section G (Cart, Wishlist), Section H item 5 (single voucher per order)
 
@@ -124,15 +129,15 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/checkout/`, `src/features/orders/`, `src/pages/checkout/`, `src/pages/orders/`
 
-- [ ] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
-- [ ] `features/checkout/api.js` — `getAddresses`, `applyVoucher`, `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)`
-- [ ] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **gateway picker** (`payos` | `stripe`), submit → create order → create payment session → redirect
-- [ ] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
-- [ ] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder`, `createPaymentSession` (retry)
-- [ ] `/orders` page — order history list
-- [ ] `/orders/:id` page — status, items, **Cancel** (enabled only while `pending_payment`), **Retry payment** (enabled only while `pending_payment`; handle `409 ORDER_ALREADY_PAID` → refetch + show paid state)
-- [ ] Rate-limit handling: disable "Pay now" while in-flight, surface `429 RATE_LIMITED`
-- [ ] Tests: checkout happy path (address → voucher → gateway → order creation, mocked API), cancel/retry button enable logic
+- [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
+- [x] `features/checkout/api.js` — `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)` (addresses/voucher reused from existing `features/addresses` and `features/cart`)
+- [x] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **gateway picker** (`payos` | `stripe`), submit → create order → create payment session → redirect
+- [x] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
+- [x] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder` (retry payment reuses `useCreatePaymentSession` from `features/checkout/hooks.js`)
+- [x] `/orders` page — order history list
+- [x] `/orders/:id` page — status, items, **Cancel** (enabled only while `pending_payment`), **Retry payment** (enabled only while `pending_payment`; handle `409 ORDER_ALREADY_PAID` → refetch + show paid state)
+- [x] Rate-limit handling: disable "Pay now" while in-flight, surface `429 RATE_LIMITED`
+- [x] Tests: checkout happy path (address → voucher → gateway → order creation, mocked API), cancel/retry button enable logic
 
 **Spec refs:** Section C (Idempotency-Key), Section G (Orders & Checkout), Section H items 2–4
 
@@ -142,11 +147,20 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/reviews/`, integrates into `pages/orders/` and `pages/product/`
 
-- [ ] `features/reviews/api.js` + `hooks.js` — `createReview(productId, orderId, ...)`, `getReviewComments`, `createComment(reviewId, body)`
-- [ ] Review form on `/orders/:id` — scoped to delivered orders' line items, `order_id` passed automatically (verified purchase)
-- [ ] "Submitted, awaiting approval" confirmation after submit (new reviews are `pending`, not shown immediately)
-- [ ] Comments UI on `/p/:productSlug` review list — 1-level only (no nested replies)
-- [ ] Tests: review form only renders for delivered orders, submit shows pending confirmation
+- [x] `features/reviews/api.js` + `hooks.js` — `createReview(productId, payload)`, `createComment(reviewId, body)`
+- [x] Review form on `/p/:productSlug` — scoped to delivered orders' line items, `order_id` passed automatically (verified purchase)
+- [x] "Submitted, awaiting approval" confirmation after submit (new reviews are `pending`, not shown immediately)
+- [x] Comments UI on `/p/:productSlug` review list — 1-level only (no nested replies)
+- [x] Tests: review form only renders for a verified (delivered) purchase, submit shows pending confirmation
+
+**Deviation from spec wording:** the review-submission form lives on `/p/:productSlug`, not
+`/orders/:id`. `OrderItemResource`/`variant_snapshot` (BE `SnapshotOrderData.php`) contain no
+`product_id` or product slug, and no documented endpoint resolves `variant_id → product`, so
+`/orders/:id` cannot drive `POST /api/products/{id}/reviews` or link to a product page.
+Instead, `/p/:productSlug` (where `product.id` and `product.variants[].id` are already loaded)
+cross-references `useOrders()` for a `delivered` order containing one of this product's
+variants, and auto-fills `order_id` from it. `/orders/:id` shows a passive hint for delivered
+orders pointing the user to the product page.
 
 **Spec refs:** Section G (Reviews)
 
@@ -188,41 +202,82 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/admin/`, `src/pages/admin/{categories,products,orders}/`
 
-- [ ] `features/admin/api.js` — categories, products (+variants, +media), orders, refund — split into per-domain files if it grows large
-- [ ] `/admin/categories` — list + create/update/delete (small dataset, plain list)
-- [ ] `/admin/products`, `/admin/products/:id` — offset-paginated list, create/edit form; **edit hydrates from list-cache** (no working `GET /admin/products/{id}`)
-- [ ] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
-- [ ] Media: multipart upload, reorder, delete
-- [ ] `/admin/orders`, `/admin/orders/:id` — offset list + detail
-- [ ] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
-- [ ] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
-- [ ] Tests: admin product list + create form validation, order status transition options match current status
+- [x] `features/admin/{categories,products,orders}/api.js` + `hooks.js` — categories, products (+variants, +media), orders, refund — split into per-domain files
+- [x] `/admin/categories` — list + create/update/delete (small dataset, plain list)
+- [x] `/admin/products`, `/admin/products/:id` — offset-paginated list, create/edit form; **edit hydrates from list-cache** (no working `GET /admin/products/{id}`)
+- [x] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
+- [x] Media: multipart upload, reorder, delete
+- [x] `/admin/orders`, `/admin/orders/:id` — offset list + detail
+- [x] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
+- [x] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
+- [x] Tests: admin product list + create form validation, order status transition options match current status
 
 **Spec refs:** Section E (Admin routes + detail-view caveat), Section G (Admin), Section H items 1–2
+
+**Deviations from `FE_AI_CONTEXT.md` / spec:**
+1. **Media reorder payload** — `PATCH /admin/products/{product}/media/reorder` actually expects
+   `{ids: [...]}` (a flat, ordered array of media IDs; `sort_order` = position in the array),
+   not `media_order: [{id, sort_order}]` as documented. Confirmed against
+   `ProductMediaController::reorder`'s validation rules. FE sends `{ids}`.
+2. **No admin detail endpoints** — `GET /admin/products/{id}` and `GET /admin/orders/{id}` are
+   not implemented (only `index`/`store`/`update`/`destroy` and
+   `index`/`updateStatus`/`refund` respectively). `AdminProductEditPage` and
+   `AdminOrderDetailPage` hydrate from `location.state` (passed by the list pages' "Sửa"/"Xem"
+   links) and fall back to searching the `['admin','products']` / `['admin','orders']` query
+   cache for a matching `id`; if neither yields data, the page shows a "not found" message with
+   a link back to the list.
 
 ---
 
 ## Phase 9 — Admin Moderation & Config
 
-**Folders:** `src/pages/admin/{reviews,vouchers,users,audit}/`
+**Folders:** `src/features/admin/{reviews,vouchers,users,auditLogs}/`, `src/pages/admin/{reviews,vouchers,users,auditLogs}/`
 
-- [ ] `/admin/reviews` — cursor-paginated moderation queue, approve/reject, optimistic removal from list on action
-- [ ] `/admin/vouchers` — full CRUD (`type: percentage|fixed`, usage limits, date range); form validation mirrors BE constraints (`min_order_value`, `max_discount` only for `percentage`)
-- [ ] `/admin/users` — list + `PATCH /admin/users/{id}/roles` (`role_ids` multi-select) — **blocked on open question #2** (no `GET /api/roles` endpoint documented; confirm source for role options before building the multi-select)
-- [ ] `/admin/audit-logs` — read-only paginated table (offset)
-- [ ] Tests: voucher form validation rules, review queue optimistic removal
+- [x] `/admin/reviews` — cursor-paginated moderation queue, approve/reject, optimistic removal from list on action
+- [x] `/admin/vouchers` — full CRUD (`type: percentage|fixed`, usage limits, date range); form validation mirrors BE constraints (`min_order_value`, `max_discount` shown only for `percentage` as a UX nicety)
+- [x] `/admin/users` — **read-only** list (id, name, email, status, roles, email-verified) — `PATCH /admin/users/{id}/roles` (`role_ids` multi-select) remains **blocked on open question #2** (no `GET /api/roles` endpoint and `UserResource.roles` returns role names, not ids; no reliable name→id mapping for the FE)
+- [x] `/admin/audit-logs` — read-only paginated table (offset), expandable `old_values`/`new_values` diff per row
+- [x] Tests: voucher form validation rules (incl. server 422 mapping), review queue optimistic removal, users list, audit log pagination + expansion
 
 **Spec refs:** Section G (Admin), Section I item 2
+
+**Deviations from `FE_AI_CONTEXT.md` / spec:**
+1. **`/admin/users` is read-only** — role assignment (`PATCH /admin/users/{id}/roles`) was not
+   built; see open question #2 below.
+2. **Voucher list pagination meta is the Laravel default (flat), not `meta.pagination`** —
+   `VoucherController@index` returns `VoucherResource::collection($paginator)` directly, so the
+   response uses Laravel's standard `{data, links, meta:{current_page, last_page, per_page,
+   total}}` shape. The users/audit-logs endpoints, by contrast, hand-build a nested
+   `meta.pagination.{…}`. `AdminVouchersPage` therefore reads `data.meta.last_page` (flat),
+   matching the Phase 8 products/orders pattern. (Found during a post-implementation BE
+   re-verification; the page previously read `data.meta.pagination` and would have shown only
+   page 1.)
 
 ---
 
 ## Phase 10 — Polish & Testing
 
-- [ ] Accessibility pass: contrast, focus rings, keyboard nav across all new pages
-- [ ] Responsive QA across breakpoints (mobile/tablet/desktop) for every page built in Phases 1–9
-- [ ] Fill out Vitest/RTL coverage per spec Section J for any flows not yet covered
-- [ ] Performance pass: image lazy-loading, route-level code splitting, bundle size check
-- [ ] Final `prefers-reduced-motion` audit on hero/motion sections
+- [x] Accessibility pass: focus-visible rings on `Button` + all nav/icon/link controls (Header,
+      Footer area, CartDrawer, CategoryNav, AdminLayout, ProductCard, HomePage CTA, Modal/Pagination
+      close/arrows), skip-to-content link → `<main id="main-content" tabindex="-1">`, icon-only
+      buttons carry `aria-label` (verified Header, Pagination, Modal, CartDrawer)
+- [~] Responsive QA across breakpoints — **static audit only** (no browser/E2E in scope per spec
+      Section J): responsive Tailwind utilities already present across pages (`grid-cols-2 sm: lg:`,
+      `hidden md:flex`, `overflow-x-auto` tables, `max-w-*` containers). Pixel/device verification
+      not automated.
+- [x] Vitest/RTL coverage — already strong (every page has a colocated test; all Section J critical
+      flows covered). Added a skip-link test to `layout.test.jsx`; updated `App.test.jsx` to await
+      lazy-loaded route chunks. **187 tests passing.**
+- [x] Performance pass: route-level code splitting via `React.lazy` + `<Suspense>` in `router.jsx`
+      (initial JS **573 → 374 kB**, gzip **178 → 124 kB**; each page is its own chunk, admin pages
+      split behind the guard); `loading="lazy"` + `decoding="async"` on non-hero `<img>` (product
+      thumbnails, admin media/category thumbnails; `ProductCard` already lazy)
+- [x] `prefers-reduced-motion` — global `@media (prefers-reduced-motion: reduce)` block in
+      `globals.css` near-zeroes animation/transition durations and disables smooth scroll
+
+**Deviations / honest limitations:**
+1. **Contrast measurement and real-breakpoint responsive QA were not automated** — no browser/E2E
+   tooling is in scope (spec Section J = light testing tier). These were audited statically only.
 
 ---
 
@@ -231,8 +286,13 @@ as each phase lands rather than creating duplicates.
 From spec Section I:
 
 1. **`POST /api/media/sign`** — no documented FE consumer currently; ignore unless a future feature needs direct Cloudinary upload from the customer side.
-2. **Roles list for `PATCH /admin/users/{id}/roles`** — no `GET /api/roles` endpoint documented. **Blocks Phase 9 Users page** — confirm with BE before starting.
-3. **Refund UX** — confirm synchronous refund (current code) is final before/while building Phase 8 refund UI, or whether a 2-step flow is coming.
+2. **Roles list for `PATCH /admin/users/{id}/roles`** — no `GET /api/roles` endpoint documented,
+   and `UserResource.roles` returns role *names* (strings), not ids, so there's no reliable
+   name→id mapping for the FE either. **Phase 9 implemented `/admin/users` as read-only**;
+   revisit role assignment once a roles-lookup endpoint (or id-returning `UserResource`) exists.
+3. **Refund UX** — Phase 8 implemented the refund form against the current synchronous
+   `POST /admin/orders/{id}/refund` (amount+reason → immediate result). Revisit if a 2-step
+   flow is introduced later.
 4. **Resend verification email** — no documented resend endpoint. Relevant to Phase 1 auth UX polish (the "verify your email" screen can't offer a resend button until this is confirmed).
 
 ---

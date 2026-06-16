@@ -24,6 +24,11 @@ describe('uiStore', () => {
     expect(useUiStore.getState().isCartOpen).toBe(false)
   })
 
+  it('opens the cart drawer', () => {
+    useUiStore.getState().openCart()
+    expect(useUiStore.getState().isCartOpen).toBe(true)
+  })
+
   it('toggles the mobile nav', () => {
     useUiStore.getState().toggleMobileNav()
     expect(useUiStore.getState().isMobileNavOpen).toBe(true)

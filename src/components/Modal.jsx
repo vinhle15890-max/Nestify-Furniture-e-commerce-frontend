@@ -12,7 +12,10 @@ export function Modal({ open, onOpenChange, title, description, children }) {
             <Dialog.Description className="mt-1 text-sm text-muted-foreground">{description}</Dialog.Description>
           )}
           <div className="mt-4">{children}</div>
-          <Dialog.Close aria-label="Đóng" className="absolute right-4 top-4 cursor-pointer text-muted-foreground">
+          <Dialog.Close
+            aria-label="Đóng"
+            className="absolute right-4 top-4 cursor-pointer rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+          >
             <X size={20} />
           </Dialog.Close>
         </Dialog.Content>

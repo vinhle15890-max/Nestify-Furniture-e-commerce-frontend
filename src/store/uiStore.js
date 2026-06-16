@@ -6,6 +6,7 @@ export const useUiStore = create((set) => ({
   checkoutIdempotencyKey: null,
 
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
+  openCart: () => set({ isCartOpen: true }),
   closeCart: () => set({ isCartOpen: false }),
 
   toggleMobileNav: () => set((state) => ({ isMobileNavOpen: !state.isMobileNavOpen })),
