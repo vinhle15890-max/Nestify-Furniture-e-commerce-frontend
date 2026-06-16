@@ -30,6 +30,14 @@ describe('LoginPage', () => {
     vi.clearAllMocks()
   })
 
+  it('shows the Nestify brand logo linking home', async () => {
+    renderLoginPage()
+
+    const logo = screen.getByRole('img', { name: 'Nestify' })
+    expect(logo).toBeInTheDocument()
+    expect(logo.closest('a')).toHaveAttribute('href', '/')
+  })
+
   it('shows validation errors when submitting an empty form', async () => {
     renderLoginPage()
 

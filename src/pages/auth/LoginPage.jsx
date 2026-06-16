@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Logo } from '../../components/Logo'
 import { Card } from '../../components/Card'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
@@ -47,6 +48,9 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-12">
+      <Link to="/" aria-label="Nestify — trang chủ" className="mb-8 flex justify-center">
+        <Logo className="h-24 w-auto" />
+      </Link>
       <h1 className="font-display text-3xl text-foreground">Đăng nhập</h1>
       <Card className="mt-6">
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">

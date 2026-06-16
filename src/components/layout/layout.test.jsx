@@ -59,8 +59,13 @@ describe('Header', () => {
 
 describe('Footer', () => {
   it('renders the brand name', () => {
-    render(<Footer />)
+    render(
+      <MemoryRouter>
+        <Footer />
+      </MemoryRouter>,
+    )
     expect(screen.getByText(/Nestify/)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Nestify' })).toBeInTheDocument()
   })
 })
 
@@ -81,7 +86,7 @@ describe('Layout', () => {
       </QueryClientProvider>,
     )
 
-    expect(screen.getByText('Nestify')).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: 'Nestify' }).length).toBeGreaterThan(0)
     expect(screen.getByText('Nội dung trang')).toBeInTheDocument()
     expect(screen.getByText(/© /)).toBeInTheDocument()
   })

@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { ShoppingCart, Menu, User } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
+import { Logo } from '../Logo'
 import { CategoryNav } from './CategoryNav'
 
 const focusRing =
@@ -23,8 +24,8 @@ export function Header() {
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-        <Link to="/" className={`font-display text-2xl text-foreground ${focusRing}`}>
-          Nestify
+        <Link to="/" aria-label="Nestify — trang chủ" className={`flex items-center ${focusRing}`}>
+          <Logo className="h-12 w-auto" />
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
