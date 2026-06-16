@@ -244,6 +244,14 @@ orders pointing the user to the product page.
 **Deviations from `FE_AI_CONTEXT.md` / spec:**
 1. **`/admin/users` is read-only** — role assignment (`PATCH /admin/users/{id}/roles`) was not
    built; see open question #2 below.
+2. **Voucher list pagination meta is the Laravel default (flat), not `meta.pagination`** —
+   `VoucherController@index` returns `VoucherResource::collection($paginator)` directly, so the
+   response uses Laravel's standard `{data, links, meta:{current_page, last_page, per_page,
+   total}}` shape. The users/audit-logs endpoints, by contrast, hand-build a nested
+   `meta.pagination.{…}`. `AdminVouchersPage` therefore reads `data.meta.last_page` (flat),
+   matching the Phase 8 products/orders pattern. (Found during a post-implementation BE
+   re-verification; the page previously read `data.meta.pagination` and would have shown only
+   page 1.)
 
 ---
 

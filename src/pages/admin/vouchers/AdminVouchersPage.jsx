@@ -39,7 +39,10 @@ export function AdminVouchersPage() {
   const [editingVoucher, setEditingVoucher] = useState(null)
 
   const vouchers = data?.data ?? []
-  const meta = data?.meta?.pagination ?? { last_page: 1 }
+  // VoucherController returns a plain resource collection → Laravel's default
+  // pagination meta (flat `meta.last_page`), unlike the hand-built `meta.pagination`
+  // shape used by the users/audit-logs endpoints.
+  const meta = data?.meta ?? { last_page: 1 }
 
   const openCreateModal = () => {
     setEditingVoucher(null)

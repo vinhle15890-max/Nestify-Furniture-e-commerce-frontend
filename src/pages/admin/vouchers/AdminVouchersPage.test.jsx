@@ -42,7 +42,8 @@ const vouchersResponse = {
       created_at: '2026-01-01T00:00:00+00:00',
     },
   ],
-  meta: { pagination: { total: 2, page: 1, last_page: 1, per_page: 20 } },
+  // Laravel default resource-collection pagination meta (flat), as returned by VoucherController.
+  meta: { current_page: 1, last_page: 1, per_page: 20, total: 2 },
 }
 
 function renderPage() {
