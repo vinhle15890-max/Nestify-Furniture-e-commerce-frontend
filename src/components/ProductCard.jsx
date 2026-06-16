@@ -5,7 +5,7 @@ export function ProductCard({ product }) {
   return (
     <Link
       to={`/p/${product.slug}`}
-      className="group flex flex-col overflow-hidden rounded-card border border-border bg-surface shadow-soft transition-transform duration-200 ease-out hover:-translate-y-1"
+      className="group flex flex-col overflow-hidden rounded-card border border-border bg-surface shadow-soft transition-transform duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <div className="aspect-square w-full overflow-hidden bg-background">
         {product.thumbnail && (

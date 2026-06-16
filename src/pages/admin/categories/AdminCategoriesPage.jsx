@@ -12,7 +12,7 @@ function CategoryRow({ category, depth, onEdit, onDelete }) {
       <div className="flex items-center justify-between gap-4 border-b border-border py-3 text-sm last:border-b-0">
         <div className="flex items-center gap-3" style={{ paddingLeft: `${depth * 1.5}rem` }}>
           {category.image_url && (
-            <img src={category.image_url} alt="" className="h-8 w-8 rounded-control object-cover" />
+            <img src={category.image_url} alt="" loading="lazy" decoding="async" className="h-8 w-8 rounded-control object-cover" />
           )}
           <div>
             <p className="font-medium text-foreground">{category.name}</p>

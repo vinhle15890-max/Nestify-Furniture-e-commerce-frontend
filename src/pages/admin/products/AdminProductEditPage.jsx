@@ -320,7 +320,7 @@ export function AdminProductEditPage() {
                 {media.type === 'video' ? (
                   <video src={media.url} className="h-full w-full object-cover" />
                 ) : (
-                  <img src={media.url} alt="" className="h-full w-full object-cover" />
+                  <img src={media.url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 )}
               </div>
               <p className="text-xs text-muted-foreground">

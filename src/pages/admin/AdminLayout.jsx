@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
 const navLinkClass = ({ isActive }) =>
-  `rounded-control px-3 py-2 text-sm font-medium transition-colors duration-200 ease-out ${
+  `rounded-control px-3 py-2 text-sm font-medium transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
     isActive ? 'bg-primary text-surface' : 'text-foreground hover:text-primary'
   }`
 

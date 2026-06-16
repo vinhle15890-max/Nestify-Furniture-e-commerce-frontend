@@ -170,7 +170,7 @@ export function ProductPage() {
               (activeMedia.type === 'video' ? (
                 <video src={activeMedia.url} controls className="h-full w-full object-cover" />
               ) : (
-                <img src={activeMedia.url} alt={product.name} className="h-full w-full object-cover" />
+                <img src={activeMedia.url} alt={product.name} decoding="async" className="h-full w-full object-cover" />
               ))}
           </div>
 
@@ -182,14 +182,14 @@ export function ProductPage() {
                   type="button"
                   onClick={() => setSelectedMediaIndex(index)}
                   aria-label={`Xem ${item.type === 'video' ? 'video' : 'ảnh'} ${index + 1}`}
-                  className={`h-16 w-16 overflow-hidden rounded-control border ${
+                  className={`h-16 w-16 overflow-hidden rounded-control border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     index === selectedMediaIndex ? 'border-primary' : 'border-border'
                   }`}
                 >
                   {item.type === 'video' ? (
                     <video src={item.url} className="h-full w-full object-cover" />
                   ) : (
-                    <img src={item.url} alt="" className="h-full w-full object-cover" />
+                    <img src={item.url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   )}
                 </button>
               ))}

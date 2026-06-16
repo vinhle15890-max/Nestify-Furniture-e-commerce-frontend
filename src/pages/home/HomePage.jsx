@@ -37,7 +37,7 @@ export function HomePage() {
         <p className="mt-4 text-lg text-muted-foreground">Nội thất cho không gian sống của bạn.</p>
         <a
           href="#newest"
-          className="mt-6 inline-flex items-center justify-center rounded-control bg-primary px-6 py-3 text-sm font-medium text-surface transition-colors duration-200 ease-out hover:bg-primary-hover"
+          className="mt-6 inline-flex items-center justify-center rounded-control bg-primary px-6 py-3 text-sm font-medium text-surface transition-colors duration-200 ease-out hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Khám phá ngay
         </a>

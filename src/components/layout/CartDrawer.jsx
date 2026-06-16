@@ -22,7 +22,10 @@ export function CartDrawer() {
         <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-sm flex-col bg-surface p-6 shadow-soft">
           <div className="flex items-center justify-between">
             <Dialog.Title className="font-display text-xl text-foreground">Giỏ hàng</Dialog.Title>
-            <Dialog.Close aria-label="Đóng" className="cursor-pointer text-muted-foreground">
+            <Dialog.Close
+              aria-label="Đóng"
+              className="cursor-pointer rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            >
               <X size={20} />
             </Dialog.Close>
           </div>
@@ -31,7 +34,11 @@ export function CartDrawer() {
             {!token ? (
               <p className="text-sm text-muted-foreground">
                 Vui lòng{' '}
-                <Link to="/login" onClick={closeCart} className="text-primary hover:underline">
+                <Link
+                  to="/login"
+                  onClick={closeCart}
+                  className="rounded text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+                >
                   đăng nhập
                 </Link>{' '}
                 để xem giỏ hàng của bạn.
@@ -68,7 +75,7 @@ export function CartDrawer() {
               <Link
                 to="/cart"
                 onClick={closeCart}
-                className="mt-4 flex w-full items-center justify-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-surface transition-colors duration-200 ease-out hover:bg-primary-hover"
+                className="mt-4 flex w-full items-center justify-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-surface transition-colors duration-200 ease-out hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Xem giỏ hàng
               </Link>

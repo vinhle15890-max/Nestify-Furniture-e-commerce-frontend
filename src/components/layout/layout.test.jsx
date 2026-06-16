@@ -85,4 +85,24 @@ describe('Layout', () => {
     expect(screen.getByText('Nội dung trang')).toBeInTheDocument()
     expect(screen.getByText(/© /)).toBeInTheDocument()
   })
+
+  it('renders a skip-to-content link targeting the main region', () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<p>Nội dung trang</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    const skipLink = screen.getByRole('link', { name: 'Bỏ qua tới nội dung chính' })
+    expect(skipLink).toHaveAttribute('href', '#main-content')
+    expect(document.getElementById('main-content')?.tagName).toBe('MAIN')
+  })
 })
