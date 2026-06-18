@@ -55,3 +55,7 @@ export function useVerifyEmail(params) {
     retry: false,
   })
 }
+
+export function useResendVerificationEmail() {
+  return useMutation({ mutationFn: () => authApi.resendVerificationEmail() })
+}

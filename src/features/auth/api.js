@@ -27,3 +27,7 @@ export function resetPassword({ token, email, password, password_confirmation })
 export function verifyEmail(params) {
   return apiClient.post('/auth/verify-email', params)
 }
+
+export function resendVerificationEmail() {
+  return apiClient.post('/auth/email/verification-notification')
+}
