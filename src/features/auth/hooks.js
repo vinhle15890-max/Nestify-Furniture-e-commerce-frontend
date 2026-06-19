@@ -59,3 +59,12 @@ export function useVerifyEmail(params) {
 export function useResendVerificationEmail() {
   return useMutation({ mutationFn: () => authApi.resendVerificationEmail() })
 }
+
+export function useUpdateProfile() {
+  const setUser = useAuthStore((state) => state.setUser)
+
+  return useMutation({
+    mutationFn: (payload) => authApi.updateProfile(payload),
+    onSuccess: ({ data }) => setUser(data),
+  })
+}

@@ -6,6 +6,7 @@ import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 import { useLogout, useMe } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
+import { ProfileForm } from './ProfileForm'
 
 export function AccountPage() {
   const storedUser = useAuthStore((state) => state.user)
@@ -29,10 +30,6 @@ export function AccountPage() {
         ) : user ? (
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Họ tên</p>
-              <p className="text-base text-foreground">{user.name}</p>
-            </div>
-            <div>
               <p className="text-sm text-muted-foreground">Email</p>
               <p className="text-base text-foreground">{user.email}</p>
             </div>
@@ -46,15 +43,19 @@ export function AccountPage() {
         ) : null}
       </Card>
 
+      {user && (
+        <Card className="mt-6">
+          <h2 className="mb-4 font-display text-xl text-foreground">Thông tin cá nhân</h2>
+          <ProfileForm user={user} />
+        </Card>
+      )}
+
       <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
         <Link to="/account/addresses" className="text-primary hover:text-primary-hover">
           Sổ địa chỉ
         </Link>
         <Link to="/orders" className="text-primary hover:text-primary-hover">
           Đơn hàng của tôi
-        </Link>
-        <Link to="/forgot-password" className="text-primary hover:text-primary-hover">
-          Đổi mật khẩu
         </Link>
         <Button variant="secondary" onClick={() => logout.mutate()}>
           Đăng xuất

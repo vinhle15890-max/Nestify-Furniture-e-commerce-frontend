@@ -16,6 +16,16 @@ export function getMe() {
   return apiClient.get('/auth/me')
 }
 
+export function updateProfile({ name, current_password, password, password_confirmation }) {
+  const payload = { name }
+  if (password) {
+    payload.current_password = current_password
+    payload.password = password
+    payload.password_confirmation = password_confirmation
+  }
+  return apiClient.patch('/auth/profile', payload)
+}
+
 export function forgotPassword({ email }) {
   return apiClient.post('/auth/forgot-password', { email })
 }

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOffsetQuery } from '../../../lib/pagination'
 import * as productsApi from './api'
 
@@ -7,6 +7,14 @@ export function useAdminProducts(page) {
     queryKey: ['admin', 'products'],
     queryFn: productsApi.getProducts,
     page,
+  })
+}
+
+export function useAdminProduct(id, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['admin', 'product', id],
+    queryFn: () => productsApi.getProduct(id),
+    enabled: enabled && Number.isFinite(id),
   })
 }
 

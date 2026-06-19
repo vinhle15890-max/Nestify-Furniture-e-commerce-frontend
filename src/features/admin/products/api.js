@@ -4,6 +4,10 @@ export function getProducts(page) {
   return apiClient.get('/admin/products', { params: { page } })
 }
 
+export function getProduct(id) {
+  return apiClient.get(`/admin/products/${id}`)
+}
+
 export function createProduct(payload) {
   return apiClient.post('/admin/products', payload)
 }

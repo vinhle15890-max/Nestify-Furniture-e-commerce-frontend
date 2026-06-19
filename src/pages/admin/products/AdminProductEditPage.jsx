@@ -9,6 +9,7 @@ import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
 import { useCategories } from '../../../features/catalog/hooks'
 import {
+  useAdminProduct,
   useUpdateProduct,
   useUploadMedia,
   useReorderMedia,
@@ -55,15 +56,43 @@ function findProductInCache(queryClient, productId) {
   return null
 }
 
+// Resolves the product to edit, then renders the editor. Navigating from the
+// list passes it via router state (fast path); a deep-link / refresh has no
+// state, so we fetch it from the API instead of showing an empty form.
 export function AdminProductEditPage() {
   const { id } = useParams()
   const location = useLocation()
   const queryClient = useQueryClient()
   const productId = Number(id)
 
-  const [product, setProduct] = useState(
-    () => location.state?.product ?? findProductInCache(queryClient, productId),
-  )
+  const seeded = location.state?.product ?? findProductInCache(queryClient, productId)
+  const query = useAdminProduct(productId, { enabled: !seeded })
+  const product = seeded ?? query.data?.data
+
+  if (!product && query.isLoading) {
+    return <p className="text-sm text-muted-foreground">Đang tải sản phẩm…</p>
+  }
+
+  if (!product) {
+    return (
+      <div>
+        <p className="text-sm text-muted-foreground">
+          Không tìm thấy sản phẩm.{' '}
+          <Link to="/admin/products" className="text-primary hover:underline">
+            Quay lại danh sách sản phẩm
+          </Link>
+        </p>
+      </div>
+    )
+  }
+
+  // Re-mount the editor if the resolved product changes (key) so its internal
+  // state and form default values re-initialise from the new product.
+  return <ProductEditor key={product.id} initialProduct={product} />
+}
+
+function ProductEditor({ initialProduct }) {
+  const [product, setProduct] = useState(initialProduct)
 
   const { data: categoriesData } = useCategories()
   const categoryOptions = useMemo(() => flattenCategories(categoriesData?.data ?? []), [categoriesData])
@@ -95,19 +124,6 @@ export function AdminProductEditPage() {
         }
       : undefined,
   })
-
-  if (!product) {
-    return (
-      <div>
-        <p className="text-sm text-muted-foreground">
-          Không tìm thấy sản phẩm.{' '}
-          <Link to="/admin/products" className="text-primary hover:underline">
-            Quay lại danh sách sản phẩm
-          </Link>
-        </p>
-      </div>
-    )
-  }
 
   const onSubmit = async (values) => {
     const payload = {
