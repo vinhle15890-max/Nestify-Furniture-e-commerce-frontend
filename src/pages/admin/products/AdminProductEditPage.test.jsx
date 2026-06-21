@@ -67,6 +67,24 @@ describe('AdminProductEditPage', () => {
     expect(screen.getByText('SOFA-NAU')).toBeInTheDocument()
   })
 
+  it('fetches the product when deep-linked without router state', async () => {
+    productsApi.getProduct.mockResolvedValue({ data: baseProduct })
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/admin/products/1']}>
+          <Routes>
+            <Route path="/admin/products/:id" element={<AdminProductEditPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByLabelText('Tên sản phẩm')).toHaveValue('Ghế Sofa')
+    expect(productsApi.getProduct).toHaveBeenCalledWith(1)
+  })
+
   it('updates product fields', async () => {
     productsApi.updateProduct.mockResolvedValue({ data: { ...baseProduct, name: 'Ghế Sofa Cao Cấp' } })
     renderPage()
@@ -178,6 +196,8 @@ describe('AdminProductEditPage', () => {
   })
 
   it('shows a not-found message when no product data is available', async () => {
+    productsApi.getProduct.mockRejectedValue(new Error('not found'))
+
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <QueryClientProvider client={queryClient}>

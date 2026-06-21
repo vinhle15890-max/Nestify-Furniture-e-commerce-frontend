@@ -12,11 +12,6 @@ import { Spinner } from '../../components/Spinner'
 import { formatPrice } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 
-const GATEWAYS = [
-  { value: 'payos', label: 'PayOS' },
-  { value: 'stripe', label: 'Stripe' },
-]
-
 export function CheckoutPage() {
   const { data: cartData, isLoading: cartLoading } = useCart()
   const { data: addressesData, isLoading: addressesLoading } = useAddresses()
@@ -26,7 +21,7 @@ export function CheckoutPage() {
   const addToast = useToastStore((state) => state.addToast)
 
   const [addressId, setAddressId] = useState(null)
-  const [gateway, setGateway] = useState('payos')
+  const gateway = 'payos' // PayOS is the only payment gateway
   const [voucherCode, setVoucherCode] = useState('')
   const [voucherResult, setVoucherResult] = useState(null)
   const [voucherError, setVoucherError] = useState(null)
@@ -165,22 +160,9 @@ export function CheckoutPage() {
 
           <Card className="flex flex-col gap-3">
             <h2 className="font-display text-xl text-foreground">Phương thức thanh toán</h2>
-            <div className="flex flex-col gap-2">
-              {GATEWAYS.map((option) => (
-                <label
-                  key={option.value}
-                  className="flex cursor-pointer items-center gap-3 rounded-control border border-border p-3 text-sm"
-                >
-                  <input
-                    type="radio"
-                    name="gateway"
-                    value={option.value}
-                    checked={gateway === option.value}
-                    onChange={() => setGateway(option.value)}
-                  />
-                  <span className="font-medium text-foreground">{option.label}</span>
-                </label>
-              ))}
+            <div className="flex items-center gap-3 rounded-control border border-border p-3 text-sm">
+              <span className="font-medium text-foreground">PayOS</span>
+              <span className="text-muted-foreground">Thanh toán online qua cổng PayOS</span>
             </div>
           </Card>
 

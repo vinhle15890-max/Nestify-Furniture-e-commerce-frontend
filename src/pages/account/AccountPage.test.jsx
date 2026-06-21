@@ -37,7 +37,7 @@ describe('AccountPage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Bao')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('Bao')).toBeInTheDocument()
     expect(screen.getByText('bao@example.com')).toBeInTheDocument()
     expect(await screen.findByText('Đã xác thực')).toBeInTheDocument()
     await waitFor(() => expect(useAuthStore.getState().user.email_verified_at).toBe('2026-06-01T00:00:00Z'))

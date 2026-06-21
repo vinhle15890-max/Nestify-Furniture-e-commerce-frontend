@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOrder, useCancelOrder } from '../../features/orders/hooks'
@@ -12,11 +11,6 @@ import { Spinner } from '../../components/Spinner'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 
-const GATEWAYS = [
-  { value: 'payos', label: 'PayOS' },
-  { value: 'stripe', label: 'Stripe' },
-]
-
 export function OrderDetailPage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
@@ -24,7 +18,7 @@ export function OrderDetailPage() {
   const cancelOrder = useCancelOrder()
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
-  const [gateway, setGateway] = useState('payos')
+  const gateway = 'payos' // PayOS is the only payment gateway
 
   if (isLoading) {
     return (
@@ -141,22 +135,9 @@ export function OrderDetailPage() {
       {isPendingPayment && (
         <Card className="mt-6 flex flex-col gap-4">
           <h2 className="font-display text-xl text-foreground">Thanh toán</h2>
-          <div className="flex flex-col gap-2">
-            {GATEWAYS.map((option) => (
-              <label
-                key={option.value}
-                className="flex cursor-pointer items-center gap-3 rounded-control border border-border p-3 text-sm"
-              >
-                <input
-                  type="radio"
-                  name="retry-gateway"
-                  value={option.value}
-                  checked={gateway === option.value}
-                  onChange={() => setGateway(option.value)}
-                />
-                <span className="font-medium text-foreground">{option.label}</span>
-              </label>
-            ))}
+          <div className="flex items-center gap-3 rounded-control border border-border p-3 text-sm">
+            <span className="font-medium text-foreground">PayOS</span>
+            <span className="text-muted-foreground">Thanh toán online qua cổng PayOS</span>
           </div>
           <div className="flex flex-wrap gap-4">
             <Button onClick={handleRetryPayment} disabled={createPaymentSession.isPending}>
