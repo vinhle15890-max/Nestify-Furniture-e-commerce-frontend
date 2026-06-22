@@ -4,12 +4,13 @@ import { useOrder, useCancelOrder } from '../../features/orders/hooks'
 import { useCreatePaymentSession } from '../../features/checkout/hooks'
 import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
 import { redirectToExternal } from '../../lib/navigation'
-import { Card } from '../../components/Card'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
+
+const sectionClass = 'rounded-card border border-border bg-surface p-6'
 
 export function OrderDetailPage() {
   const { id } = useParams()
@@ -22,7 +23,7 @@ export function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-3xl justify-center px-4 py-24">
+      <div className="mx-auto flex max-w-3xl justify-center px-6 py-32">
         <Spinner />
       </div>
     )
@@ -32,16 +33,16 @@ export function OrderDetailPage() {
 
   if (isError || !order) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-12">
-        <h1 className="font-display text-3xl text-foreground">Đơn hàng</h1>
-        <Card className="mt-6">
-          <p className="text-sm text-muted-foreground">
+      <div className="mx-auto max-w-3xl px-6 py-20 lg:px-10">
+        <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng</h1>
+        <div className="mt-8 rounded-card border border-border bg-surface p-8 text-center">
+          <p className="text-muted-foreground">
             Không tìm thấy đơn hàng.{' '}
-            <Link to="/orders" className="text-primary hover:underline">
+            <Link to="/orders" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
               Quay lại đơn hàng của tôi
             </Link>
           </p>
-        </Card>
+        </div>
       </div>
     )
   }
@@ -73,14 +74,18 @@ export function OrderDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl text-foreground">Đơn hàng #{order.id}</h1>
+    <div className="mx-auto max-w-3xl px-6 py-16 md:py-20 lg:px-10">
+      <Link to="/orders" className="text-sm text-muted-foreground transition-colors hover:text-accent">
+        ← Đơn hàng của tôi
+      </Link>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-[clamp(1.9rem,3.6vw,2.8rem)] text-foreground">Đơn hàng #{order.id}</h1>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
 
-      <Card className="mt-6 flex flex-col gap-2">
+      <div className={`mt-8 flex flex-col gap-2 ${sectionClass}`}>
         <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
         <p className="text-sm text-foreground">
           {address?.recipient_name} · {address?.phone}
@@ -90,13 +95,13 @@ export function OrderDetailPage() {
             .filter(Boolean)
             .join(', ')}
         </p>
-      </Card>
+      </div>
 
-      <Card className="mt-6 flex flex-col gap-4">
+      <div className={`mt-6 flex flex-col gap-4 ${sectionClass}`}>
         <h2 className="font-display text-xl text-foreground">Sản phẩm</h2>
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col divide-y divide-border">
           {order.items.map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-4 text-sm">
+            <li key={item.id} className="flex items-center justify-between gap-4 py-3 text-sm first:pt-0">
               <div>
                 <p className="font-medium text-foreground">{item.variant_snapshot?.name}</p>
                 <p className="text-muted-foreground">
@@ -109,17 +114,17 @@ export function OrderDetailPage() {
         </ul>
 
         <div className="flex flex-col gap-2 border-t border-border pt-4 text-sm">
-          <div className="flex items-center justify-between text-foreground">
+          <div className="flex items-center justify-between text-muted-foreground">
             <span>Tạm tính</span>
-            <span>{formatPrice(order.subtotal)}</span>
+            <span className="text-foreground">{formatPrice(order.subtotal)}</span>
           </div>
           {order.discount_amount > 0 && (
-            <div className="flex items-center justify-between text-foreground">
+            <div className="flex items-center justify-between text-muted-foreground">
               <span>Giảm giá</span>
-              <span>-{formatPrice(order.discount_amount)}</span>
+              <span className="text-secondary">-{formatPrice(order.discount_amount)}</span>
             </div>
           )}
-          <div className="flex items-center justify-between font-medium text-foreground">
+          <div className="flex items-center justify-between border-t border-border pt-2.5 text-base font-medium text-foreground">
             <span>Tổng cộng</span>
             <span>{formatPrice(order.total)}</span>
           </div>
@@ -130,12 +135,12 @@ export function OrderDetailPage() {
             Đơn hàng đã giao. Hãy để lại đánh giá trên trang sản phẩm.
           </p>
         )}
-      </Card>
+      </div>
 
       {isPendingPayment && (
-        <Card className="mt-6 flex flex-col gap-4">
+        <div className={`mt-6 flex flex-col gap-4 ${sectionClass}`}>
           <h2 className="font-display text-xl text-foreground">Thanh toán</h2>
-          <div className="flex items-center gap-3 rounded-control border border-border p-3 text-sm">
+          <div className="flex items-center gap-3 rounded-control border border-foreground bg-surface-alt p-3 text-sm">
             <span className="font-medium text-foreground">PayOS</span>
             <span className="text-muted-foreground">Thanh toán online qua cổng PayOS</span>
           </div>
@@ -147,7 +152,7 @@ export function OrderDetailPage() {
               Hủy đơn
             </Button>
           </div>
-        </Card>
+        </div>
       )}
     </div>
   )

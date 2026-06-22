@@ -3,8 +3,7 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Logo } from '../../components/Logo'
-import { Card } from '../../components/Card'
+import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { useLogin } from '../../features/auth/hooks'
@@ -47,50 +46,49 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-12">
-      <Link to="/" aria-label="Nestify — trang chủ" className="mb-8 flex justify-center">
-        <Logo className="h-24 w-auto" />
-      </Link>
-      <h1 className="font-display text-3xl text-foreground">Đăng nhập</h1>
-      <Card className="mt-6">
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-          {formError && (
-            <p role="alert" className="text-sm text-destructive">
-              {formError}
-            </p>
-          )}
-          <Input
-            label="Email"
-            id="email"
-            type="email"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-          <Input
-            label="Mật khẩu"
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            error={errors.password?.message}
-            {...register('password')}
-          />
-          <Button type="submit" disabled={isSubmitting}>
-            Đăng nhập
-          </Button>
-        </form>
-        <div className="mt-4 flex flex-col gap-2 text-sm">
-          <Link to="/forgot-password" className="text-primary hover:text-primary-hover">
+    <AuthLayout
+      title="Đăng nhập"
+      subtitle="Chào mừng trở lại Nestify."
+      footer={
+        <>
+          <Link to="/forgot-password" className={authLink}>
             Quên mật khẩu?
           </Link>
           <p className="text-muted-foreground">
             Chưa có tài khoản?{' '}
-            <Link to="/register" className="text-primary hover:text-primary-hover">
+            <Link to="/register" className={authLink}>
               Đăng ký
             </Link>
           </p>
-        </div>
-      </Card>
-    </div>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        {formError && (
+          <p role="alert" className="text-sm text-destructive">
+            {formError}
+          </p>
+        )}
+        <Input
+          label="Email"
+          id="email"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <Input
+          label="Mật khẩu"
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register('password')}
+        />
+        <Button type="submit" disabled={isSubmitting} className="mt-2 py-3.5">
+          Đăng nhập
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }
