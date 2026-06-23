@@ -121,7 +121,10 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
       type: values.type,
       value: Number(values.value),
       max_discount: values.type === 'percentage' && values.max_discount !== '' ? Number(values.max_discount) : null,
-      min_order_value: values.min_order_value !== '' ? Number(values.min_order_value) : null,
+      // 0 = "no minimum" (the column default). A blank field is transformed to undefined by
+      // yup, so Number(...) → NaN → serialized as null; null hits a NOT NULL column → 500.
+      // Coerce any non-finite value to 0.
+      min_order_value: Number.isFinite(Number(values.min_order_value)) ? Number(values.min_order_value) : 0,
       max_usage_total: Number(values.max_usage_total),
       max_usage_per_user: Number(values.max_usage_per_user),
       starts_at: values.starts_at || null,
