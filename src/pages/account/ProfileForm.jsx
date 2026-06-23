@@ -68,7 +68,7 @@ export function ProfileForm({ user }) {
         </p>
       )}
       {success && (
-        <p role="status" className="text-sm text-secondary">
+        <p role="status" className="text-sm text-primary">
           Đã cập nhật thông tin tài khoản.
         </p>
       )}

@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Upload, X } from 'lucide-react'
 import { Modal } from '../../../components/Modal'
 import { Input } from '../../../components/Input'
 import { Button } from '../../../components/Button'
-import { useCreateCategory, useUpdateCategory, useUploadCategoryImage } from '../../../features/admin/categories/hooks'
+import { useCreateCategory, useUpdateCategory } from '../../../features/admin/categories/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 
@@ -18,12 +17,14 @@ const schema = yup.object({
     .max(255, 'Tối đa 255 ký tự.')
     .matches(/^[a-z0-9_-]+$/i, 'Slug chỉ gồm chữ, số, gạch ngang và gạch dưới.'),
   parent_id: yup.string(),
+  image_url: yup.string().url('URL không hợp lệ.').max(2048, 'Tối đa 2048 ký tự.'),
 })
 
 const emptyValues = {
   name: '',
   slug: '',
   parent_id: '',
+  image_url: '',
 }
 
 function toFormValues(category) {
@@ -31,6 +32,7 @@ function toFormValues(category) {
     name: category.name ?? '',
     slug: category.slug ?? '',
     parent_id: category.parent_id != null ? String(category.parent_id) : '',
+    image_url: category.image_url ?? '',
   }
 }
 
@@ -54,15 +56,7 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
   const isEditing = !!category
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
-  const uploadImage = useUploadCategoryImage()
   const addToast = useToastStore((state) => state.addToast)
-
-  // The image lives outside react-hook-form: it is set by uploading a file, not by
-  // typing. We keep both the public URL (for preview + client) and the Cloudinary
-  // public_id (so the backend can delete the old asset when it changes).
-  const [image, setImage] = useState({ url: '', public_id: '' })
-  const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef(null)
 
   const {
     register,
@@ -80,40 +74,15 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
   useEffect(() => {
     if (open) {
       reset(category ? toFormValues(category) : emptyValues)
-      setImage({ url: category?.image_url ?? '', public_id: category?.image_public_id ?? '' })
-      setUploading(false)
     }
   }, [open, category, reset])
-
-  const handleFileChange = async (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const formData = new FormData()
-    formData.append('kind', 'image')
-    formData.append('file', file)
-
-    setUploading(true)
-    try {
-      const response = await uploadImage.mutateAsync(formData)
-      setImage({ url: response.data.url, public_id: response.data.public_id })
-    } catch (error) {
-      addToast({ title: 'Không thể tải ảnh lên.', description: error.message, variant: 'error' })
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
-  const handleRemoveImage = () => setImage({ url: '', public_id: '' })
 
   const onSubmit = async (values) => {
     const payload = {
       name: values.name,
       slug: values.slug,
       parent_id: values.parent_id ? Number(values.parent_id) : null,
-      image_url: image.url || null,
-      image_public_id: image.public_id || null,
+      image_url: values.image_url || null,
     }
 
     try {
@@ -156,57 +125,14 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
           </select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-foreground">Ảnh đại diện (không bắt buộc)</span>
+        <Input
+          label="Ảnh đại diện (URL, không bắt buộc)"
+          id="image_url"
+          error={errors.image_url?.message}
+          {...register('image_url')}
+        />
 
-          {image.url ? (
-            <div className="flex items-center gap-4">
-              <img
-                src={image.url}
-                alt="Ảnh đại diện danh mục"
-                className="h-20 w-20 rounded-card border border-border object-cover"
-              />
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploading ? 'Đang tải lên...' : 'Đổi ảnh'}
-                </Button>
-                <Button type="button" variant="ghost" disabled={uploading} onClick={handleRemoveImage}>
-                  <X size={16} />
-                  Xóa ảnh
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-start gap-1.5">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload size={16} />
-                {uploading ? 'Đang tải lên...' : 'Tải ảnh lên'}
-              </Button>
-              <p className="text-xs text-muted-foreground">JPG, PNG hoặc WebP, tối đa 5MB.</p>
-            </div>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            aria-label="Tải ảnh lên"
-            onChange={handleFileChange}
-          />
-        </div>
-
-        <Button type="submit" disabled={isSubmitting || uploading}>
+        <Button type="submit" disabled={isSubmitting}>
           {isEditing ? 'Lưu thay đổi' : 'Thêm danh mục'}
         </Button>
       </form>

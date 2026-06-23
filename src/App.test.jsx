@@ -61,9 +61,7 @@ describe('App routes', () => {
 
   it('renders the home page at "/"', async () => {
     renderAt('/')
-    expect(
-      await screen.findByRole('heading', { name: 'Không gian sống mang hơi thở của bạn.', level: 1 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Nestify', level: 1 })).toBeInTheDocument()
   })
 
   it('renders a category page at "/c/:categorySlug"', async () => {
@@ -124,9 +122,7 @@ describe('App routes', () => {
 
   it('redirects /admin to home for a non-admin user', async () => {
     renderAt('/admin', { id: 1, name: 'Bao', roles: ['customer'] })
-    expect(
-      await screen.findByRole('heading', { name: 'Không gian sống mang hơi thở của bạn.', level: 1 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Nestify', level: 1 })).toBeInTheDocument()
   })
 
   it('renders the admin dashboard for a super_admin user', async () => {

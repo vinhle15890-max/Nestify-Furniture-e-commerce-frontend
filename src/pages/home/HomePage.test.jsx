@@ -23,7 +23,7 @@ describe('HomePage', () => {
     vi.clearAllMocks()
   })
 
-  it('renders the hero headline and key editorial sections', async () => {
+  it('renders the hero and the featured/newest product sections', async () => {
     catalogApi.getProducts.mockResolvedValue({
       data: [
         {
@@ -40,16 +40,13 @@ describe('HomePage', () => {
 
     renderPage()
 
-    expect(
-      screen.getByRole('heading', { name: 'Không gian sống mang hơi thở của bạn.', level: 1 }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Sản phẩm bán chạy' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Khám phá theo không gian' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Xem Lookbook' })).toBeInTheDocument()
-    expect(await screen.findByText('Ghế sofa da')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Nestify', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Sản phẩm nổi bật' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Sản phẩm mới' })).toBeInTheDocument()
+    expect(await screen.findAllByText('Ghế sofa da')).toHaveLength(2)
   })
 
-  it('shows an empty state in best sellers when there are no products', async () => {
+  it('shows an empty state when there are no products', async () => {
     catalogApi.getProducts.mockResolvedValue({
       data: [],
       meta: { pagination: { has_more: false, next_cursor: null, limit: 20 } },
@@ -57,6 +54,6 @@ describe('HomePage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Chưa có sản phẩm.')).toBeInTheDocument()
+    expect(await screen.findAllByText('Chưa có sản phẩm.')).toHaveLength(2)
   })
 })
