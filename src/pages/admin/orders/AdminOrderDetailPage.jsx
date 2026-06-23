@@ -42,7 +42,7 @@ export function AdminOrderDetailPage() {
       <div>
         <p className="text-sm text-muted-foreground">
           Không tìm thấy đơn hàng.{' '}
-          <Link to="/admin/orders" className="text-primary hover:underline">
+          <Link to="/admin/orders" className="font-medium text-foreground transition-colors hover:text-accent">
             Quay lại danh sách đơn hàng
           </Link>
         </p>

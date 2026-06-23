@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ShoppingBag } from 'lucide-react'
 import { useCart, useApplyVoucher } from '../../features/cart/hooks'
 import { useAddresses } from '../../features/addresses/hooks'
 import { useCreateOrder, useCreatePaymentSession } from '../../features/checkout/hooks'
@@ -7,11 +8,22 @@ import { resetCheckoutIdempotencyKey } from '../../lib/idempotency'
 import { redirectToExternal } from '../../lib/navigation'
 import { BackLink } from '../../components/BackLink'
 import { Button } from '../../components/Button'
-import { Card } from '../../components/Card'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
 import { formatPrice } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
+
+function CheckoutNotice({ children }) {
+  return (
+    <div className="mx-auto max-w-2xl px-6 py-20 lg:px-10">
+      <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
+      <div className="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+        <ShoppingBag size={32} className="mx-auto text-border-strong" />
+        <p className="mt-4 text-muted-foreground">{children}</p>
+      </div>
+    </div>
+  )
+}
 
 export function CheckoutPage() {
   const { data: cartData, isLoading: cartLoading } = useCart()
@@ -42,7 +54,7 @@ export function CheckoutPage() {
 
   if (cartLoading || addressesLoading) {
     return (
-      <div className="mx-auto flex max-w-6xl justify-center px-4 py-24">
+      <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
         <Spinner />
       </div>
     )
@@ -50,33 +62,26 @@ export function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <h1 className="font-display text-3xl text-foreground">Thanh toán</h1>
-        <Card className="mt-6">
-          <p className="text-sm text-muted-foreground">
-            Giỏ hàng của bạn đang trống.{' '}
-            <Link to="/cart" className="text-primary hover:underline">
-              Quay lại giỏ hàng
-            </Link>
-          </p>
-        </Card>
-      </div>
+      <CheckoutNotice>
+        Giỏ hàng của bạn đang trống.{' '}
+        <Link to="/cart" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
+          Quay lại giỏ hàng
+        </Link>
+      </CheckoutNotice>
     )
   }
 
   if (addresses.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <h1 className="font-display text-3xl text-foreground">Thanh toán</h1>
-        <Card className="mt-6">
-          <p className="text-sm text-muted-foreground">
-            Bạn chưa có địa chỉ giao hàng.{' '}
-            <Link to="/account/addresses" className="text-primary hover:underline">
-              Thêm địa chỉ
-            </Link>
-          </p>
-        </Card>
-      </div>
+      <CheckoutNotice>
+        Bạn chưa có địa chỉ giao hàng.{' '}
+        <Link
+          to="/account/addresses"
+          className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent"
+        >
+          Thêm địa chỉ
+        </Link>
+      </CheckoutNotice>
     )
   }
 
@@ -126,53 +131,58 @@ export function CheckoutPage() {
       <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
 
-      <form onSubmit={handleSubmit} className="mt-6 grid gap-8 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <Card className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="mt-10 grid gap-8 lg:grid-cols-3">
+        <div className="flex flex-col gap-8 lg:col-span-2">
+          <section>
             <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
-            <div className="flex flex-col gap-2">
-              {addresses.map((address) => (
-                <label
-                  key={address.id}
-                  className="flex cursor-pointer items-start gap-3 rounded-control border border-border p-3 text-sm"
-                >
-                  <input
-                    type="radio"
-                    name="address"
-                    value={address.id}
-                    checked={addressId === address.id}
-                    onChange={() => setAddressId(address.id)}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="font-medium text-foreground">
-                      {address.recipient_name} · {address.phone}
+            <div className="mt-4 flex flex-col gap-3">
+              {addresses.map((address) => {
+                const selected = addressId === address.id
+                return (
+                  <label
+                    key={address.id}
+                    className={`flex cursor-pointer items-start gap-3 rounded-card border p-4 text-sm transition-colors duration-200 ${
+                      selected ? 'border-foreground bg-surface-alt' : 'border-border bg-surface hover:border-border-strong'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="address"
+                      value={address.id}
+                      checked={selected}
+                      onChange={() => setAddressId(address.id)}
+                      className="mt-1 accent-[var(--color-foreground)]"
+                    />
+                    <span>
+                      <span className="font-medium text-foreground">
+                        {address.recipient_name} · {address.phone}
+                      </span>
+                      <br />
+                      <span className="text-muted-foreground">
+                        {[address.address_line1, address.address_line2, address.city, address.province, address.postal_code]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
                     </span>
-                    <br />
-                    <span className="text-muted-foreground">
-                      {[address.address_line1, address.address_line2, address.city, address.province, address.postal_code]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </span>
-                  </span>
-                </label>
-              ))}
+                  </label>
+                )
+              })}
             </div>
-          </Card>
+          </section>
 
-          <Card className="flex flex-col gap-3">
+          <section>
             <h2 className="font-display text-xl text-foreground">Phương thức thanh toán</h2>
-            <div className="flex items-center gap-3 rounded-control border border-border p-3 text-sm">
+            <div className="mt-4 flex items-center gap-3 rounded-card border border-foreground bg-surface-alt p-4 text-sm">
               <span className="font-medium text-foreground">PayOS</span>
               <span className="text-muted-foreground">Thanh toán online qua cổng PayOS</span>
             </div>
-          </Card>
+          </section>
 
-          <Card className="flex flex-col gap-4">
+          <section>
             <h2 className="font-display text-xl text-foreground">Sản phẩm</h2>
-            <ul className="flex flex-col gap-3">
+            <ul className="mt-4 flex flex-col divide-y divide-border rounded-card border border-border bg-surface px-5">
               {items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-4 text-sm">
+                <li key={item.id} className="flex items-center justify-between gap-4 py-4 text-sm">
                   <div>
                     <p className="font-medium text-foreground">{item.variant?.name}</p>
                     <p className="text-muted-foreground">
@@ -183,13 +193,13 @@ export function CheckoutPage() {
                 </li>
               ))}
             </ul>
-          </Card>
+          </section>
         </div>
 
-        <Card className="flex flex-col gap-4">
+        <div className="h-fit rounded-card border border-border bg-surface p-6 lg:sticky lg:top-28">
           <h2 className="font-display text-xl text-foreground">Tóm tắt đơn hàng</h2>
 
-          <div className="flex flex-col gap-2">
+          <div className="mt-5 flex flex-col gap-2.5">
             <Input
               id="checkout-voucher-code"
               label="Mã giảm giá"
@@ -207,19 +217,19 @@ export function CheckoutPage() {
             {voucherError && <p role="alert" className="text-sm text-destructive">{voucherError}</p>}
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-border pt-4 text-sm">
-            <div className="flex items-center justify-between text-foreground">
+          <div className="mt-5 flex flex-col gap-2.5 border-t border-border pt-5 text-sm">
+            <div className="flex items-center justify-between text-muted-foreground">
               <span>Tổng tiền hàng</span>
-              <span>{formatPrice(cart.total)}</span>
+              <span className="text-foreground">{formatPrice(cart.total)}</span>
             </div>
 
             {voucherResult && (
               <>
-                <div className="flex items-center justify-between text-foreground">
+                <div className="flex items-center justify-between text-muted-foreground">
                   <span>Giảm giá</span>
-                  <span>-{formatPrice(voucherResult.discount_amount)}</span>
+                  <span className="text-secondary">-{formatPrice(voucherResult.discount_amount)}</span>
                 </div>
-                <div className="flex items-center justify-between font-medium text-foreground">
+                <div className="flex items-center justify-between border-t border-border pt-2.5 text-base font-medium text-foreground">
                   <span>Thành tiền</span>
                   <span>{formatPrice(voucherResult.final_total)}</span>
                 </div>
@@ -227,12 +237,12 @@ export function CheckoutPage() {
             )}
           </div>
 
-          {orderError && <p role="alert" className="text-sm text-destructive">{orderError}</p>}
+          {orderError && <p role="alert" className="mt-3 text-sm text-destructive">{orderError}</p>}
 
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="mt-6 w-full py-3.5">
             {isSubmitting ? 'Đang xử lý...' : 'Đặt hàng'}
           </Button>
-        </Card>
+        </div>
       </form>
     </div>
   )
