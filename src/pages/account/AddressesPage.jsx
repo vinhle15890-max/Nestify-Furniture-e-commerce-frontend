@@ -7,9 +7,6 @@ import { useAddresses, useDeleteAddress, useSetDefaultAddress } from '../../feat
 import { useToastStore } from '../../store/toastStore'
 import { AddressFormModal } from './AddressFormModal'
 
-const textButton =
-  'cursor-pointer rounded text-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
-
 export function AddressesPage() {
   const { data, isLoading } = useAddresses()
   const deleteAddress = useDeleteAddress()
@@ -58,22 +55,22 @@ export function AddressesPage() {
         <Button onClick={openCreateModal}>Thêm địa chỉ mới</Button>
       </div>
 
-      <div className="mt-10 flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-4">
         {isLoading ? (
           <Spinner label="Đang tải địa chỉ..." />
         ) : addresses.length === 0 ? (
-          <div className="rounded-card border border-border bg-surface p-10 text-center">
-            <p className="text-muted-foreground">Bạn chưa có địa chỉ nào.</p>
-          </div>
+          <Card>
+            <p className="text-sm text-muted-foreground">Bạn chưa có địa chỉ nào.</p>
+          </Card>
         ) : (
           addresses.map((address) => (
-            <div key={address.id} className="flex flex-col gap-3 rounded-card border border-border bg-surface p-6">
+            <Card key={address.id} className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="font-medium text-foreground">
                     {address.recipient_name} · {address.phone}
                   </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     {[address.address_line1, address.address_line2, address.city, address.province, address.postal_code]
                       .filter(Boolean)
                       .join(', ')}
@@ -81,24 +78,32 @@ export function AddressesPage() {
                 </div>
                 {address.is_default && <Badge tone="in-stock">Mặc định</Badge>}
               </div>
-              <div className="flex flex-wrap gap-5 border-t border-border pt-4 text-sm">
-                <button type="button" className={textButton} onClick={() => openEditModal(address)}>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <button
+                  type="button"
+                  className="cursor-pointer text-primary hover:text-primary-hover"
+                  onClick={() => openEditModal(address)}
+                >
                   Sửa
                 </button>
                 <button
                   type="button"
-                  className="cursor-pointer rounded text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                  className="cursor-pointer text-destructive hover:opacity-80"
                   onClick={() => handleDelete(address)}
                 >
                   Xóa
                 </button>
                 {!address.is_default && (
-                  <button type="button" className={textButton} onClick={() => handleSetDefault(address)}>
+                  <button
+                    type="button"
+                    className="cursor-pointer text-primary hover:text-primary-hover"
+                    onClick={() => handleSetDefault(address)}
+                  >
                     Đặt làm mặc định
                   </button>
                 )}
               </div>
-            </div>
+            </Card>
           ))
         )}
       </div>

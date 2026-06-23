@@ -72,29 +72,28 @@ export const routes = [
           { path: 'orders/:id', element: lazyPage(<OrderDetailPage />) },
         ],
       },
-      { path: '*', element: lazyPage(<NotFoundPage />) },
-    ],
-  },
-  {
-    // Admin is a standalone back-office shell (no storefront Header/Footer).
-    path: '/admin',
-    element: <AdminRoute />,
-    children: [
       {
-        element: lazyPage(<AdminLayout />),
+        path: 'admin',
+        element: <AdminRoute />,
         children: [
-          { index: true, element: lazyPage(<AdminDashboardPage />) },
-          { path: 'categories', element: lazyPage(<AdminCategoriesPage />) },
-          { path: 'products', element: lazyPage(<AdminProductsPage />) },
-          { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
-          { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
-          { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
-          { path: 'reviews', element: lazyPage(<AdminReviewsPage />) },
-          { path: 'vouchers', element: lazyPage(<AdminVouchersPage />) },
-          { path: 'users', element: lazyPage(<AdminUsersPage />) },
-          { path: 'audit-logs', element: lazyPage(<AdminAuditLogsPage />) },
+          {
+            element: lazyPage(<AdminLayout />),
+            children: [
+              { index: true, element: lazyPage(<AdminDashboardPage />) },
+              { path: 'categories', element: lazyPage(<AdminCategoriesPage />) },
+              { path: 'products', element: lazyPage(<AdminProductsPage />) },
+              { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
+              { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
+              { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
+              { path: 'reviews', element: lazyPage(<AdminReviewsPage />) },
+              { path: 'vouchers', element: lazyPage(<AdminVouchersPage />) },
+              { path: 'users', element: lazyPage(<AdminUsersPage />) },
+              { path: 'audit-logs', element: lazyPage(<AdminAuditLogsPage />) },
+            ],
+          },
         ],
       },
+      { path: '*', element: lazyPage(<NotFoundPage />) },
     ],
   },
 ]

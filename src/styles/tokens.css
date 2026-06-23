@@ -1,34 +1,25 @@
 @theme {
-  /* ── Colors — Warm Luxury Editorial ──────────────────────────────
-     Light & airy. Dark used sparingly (ink for primary actions only).
-     Brass is decorative/large-display + hover; never small body text
-     on light (fails contrast). Olive = secondary. */
-  --color-background: #F7F4EE;        /* primary cream */
-  --color-surface: #FAF8F3;           /* cards / raised surfaces */
-  --color-surface-alt: #F1ECE1;       /* alternating section bands */
-  --color-foreground: #1F1F1D;        /* primary ink text */
-  --color-muted-foreground: #5C584F;  /* secondary text (AA on cream) */
-  --color-border: rgba(31, 31, 29, 0.08);
-  --color-border-strong: rgba(31, 31, 29, 0.16);
+  /* Colors */
+  --color-background: #F5F0E1;
+  --color-surface: #FBF8F3;
+  --color-foreground: #2B2420;
+  --color-muted-foreground: #8C8275;
+  --color-border: #E3D7C8;
+  --color-primary: #C67B5C;
+  --color-primary-hover: #B5651D;
+  --color-secondary: #6B7B3C;
+  --color-accent: #D97706;
+  --color-destructive: #C0392B;
+  --color-ring: #C67B5C;
 
-  --color-primary: #1F1F1D;           /* ink — primary buttons/actions */
-  --color-primary-hover: #34322E;
-  --color-accent: #B08D57;            /* brushed brass — accents/hover */
-  --color-accent-hover: #9A7A4A;
-  --color-secondary: #6D7860;         /* olive */
-  --color-secondary-hover: #5C6651;
-  --color-destructive: #B4402C;
-  --color-ring: #B08D57;
-
-  /* ── Typography ── */
+  /* Typography */
   --font-display: "Fraunces Variable", "Fraunces", serif;
   --font-sans: "Inter Variable", "Inter", sans-serif;
 
-  /* ── Radii (brief: 12–16px) ── */
+  /* Radii */
   --radius-control: 12px;
-  --radius-card: 16px;
+  --radius-card: 20px;
 
-  /* ── Shadows — subtle, expensive ── */
-  --shadow-soft: 0 4px 24px rgba(31, 31, 29, 0.05);
-  --shadow-card: 0 18px 48px rgba(31, 31, 29, 0.09);
+  /* Shadows */
+  --shadow-soft: 0 4px 16px rgba(43, 36, 32, 0.06);
 }

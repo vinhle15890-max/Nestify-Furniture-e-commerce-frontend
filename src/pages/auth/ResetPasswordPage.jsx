@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
+import { Logo } from '../../components/Logo'
+import { Card } from '../../components/Card'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { useResetPassword } from '../../features/auth/hooks'
@@ -80,28 +81,43 @@ export function ResetPasswordPage() {
             <p role="alert" className="text-sm text-destructive">
               {formError}
             </p>
-          )}
-          <Input
-            label="Mật khẩu mới"
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            error={errors.password?.message}
-            {...register('password')}
-          />
-          <Input
-            label="Xác nhận mật khẩu mới"
-            id="password_confirmation"
-            type="password"
-            autoComplete="new-password"
-            error={errors.password_confirmation?.message}
-            {...register('password_confirmation')}
-          />
-          <Button type="submit" disabled={isSubmitting} className="mt-2 py-3.5">
-            Đặt lại mật khẩu
-          </Button>
-        </form>
-      )}
-    </AuthLayout>
+            <Link to="/login" className="text-primary hover:text-primary-hover">
+              Đến trang đăng nhập
+            </Link>
+          </div>
+        ) : !token || !email ? (
+          <p role="alert" className="text-sm text-destructive">
+            Liên kết đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu liên kết mới.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+            {formError && (
+              <p role="alert" className="text-sm text-destructive">
+                {formError}
+              </p>
+            )}
+            <Input
+              label="Mật khẩu mới"
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              error={errors.password?.message}
+              {...register('password')}
+            />
+            <Input
+              label="Xác nhận mật khẩu mới"
+              id="password_confirmation"
+              type="password"
+              autoComplete="new-password"
+              error={errors.password_confirmation?.message}
+              {...register('password_confirmation')}
+            />
+            <Button type="submit" disabled={isSubmitting}>
+              Đặt lại mật khẩu
+            </Button>
+          </form>
+        )}
+      </Card>
+    </div>
   )
 }

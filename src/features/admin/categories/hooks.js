@@ -26,12 +26,6 @@ export function useUpdateCategory() {
   })
 }
 
-export function useUploadCategoryImage() {
-  return useMutation({
-    mutationFn: (formData) => categoriesApi.uploadImage(formData),
-  })
-}
-
 export function useDeleteCategory() {
   const queryClient = useQueryClient()
 

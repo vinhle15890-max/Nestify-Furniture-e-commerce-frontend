@@ -64,7 +64,8 @@ describe('Footer', () => {
         <Footer />
       </MemoryRouter>,
     )
-    expect(screen.getAllByText(/Nestify/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Nestify/)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Nestify' })).toBeInTheDocument()
   })
 })
 
@@ -85,7 +86,7 @@ describe('Layout', () => {
       </QueryClientProvider>,
     )
 
-    expect(screen.getAllByText('Nestify').length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('img', { name: 'Nestify' }).length).toBeGreaterThan(0)
     expect(screen.getByText('Nội dung trang')).toBeInTheDocument()
     expect(screen.getByText(/© /)).toBeInTheDocument()
   })

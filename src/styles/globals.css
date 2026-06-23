@@ -7,10 +7,6 @@
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 body {
   margin: 0;
   min-height: 100dvh;
@@ -18,58 +14,14 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3, h4 {
+h1, h2, h3 {
   font-family: var(--font-display);
-  line-height: 1.08;
-  font-weight: 400;            /* editorial: light serif weights */
-  letter-spacing: -0.02em;
-}
-
-/* Small-caps eyebrow label used across editorial sections */
-.eyebrow {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-muted-foreground);
-}
-
-/* ── Scroll reveal (IntersectionObserver toggles .is-visible) ── */
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition:
-    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
-}
-.reveal.is-visible {
-  opacity: 1;
-  transform: none;
-}
-
-/* ── Hero very-slow ambient zoom ── */
-@keyframes slow-zoom {
-  from { transform: scale(1); }
-  to   { transform: scale(1.12); }
-}
-.animate-slow-zoom {
-  animation: slow-zoom 22s ease-out forwards;
+  line-height: 1.15;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-  .animate-slow-zoom { animation: none; }
   *,
   *::before,
   *::after {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
+import { Logo } from '../../components/Logo'
+import { Card } from '../../components/Card'
 import { Spinner } from '../../components/Spinner'
 import { useVerifyEmail } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
@@ -46,7 +47,7 @@ export function VerifyEmailPage() {
         <p role="alert" className="text-sm text-destructive">
           {error.message}
         </p>
-      ) : null}
-    </AuthLayout>
+      </Card>
+    </div>
   )
 }
