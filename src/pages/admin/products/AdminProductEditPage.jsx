@@ -4,6 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { BackLink } from '../../../components/BackLink'
 import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
@@ -220,6 +221,7 @@ function ProductEditor({ initialProduct }) {
   return (
     <div className="flex flex-col gap-8">
       <div>
+        <BackLink to="/admin/products" className="mb-4">Quay lại danh sách sản phẩm</BackLink>
         <h2 className="font-display text-2xl text-foreground">{product.name}</h2>
 
         <Card className="mt-4">

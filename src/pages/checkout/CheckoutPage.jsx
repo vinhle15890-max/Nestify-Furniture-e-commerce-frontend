@@ -6,6 +6,7 @@ import { useAddresses } from '../../features/addresses/hooks'
 import { useCreateOrder, useCreatePaymentSession } from '../../features/checkout/hooks'
 import { resetCheckoutIdempotencyKey } from '../../lib/idempotency'
 import { redirectToExternal } from '../../lib/navigation'
+import { BackLink } from '../../components/BackLink'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
@@ -127,6 +128,7 @@ export function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
+      <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
 
       <form onSubmit={handleSubmit} className="mt-10 grid gap-8 lg:grid-cols-3">

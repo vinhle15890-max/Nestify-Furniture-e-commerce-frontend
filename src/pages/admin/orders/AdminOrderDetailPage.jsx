@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { BackLink } from '../../../components/BackLink'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
@@ -82,6 +83,7 @@ export function AdminOrderDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackLink to="/admin/orders">Quay lại danh sách đơn hàng</BackLink>
       <div className="flex items-center justify-between gap-4">
         <h2 className="font-display text-2xl text-foreground">Đơn hàng #{order.id}</h2>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>

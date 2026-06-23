@@ -22,9 +22,14 @@ export function VerifyEmailPage() {
     <AuthLayout
       title="Xác thực email"
       footer={
-        <Link to="/account" className={authLink}>
-          Đến tài khoản
-        </Link>
+        <>
+          <Link to="/account" className={authLink}>
+            Đến tài khoản
+          </Link>
+          <Link to="/login" className={authLink}>
+            Đăng nhập
+          </Link>
+        </>
       }
     >
       {Object.keys(params).length === 0 ? (

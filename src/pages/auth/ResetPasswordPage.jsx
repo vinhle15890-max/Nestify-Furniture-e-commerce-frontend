@@ -51,7 +51,16 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <AuthLayout title="Đặt lại mật khẩu">
+    <AuthLayout
+      title="Đặt lại mật khẩu"
+      footer={
+        message ? null : (
+          <Link to="/login" className={authLink}>
+            Quay lại đăng nhập
+          </Link>
+        )
+      }
+    >
       {message ? (
         <div className="flex flex-col gap-4">
           <p role="status" className="text-sm text-secondary">
