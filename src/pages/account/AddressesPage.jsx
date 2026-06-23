@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card } from '../../components/Card'
+import { BackLink } from '../../components/BackLink'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
@@ -48,9 +48,10 @@ export function AddressesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl text-foreground">Sổ địa chỉ</h1>
+    <div className="mx-auto max-w-3xl px-6 py-16 md:py-20 lg:px-10">
+      <BackLink to="/account" className="mb-4">Quay lại tài khoản</BackLink>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sổ địa chỉ</h1>
         <Button onClick={openCreateModal}>Thêm địa chỉ mới</Button>
       </div>
 

@@ -5,7 +5,7 @@ import { useAddresses } from '../../features/addresses/hooks'
 import { useCreateOrder, useCreatePaymentSession } from '../../features/checkout/hooks'
 import { resetCheckoutIdempotencyKey } from '../../lib/idempotency'
 import { redirectToExternal } from '../../lib/navigation'
-import { Card } from '../../components/Card'
+import { BackLink } from '../../components/BackLink'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
@@ -121,8 +121,9 @@ export function CheckoutPage() {
   const isSubmitting = createOrder.isPending || createPaymentSession.isPending
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <h1 className="font-display text-3xl text-foreground">Thanh toán</h1>
+    <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
+      <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
+      <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
 
       <form onSubmit={handleSubmit} className="mt-6 grid gap-8 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">

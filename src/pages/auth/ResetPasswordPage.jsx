@@ -52,16 +52,34 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-12">
-      <Link to="/" aria-label="Nestify — trang chủ" className="mb-8 flex justify-center">
-        <Logo className="h-24 w-auto" />
-      </Link>
-      <h1 className="font-display text-3xl text-foreground">Đặt lại mật khẩu</h1>
-      <Card className="mt-6">
-        {message ? (
-          <div className="flex flex-col gap-4">
-            <p role="status" className="text-sm text-secondary">
-              {message}
+    <AuthLayout
+      title="Đặt lại mật khẩu"
+      footer={
+        message ? null : (
+          <Link to="/login" className={authLink}>
+            Quay lại đăng nhập
+          </Link>
+        )
+      }
+    >
+      {message ? (
+        <div className="flex flex-col gap-4">
+          <p role="status" className="text-sm text-secondary">
+            {message}
+          </p>
+          <Link to="/login" className={authLink}>
+            Đến trang đăng nhập
+          </Link>
+        </div>
+      ) : !token || !email ? (
+        <p role="alert" className="text-sm text-destructive">
+          Liên kết đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu liên kết mới.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+          {formError && (
+            <p role="alert" className="text-sm text-destructive">
+              {formError}
             </p>
             <Link to="/login" className="text-primary hover:text-primary-hover">
               Đến trang đăng nhập
