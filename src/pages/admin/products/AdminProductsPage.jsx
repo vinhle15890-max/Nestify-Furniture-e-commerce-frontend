@@ -45,7 +45,7 @@ export function AdminProductsPage() {
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
+                <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="px-4 py-3">Sản phẩm</th>
                   <th className="px-4 py-3">Danh mục</th>
                   <th className="px-4 py-3">Giá</th>
@@ -58,7 +58,7 @@ export function AdminProductsPage() {
                 {products.map((product) => {
                   const statusInfo = STATUS_LABELS[product.status] ?? { label: product.status, tone: 'neutral' }
                   return (
-                    <tr key={product.id} className="border-b border-border last:border-b-0">
+                    <tr key={product.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
                       <td className="px-4 py-3">
                         <p className="font-medium text-foreground">{product.name}</p>
                         <p className="text-muted-foreground">{product.slug}</p>
@@ -70,7 +70,7 @@ export function AdminProductsPage() {
                       </td>
                       <td className="px-4 py-3 text-foreground">{product.variants?.length ?? 0}</td>
                       <td className="px-4 py-3 text-right">
-                        <Link to={`/admin/products/${product.id}`} state={{ product }} className="text-primary hover:underline">
+                        <Link to={`/admin/products/${product.id}`} state={{ product }} className="font-medium text-foreground transition-colors hover:text-accent">
                           Sửa
                         </Link>
                       </td>

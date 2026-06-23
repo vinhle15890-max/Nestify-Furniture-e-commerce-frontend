@@ -85,6 +85,41 @@ describe('AdminCategoriesPage', () => {
     )
   })
 
+  it('uploads an image and submits its url + public_id with the category', async () => {
+    categoriesApi.uploadImage.mockResolvedValue({
+      data: { url: 'https://res.cloudinary.com/x/ghe.webp', public_id: 'furniture/products/ghe' },
+    })
+    categoriesApi.createCategory.mockResolvedValue({
+      data: { id: 5, name: 'Ghế', slug: 'ghe', parent_id: null, image_url: 'https://res.cloudinary.com/x/ghe.webp', children: [] },
+    })
+    renderPage()
+    await screen.findByText('Phòng khách')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+    await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Ghế')
+    await userEvent.type(screen.getByLabelText('Slug'), 'ghe')
+
+    const file = new File(['x'], 'ghe.jpg', { type: 'image/jpeg' })
+    await userEvent.upload(screen.getByLabelText('Tải ảnh lên'), file)
+
+    await waitFor(() => expect(categoriesApi.uploadImage).toHaveBeenCalled())
+    // The preview image should now be shown.
+    expect(await screen.findByAltText('Ảnh đại diện danh mục')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+
+    await waitFor(() =>
+      expect(categoriesApi.createCategory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Ghế',
+          slug: 'ghe',
+          image_url: 'https://res.cloudinary.com/x/ghe.webp',
+          image_public_id: 'furniture/products/ghe',
+        }),
+      ),
+    )
+  })
+
   it('edits an existing category pre-filled with its values', async () => {
     categoriesApi.updateCategory.mockResolvedValue({ data: tree[0] })
     renderPage()

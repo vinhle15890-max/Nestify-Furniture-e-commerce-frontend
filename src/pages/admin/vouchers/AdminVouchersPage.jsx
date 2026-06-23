@@ -83,7 +83,7 @@ export function AdminVouchersPage() {
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
+                <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="px-4 py-3">Mã</th>
                   <th className="px-4 py-3">Loại</th>
                   <th className="px-4 py-3">Giá trị</th>
@@ -97,7 +97,7 @@ export function AdminVouchersPage() {
                 {vouchers.map((voucher) => {
                   const statusInfo = STATUS_LABELS[voucher.status] ?? { label: voucher.status, tone: 'neutral' }
                   return (
-                    <tr key={voucher.id} className="border-b border-border last:border-b-0">
+                    <tr key={voucher.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
                       <td className="px-4 py-3 font-medium text-foreground">{voucher.code}</td>
                       <td className="px-4 py-3 text-foreground">{TYPE_LABELS[voucher.type] ?? voucher.type}</td>
                       <td className="px-4 py-3 text-foreground">{formatValue(voucher)}</td>
@@ -112,7 +112,7 @@ export function AdminVouchersPage() {
                         <div className="flex justify-end gap-4">
                           <button
                             type="button"
-                            className="cursor-pointer text-primary hover:text-primary-hover"
+                            className="cursor-pointer text-foreground transition-colors hover:text-accent"
                             onClick={() => openEditModal(voucher)}
                           >
                             Sửa

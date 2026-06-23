@@ -115,6 +115,8 @@ describe('AdminVouchersPage', () => {
           max_discount: 50000,
           max_usage_total: 100,
           max_usage_per_user: 1,
+          // Blank "min order value" must submit 0, not null — null hits a NOT NULL column (500).
+          min_order_value: 0,
         }),
       ),
     )

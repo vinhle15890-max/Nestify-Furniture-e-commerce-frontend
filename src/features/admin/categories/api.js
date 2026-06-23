@@ -15,3 +15,11 @@ export function updateCategory(id, payload) {
 export function deleteCategory(id) {
   return apiClient.delete(`/admin/categories/${id}`)
 }
+
+// Generic kind-driven uploader. formData must carry `kind` + `file`.
+// Returns { data: { url, public_id } }.
+export function uploadImage(formData) {
+  return apiClient.post('/admin/uploads', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
