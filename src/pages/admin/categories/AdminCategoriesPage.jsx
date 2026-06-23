@@ -20,7 +20,7 @@ function CategoryRow({ category, depth, onEdit, onDelete }) {
           </div>
         </div>
         <div className="flex gap-4">
-          <button type="button" className="cursor-pointer text-foreground transition-colors hover:text-accent" onClick={() => onEdit(category)}>
+          <button type="button" className="cursor-pointer text-primary hover:text-primary-hover" onClick={() => onEdit(category)}>
             Sửa
           </button>
           <button type="button" className="cursor-pointer text-destructive hover:opacity-80" onClick={() => onDelete(category)}>

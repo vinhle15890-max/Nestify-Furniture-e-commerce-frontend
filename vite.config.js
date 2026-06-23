@@ -6,9 +6,6 @@ import { configDefaults } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: {
-    port: 1309,
-  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

@@ -78,7 +78,7 @@ export function AdminProductEditPage() {
       <div>
         <p className="text-sm text-muted-foreground">
           Không tìm thấy sản phẩm.{' '}
-          <Link to="/admin/products" className="font-medium text-foreground transition-colors hover:text-accent">
+          <Link to="/admin/products" className="text-primary hover:underline">
             Quay lại danh sách sản phẩm
           </Link>
         </p>
@@ -293,7 +293,7 @@ function ProductEditor({ initialProduct }) {
         <div className="mt-4 overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+              <tr className="border-b border-border text-muted-foreground">
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Tên</th>
                 <th className="px-4 py-3">Giá</th>
@@ -304,7 +304,7 @@ function ProductEditor({ initialProduct }) {
             </thead>
             <tbody>
               {(product.variants ?? []).map((variant) => (
-                <tr key={variant.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
+                <tr key={variant.id} className="border-b border-border last:border-b-0">
                   <td className="px-4 py-3 text-foreground">{variant.sku}</td>
                   <td className="px-4 py-3 text-foreground">{variant.name}</td>
                   <td className="px-4 py-3 text-foreground">{formatPrice(variant.price)}</td>
@@ -313,7 +313,7 @@ function ProductEditor({ initialProduct }) {
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
-                      className="cursor-pointer text-foreground transition-colors hover:text-accent"
+                      className="cursor-pointer text-primary hover:text-primary-hover"
                       onClick={() => openEditVariantModal(variant)}
                     >
                       Sửa phiên bản
@@ -349,7 +349,7 @@ function ProductEditor({ initialProduct }) {
                     aria-label="Lên"
                     disabled={index === 0}
                     onClick={() => handleMoveMedia(index, -1)}
-                    className="cursor-pointer text-foreground hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                    className="cursor-pointer text-foreground hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Lên
                   </button>
@@ -358,7 +358,7 @@ function ProductEditor({ initialProduct }) {
                     aria-label="Xuống"
                     disabled={index === sortedMedia.length - 1}
                     onClick={() => handleMoveMedia(index, 1)}
-                    className="cursor-pointer text-foreground hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                    className="cursor-pointer text-foreground hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Xuống
                   </button>

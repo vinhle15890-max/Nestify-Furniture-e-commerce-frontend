@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
-import { Heart, Star, ChevronRight, Box } from 'lucide-react'
+import { Heart, Star } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
@@ -17,7 +17,7 @@ import { useToastStore } from '../../store/toastStore'
 
 export function ProductPage() {
   const { productSlug } = useParams()
-  const { data, isLoading, isError } = useProduct(productSlug)
+  const { data, isLoading } = useProduct(productSlug)
   const product = data?.data
   const token = useAuthStore((state) => state.token)
   const openCart = useUiStore((state) => state.openCart)
@@ -144,78 +144,46 @@ export function ProductPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
+      <div className="mx-auto flex max-w-6xl justify-center px-4 py-24">
         <Spinner />
       </div>
     )
   }
 
-  if (isError || !product) {
-    return (
-      <div className="mx-auto max-w-3xl px-6 py-20 lg:px-10">
-        <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm</h1>
-        <div className="mt-8 rounded-card border border-border bg-surface p-8 text-center">
-          <p className="text-muted-foreground">
-            Không tìm thấy sản phẩm.{' '}
-            <Link to="/c/all" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
-              Xem tất cả sản phẩm
-            </Link>
-          </p>
-        </div>
-      </div>
-    )
-  }
+  if (!product) return null
 
   const activeMedia = media[selectedMediaIndex]
   const sanitizedDescription = DOMPurify.sanitize(product.description ?? '')
-  const averageRating = reviews.length
-    ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
-    : null
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
-      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-        <Link to="/" className="transition-colors hover:text-accent">
-          Trang chủ
+    <div className="mx-auto max-w-6xl px-4 py-12">
+      {product.category && (
+        <Link to={`/c/${product.category.slug}`} className="text-sm text-muted-foreground hover:text-primary">
+          {product.category.name}
         </Link>
-        {product.category && (
-          <>
-            <ChevronRight size={14} className="text-border-strong" />
-            <Link to={`/c/${product.category.slug}`} className="transition-colors hover:text-accent">
-              {product.category.name}
-            </Link>
-          </>
-        )}
-        <ChevronRight size={14} className="text-border-strong" />
-        <span className="text-foreground">{product.name}</span>
-      </nav>
+      )}
 
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+      <div className="mt-4 grid gap-8 lg:grid-cols-2">
         <div>
-          <div className="group aspect-[4/5] overflow-hidden rounded-card bg-surface-alt">
+          <div className="aspect-square overflow-hidden rounded-card border border-border bg-background">
             {activeMedia &&
               (activeMedia.type === 'video' ? (
                 <video src={activeMedia.url} controls className="h-full w-full object-cover" />
               ) : (
-                <img
-                  src={activeMedia.url}
-                  alt={product.name}
-                  decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-[700ms] ease-out group-hover:scale-105"
-                />
+                <img src={activeMedia.url} alt={product.name} decoding="async" className="h-full w-full object-cover" />
               ))}
           </div>
 
           {media.length > 1 && (
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-3 flex gap-2">
               {media.map((item, index) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setSelectedMediaIndex(index)}
                   aria-label={`Xem ${item.type === 'video' ? 'video' : 'ảnh'} ${index + 1}`}
-                  className={`h-20 w-20 overflow-hidden rounded-control border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                    index === selectedMediaIndex ? 'border-foreground' : 'border-transparent hover:border-border-strong'
+                  className={`h-16 w-16 overflow-hidden rounded-control border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    index === selectedMediaIndex ? 'border-primary' : 'border-border'
                   }`}
                 >
                   {item.type === 'video' ? (
@@ -229,45 +197,24 @@ export function ProductPage() {
           )}
         </div>
 
-        <div className="lg:py-4">
-          {product.category && (
-            <p className="eyebrow">{product.category.name}</p>
-          )}
-          <h1 className="mt-3 font-display text-[clamp(1.9rem,3.2vw,2.8rem)] leading-tight text-foreground">
-            {product.name}
-          </h1>
-
-          {averageRating && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="flex text-accent">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <Star key={value} size={15} fill={value <= Math.round(averageRating) ? 'currentColor' : 'none'} />
-                ))}
-              </span>
-              <span>
-                {averageRating} · {reviews.length} đánh giá
-              </span>
-            </div>
-          )}
-
-          <p className="mt-5 text-3xl font-medium text-foreground">{formatPrice(price)}</p>
-
-          <div className="mt-8 h-px w-full bg-border" />
+        <div>
+          <h1 className="font-display text-3xl text-foreground">{product.name}</h1>
+          <p className="mt-2 text-2xl font-medium text-primary">{formatPrice(price)}</p>
 
           {variants.length > 0 && (
-            <div className="mt-8">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Phiên bản</p>
-              <div className="mt-3 flex flex-wrap gap-2.5">
+            <div className="mt-6">
+              <p className="text-sm font-medium text-foreground">Phiên bản</p>
+              <div className="mt-2 flex flex-wrap gap-2">
                 {variants.map((variant) => (
                   <button
                     key={variant.id}
                     type="button"
                     onClick={() => setSelectedVariantId(variant.id)}
                     aria-pressed={variant.id === selectedVariant?.id}
-                    className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    className={`rounded-control border px-3 py-2 text-sm ${
                       variant.id === selectedVariant?.id
-                        ? 'border-foreground bg-foreground text-surface'
-                        : 'border-border-strong text-foreground hover:border-foreground'
+                        ? 'border-primary text-primary'
+                        : 'border-border text-foreground hover:border-primary'
                     }`}
                   >
                     {variant.name}
@@ -277,7 +224,7 @@ export function ProductPage() {
             </div>
           )}
 
-          <p className={`mt-5 text-sm ${outOfStock ? 'text-destructive' : 'text-secondary'}`}>
+          <p className="mt-4 text-sm text-muted-foreground">
             {outOfStock ? 'Hết hàng' : `Còn ${availableStock} sản phẩm`}
           </p>
 
@@ -286,15 +233,14 @@ export function ProductPage() {
               href={selectedVariant.model_3d_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1.5 text-sm text-foreground transition-colors hover:text-accent"
+              className="mt-1 inline-block text-sm text-primary hover:underline"
             >
-              <Box size={16} />
               Xem mô hình 3D
             </a>
           )}
 
-          <div className="mt-8 flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="mt-6 flex items-center gap-4">
+            <label className="flex flex-col gap-1 text-sm text-foreground">
               Số lượng
               <input
                 type="number"
@@ -307,17 +253,13 @@ export function ProductPage() {
                   const max = Math.max(stockError ?? availableStock, 1)
                   setQuantity(Math.min(Math.max(next, 1), max))
                 }}
-                className="w-24 rounded-control border border-border-strong bg-surface px-4 py-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+                className="w-20 rounded-control border border-border bg-surface px-3 py-2"
               />
             </label>
 
             {token ? (
               <>
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={outOfStock || addCartItem.isPending}
-                  className="px-8 py-3.5"
-                >
+                <Button onClick={handleAddToCart} disabled={outOfStock || addCartItem.isPending}>
                   Thêm vào giỏ
                 </Button>
                 <Button
@@ -326,48 +268,41 @@ export function ProductPage() {
                   aria-label="Thêm vào yêu thích"
                   onClick={handleAddToWishlist}
                   disabled={addWishlistItem.isPending}
-                  className="px-4 py-3.5"
                 >
                   <Heart size={18} />
                 </Button>
               </>
             ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center rounded-control bg-primary px-8 py-3.5 text-sm font-medium text-surface transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
+              <Link to="/login" className="text-sm text-primary hover:underline">
                 Đăng nhập để mua hàng
               </Link>
             )}
           </div>
 
           {stockError !== null && (
-            <p role="alert" className="mt-3 text-sm text-destructive">
+            <p role="alert" className="mt-2 text-sm text-destructive">
               Chỉ còn {stockError} sản phẩm trong kho
             </p>
           )}
 
           {sanitizedDescription && (
-            <div className="mt-10 border-t border-border pt-8">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Mô tả</p>
-              <div
-                className="prose mt-4 max-w-none leading-relaxed text-foreground"
-                dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
-              />
-            </div>
+            <div
+              className="prose mt-8 max-w-none text-foreground"
+              dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
+            />
           )}
         </div>
       </div>
 
-      <section className="mt-20 border-t border-border pt-16">
-        <h2 className="font-display text-[clamp(1.6rem,2.6vw,2.2rem)] text-foreground">Đánh giá</h2>
+      <section className="mt-16">
+        <h2 className="font-display text-2xl text-foreground">Đánh giá</h2>
 
         {token && verifiedOrder && !reviewSubmitted && (
           <form
             onSubmit={handleSubmitReview}
-            className="mt-6 flex max-w-xl flex-col gap-4 rounded-card border border-border bg-surface p-6 shadow-soft"
+            className="mt-4 flex flex-col gap-3 rounded-card border border-border bg-surface p-4 shadow-soft"
           >
-            <p className="font-medium text-foreground">Viết đánh giá của bạn</p>
+            <p className="text-sm font-medium text-foreground">Viết đánh giá của bạn</p>
 
             <div className="flex gap-1 text-accent">
               {[1, 2, 3, 4, 5].map((value) => (
@@ -377,9 +312,8 @@ export function ProductPage() {
                   aria-label={`Đánh giá ${value} sao`}
                   aria-pressed={value <= reviewRating}
                   onClick={() => setReviewRating(value)}
-                  className="transition-transform hover:scale-110"
                 >
-                  <Star size={24} fill={value <= reviewRating ? 'currentColor' : 'none'} />
+                  <Star size={20} fill={value <= reviewRating ? 'currentColor' : 'none'} />
                 </button>
               ))}
             </div>
@@ -401,7 +335,7 @@ export function ProductPage() {
                 maxLength={5000}
                 rows={4}
                 required
-                className="rounded-control border border-border-strong bg-surface px-4 py-3 text-base font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                className="rounded-control border border-border bg-surface px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </label>
 
@@ -418,31 +352,28 @@ export function ProductPage() {
         )}
 
         {reviewSubmitted && (
-          <p className="mt-6 text-sm text-muted-foreground">
+          <p className="mt-4 text-sm text-muted-foreground">
             Đánh giá của bạn đã được gửi và đang chờ kiểm duyệt.
           </p>
         )}
 
         {reviews.length === 0 ? (
-          <p className="mt-6 text-muted-foreground">Chưa có đánh giá nào.</p>
+          <p className="mt-4 text-muted-foreground">Chưa có đánh giá nào.</p>
         ) : (
-          <ul className="mt-8 flex flex-col gap-5">
+          <ul className="mt-4 flex flex-col gap-4">
             {reviews.map((review) => (
-              <li key={review.id} className="rounded-card border border-border bg-surface p-6 shadow-soft">
+              <li key={review.id} className="rounded-card border border-border bg-surface p-4 shadow-soft">
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-foreground">{review.user?.name}</p>
-                  <span className="flex items-center gap-1 text-sm text-accent">
-                    <Star size={14} fill="currentColor" />
-                    <span className="text-muted-foreground">{review.rating}/5</span>
-                  </span>
+                  <p className="text-sm text-muted-foreground">{review.rating}/5</p>
                 </div>
-                {review.title && <p className="mt-2 font-display text-lg text-foreground">{review.title}</p>}
-                <p className="mt-1.5 leading-relaxed text-foreground">{review.body}</p>
+                {review.title && <p className="mt-1 font-medium text-foreground">{review.title}</p>}
+                <p className="mt-1 text-sm text-foreground">{review.body}</p>
 
                 {review.comments?.length > 0 && (
-                  <ul className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
+                  <ul className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
                     {review.comments.map((comment) => (
-                      <li key={comment.id} className="border-l-2 border-border-strong pl-4 text-sm">
+                      <li key={comment.id} className="pl-4 text-sm">
                         <p className="font-medium text-foreground">
                           {comment.user?.name}{' '}
                           <span className="font-normal text-muted-foreground">· {formatDate(comment.created_at)}</span>
@@ -456,7 +387,7 @@ export function ProductPage() {
                 {token && (
                   <form
                     onSubmit={(event) => handleSubmitComment(event, review.id)}
-                    className="mt-4 flex flex-col gap-2 border-t border-border pt-4"
+                    className="mt-3 flex flex-col gap-2 border-t border-border pt-3"
                   >
                     <label className="text-sm text-foreground" htmlFor={`comment-${review.id}`}>
                       Bình luận
@@ -468,7 +399,7 @@ export function ProductPage() {
                         }
                         maxLength={2000}
                         rows={2}
-                        className="mt-1.5 block w-full rounded-control border border-border-strong bg-surface px-4 py-2.5 text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                        className="mt-1.5 block w-full rounded-control border border-border bg-surface px-3 py-2 text-sm font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </label>
                     <div>
@@ -488,7 +419,7 @@ export function ProductPage() {
         )}
 
         {reviewsQuery.hasNextPage && (
-          <div className="mt-8 flex justify-center">
+          <div className="mt-6 flex justify-center">
             <Button
               variant="secondary"
               onClick={() => reviewsQuery.fetchNextPage()}

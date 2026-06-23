@@ -36,7 +36,7 @@ export function AdminUsersPage() {
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                <tr className="border-b border-border text-muted-foreground">
                   <th className="px-4 py-3">Người dùng</th>
                   <th className="px-4 py-3">Vai trò</th>
                   <th className="px-4 py-3">Trạng thái</th>
@@ -47,7 +47,7 @@ export function AdminUsersPage() {
                 {users.map((user) => {
                   const statusInfo = STATUS_LABELS[user.status] ?? { label: user.status, tone: 'neutral' }
                   return (
-                    <tr key={user.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
+                    <tr key={user.id} className="border-b border-border last:border-b-0">
                       <td className="px-4 py-3">
                         <p className="font-medium text-foreground">{user.name}</p>
                         <p className="text-muted-foreground">{user.email}</p>

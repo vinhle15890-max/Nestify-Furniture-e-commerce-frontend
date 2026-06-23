@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { ProductCard } from './ProductCard'
 
 describe('ProductCard', () => {
-  it('renders the product name, formatted price, and links to the product page', () => {
+  it('renders the product name, formatted price, category, and links to the product page', () => {
     render(
       <ProductCard
         product={{
@@ -22,5 +22,6 @@ describe('ProductCard', () => {
     expect(screen.getByRole('link', { name: /Ghế sofa da/ })).toHaveAttribute('href', '/p/ghe-sofa-da')
     expect(screen.getByText('Ghế sofa da')).toBeInTheDocument()
     expect(screen.getByText('5.990.000 ₫')).toBeInTheDocument()
+    expect(screen.getByText('Phòng khách')).toBeInTheDocument()
   })
 })

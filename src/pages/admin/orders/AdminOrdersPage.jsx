@@ -57,7 +57,7 @@ export function AdminOrdersPage() {
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                <tr className="border-b border-border text-muted-foreground">
                   <th className="px-4 py-3">Mã đơn</th>
                   <th className="px-4 py-3">Khách hàng</th>
                   <th className="px-4 py-3">Trạng thái</th>
@@ -70,7 +70,7 @@ export function AdminOrdersPage() {
                 {orders.map((order) => {
                   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
                   return (
-                    <tr key={order.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
+                    <tr key={order.id} className="border-b border-border last:border-b-0">
                       <td className="px-4 py-3 text-foreground">#{order.id}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-foreground">{order.user?.name}</p>
@@ -82,7 +82,7 @@ export function AdminOrdersPage() {
                       <td className="px-4 py-3 text-foreground">{formatPrice(order.total)}</td>
                       <td className="px-4 py-3 text-foreground">{formatDate(order.created_at)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Link to={`/admin/orders/${order.id}`} state={{ order }} className="font-medium text-foreground transition-colors hover:text-accent">
+                        <Link to={`/admin/orders/${order.id}`} state={{ order }} className="text-primary hover:underline">
                           Xem
                         </Link>
                       </td>

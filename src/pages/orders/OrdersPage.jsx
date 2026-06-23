@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { ChevronRight, Package } from 'lucide-react'
 import { useOrders } from '../../features/orders/hooks'
 import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
+import { Card } from '../../components/Card'
 import { Badge } from '../../components/Badge'
 import { Spinner } from '../../components/Spinner'
 import { formatPrice, formatDate } from '../../lib/format'
@@ -11,7 +11,7 @@ export function OrdersPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-4xl justify-center px-6 py-32">
+      <div className="mx-auto flex max-w-4xl justify-center px-4 py-24">
         <Spinner />
       </div>
     )
@@ -20,38 +20,33 @@ export function OrdersPage() {
   const orders = data?.data ?? []
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
-      <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng của tôi</h1>
+    <div className="mx-auto max-w-4xl px-4 py-12">
+      <h1 className="font-display text-3xl text-foreground">Đơn hàng của tôi</h1>
 
       {orders.length === 0 ? (
-        <div className="mt-10 rounded-card border border-border bg-surface p-12 text-center">
-          <Package size={36} className="mx-auto text-border-strong" />
-          <p className="mt-4 text-muted-foreground">
+        <Card className="mt-6">
+          <p className="text-sm text-muted-foreground">
             Bạn chưa có đơn hàng nào.{' '}
-            <Link to="/c/all" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
+            <Link to="/" className="text-primary hover:underline">
               Tiếp tục mua sắm
             </Link>
           </p>
-        </div>
+        </Card>
       ) : (
-        <ul className="mt-10 flex flex-col gap-4">
+        <ul className="mt-6 flex flex-col gap-4">
           {orders.map((order) => {
             const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
             return (
               <li key={order.id}>
-                <Link
-                  to={`/orders/${order.id}`}
-                  className="group flex flex-wrap items-center justify-between gap-4 rounded-card border border-border bg-surface p-6 transition-colors duration-200 hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  <div>
-                    <p className="font-display text-lg text-foreground">Đơn hàng #{order.id}</p>
-                    <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
-                  </div>
-                  <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
-                  <div className="flex items-center gap-3">
+                <Link to={`/orders/${order.id}`}>
+                  <Card className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <p className="font-medium text-foreground">Đơn hàng #{order.id}</p>
+                      <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
+                    </div>
+                    <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
                     <p className="font-medium text-foreground">{formatPrice(order.total)}</p>
-                    <ChevronRight size={16} className="text-border-strong transition-transform duration-200 group-hover:translate-x-1" />
-                  </div>
+                  </Card>
                 </Link>
               </li>
             )
