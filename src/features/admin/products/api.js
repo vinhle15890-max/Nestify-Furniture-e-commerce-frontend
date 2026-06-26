@@ -20,6 +20,10 @@ export function archiveProduct(id) {
   return apiClient.delete(`/admin/products/${id}`)
 }
 
+export function generateProductDescription(payload) {
+  return apiClient.post('/admin/products/ai/description', payload)
+}
+
 export function createVariant(productId, payload) {
   return apiClient.post(`/admin/products/${productId}/variants`, payload)
 }

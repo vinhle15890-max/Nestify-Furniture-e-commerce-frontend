@@ -1,0 +1,75 @@
+/* Content styling for the TipTap rich-text editor. Uses the design-system CSS
+   variables (tokens.css) so the editor matches the rest of the admin. */
+.tiptap-content {
+  min-height: 12rem;
+  padding: 0.75rem 1rem;
+  outline: none;
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.tiptap-content:focus-visible {
+  outline: none;
+}
+
+.tiptap-content > * + * {
+  margin-top: 0.75rem;
+}
+
+.tiptap-content h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1.3;
+  margin-top: 1.25rem;
+}
+
+.tiptap-content h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.35;
+  margin-top: 1rem;
+}
+
+.tiptap-content ul,
+.tiptap-content ol {
+  padding-left: 1.5rem;
+}
+
+.tiptap-content ul {
+  list-style: disc;
+}
+
+.tiptap-content ol {
+  list-style: decimal;
+}
+
+.tiptap-content li > * + * {
+  margin-top: 0.25rem;
+}
+
+.tiptap-content a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tiptap-content strong {
+  font-weight: 600;
+}
+
+.tiptap-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-control);
+}
+
+/* Placeholder shown when empty (extension-placeholder). */
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-muted-foreground);
+}

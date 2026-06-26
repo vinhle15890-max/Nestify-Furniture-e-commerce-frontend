@@ -10,7 +10,7 @@ import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 
 const createSchema = yup.object({
-  sku: yup.string().required('Vui lòng nhập SKU.').max(100, 'Tối đa 100 ký tự.'),
+  sku: yup.string().max(100, 'Tối đa 100 ký tự.'),
   name: yup.string().required('Vui lòng nhập tên phiên bản.').max(255, 'Tối đa 255 ký tự.'),
   price: yup.number().typeError('Giá phải là số.').required('Vui lòng nhập giá.').min(0, 'Giá phải lớn hơn hoặc bằng 0.'),
   stock_quantity: yup
@@ -81,7 +81,7 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
       } else {
         const response = await createVariant.mutateAsync({
           productId,
-          sku: values.sku,
+          sku: values.sku?.trim() || undefined,
           name: values.name,
           price: Number(values.price),
           stock_quantity: Number(values.stock_quantity),
@@ -100,7 +100,18 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
   return (
     <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa phiên bản' : 'Thêm phiên bản mới'}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        {!isEditing && <Input label="SKU" id="variant-sku" error={errors.sku?.message} {...register('sku')} />}
+        {!isEditing && (
+          <div className="flex flex-col gap-1">
+            <Input
+              label="SKU"
+              id="variant-sku"
+              placeholder="Để trống để tự tạo"
+              error={errors.sku?.message}
+              {...register('sku')}
+            />
+            <p className="text-xs text-muted-foreground">Bỏ trống để hệ thống tự sinh mã từ tên sản phẩm.</p>
+          </div>
+        )}
         <Input label="Tên phiên bản" id="variant-name" error={errors.name?.message} {...register('name')} />
         <Input label="Giá" id="variant-price" type="number" error={errors.price?.message} {...register('price')} />
         <Input

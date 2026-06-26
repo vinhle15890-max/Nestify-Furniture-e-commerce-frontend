@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Package } from 'lucide-react'
+import { Package, Plus } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
@@ -9,7 +9,6 @@ import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { useAdminProducts } from '../../../features/admin/products/hooks'
 import { formatPrice } from '../../../lib/format'
-import { ProductFormModal } from './ProductFormModal'
 
 const STATUS_LABELS = {
   active: { label: 'Đang bán', tone: 'in-stock' },
@@ -19,15 +18,10 @@ const STATUS_LABELS = {
 export function AdminProductsPage() {
   const [page, setPage] = useState(1)
   const { data, isLoading } = useAdminProducts(page)
-  const [modalOpen, setModalOpen] = useState(false)
   const navigate = useNavigate()
 
   const products = data?.data ?? []
   const meta = data?.meta ?? { last_page: 1 }
-
-  const handleCreated = (product) => {
-    navigate(`/admin/products/${product.id}`, { state: { product } })
-  }
 
   return (
     <div>
@@ -35,7 +29,12 @@ export function AdminProductsPage() {
         icon={Package}
         title="Sản phẩm"
         description="Quản lý danh mục sản phẩm, biến thể và tồn kho."
-        actions={<Button onClick={() => setModalOpen(true)}>Thêm sản phẩm</Button>}
+        actions={
+          <Button onClick={() => navigate('/admin/products/new')}>
+            <Plus size={16} aria-hidden="true" />
+            Thêm sản phẩm
+          </Button>
+        }
       />
 
       <div className="mt-6">
@@ -90,8 +89,6 @@ export function AdminProductsPage() {
       <div className="mt-6">
         <Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={setPage} />
       </div>
-
-      <ProductFormModal open={modalOpen} onOpenChange={setModalOpen} onCreated={handleCreated} />
     </div>
   )
 }

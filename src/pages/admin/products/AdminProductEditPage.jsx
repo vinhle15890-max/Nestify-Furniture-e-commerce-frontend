@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { Layers, Pencil, Plus, ImagePlus } from 'lucide-react'
 import { BackLink } from '../../../components/BackLink'
-import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
+import { Badge } from '../../../components/Badge'
 import { Input } from '../../../components/Input'
+import { Pagination } from '../../../components/Pagination'
+import { Panel } from '../../../components/admin/Panel'
+import { EmptyState } from '../../../components/admin/EmptyState'
 import { useCategories } from '../../../features/catalog/hooks'
 import {
   useAdminProduct,
@@ -15,38 +18,22 @@ import {
   useUploadMedia,
   useReorderMedia,
   useDeleteMedia,
+  useGenerateDescription,
 } from '../../../features/admin/products/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 import { formatPrice } from '../../../lib/format'
 import { VariantFormModal } from './VariantFormModal'
+import { DescriptionSeoFields } from './DescriptionSeoFields'
+import { productSchema, flattenCategories, toProductPayload } from './productForm'
 
-const schema = yup.object({
-  name: yup.string().required('Vui lòng nhập tên sản phẩm.').max(255, 'Tối đa 255 ký tự.'),
-  slug: yup
-    .string()
-    .required('Vui lòng nhập slug.')
-    .max(255, 'Tối đa 255 ký tự.')
-    .matches(/^[a-z0-9_-]+$/i, 'Slug chỉ gồm chữ, số, gạch ngang và gạch dưới.'),
-  category_id: yup.string().required('Vui lòng chọn danh mục.'),
-  description: yup.string(),
-  status: yup.string().oneOf(['active', 'archived']),
-})
-
-// Flatten the category tree into a list of {id, name, depth} for the <select>.
-function flattenCategories(tree) {
-  const result = []
-
-  function walk(nodes, depth) {
-    for (const node of nodes) {
-      result.push({ id: node.id, name: node.name, depth })
-      if (node.children?.length) walk(node.children, depth + 1)
-    }
-  }
-
-  walk(tree, 0)
-  return result
+const STATUS_LABELS = {
+  active: { label: 'Đang bán', tone: 'in-stock' },
+  archived: { label: 'Đã lưu trữ', tone: 'neutral' },
 }
+
+// How many variants to show per page in the variants table.
+const VARIANTS_PER_PAGE = 8
 
 function findProductInCache(queryClient, productId) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['admin', 'products'] })
@@ -94,6 +81,7 @@ export function AdminProductEditPage() {
 
 function ProductEditor({ initialProduct }) {
   const [product, setProduct] = useState(initialProduct)
+  const navigate = useNavigate()
 
   const { data: categoriesData } = useCategories()
   const categoryOptions = useMemo(() => flattenCategories(categoriesData?.data ?? []), [categoriesData])
@@ -102,46 +90,65 @@ function ProductEditor({ initialProduct }) {
   const uploadMedia = useUploadMedia()
   const reorderMedia = useReorderMedia()
   const deleteMedia = useDeleteMedia()
+  const generateDescription = useGenerateDescription()
   const addToast = useToastStore((state) => state.addToast)
 
   const [variantModalOpen, setVariantModalOpen] = useState(false)
   const [editingVariant, setEditingVariant] = useState(null)
   const [mediaType, setMediaType] = useState('image')
+  const [variantPage, setVariantPage] = useState(1)
 
   const {
     register,
     handleSubmit,
     setError,
+    control,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(productSchema),
     defaultValues: product
       ? {
           name: product.name ?? '',
           slug: product.slug ?? '',
           category_id: product.category?.id != null ? String(product.category.id) : '',
           description: product.description ?? '',
+          meta_title: product.meta_title ?? '',
+          meta_description: product.meta_description ?? '',
+          focus_keyword: product.focus_keyword ?? '',
           status: product.status ?? 'active',
         }
       : undefined,
   })
 
   const onSubmit = async (values) => {
-    const payload = {
-      name: values.name,
-      slug: values.slug,
-      category_id: Number(values.category_id),
-      description: values.description || null,
-      status: values.status,
-    }
-
     try {
-      const response = await updateProduct.mutateAsync({ id: product.id, ...payload })
+      const response = await updateProduct.mutateAsync({ id: product.id, ...toProductPayload(values) })
       setProduct((current) => ({ ...current, ...response.data }))
       addToast({ title: 'Đã lưu sản phẩm.', variant: 'success' })
     } catch (error) {
       if (applyServerErrors(error, setError)) return
       addToast({ title: 'Không thể lưu sản phẩm.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleGenerateDescription = async () => {
+    try {
+      const response = await generateDescription.mutateAsync({
+        name: watch('name') || product.name,
+        category: product.category?.name ?? null,
+        keyword: watch('focus_keyword') || null,
+        attributes: product.attributes ?? {},
+      })
+      const draft = response.data
+      setValue('description', draft.description ?? '', { shouldDirty: true })
+      setValue('meta_title', draft.meta_title ?? '', { shouldDirty: true })
+      setValue('meta_description', draft.meta_description ?? '', { shouldDirty: true })
+      if (draft.focus_keyword) setValue('focus_keyword', draft.focus_keyword, { shouldDirty: true })
+      addToast({ title: 'AI đã tạo bản nháp mô tả. Hãy kiểm tra và lưu lại.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể tạo mô tả bằng AI.', description: error.message, variant: 'error' })
     }
   }
 
@@ -218,14 +225,46 @@ function ProductEditor({ initialProduct }) {
 
   const sortedMedia = [...(product.media ?? [])].sort((a, b) => a.sort_order - b.sort_order)
 
-  return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <BackLink to="/admin/products" className="mb-4">Quay lại danh sách sản phẩm</BackLink>
-        <h2 className="font-display text-2xl text-foreground">{product.name}</h2>
+  const allVariants = product.variants ?? []
+  const variantLastPage = Math.max(1, Math.ceil(allVariants.length / VARIANTS_PER_PAGE))
+  const currentVariantPage = Math.min(variantPage, variantLastPage)
+  const pagedVariants = allVariants.slice(
+    (currentVariantPage - 1) * VARIANTS_PER_PAGE,
+    currentVariantPage * VARIANTS_PER_PAGE,
+  )
 
-        <Card className="mt-4">
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+  const statusInfo = STATUS_LABELS[product.status] ?? { label: product.status, tone: 'neutral' }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <BackLink to="/admin/products">Quay lại danh sách sản phẩm</BackLink>
+
+      {/* Title bar: name + live status + page-level actions */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="truncate font-display text-2xl text-foreground">{product.name}</h2>
+            <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
+          </div>
+          <p className="mt-1 truncate text-sm text-muted-foreground">/{product.slug}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="secondary" onClick={() => navigate('/admin/products')}>
+            Hủy
+          </Button>
+        </div>
+      </div>
+
+      {/* Two-column workspace: configuration (left) + variant data table (right) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_1fr] lg:items-start">
+        {/* LEFT — product metadata */}
+        <Panel padded={false}>
+          <div className="border-b border-border px-5 py-4">
+            <h3 className="font-display text-lg text-foreground">Thông tin sản phẩm</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">Cấu hình metadata của sản phẩm.</p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4 p-5">
             <Input label="Tên sản phẩm" id="name" error={errors.name?.message} {...register('name')} />
             <Input label="Slug" id="slug" error={errors.slug?.message} {...register('slug')} />
 
@@ -253,16 +292,6 @@ function ProductEditor({ initialProduct }) {
               )}
             </div>
 
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor="description">
-              Mô tả
-              <textarea
-                id="description"
-                {...register('description')}
-                rows={4}
-                className="rounded-control border border-border bg-surface px-3 py-2 text-base font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </label>
-
             <div className="flex flex-col gap-1.5">
               <label htmlFor="status" className="text-sm font-medium text-foreground">
                 Trạng thái
@@ -277,61 +306,133 @@ function ProductEditor({ initialProduct }) {
               </select>
             </div>
 
-            <div>
+            <div className="flex items-center gap-2 border-t border-border pt-4">
               <Button type="submit" disabled={isSubmitting}>
                 Lưu sản phẩm
               </Button>
+              <Button type="button" variant="ghost" onClick={() => navigate('/admin/products')}>
+                Hủy
+              </Button>
             </div>
           </form>
-        </Card>
+        </Panel>
+
+        {/* RIGHT — variants data table (primary working area) */}
+        <Panel padded={false}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+            <div className="min-w-0">
+              <h3 className="flex items-center gap-2 font-display text-lg text-foreground">
+                <Layers size={18} className="text-accent" aria-hidden="true" />
+                Phiên bản
+              </h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {allVariants.length} phiên bản · giá &amp; tồn kho
+              </p>
+            </div>
+            <Button onClick={openCreateVariantModal}>
+              <Plus size={16} aria-hidden="true" />
+              Thêm phiên bản
+            </Button>
+          </div>
+
+          {allVariants.length === 0 ? (
+            <EmptyState
+              icon={Layers}
+              title="Chưa có phiên bản nào"
+              description="Thêm phiên bản đầu tiên để thiết lập SKU, giá bán và tồn kho cho sản phẩm này."
+              action={
+                <Button onClick={openCreateVariantModal}>
+                  <Plus size={16} aria-hidden="true" />
+                  Thêm phiên bản
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <div className="max-h-[30rem] overflow-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-alt/60 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                      <th className="sticky top-0 bg-surface-alt px-5 py-3">SKU</th>
+                      <th className="sticky top-0 bg-surface-alt px-5 py-3">Tên</th>
+                      <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Giá</th>
+                      <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Tồn kho</th>
+                      <th className="sticky top-0 bg-surface-alt px-5 py-3">Trạng thái</th>
+                      <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedVariants.map((variant) => (
+                      <tr
+                        key={variant.id}
+                        className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40"
+                      >
+                        <td className="px-5 py-3 font-mono text-xs text-foreground">{variant.sku}</td>
+                        <td className="px-5 py-3 font-medium text-foreground">{variant.name}</td>
+                        <td className="px-5 py-3 text-right text-foreground">{formatPrice(variant.price)}</td>
+                        <td
+                          className={`px-5 py-3 text-right tabular-nums ${
+                            variant.available_stock === 0 ? 'font-medium text-destructive' : 'text-foreground'
+                          }`}
+                        >
+                          {variant.available_stock}
+                        </td>
+                        <td className="px-5 py-3">
+                          <Badge tone={variant.is_active ? 'in-stock' : 'neutral'}>
+                            {variant.is_active ? 'Hoạt động' : 'Tạm ngưng'}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <button
+                            type="button"
+                            aria-label="Sửa phiên bản"
+                            title="Sửa phiên bản"
+                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-surface-alt hover:text-accent"
+                            onClick={() => openEditVariantModal(variant)}
+                          >
+                            <Pencil size={16} aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {variantLastPage > 1 && (
+                <div className="border-t border-border px-5 py-4">
+                  <Pagination page={currentVariantPage} lastPage={variantLastPage} onPageChange={setVariantPage} />
+                </div>
+              )}
+            </>
+          )}
+        </Panel>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between gap-4">
-          <h3 className="font-display text-xl text-foreground">Phiên bản</h3>
-          <Button onClick={openCreateVariantModal}>Thêm phiên bản</Button>
+      {/* Full-width — description & SEO */}
+      <DescriptionSeoFields
+        control={control}
+        register={register}
+        errors={errors}
+        watch={watch}
+        slug={product.slug}
+        namePlaceholder={product.name}
+        onGenerate={handleGenerateDescription}
+        isGenerating={generateDescription.isPending}
+        onEditorError={(error) =>
+          addToast({ title: 'Không thể chèn ảnh.', description: error.message, variant: 'error' })
+        }
+      />
+
+      {/* Full-width — media library */}
+      <Panel padded={false}>
+        <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+          <ImagePlus size={18} className="text-accent" aria-hidden="true" />
+          <h3 className="font-display text-lg text-foreground">Hình ảnh / Video</h3>
         </div>
 
-        <div className="mt-4 overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                <th className="px-4 py-3">SKU</th>
-                <th className="px-4 py-3">Tên</th>
-                <th className="px-4 py-3">Giá</th>
-                <th className="px-4 py-3">Tồn kho</th>
-                <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(product.variants ?? []).map((variant) => (
-                <tr key={variant.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
-                  <td className="px-4 py-3 text-foreground">{variant.sku}</td>
-                  <td className="px-4 py-3 text-foreground">{variant.name}</td>
-                  <td className="px-4 py-3 text-foreground">{formatPrice(variant.price)}</td>
-                  <td className="px-4 py-3 text-foreground">{variant.available_stock}</td>
-                  <td className="px-4 py-3 text-foreground">{variant.is_active ? 'Hoạt động' : 'Tạm ngưng'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      className="cursor-pointer text-foreground transition-colors hover:text-accent"
-                      onClick={() => openEditVariantModal(variant)}
-                    >
-                      Sửa phiên bản
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-display text-xl text-foreground">Hình ảnh / Video</h3>
-
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        <div className="p-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {sortedMedia.map((media, index) => (
             <div key={media.id} className="flex flex-col gap-2 rounded-card border border-border p-2">
               <div className="aspect-square overflow-hidden rounded-control bg-background">
@@ -411,7 +512,8 @@ function ProductEditor({ initialProduct }) {
             Tải lên
           </Button>
         </form>
-      </div>
+        </div>
+      </Panel>
 
       <VariantFormModal
         open={variantModalOpen}

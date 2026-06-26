@@ -36,6 +36,12 @@ export function useUpdateProduct() {
   })
 }
 
+export function useGenerateDescription() {
+  return useMutation({
+    mutationFn: (payload) => productsApi.generateProductDescription(payload),
+  })
+}
+
 export function useArchiveProduct() {
   const queryClient = useQueryClient()
 

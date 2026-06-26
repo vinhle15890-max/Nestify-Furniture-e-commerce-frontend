@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
+import './ProductDescription.css'
 import { Heart, Star, ChevronRight, Box, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
@@ -14,6 +15,39 @@ import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
 import { useToastStore } from '../../store/toastStore'
+
+// Tags the description editor is allowed to emit — keep the render surface tight.
+const DESCRIPTION_ALLOWED_TAGS = ['p', 'br', 'h2', 'h3', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li', 'a', 'img', 'blockquote']
+
+function stripHtml(html) {
+  return (html ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+// Sanitize the stored HTML and make embedded media lazy-load + links safe.
+function enhanceDescriptionHtml(html) {
+  const clean = DOMPurify.sanitize(html ?? '', {
+    ALLOWED_TAGS: DESCRIPTION_ALLOWED_TAGS,
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel', 'loading', 'decoding'],
+  })
+  if (typeof DOMParser === 'undefined') return clean
+  const doc = new DOMParser().parseFromString(clean, 'text/html')
+  doc.querySelectorAll('img').forEach((img) => {
+    img.setAttribute('loading', 'lazy')
+    img.setAttribute('decoding', 'async')
+  })
+  doc.querySelectorAll('a[target="_blank"]').forEach((a) => a.setAttribute('rel', 'noopener noreferrer'))
+  return doc.body.innerHTML
+}
+
+// Append a managed <meta> tag we can clean up later.
+function appendMeta(attr, key, content) {
+  const el = document.createElement('meta')
+  el.setAttribute(attr, key)
+  el.setAttribute('content', content ?? '')
+  el.setAttribute('data-nestify-seo', 'true')
+  document.head.appendChild(el)
+  return el
+}
 
 export function ProductPage() {
   const { productSlug } = useParams()
@@ -55,6 +89,61 @@ export function ProductPage() {
   useEffect(() => {
     setStockError(null)
   }, [selectedVariantId])
+
+  // SEO: drive <title>, meta description, Open Graph, and schema.org/Product
+  // JSON-LD from the product's editorial meta fields (falls back to name/desc).
+  useEffect(() => {
+    if (!product) return undefined
+
+    const title = product.meta_title?.trim() || `${product.name} | Nestify`
+    const description = product.meta_description?.trim() || stripHtml(product.description).slice(0, 160)
+    const image = product.media?.[0]?.url ?? product.thumbnail
+    const url = window.location.href
+    const lowestPrice = product.base_price ?? product.variants?.[0]?.price
+
+    const previousTitle = document.title
+    document.title = title
+
+    const metas = [
+      appendMeta('name', 'description', description),
+      appendMeta('property', 'og:title', title),
+      appendMeta('property', 'og:description', description),
+      appendMeta('property', 'og:type', 'product'),
+      appendMeta('property', 'og:url', url),
+    ]
+    if (image) metas.push(appendMeta('property', 'og:image', image))
+
+    const ld = document.createElement('script')
+    ld.type = 'application/ld+json'
+    ld.setAttribute('data-nestify-seo', 'true')
+    ld.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      description,
+      ...(image ? { image: [image] } : {}),
+      ...(product.variants?.[0]?.sku ? { sku: product.variants[0].sku } : {}),
+      ...(product.category?.name ? { category: product.category.name } : {}),
+      ...(lowestPrice != null
+        ? {
+            offers: {
+              '@type': 'Offer',
+              priceCurrency: 'VND',
+              price: lowestPrice,
+              availability: 'https://schema.org/InStock',
+              url,
+            },
+          }
+        : {}),
+    })
+    document.head.appendChild(ld)
+
+    return () => {
+      document.title = previousTitle
+      metas.forEach((el) => el.remove())
+      ld.remove()
+    }
+  }, [product])
 
   function handleAddToCart() {
     addCartItem.mutate(
@@ -167,7 +256,7 @@ export function ProductPage() {
   }
 
   const activeMedia = media[selectedMediaIndex]
-  const sanitizedDescription = DOMPurify.sanitize(product.description ?? '')
+  const sanitizedDescription = enhanceDescriptionHtml(product.description)
   const averageRating = reviews.length
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : null
@@ -349,18 +438,18 @@ export function ProductPage() {
               Chỉ còn {stockError} sản phẩm trong kho
             </p>
           )}
-
-          {sanitizedDescription && (
-            <div className="mt-10 border-t border-border pt-8">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Mô tả</p>
-              <div
-                className="prose mt-4 max-w-none leading-relaxed text-foreground"
-                dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
-              />
-            </div>
-          )}
         </div>
       </div>
+
+      {sanitizedDescription && (
+        <section className="mt-16 border-t border-border pt-12">
+          <h2 className="font-display text-[clamp(1.6rem,2.6vw,2.2rem)] text-foreground">Mô tả sản phẩm</h2>
+          <div
+            className="product-description mt-6 max-w-3xl"
+            dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
+          />
+        </section>
+      )}
 
       <section className="mt-20 border-t border-border pt-16">
         <h2 className="font-display text-[clamp(1.6rem,2.6vw,2.2rem)] text-foreground">Đánh giá</h2>

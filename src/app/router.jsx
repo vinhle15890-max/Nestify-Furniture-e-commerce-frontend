@@ -29,6 +29,7 @@ const AdminLayout = named(() => import('../pages/admin/AdminLayout'), 'AdminLayo
 const AdminDashboardPage = named(() => import('../pages/admin/AdminDashboardPage'), 'AdminDashboardPage')
 const AdminCategoriesPage = named(() => import('../pages/admin/categories/AdminCategoriesPage'), 'AdminCategoriesPage')
 const AdminProductsPage = named(() => import('../pages/admin/products/AdminProductsPage'), 'AdminProductsPage')
+const AdminProductCreatePage = named(() => import('../pages/admin/products/AdminProductCreatePage'), 'AdminProductCreatePage')
 const AdminProductEditPage = named(() => import('../pages/admin/products/AdminProductEditPage'), 'AdminProductEditPage')
 const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPage'), 'AdminOrdersPage')
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
@@ -87,6 +88,7 @@ export const routes = [
           { index: true, element: lazyPage(<AdminDashboardPage />) },
           { path: 'categories', element: lazyPage(<AdminCategoriesPage />) },
           { path: 'products', element: lazyPage(<AdminProductsPage />) },
+          { path: 'products/new', element: lazyPage(<AdminProductCreatePage />) },
           { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
           { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
           { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
