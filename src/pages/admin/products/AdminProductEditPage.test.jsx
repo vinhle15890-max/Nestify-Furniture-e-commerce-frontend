@@ -10,6 +10,14 @@ import * as catalogApi from '../../../features/catalog/api'
 vi.mock('../../../features/admin/products/api')
 vi.mock('../../../features/catalog/api')
 
+// TipTap can't mount in jsdom; swap the editor for a plain labelled textarea so
+// the description still participates in the form and stays queryable.
+vi.mock('../../../components/admin/RichTextEditor', () => ({
+  RichTextEditor: ({ value, onChange, ariaLabel = 'Mô tả', id }) => (
+    <textarea id={id} aria-label={ariaLabel} value={value ?? ''} onChange={(event) => onChange(event.target.value)} />
+  ),
+}))
+
 const baseProduct = {
   id: 1,
   slug: 'ghe-sofa',
@@ -103,6 +111,26 @@ describe('AdminProductEditPage', () => {
     )
   })
 
+  it('fills description and SEO fields from the AI draft', async () => {
+    productsApi.generateProductDescription.mockResolvedValue({
+      data: {
+        description: '<p>Sofa da bò Ý sang trọng.</p>',
+        meta_title: 'Sofa da bò Ý 3 chỗ | Nestify',
+        meta_description: 'Sofa da bò Ý 3 chỗ khung gỗ sồi. Mua ngay tại Nestify.',
+        focus_keyword: 'sofa da bò',
+      },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('button', { name: /Gợi ý bằng AI/ }))
+
+    await waitFor(() => expect(productsApi.generateProductDescription).toHaveBeenCalledTimes(1))
+    expect(await screen.findByLabelText('Mô tả')).toHaveValue('<p>Sofa da bò Ý sang trọng.</p>')
+    expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('Sofa da bò Ý 3 chỗ | Nestify')
+    expect(screen.getByLabelText('Từ khóa chính')).toHaveValue('sofa da bò')
+  })
+
   it('adds a new variant', async () => {
     productsApi.createVariant.mockResolvedValue({
       data: { id: 200, sku: 'SOFA-XAM', name: 'Xám', price: 5500000, available_stock: 3, is_active: true, model_3d_url: null },
@@ -124,6 +152,25 @@ describe('AdminProductEditPage', () => {
       ),
     )
     expect(await screen.findByText('SOFA-XAM')).toBeInTheDocument()
+  })
+
+  it('omits SKU so the server auto-generates it when left blank', async () => {
+    productsApi.createVariant.mockResolvedValue({
+      data: { id: 201, sku: 'GHE-SOFA-01', name: 'Be', price: 5000000, available_stock: 2, is_active: true, model_3d_url: null },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm phiên bản' }))
+    // SKU left blank on purpose
+    await userEvent.type(screen.getByLabelText('Tên phiên bản'), 'Be')
+    await userEvent.type(screen.getByLabelText('Giá'), '5000000')
+    await userEvent.type(screen.getByLabelText('Số lượng kho'), '2')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm phiên bản' }))
+
+    await waitFor(() => expect(productsApi.createVariant).toHaveBeenCalledTimes(1))
+    expect(productsApi.createVariant.mock.calls[0][1].sku).toBeUndefined()
+    expect(productsApi.createVariant.mock.calls[0][1]).toEqual(expect.objectContaining({ name: 'Be', stock_quantity: 2 }))
   })
 
   it('edits an existing variant', async () => {

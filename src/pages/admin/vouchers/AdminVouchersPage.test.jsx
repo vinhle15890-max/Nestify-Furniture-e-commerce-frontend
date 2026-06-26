@@ -122,6 +122,19 @@ describe('AdminVouchersPage', () => {
     )
   })
 
+  it('generates a voucher code with the "Tạo mã" button', async () => {
+    renderPage()
+    await screen.findByText('SALE10')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher' }))
+    const codeInput = screen.getByLabelText('Mã voucher')
+    expect(codeInput).toHaveValue('')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo mã' }))
+
+    expect(codeInput.value).toMatch(/^NES[A-Z2-9]{5}$/)
+  })
+
   it('edits an existing voucher with values pre-filled', async () => {
     vouchersApi.updateVoucher.mockResolvedValue({ data: { ...vouchersResponse.data[0], value: 20 } })
     renderPage()

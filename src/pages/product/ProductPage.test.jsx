@@ -112,6 +112,29 @@ describe('ProductPage', () => {
     expect(await screen.findByText('Rất hài lòng với sản phẩm')).toBeInTheDocument()
   })
 
+  it('sets SEO document title, meta description, and Product JSON-LD', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        meta_title: 'Ghế sofa da bò Ý | Nestify',
+        meta_description: 'Ghế sofa da bò Ý cao cấp, bảo hành 5 năm. Mua ngay tại Nestify.',
+      },
+    })
+
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(document.title).toBe('Ghế sofa da bò Ý | Nestify')
+    expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toContain('bảo hành 5 năm')
+
+    const ld = document.querySelector('script[type="application/ld+json"]')
+    expect(ld).not.toBeNull()
+    const data = JSON.parse(ld.textContent)
+    expect(data['@type']).toBe('Product')
+    expect(data.offers.price).toBe(5000000)
+    expect(data.offers.priceCurrency).toBe('VND')
+  })
+
   it('updates the price, stock, and add-to-cart state when a different variant is selected', async () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })

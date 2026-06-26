@@ -39,6 +39,7 @@ function renderPage() {
       <MemoryRouter initialEntries={['/admin/products']}>
         <Routes>
           <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/admin/products/new" element={<div>Trang tạo sản phẩm</div>} />
           <Route path="/admin/products/:id" element={<div>Trang sửa sản phẩm</div>} />
         </Routes>
       </MemoryRouter>
@@ -70,22 +71,12 @@ describe('AdminProductsPage', () => {
     await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalledWith(2))
   })
 
-  it('creates a product via the modal and navigates to its edit page', async () => {
-    productsApi.createProduct.mockResolvedValue({ data: { id: 99, name: 'Đèn bàn', slug: 'den-ban' } })
+  it('navigates to the new-product page when adding a product', async () => {
     renderPage()
     await screen.findByText('Ghế Sofa')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm sản phẩm' }))
-    await userEvent.type(screen.getByLabelText('Tên sản phẩm'), 'Đèn bàn')
-    await userEvent.type(screen.getByLabelText('Slug'), 'den-ban')
-    await userEvent.selectOptions(screen.getByLabelText('Danh mục'), '1')
-    await userEvent.click(screen.getByRole('button', { name: 'Tạo sản phẩm' }))
+    await userEvent.click(screen.getByRole('button', { name: /Thêm sản phẩm/ }))
 
-    await waitFor(() =>
-      expect(productsApi.createProduct).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Đèn bàn', slug: 'den-ban', category_id: 1 }),
-      ),
-    )
-    expect(await screen.findByText('Trang sửa sản phẩm')).toBeInTheDocument()
+    expect(await screen.findByText('Trang tạo sản phẩm')).toBeInTheDocument()
   })
 })

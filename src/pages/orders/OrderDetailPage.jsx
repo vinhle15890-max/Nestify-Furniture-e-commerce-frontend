@@ -80,7 +80,9 @@ export function OrderDetailPage() {
       <BackLink to="/orders">Đơn hàng của tôi</BackLink>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-display text-[clamp(1.9rem,3.6vw,2.8rem)] text-foreground">Đơn hàng #{order.id}</h1>
+        <h1 className="font-display text-[clamp(1.9rem,3.6vw,2.8rem)] text-foreground">
+          Đơn hàng {order.order_number ?? `#${order.id}`}
+        </h1>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">

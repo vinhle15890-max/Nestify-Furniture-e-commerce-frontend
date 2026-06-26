@@ -72,7 +72,7 @@ export function AdminOrdersPage() {
                   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
                   return (
                     <tr key={order.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
-                      <td className="px-4 py-3 text-foreground">#{order.id}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">{order.order_number ?? `#${order.id}`}</td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-foreground">{order.user?.name}</p>
                         <p className="text-muted-foreground">{order.user?.email}</p>

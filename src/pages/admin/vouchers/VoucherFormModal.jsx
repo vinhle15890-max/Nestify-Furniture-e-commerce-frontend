@@ -12,6 +12,22 @@ import { applyServerErrors } from '../../../lib/formErrors'
 // Treat an empty string as "no value" so optional numeric fields can be cleared.
 const optionalNumber = (value, originalValue) => (originalValue === '' ? undefined : value)
 
+// Random, easy-to-read voucher code (no ambiguous 0/O/1/I) so admins don't have
+// to invent one. Uses the Web Crypto CSPRNG so codes aren't predictable (a
+// guessable code = discount abuse); uniqueness is still enforced server-side on
+// submit. The alphabet has 32 chars and 2^32 is divisible by 32, so `% length`
+// introduces no modulo bias.
+function generateVoucherCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const buffer = new Uint32Array(5)
+  crypto.getRandomValues(buffer)
+  let code = 'NES'
+  for (const value of buffer) {
+    code += alphabet[value % alphabet.length]
+  }
+  return code
+}
+
 const schema = yup.object({
   code: yup.string().required('Vui lòng nhập mã voucher.').max(50, 'Tối đa 50 ký tự.'),
   type: yup.string().required('Vui lòng chọn loại voucher.').oneOf(['fixed', 'percentage']),
@@ -103,6 +119,7 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
     handleSubmit,
     control,
     setError,
+    setValue,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema), defaultValues: emptyValues })
@@ -150,7 +167,18 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
   return (
     <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa voucher' : 'Thêm voucher mới'}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        <Input label="Mã voucher" id="code" error={errors.code?.message} {...register('code')} />
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Input label="Mã voucher" id="code" error={errors.code?.message} {...register('code')} />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setValue('code', generateVoucherCode(), { shouldValidate: true })}
+          >
+            Tạo mã
+          </Button>
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="type" className="text-sm font-medium text-foreground">

@@ -85,7 +85,7 @@ export function AdminOrderDetailPage() {
     <div className="flex flex-col gap-6">
       <BackLink to="/admin/orders">Quay lại danh sách đơn hàng</BackLink>
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-2xl text-foreground">Đơn hàng #{order.id}</h2>
+        <h2 className="font-display text-2xl text-foreground">Đơn hàng {order.order_number ?? `#${order.id}`}</h2>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
       </div>
 

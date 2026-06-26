@@ -62,7 +62,9 @@ export function OrdersPage() {
                       </div>
                     )}
                     <div>
-                      <p className="font-display text-lg text-foreground">Đơn hàng #{order.id}</p>
+                      <p className="font-display text-lg text-foreground">
+                        Đơn hàng {order.order_number ?? `#${order.id}`}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {formatDate(order.created_at)} · {totalQuantity} sản phẩm
                       </p>
