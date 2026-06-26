@@ -60,24 +60,28 @@ green.
 
 ---
 
-## 2. VN address form — 3-level cascading dropdowns (frontend only)
+## 2. VN address form — 2-level cascading dropdowns (frontend only)
 
-No schema change; map the VN hierarchy onto existing address columns:
+Per **Nghị quyết 202/2025/QH15** Vietnam reorganised into **34 provinces/cities** and a
+**two-tier** model (province → ward/commune), removing the district (Quận/Huyện) level.
 
-| VN field            | Column          |
-|---------------------|-----------------|
-| Tỉnh/Thành phố      | `province`      |
-| Quận/Huyện          | `city`          |
-| Phường/Xã           | `address_line2` |
-| Số nhà, tên đường   | `address_line1` |
-| (bỏ mã bưu điện)    | `postal_code` → null |
+No schema change; map the (now 2-level) VN hierarchy onto existing address columns:
 
-- Bundle a **static VN administrative dataset** in the FE (`src/data/`), loaded lazily per level
-  (provinces eagerly; districts/wards on demand). No runtime external API dependency.
-- `AddressFormModal`: replace the `city` / `province` / `postal_code` text inputs with three
-  `<select>` (Tỉnh/TP → Quận/Huyện → Phường/Xã) + a "Số nhà, tên đường" text input. Keep
-  `recipient_name` and `phone`. Update the yup schema accordingly (ward + district + province +
-  street required; postal_code removed).
+| VN field                 | Column          |
+|--------------------------|-----------------|
+| Tỉnh/Thành phố           | `province`      |
+| Phường/Xã/Thị trấn       | `city`          |
+| Số nhà, tên đường        | `address_line1` |
+| (unused)                 | `address_line2` → '' |
+| (bỏ mã bưu điện)         | `postal_code` → '' |
+
+- Bundle a **static 34-province / ward dataset** in the FE (`src/data/vn-units.json`, ~64KB,
+  shape `[{ name, wards: [string] }]`), lazy-loaded via dynamic `import()` when the modal opens.
+  Sourced from `provinces.open-api.vn/api/v2/?depth=2` (the post-2025 structure). No runtime
+  external API dependency.
+- `AddressFormModal`: two `<select>` (Tỉnh/Thành phố → Phường/Xã/Thị trấn) + a "Số nhà, tên đường"
+  text input. Keep `recipient_name` and `phone`. yup validates recipient/phone/street; province +
+  ward are validated manually; postal_code removed.
 - **Editing legacy addresses** (free-text values that don't match the dataset): degrade
   gracefully — leave the unmatched level unselected rather than crashing; user re-picks.
 - Address display (checkout list, order shipping) is unchanged — it just joins the columns.

@@ -9,11 +9,13 @@ import { useCreateAddress, useUpdateAddress } from '../../features/addresses/hoo
 import { useToastStore } from '../../store/toastStore'
 import { applyServerErrors } from '../../lib/formErrors'
 
-// Vietnamese address hierarchy maps onto the existing address columns:
+// Vietnam's administrative units were reorganised by Nghị quyết 202/2025/QH15:
+// 34 provinces/cities and a TWO-tier model (province → ward/commune), with the
+// district (Quận/Huyện) level removed. We map this onto the existing columns:
 //   province     → Tỉnh/Thành phố
-//   city         → Quận/Huyện
-//   address_line2→ Phường/Xã
+//   city         → Phường/Xã/Thị trấn (the ward/commune)
 //   address_line1→ Số nhà, tên đường
+//   address_line2→ unused (sent empty)
 //   postal_code  → unused (sent empty)
 
 const schema = yup.object({
@@ -56,7 +58,6 @@ export function AddressFormModal({ open, onOpenChange, address }) {
 
   const [units, setUnits] = useState(null)
   const [province, setProvince] = useState('')
-  const [district, setDistrict] = useState('')
   const [ward, setWard] = useState('')
   const [regionError, setRegionError] = useState({})
 
@@ -87,37 +88,24 @@ export function AddressFormModal({ open, onOpenChange, address }) {
       address_line1: address?.address_line1 ?? '',
     })
     setProvince(address?.province ?? '')
-    setDistrict(address?.city ?? '')
-    setWard(address?.address_line2 ?? '')
+    setWard(address?.city ?? '')
     setRegionError({})
   }, [open, address, reset])
 
   const provinceOptions = useMemo(() => (units ? units.map((p) => p.name) : []), [units])
-  const districtList = useMemo(
-    () => units?.find((p) => p.name === province)?.districts ?? [],
-    [units, province],
-  )
-  const districtOptions = useMemo(() => districtList.map((d) => d.name), [districtList])
   const wardOptions = useMemo(
-    () => districtList.find((d) => d.name === district)?.wards ?? [],
-    [districtList, district],
+    () => units?.find((p) => p.name === province)?.wards ?? [],
+    [units, province],
   )
 
   function handleProvinceChange(value) {
     setProvince(value)
-    setDistrict('')
-    setWard('')
-  }
-
-  function handleDistrictChange(value) {
-    setDistrict(value)
     setWard('')
   }
 
   const onSubmit = async (values) => {
     const nextRegionError = {}
     if (!province) nextRegionError.province = 'Vui lòng chọn Tỉnh/Thành phố.'
-    if (!district) nextRegionError.district = 'Vui lòng chọn Quận/Huyện.'
     if (!ward) nextRegionError.ward = 'Vui lòng chọn Phường/Xã.'
     setRegionError(nextRegionError)
     if (Object.keys(nextRegionError).length > 0) return
@@ -126,8 +114,8 @@ export function AddressFormModal({ open, onOpenChange, address }) {
       recipient_name: values.recipient_name,
       phone: values.phone,
       address_line1: values.address_line1,
-      address_line2: ward,
-      city: district,
+      address_line2: '',
+      city: ward,
       province,
       postal_code: '',
     }
@@ -173,21 +161,12 @@ export function AddressFormModal({ open, onOpenChange, address }) {
           error={regionError.province}
         />
         <AddressSelect
-          id="district"
-          label="Quận/Huyện"
-          value={district}
-          onChange={handleDistrictChange}
-          options={withCurrent(districtOptions, district)}
-          disabled={!province}
-          error={regionError.district}
-        />
-        <AddressSelect
           id="ward"
-          label="Phường/Xã"
+          label="Phường/Xã/Thị trấn"
           value={ward}
           onChange={setWard}
           options={withCurrent(wardOptions, ward)}
-          disabled={!district}
+          disabled={!province}
           error={regionError.ward}
         />
 
