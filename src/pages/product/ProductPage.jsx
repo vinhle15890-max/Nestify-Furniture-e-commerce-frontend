@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
-import { Heart, Star, ChevronRight, Box } from 'lucide-react'
+import { Heart, Star, ChevronRight, Box, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
@@ -192,9 +192,9 @@ export function ProductPage() {
 
       <div className="mt-8 grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
-          <div className="group aspect-[4/5] overflow-hidden rounded-card bg-surface-alt">
-            {activeMedia &&
-              (activeMedia.type === 'video' ? (
+          <div className="group flex aspect-[4/5] items-center justify-center overflow-hidden rounded-card bg-surface-alt">
+            {activeMedia ? (
+              activeMedia.type === 'video' ? (
                 <video src={activeMedia.url} controls className="h-full w-full object-cover" />
               ) : (
                 <img
@@ -203,7 +203,10 @@ export function ProductPage() {
                   decoding="async"
                   className="h-full w-full object-cover transition-transform duration-[700ms] ease-out group-hover:scale-105"
                 />
-              ))}
+              )
+            ) : (
+              <ImageOff size={36} className="text-border-strong" aria-hidden="true" />
+            )}
           </div>
 
           {media.length > 1 && (

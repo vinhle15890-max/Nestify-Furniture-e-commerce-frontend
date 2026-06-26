@@ -3,9 +3,9 @@ import { render, screen, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { CheckoutReturnPage } from './CheckoutReturnPage'
-import * as ordersApi from '../../features/orders/api'
+import * as checkoutApi from '../../features/checkout/api'
 
-vi.mock('../../features/orders/api')
+vi.mock('../../features/checkout/api')
 
 function renderPage(initialPath) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -33,16 +33,16 @@ describe('CheckoutReturnPage', () => {
   })
 
   it('shows a success message and stops polling once payment is confirmed', async () => {
-    ordersApi.getOrder.mockResolvedValue({ data: { id: 99, status: 'paid' } })
+    checkoutApi.reconcilePayment.mockResolvedValue({ data: { id: 99, status: 'paid' } })
     renderPage('/checkout/return?order_id=99')
 
     expect(await screen.findByText(/Thanh toán thành công/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Xem chi tiết đơn hàng' })).toHaveAttribute('href', '/orders/99')
-    expect(ordersApi.getOrder).toHaveBeenCalledTimes(1)
+    expect(checkoutApi.reconcilePayment).toHaveBeenCalledTimes(1)
   })
 
   it('shows a cancelled message when the order was cancelled', async () => {
-    ordersApi.getOrder.mockResolvedValue({ data: { id: 99, status: 'cancelled' } })
+    checkoutApi.reconcilePayment.mockResolvedValue({ data: { id: 99, status: 'cancelled' } })
     renderPage('/checkout/return?order_id=99')
 
     expect(await screen.findByText(/Đơn hàng đã bị hủy/)).toBeInTheDocument()
@@ -50,7 +50,7 @@ describe('CheckoutReturnPage', () => {
 
   it('times out and shows a still-confirming message if payment stays pending', async () => {
     vi.useFakeTimers()
-    ordersApi.getOrder.mockResolvedValue({ data: { id: 99, status: 'pending_payment' } })
+    checkoutApi.reconcilePayment.mockResolvedValue({ data: { id: 99, status: 'pending_payment' } })
     renderPage('/checkout/return?order_id=99')
 
     await act(async () => {

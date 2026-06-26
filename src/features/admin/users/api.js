@@ -1,5 +1,14 @@
 import { apiClient } from '../../../lib/apiClient'
 
-export function getUsers(page) {
-  return apiClient.get('/admin/users', { params: { page } })
+// params: { page, type: 'staff'|'customer', search, role }
+export function getUsers(params) {
+  return apiClient.get('/admin/users', { params })
+}
+
+export function getRoles() {
+  return apiClient.get('/admin/roles')
+}
+
+export function assignUserRoles(id, roleIds) {
+  return apiClient.patch(`/admin/users/${id}/roles`, { role_ids: roleIds })
 }

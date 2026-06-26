@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { PackageSearch } from 'lucide-react'
 import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
@@ -107,7 +108,21 @@ export function CategoryPage() {
           <Spinner />
         </div>
       ) : products.length === 0 ? (
-        <p className="mt-20 text-center text-muted-foreground">Không có sản phẩm nào.</p>
+        <div className="mt-16 rounded-card border border-border bg-surface p-12 text-center">
+          <PackageSearch size={36} className="mx-auto text-border-strong" />
+          <p className="mt-4 text-muted-foreground">
+            {brand ? 'Không có sản phẩm nào khớp bộ lọc.' : 'Chưa có sản phẩm nào trong danh mục này.'}
+          </p>
+          {brand && (
+            <button
+              type="button"
+              onClick={() => setBrand('')}
+              className="mt-4 text-sm text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent"
+            >
+              Xóa bộ lọc
+            </button>
+          )}
+        </div>
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((product, index) => (

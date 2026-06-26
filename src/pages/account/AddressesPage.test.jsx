@@ -14,9 +14,9 @@ const sampleAddresses = [
     recipient_name: 'Bao Le',
     phone: '0900000000',
     address_line1: '123 Đường A',
-    address_line2: null,
-    city: 'Hồ Chí Minh',
-    province: 'Hồ Chí Minh',
+    address_line2: 'Phường Phúc Xá',
+    city: 'Quận Ba Đình',
+    province: 'Thành phố Hà Nội',
     postal_code: '700000',
     is_default: true,
   },
@@ -67,9 +67,14 @@ describe('AddressesPage', () => {
 
     await userEvent.type(screen.getByLabelText('Tên người nhận'), 'Tan Pham')
     await userEvent.type(screen.getByLabelText('Số điện thoại'), '0922222222')
-    await userEvent.type(screen.getByLabelText('Địa chỉ'), '789 Đường C')
-    await userEvent.type(screen.getByLabelText('Thành phố'), 'Đà Nẵng')
-    await userEvent.type(screen.getByLabelText('Tỉnh/Thành'), 'Đà Nẵng')
+    await userEvent.type(screen.getByLabelText('Số nhà, tên đường'), '789 Đường C')
+
+    // VN address is picked from cascading dropdowns (Tỉnh → Quận → Phường),
+    // populated from the bundled dataset that loads when the modal opens.
+    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
+    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
+    await userEvent.selectOptions(screen.getByLabelText('Quận/Huyện'), 'Quận Ba Đình')
+    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã'), 'Phường Phúc Xá')
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
 
@@ -78,9 +83,9 @@ describe('AddressesPage', () => {
         recipient_name: 'Tan Pham',
         phone: '0922222222',
         address_line1: '789 Đường C',
-        address_line2: '',
-        city: 'Đà Nẵng',
-        province: 'Đà Nẵng',
+        address_line2: 'Phường Phúc Xá',
+        city: 'Quận Ba Đình',
+        province: 'Thành phố Hà Nội',
         postal_code: '',
       }),
     )

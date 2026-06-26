@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { FolderTree } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Spinner } from '../../../components/Spinner'
+import { PageHeader } from '../../../components/admin/PageHeader'
 import { useAdminCategories, useDeleteCategory } from '../../../features/admin/categories/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { CategoryFormModal } from './CategoryFormModal'
@@ -67,10 +69,12 @@ export function AdminCategoriesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-2xl text-foreground">Danh mục</h2>
-        <Button onClick={openCreateModal}>Thêm danh mục</Button>
-      </div>
+      <PageHeader
+        icon={FolderTree}
+        title="Danh mục"
+        description="Sắp xếp cây danh mục sản phẩm của cửa hàng."
+        actions={<Button onClick={openCreateModal}>Thêm danh mục</Button>}
+      />
 
       <div className="mt-6">
         {isLoading ? (

@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
 import { useCart } from '../../features/cart/hooks'
 import { Spinner } from '../Spinner'
+import { ProductThumb } from '../ProductThumb'
 import { formatPrice } from '../../lib/format'
 
 export function CartDrawer() {
@@ -58,14 +59,17 @@ export function CartDrawer() {
             ) : (
               <ul className="flex flex-col divide-y divide-border">
                 {items.map((item) => (
-                  <li key={item.id} className="flex items-center justify-between gap-3 py-4 text-sm first:pt-0">
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">{item.variant?.name}</p>
-                      <p className="text-muted-foreground">
-                        {item.variant?.sku} · x{item.quantity}
+                  <li key={item.id} className="flex items-center gap-3 py-4 text-sm first:pt-0">
+                    <ProductThumb src={item.variant?.thumbnail} alt={item.variant?.product_name} size="h-14 w-14" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-foreground">
+                        {item.variant?.product_name ?? item.variant?.name}
+                      </p>
+                      <p className="truncate text-muted-foreground">
+                        {item.variant?.name} · x{item.quantity}
                       </p>
                     </div>
-                    <p className="font-medium text-foreground">{formatPrice(item.subtotal)}</p>
+                    <p className="shrink-0 font-medium text-foreground">{formatPrice(item.subtotal)}</p>
                   </li>
                 ))}
               </ul>

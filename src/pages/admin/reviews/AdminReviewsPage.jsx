@@ -1,6 +1,8 @@
+import { Star } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Spinner } from '../../../components/Spinner'
+import { PageHeader } from '../../../components/admin/PageHeader'
 import { useAdminReviews, useApproveReview, useRejectReview } from '../../../features/admin/reviews/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { formatDate } from '../../../lib/format'
@@ -33,7 +35,11 @@ export function AdminReviewsPage() {
 
   return (
     <div>
-      <h2 className="font-display text-2xl text-foreground">Đánh giá chờ duyệt</h2>
+      <PageHeader
+        icon={Star}
+        title="Đánh giá chờ duyệt"
+        description="Kiểm duyệt đánh giá của khách trước khi hiển thị công khai."
+      />
 
       <div className="mt-6">
         {isLoading ? (

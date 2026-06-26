@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ShoppingBag } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ShoppingBag, Plus, Pencil, CreditCard, Banknote, MapPin } from 'lucide-react'
 import { useCart, useApplyVoucher } from '../../features/cart/hooks'
 import { useAddresses } from '../../features/addresses/hooks'
 import { useCreateOrder, useCreatePaymentSession } from '../../features/checkout/hooks'
+import { AddressFormModal } from '../account/AddressFormModal'
 import { resetCheckoutIdempotencyKey } from '../../lib/idempotency'
 import { redirectToExternal } from '../../lib/navigation'
 import { BackLink } from '../../components/BackLink'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
+import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 
@@ -32,9 +34,12 @@ export function CheckoutPage() {
   const createOrder = useCreateOrder()
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
+  const navigate = useNavigate()
 
   const [addressId, setAddressId] = useState(null)
-  const gateway = 'payos' // PayOS is the only payment gateway
+  const [addressModalOpen, setAddressModalOpen] = useState(false)
+  const [editingAddress, setEditingAddress] = useState(null)
+  const [paymentMethod, setPaymentMethod] = useState('payos') // 'payos' (online) | 'cod'
   const [voucherCode, setVoucherCode] = useState('')
   const [voucherResult, setVoucherResult] = useState(null)
   const [voucherError, setVoucherError] = useState(null)
@@ -43,6 +48,7 @@ export function CheckoutPage() {
   const addresses = addressesData?.data ?? []
   const cart = cartData?.data
   const items = cart?.items ?? []
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
 
   useEffect(() => {
     const addressList = addressesData?.data
@@ -73,16 +79,29 @@ export function CheckoutPage() {
 
   if (addresses.length === 0) {
     return (
-      <CheckoutNotice>
-        Bạn chưa có địa chỉ giao hàng.{' '}
-        <Link
-          to="/account/addresses"
-          className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent"
-        >
-          Thêm địa chỉ
-        </Link>
-      </CheckoutNotice>
+      <div className="mx-auto max-w-2xl px-6 py-20 lg:px-10">
+        <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
+        <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
+        <div className="mt-8 rounded-card border border-border bg-surface p-10 text-center">
+          <MapPin size={32} className="mx-auto text-border-strong" />
+          <p className="mt-4 text-muted-foreground">
+            Bạn chưa có địa chỉ giao hàng. Thêm một địa chỉ để tiếp tục thanh toán.
+          </p>
+          <Button onClick={openCreateAddress} className="mt-6">Thêm địa chỉ</Button>
+        </div>
+        <AddressFormModal open={addressModalOpen} onOpenChange={setAddressModalOpen} address={editingAddress} />
+      </div>
     )
+  }
+
+  function openCreateAddress() {
+    setEditingAddress(null)
+    setAddressModalOpen(true)
+  }
+
+  function openEditAddress(address) {
+    setEditingAddress(address)
+    setAddressModalOpen(true)
   }
 
   function handleApplyVoucher(event) {
@@ -106,6 +125,7 @@ export function CheckoutPage() {
       const response = await createOrder.mutateAsync({
         address_id: addressId,
         source: 'cart',
+        payment_method: paymentMethod,
         ...(voucherCode.trim() ? { voucher_code: voucherCode.trim() } : {}),
       })
       order = response.data
@@ -114,10 +134,23 @@ export function CheckoutPage() {
       return
     }
 
+    // The order now exists; a retry should start a fresh order, so rotate the key.
+    resetCheckoutIdempotencyKey()
+
+    // COD orders are confirmed at placement — no online payment step. Go to the order.
+    if (paymentMethod === 'cod') {
+      addToast({
+        title: 'Đặt hàng thành công!',
+        description: 'Bạn sẽ thanh toán khi nhận hàng.',
+        variant: 'success',
+      })
+      navigate(`/orders/${order.id}`)
+      return
+    }
+
     try {
       const returnUrl = `${window.location.origin}/checkout/return?order_id=${order.id}`
-      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway, returnUrl })
-      resetCheckoutIdempotencyKey()
+      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway: 'payos', returnUrl })
       redirectToExternal(session.data.payment_url)
     } catch (error) {
       addToast({ title: 'Không thể tạo phiên thanh toán.', description: error.message, variant: 'error' })
@@ -134,37 +167,58 @@ export function CheckoutPage() {
       <form onSubmit={handleSubmit} className="mt-10 grid gap-8 lg:grid-cols-3">
         <div className="flex flex-col gap-8 lg:col-span-2">
           <section>
-            <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
+              <button
+                type="button"
+                onClick={openCreateAddress}
+                className="inline-flex items-center gap-1.5 rounded-control text-sm text-foreground transition-colors duration-200 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <Plus size={15} />
+                Thêm địa chỉ
+              </button>
+            </div>
             <div className="mt-4 flex flex-col gap-3">
               {addresses.map((address) => {
                 const selected = addressId === address.id
                 return (
-                  <label
+                  <div
                     key={address.id}
-                    className={`flex cursor-pointer items-start gap-3 rounded-card border p-4 text-sm transition-colors duration-200 ${
+                    className={`flex items-start gap-3 rounded-card border p-4 text-sm transition-colors duration-200 ${
                       selected ? 'border-foreground bg-surface-alt' : 'border-border bg-surface hover:border-border-strong'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="address"
-                      value={address.id}
-                      checked={selected}
-                      onChange={() => setAddressId(address.id)}
-                      className="mt-1 accent-[var(--color-foreground)]"
-                    />
-                    <span>
-                      <span className="font-medium text-foreground">
-                        {address.recipient_name} · {address.phone}
+                    <label className="flex flex-1 cursor-pointer items-start gap-3">
+                      <input
+                        type="radio"
+                        name="address"
+                        value={address.id}
+                        checked={selected}
+                        onChange={() => setAddressId(address.id)}
+                        className="mt-1 accent-[var(--color-foreground)]"
+                      />
+                      <span>
+                        <span className="font-medium text-foreground">
+                          {address.recipient_name} · {address.phone}
+                        </span>
+                        <br />
+                        <span className="text-muted-foreground">
+                          {[address.address_line1, address.address_line2, address.city, address.province, address.postal_code]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </span>
                       </span>
-                      <br />
-                      <span className="text-muted-foreground">
-                        {[address.address_line1, address.address_line2, address.city, address.province, address.postal_code]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </span>
-                    </span>
-                  </label>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => openEditAddress(address)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-control text-muted-foreground transition-colors duration-200 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                      aria-label={`Sửa địa chỉ của ${address.recipient_name}`}
+                    >
+                      <Pencil size={14} />
+                      Sửa
+                    </button>
+                  </div>
                 )
               })}
             </div>
@@ -172,34 +226,63 @@ export function CheckoutPage() {
 
           <section>
             <h2 className="font-display text-xl text-foreground">Phương thức thanh toán</h2>
-            <div className="mt-4 flex items-center gap-3 rounded-card border border-foreground bg-surface-alt p-4 text-sm">
-              <span className="font-medium text-foreground">PayOS</span>
-              <span className="text-muted-foreground">Thanh toán online qua cổng PayOS</span>
+            <div className="mt-4 flex flex-col gap-3">
+              {[
+                { value: 'payos', icon: CreditCard, label: 'Thanh toán online (PayOS)', hint: 'Chuyển tới cổng PayOS để thanh toán ngay' },
+                { value: 'cod', icon: Banknote, label: 'Thanh toán khi nhận hàng (COD)', hint: 'Trả tiền mặt cho shipper khi nhận hàng' },
+              ].map(({ value, icon: Icon, label, hint }) => {
+                const selected = paymentMethod === value
+                return (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-center gap-3 rounded-card border p-4 text-sm transition-colors duration-200 ${
+                      selected ? 'border-foreground bg-surface-alt' : 'border-border bg-surface hover:border-border-strong'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value={value}
+                      checked={selected}
+                      onChange={() => setPaymentMethod(value)}
+                      className="accent-[var(--color-foreground)]"
+                    />
+                    <Icon size={20} className={selected ? 'text-foreground' : 'text-muted-foreground'} />
+                    <span className="flex flex-col">
+                      <span className="font-medium text-foreground">{label}</span>
+                      <span className="text-muted-foreground">{hint}</span>
+                    </span>
+                  </label>
+                )
+              })}
             </div>
-          </section>
-
-          <section>
-            <h2 className="font-display text-xl text-foreground">Sản phẩm</h2>
-            <ul className="mt-4 flex flex-col divide-y divide-border rounded-card border border-border bg-surface px-5">
-              {items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-4 py-4 text-sm">
-                  <div>
-                    <p className="font-medium text-foreground">{item.variant?.name}</p>
-                    <p className="text-muted-foreground">
-                      {item.variant?.sku} · x{item.quantity}
-                    </p>
-                  </div>
-                  <p className="font-medium text-foreground">{formatPrice(item.subtotal)}</p>
-                </li>
-              ))}
-            </ul>
           </section>
         </div>
 
         <div className="h-fit rounded-card border border-border bg-surface p-6 lg:sticky lg:top-28">
-          <h2 className="font-display text-xl text-foreground">Tóm tắt đơn hàng</h2>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-xl text-foreground">Tóm tắt đơn hàng</h2>
+            <span className="text-sm text-muted-foreground">{totalQuantity} sản phẩm</span>
+          </div>
 
-          <div className="mt-5 flex flex-col gap-2.5">
+          <ul className="mt-5 flex max-h-72 flex-col divide-y divide-border overflow-y-auto">
+            {items.map((item) => (
+              <li key={item.id} className="flex items-center gap-3 py-3 text-sm first:pt-0">
+                <ProductThumb src={item.variant?.thumbnail} alt={item.variant?.product_name} size="h-14 w-14" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-foreground">
+                    {item.variant?.product_name ?? item.variant?.name}
+                  </p>
+                  <p className="truncate text-muted-foreground">
+                    {item.variant?.name} · x{item.quantity}
+                  </p>
+                </div>
+                <p className="shrink-0 font-medium text-foreground">{formatPrice(item.subtotal)}</p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-5 flex flex-col gap-2.5 border-t border-border pt-5">
             <Input
               id="checkout-voucher-code"
               label="Mã giảm giá"
@@ -244,6 +327,8 @@ export function CheckoutPage() {
           </Button>
         </div>
       </form>
+
+      <AddressFormModal open={addressModalOpen} onOpenChange={setAddressModalOpen} address={editingAddress} />
     </div>
   )
 }

@@ -6,8 +6,12 @@ import { MemoryRouter } from 'react-router-dom'
 import { AccountPage } from './AccountPage'
 import { useAuthStore } from '../../store/authStore'
 import * as authApi from '../../features/auth/api'
+import * as ordersApi from '../../features/orders/api'
+import * as addressesApi from '../../features/addresses/api'
 
 vi.mock('../../features/auth/api')
+vi.mock('../../features/orders/api')
+vi.mock('../../features/addresses/api')
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -24,6 +28,8 @@ describe('AccountPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     authApi.logout.mockResolvedValue(undefined)
+    ordersApi.getOrders.mockResolvedValue({ data: [] })
+    addressesApi.getAddresses.mockResolvedValue({ data: [] })
   })
 
   it('shows the profile fetched from GET /api/auth/me and syncs the auth store', async () => {

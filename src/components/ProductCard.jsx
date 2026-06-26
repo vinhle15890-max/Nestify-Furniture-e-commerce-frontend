@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ImageOff } from 'lucide-react'
 import { formatPrice } from '../lib/format'
 
 export function ProductCard({ product }) {
@@ -7,14 +8,16 @@ export function ProductCard({ product }) {
       to={`/p/${product.slug}`}
       className="group flex flex-col rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <div className="aspect-[4/5] w-full overflow-hidden rounded-card bg-surface-alt">
-        {product.thumbnail && (
+      <div className="flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-card bg-surface-alt">
+        {product.thumbnail ? (
           <img
             src={product.thumbnail}
             alt={product.name}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-105"
           />
+        ) : (
+          <ImageOff size={28} className="text-border-strong" aria-hidden="true" />
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 pt-4">

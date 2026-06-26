@@ -6,6 +6,7 @@ import { useCart, useUpdateCartItem, useRemoveCartItem, useApplyVoucher } from '
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
+import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice } from '../../lib/format'
 
 const MAX_QUANTITY = 100
@@ -119,10 +120,28 @@ export function CartPage() {
               return (
                 <li key={item.id} className="py-6 first:pt-0">
                   <div className="flex flex-wrap items-center justify-between gap-5">
-                    <div className="min-w-0">
-                      <p className="font-display text-lg text-foreground">{item.variant?.name}</p>
-                      <p className="text-sm text-muted-foreground">{item.variant?.sku}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{formatPrice(item.unit_price_snapshot)}</p>
+                    <div className="flex min-w-0 items-center gap-4">
+                      {item.variant?.product_slug ? (
+                        <Link to={`/p/${item.variant.product_slug}`} className="rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                          <ProductThumb src={item.variant?.thumbnail} alt={item.variant?.product_name} size="h-20 w-20" />
+                        </Link>
+                      ) : (
+                        <ProductThumb src={item.variant?.thumbnail} alt={item.variant?.product_name} size="h-20 w-20" />
+                      )}
+                      <div className="min-w-0">
+                        {item.variant?.product_slug ? (
+                          <Link
+                            to={`/p/${item.variant.product_slug}`}
+                            className="font-display text-lg text-foreground transition-colors duration-200 hover:text-accent"
+                          >
+                            {item.variant?.product_name ?? item.variant?.name}
+                          </Link>
+                        ) : (
+                          <p className="font-display text-lg text-foreground">{item.variant?.product_name ?? item.variant?.name}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground">{item.variant?.name} · {item.variant?.sku}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{formatPrice(item.unit_price_snapshot)}</p>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2">

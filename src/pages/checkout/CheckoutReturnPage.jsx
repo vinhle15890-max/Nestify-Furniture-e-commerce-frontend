@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, Clock } from 'lucide-react'
-import { useOrder } from '../../features/orders/hooks'
+import { useReconcilePayment } from '../../features/checkout/hooks'
 import { Spinner } from '../../components/Spinner'
 
 const POLL_INTERVAL_MS = 3000
@@ -14,11 +15,15 @@ const linkClass = 'text-foreground underline decoration-accent underline-offset-
 export function CheckoutReturnPage() {
   const [searchParams] = useSearchParams()
   const orderId = searchParams.get('order_id')
+  const queryClient = useQueryClient()
 
   const [attempts, setAttempts] = useState(0)
   const [timedOut, setTimedOut] = useState(false)
 
-  const { data, isLoading } = useOrder(orderId, {
+  // Each poll asks the backend to reconcile against the gateway (authoritative), rather
+  // than passively waiting for the async webhook — so a delayed/missing webhook can't
+  // strand a paid order on "chờ thanh toán". reconcile is idempotent, so repeating is safe.
+  const { data, isLoading } = useReconcilePayment(orderId, {
     refetchInterval: (query) => {
       const status = query.state.data?.data?.status
       if (status && status !== 'pending_payment') return false
@@ -30,6 +35,14 @@ export function CheckoutReturnPage() {
       return POLL_INTERVAL_MS
     },
   })
+
+  const settledStatus = data?.data?.status
+  // Once the order leaves pending_payment, refresh the app's order views (list + detail).
+  useEffect(() => {
+    if (orderId && settledStatus && settledStatus !== 'pending_payment') {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    }
+  }, [orderId, settledStatus, queryClient])
 
   if (!orderId) {
     return (

@@ -53,7 +53,7 @@ describe('WishlistPage', () => {
     renderPage()
 
     expect(await screen.findByText('Nâu')).toBeInTheDocument()
-    expect(screen.getByText('SOFA-NAU')).toBeInTheDocument()
+    expect(screen.getByText(/SOFA-NAU/)).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Báo khi còn hàng' })).not.toBeChecked()
   })
 
