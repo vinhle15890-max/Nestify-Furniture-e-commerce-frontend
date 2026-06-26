@@ -54,7 +54,7 @@ describe('AdminOrdersPage', () => {
     renderPage()
     await screen.findByText('Bao Le')
 
-    await userEvent.selectOptions(screen.getByLabelText('Trạng thái'), 'processing')
+    await userEvent.selectOptions(screen.getByLabelText('Lọc theo trạng thái'), 'processing')
 
     await waitFor(() =>
       expect(ordersApi.getOrders).toHaveBeenCalledWith({ page: 1, status: 'processing' }),

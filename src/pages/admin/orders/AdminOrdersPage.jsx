@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Receipt } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { PageHeader } from '../../../components/admin/PageHeader'
 import { useAdminOrders } from '../../../features/admin/orders/hooks'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { formatPrice, formatDate } from '../../../lib/format'
@@ -23,28 +25,27 @@ export function AdminOrdersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-2xl text-foreground">Đơn hàng</h2>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="status-filter" className="text-sm font-medium text-foreground">
-            Trạng thái
-          </label>
+      <PageHeader
+        icon={Receipt}
+        title="Đơn hàng"
+        description="Theo dõi và cập nhật trạng thái đơn hàng của khách."
+        actions={
           <select
             id="status-filter"
             value={status}
             onChange={handleStatusChange}
-            className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="Lọc theo trạng thái"
+            className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
           >
-            <option value="">Tất cả</option>
+            <option value="">Tất cả trạng thái</option>
             {Object.entries(ORDER_STATUS_LABELS).map(([value, info]) => (
               <option key={value} value={value}>
                 {info.label}
               </option>
             ))}
           </select>
-        </div>
-      </div>
+        }
+      />
 
       <div className="mt-6">
         {isLoading ? (

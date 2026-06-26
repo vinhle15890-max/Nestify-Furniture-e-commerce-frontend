@@ -1,5 +1,6 @@
 import { Package, ShoppingBag, Users, Star, TrendingUp } from 'lucide-react'
 import { Spinner } from '../../components/Spinner'
+import { PageHeader } from '../../components/admin/PageHeader'
 import { useAdminDashboard } from '../../features/admin/dashboard/hooks'
 import { formatPrice } from '../../lib/format'
 
@@ -46,11 +47,11 @@ export function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <p className="eyebrow">Bảng điều khiển</p>
-        <h2 className="mt-2 font-display text-[clamp(1.8rem,3vw,2.6rem)] text-foreground">Tổng quan</h2>
-        <p className="mt-2 text-muted-foreground">Bức tranh nhanh về hoạt động cửa hàng.</p>
-      </div>
+      <PageHeader
+        eyebrow="Bảng điều khiển"
+        title="Tổng quan"
+        description="Bức tranh nhanh về hoạt động cửa hàng."
+      />
 
       {/* Revenue hero + key KPIs */}
       <div className="grid gap-4 lg:grid-cols-3">

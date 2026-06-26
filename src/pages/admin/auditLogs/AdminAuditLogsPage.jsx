@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { ScrollText } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { PageHeader } from '../../../components/admin/PageHeader'
 import { useAdminAuditLogs } from '../../../features/admin/auditLogs/hooks'
 import { formatDate } from '../../../lib/format'
 
@@ -14,7 +16,11 @@ export function AdminAuditLogsPage() {
 
   return (
     <div>
-      <h2 className="font-display text-2xl text-foreground">Nhật ký hệ thống</h2>
+      <PageHeader
+        icon={ScrollText}
+        title="Nhật ký hệ thống"
+        description="Lịch sử các thao tác quản trị quan trọng."
+      />
 
       <div className="mt-6">
         {isLoading ? (

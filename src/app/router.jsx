@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { AdminRoute } from '../routes/AdminRoute'
@@ -34,7 +34,8 @@ const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPag
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
 const AdminReviewsPage = named(() => import('../pages/admin/reviews/AdminReviewsPage'), 'AdminReviewsPage')
 const AdminVouchersPage = named(() => import('../pages/admin/vouchers/AdminVouchersPage'), 'AdminVouchersPage')
-const AdminUsersPage = named(() => import('../pages/admin/users/AdminUsersPage'), 'AdminUsersPage')
+const AdminEmployeesPage = named(() => import('../pages/admin/users/AdminEmployeesPage'), 'AdminEmployeesPage')
+const AdminCustomersPage = named(() => import('../pages/admin/users/AdminCustomersPage'), 'AdminCustomersPage')
 const AdminAuditLogsPage = named(() => import('../pages/admin/auditLogs/AdminAuditLogsPage'), 'AdminAuditLogsPage')
 const NotFoundPage = named(() => import('../pages/NotFoundPage'), 'NotFoundPage')
 
@@ -91,7 +92,9 @@ export const routes = [
           { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
           { path: 'reviews', element: lazyPage(<AdminReviewsPage />) },
           { path: 'vouchers', element: lazyPage(<AdminVouchersPage />) },
-          { path: 'users', element: lazyPage(<AdminUsersPage />) },
+          { path: 'employees', element: lazyPage(<AdminEmployeesPage />) },
+          { path: 'customers', element: lazyPage(<AdminCustomersPage />) },
+          { path: 'users', element: <Navigate to="/admin/employees" replace /> },
           { path: 'audit-logs', element: lazyPage(<AdminAuditLogsPage />) },
         ],
       },

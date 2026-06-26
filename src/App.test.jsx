@@ -119,7 +119,7 @@ describe('App routes', () => {
 
   it('renders /account when authenticated', async () => {
     renderAt('/account', { id: 1, name: 'Bao', roles: ['customer'], email_verified_at: '2026-01-01T00:00:00Z' })
-    expect(await screen.findByRole('heading', { name: 'Tài khoản' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Xin chào, Bao' })).toBeInTheDocument()
   })
 
   it('redirects /admin to home for a non-admin user', async () => {
@@ -131,6 +131,7 @@ describe('App routes', () => {
 
   it('renders the admin dashboard for a super_admin user', async () => {
     renderAt('/admin', { id: 1, name: 'Admin', roles: ['super_admin'] })
-    expect(await screen.findByRole('heading', { name: 'Quản trị' })).toBeInTheDocument()
+    // The admin shell's top bar shows the active section title.
+    expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
   })
 })

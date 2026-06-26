@@ -10,7 +10,7 @@ back-office for a furniture e-commerce platform, consuming a separate Laravel AP
    FE/BE contract per domain (Section G).
 2. `docs/TASKS.md` — remaining work broken down by phase/module, with a checklist per module
    and a prompt template for AI-assisted work.
-3. `BE_Nestify/docs/FE_AI_CONTEXT.md` (in the BE repo) — exact request/response shapes for
+3. `Nestify-Furniture-e-commerce-backend/docs/FE_AI_CONTEXT.md` (in the BE repo) — exact request/response shapes for
    every endpoint. FE never runs the BE locally; this doc is the source of truth for payloads.
 
 ## Stack

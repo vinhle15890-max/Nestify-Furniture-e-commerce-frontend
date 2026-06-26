@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { Ticket } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { PageHeader } from '../../../components/admin/PageHeader'
 import { useAdminVouchers, useDeleteVoucher } from '../../../features/admin/vouchers/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { formatPrice, formatDate } from '../../../lib/format'
@@ -67,10 +69,12 @@ export function AdminVouchersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-2xl text-foreground">Voucher</h2>
-        <Button onClick={openCreateModal}>Thêm voucher</Button>
-      </div>
+      <PageHeader
+        icon={Ticket}
+        title="Voucher"
+        description="Tạo và quản lý mã giảm giá cho khách hàng."
+        actions={<Button onClick={openCreateModal}>Thêm voucher</Button>}
+      />
 
       <div className="mt-6">
         {isLoading ? (

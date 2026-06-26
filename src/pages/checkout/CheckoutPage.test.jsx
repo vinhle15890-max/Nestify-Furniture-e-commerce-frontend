@@ -86,12 +86,16 @@ describe('CheckoutPage', () => {
     expect(screen.getByRole('link', { name: 'Quay lại giỏ hàng' })).toBeInTheDocument()
   })
 
-  it('shows a no-address shell when the user has no saved addresses', async () => {
+  it('lets the user add an address inline (without leaving checkout) when they have none', async () => {
     addressesApi.getAddresses.mockResolvedValue({ data: [] })
     renderPage()
 
     expect(await screen.findByText(/Bạn chưa có địa chỉ giao hàng/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Thêm địa chỉ' })).toBeInTheDocument()
+
+    // The "add address" affordance is an inline button that opens the address modal,
+    // not a link that navigates away from checkout.
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
+    expect(await screen.findByRole('heading', { name: 'Thêm địa chỉ mới' })).toBeInTheDocument()
   })
 
   it('renders address options with the default address selected', async () => {
@@ -137,6 +141,24 @@ describe('CheckoutPage', () => {
     expect(await screen.findByText('Nâu')).toBeInTheDocument()
     expect(checkoutApi.createPaymentSession).toHaveBeenCalledWith(99, expect.objectContaining({ gateway: 'payos' }))
     expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99')
+  })
+
+  it('places a COD order and skips the payment session', async () => {
+    checkoutApi.createOrder.mockResolvedValue({ data: { id: 77, status: 'processing', payment_method: 'cod' } })
+    renderPage()
+
+    await screen.findByText('Nâu')
+
+    await userEvent.click(screen.getByRole('radio', { name: /COD/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+
+    expect(checkoutApi.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ address_id: 1, source: 'cart', payment_method: 'cod' }),
+      expect.any(String),
+    )
+    // COD is confirmed at placement — no online payment step.
+    expect(checkoutApi.createPaymentSession).not.toHaveBeenCalled()
+    expect(navigation.redirectToExternal).not.toHaveBeenCalled()
   })
 
   it('shows an inline error on insufficient stock and does not create a payment session', async () => {

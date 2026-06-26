@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MapPin, Pencil, Trash2, Star } from 'lucide-react'
 import { BackLink } from '../../components/BackLink'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
@@ -7,8 +8,8 @@ import { useAddresses, useDeleteAddress, useSetDefaultAddress } from '../../feat
 import { useToastStore } from '../../store/toastStore'
 import { AddressFormModal } from './AddressFormModal'
 
-const textButton =
-  'cursor-pointer rounded text-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
+const actionButton =
+  'inline-flex cursor-pointer items-center gap-1.5 rounded-control text-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
 
 export function AddressesPage() {
   const { data, isLoading } = useAddresses()
@@ -62,8 +63,10 @@ export function AddressesPage() {
         {isLoading ? (
           <Spinner label="Đang tải địa chỉ..." />
         ) : addresses.length === 0 ? (
-          <div className="rounded-card border border-border bg-surface p-10 text-center">
-            <p className="text-muted-foreground">Bạn chưa có địa chỉ nào.</p>
+          <div className="rounded-card border border-border bg-surface p-12 text-center">
+            <MapPin size={36} className="mx-auto text-border-strong" />
+            <p className="mt-4 text-muted-foreground">Bạn chưa có địa chỉ nào.</p>
+            <Button onClick={openCreateModal} className="mt-6">Thêm địa chỉ đầu tiên</Button>
           </div>
         ) : (
           addresses.map((address) => (
@@ -82,18 +85,21 @@ export function AddressesPage() {
                 {address.is_default && <Badge tone="in-stock">Mặc định</Badge>}
               </div>
               <div className="flex flex-wrap gap-5 border-t border-border pt-4 text-sm">
-                <button type="button" className={textButton} onClick={() => openEditModal(address)}>
+                <button type="button" className={actionButton} onClick={() => openEditModal(address)}>
+                  <Pencil size={14} />
                   Sửa
                 </button>
                 <button
                   type="button"
-                  className="cursor-pointer rounded text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-control text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                   onClick={() => handleDelete(address)}
                 >
+                  <Trash2 size={14} />
                   Xóa
                 </button>
                 {!address.is_default && (
-                  <button type="button" className={textButton} onClick={() => handleSetDefault(address)}>
+                  <button type="button" className={actionButton} onClick={() => handleSetDefault(address)}>
+                    <Star size={14} />
                     Đặt làm mặc định
                   </button>
                 )}

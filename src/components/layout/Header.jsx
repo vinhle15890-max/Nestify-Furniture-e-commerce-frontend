@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { ShoppingCart, Menu, User } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
+import { useCart } from '../../features/cart/hooks'
 import { Logo } from '../Logo'
 import { CategoryNav } from './CategoryNav'
 
@@ -32,6 +33,9 @@ export function Header() {
   const toggleMobileNav = useUiStore((state) => state.toggleMobileNav)
   const toggleCart = useUiStore((state) => state.toggleCart)
   const isAdmin = user?.roles?.includes('super_admin')
+
+  const { data: cartData } = useCart()
+  const cartCount = (cartData?.data?.items ?? []).reduce((sum, item) => sum + item.quantity, 0)
 
   const headerClass = `${isHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-40 transition-colors duration-300 ease-out ${
     overlay ? 'bg-transparent' : 'border-b border-border bg-surface/90 backdrop-blur-md'
@@ -73,11 +77,16 @@ export function Header() {
         <div className={`flex items-center gap-4 ${tone}`}>
           <button
             type="button"
-            aria-label="Giỏ hàng"
-            className={`cursor-pointer ${interactive} ${focusRing}`}
+            aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}
+            className={`relative cursor-pointer ${interactive} ${focusRing}`}
             onClick={toggleCart}
           >
             <ShoppingCart size={20} />
+            {cartCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-white">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </button>
 
           {user ? (

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -9,36 +9,45 @@ import { useCreateAddress, useUpdateAddress } from '../../features/addresses/hoo
 import { useToastStore } from '../../store/toastStore'
 import { applyServerErrors } from '../../lib/formErrors'
 
+// Vietnam's administrative units were reorganised by Nghị quyết 202/2025/QH15:
+// 34 provinces/cities and a TWO-tier model (province → ward/commune), with the
+// district (Quận/Huyện) level removed. We map this onto the existing columns:
+//   province     → Tỉnh/Thành phố
+//   city         → Phường/Xã/Thị trấn (the ward/commune)
+//   address_line1→ Số nhà, tên đường
+//   address_line2→ unused (sent empty)
+//   postal_code  → unused (sent empty)
+
 const schema = yup.object({
   recipient_name: yup.string().required('Vui lòng nhập tên người nhận.').max(100, 'Tối đa 100 ký tự.'),
   phone: yup.string().required('Vui lòng nhập số điện thoại.').max(20, 'Tối đa 20 ký tự.'),
-  address_line1: yup.string().required('Vui lòng nhập địa chỉ.').max(255, 'Tối đa 255 ký tự.'),
-  address_line2: yup.string().max(255, 'Tối đa 255 ký tự.'),
-  city: yup.string().required('Vui lòng nhập thành phố.').max(100, 'Tối đa 100 ký tự.'),
-  province: yup.string().required('Vui lòng nhập tỉnh/thành.').max(100, 'Tối đa 100 ký tự.'),
-  postal_code: yup.string().max(20, 'Tối đa 20 ký tự.'),
+  address_line1: yup.string().required('Vui lòng nhập số nhà, tên đường.').max(255, 'Tối đa 255 ký tự.'),
 })
 
-const emptyValues = {
-  recipient_name: '',
-  phone: '',
-  address_line1: '',
-  address_line2: '',
-  city: '',
-  province: '',
-  postal_code: '',
+const selectClass =
+  'rounded-control border border-border-strong bg-surface px-4 py-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-50'
+
+/** Build options for a select, keeping a legacy value that isn't in the dataset. */
+function withCurrent(options, current) {
+  if (current && !options.includes(current)) return [current, ...options]
+  return options
 }
 
-function toFormValues(address) {
-  return {
-    recipient_name: address.recipient_name ?? '',
-    phone: address.phone ?? '',
-    address_line1: address.address_line1 ?? '',
-    address_line2: address.address_line2 ?? '',
-    city: address.city ?? '',
-    province: address.province ?? '',
-    postal_code: address.postal_code ?? '',
-  }
+function AddressSelect({ id, label, value, onChange, options, disabled, error }) {
+  return (
+    <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor={id}>
+      {label}
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} className={selectClass}>
+        <option value="">-- Chọn --</option>
+        {options.map((name) => (
+          <option key={name} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
+      {error && <span className="text-sm font-normal text-destructive">{error}</span>}
+    </label>
+  )
 }
 
 export function AddressFormModal({ open, onOpenChange, address }) {
@@ -47,27 +56,76 @@ export function AddressFormModal({ open, onOpenChange, address }) {
   const updateAddress = useUpdateAddress()
   const addToast = useToastStore((state) => state.addToast)
 
+  const [units, setUnits] = useState(null)
+  const [province, setProvince] = useState('')
+  const [ward, setWard] = useState('')
+  const [regionError, setRegionError] = useState({})
+
   const {
     register,
     handleSubmit,
     setError,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: yupResolver(schema), defaultValues: emptyValues })
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: { recipient_name: '', phone: '', address_line1: '' },
+  })
 
+  // Lazy-load the (bundled) VN administrative dataset the first time the modal opens.
   useEffect(() => {
-    if (open) {
-      reset(address ? toFormValues(address) : emptyValues)
+    if (open && !units) {
+      import('../../data/vn-units.json').then((module) => setUnits(module.default))
     }
+  }, [open, units])
+
+  // Reset the form + region selects whenever the modal (re)opens.
+  useEffect(() => {
+    if (!open) return
+    reset({
+      recipient_name: address?.recipient_name ?? '',
+      phone: address?.phone ?? '',
+      address_line1: address?.address_line1 ?? '',
+    })
+    setProvince(address?.province ?? '')
+    setWard(address?.city ?? '')
+    setRegionError({})
   }, [open, address, reset])
 
+  const provinceOptions = useMemo(() => (units ? units.map((p) => p.name) : []), [units])
+  const wardOptions = useMemo(
+    () => units?.find((p) => p.name === province)?.wards ?? [],
+    [units, province],
+  )
+
+  function handleProvinceChange(value) {
+    setProvince(value)
+    setWard('')
+  }
+
   const onSubmit = async (values) => {
+    const nextRegionError = {}
+    if (!province) nextRegionError.province = 'Vui lòng chọn Tỉnh/Thành phố.'
+    if (!ward) nextRegionError.ward = 'Vui lòng chọn Phường/Xã.'
+    setRegionError(nextRegionError)
+    if (Object.keys(nextRegionError).length > 0) return
+
+    const payload = {
+      recipient_name: values.recipient_name,
+      phone: values.phone,
+      address_line1: values.address_line1,
+      address_line2: '',
+      city: ward,
+      province,
+      postal_code: '',
+    }
+
     try {
       if (isEditing) {
-        await updateAddress.mutateAsync({ id: address.id, ...values })
+        await updateAddress.mutateAsync({ id: address.id, ...payload })
         addToast({ title: 'Đã cập nhật địa chỉ.', variant: 'success' })
       } else {
-        await createAddress.mutateAsync(values)
+        await createAddress.mutateAsync(payload)
         addToast({ title: 'Đã thêm địa chỉ mới.', variant: 'success' })
       }
       onOpenChange(false)
@@ -78,8 +136,13 @@ export function AddressFormModal({ open, onOpenChange, address }) {
   }
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}
+      description="Nhập thông tin địa chỉ giao hàng tại Việt Nam."
+    >
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
         <Input
           label="Tên người nhận"
           id="recipient_name"
@@ -87,26 +150,33 @@ export function AddressFormModal({ open, onOpenChange, address }) {
           {...register('recipient_name')}
         />
         <Input label="Số điện thoại" id="phone" error={errors.phone?.message} {...register('phone')} />
+
+        <AddressSelect
+          id="province"
+          label="Tỉnh/Thành phố"
+          value={province}
+          onChange={handleProvinceChange}
+          options={withCurrent(provinceOptions, province)}
+          disabled={!units}
+          error={regionError.province}
+        />
+        <AddressSelect
+          id="ward"
+          label="Phường/Xã/Thị trấn"
+          value={ward}
+          onChange={setWard}
+          options={withCurrent(wardOptions, ward)}
+          disabled={!province}
+          error={regionError.ward}
+        />
+
         <Input
-          label="Địa chỉ"
+          label="Số nhà, tên đường"
           id="address_line1"
           error={errors.address_line1?.message}
           {...register('address_line1')}
         />
-        <Input
-          label="Địa chỉ (dòng 2, không bắt buộc)"
-          id="address_line2"
-          error={errors.address_line2?.message}
-          {...register('address_line2')}
-        />
-        <Input label="Thành phố" id="city" error={errors.city?.message} {...register('city')} />
-        <Input label="Tỉnh/Thành" id="province" error={errors.province?.message} {...register('province')} />
-        <Input
-          label="Mã bưu điện (không bắt buộc)"
-          id="postal_code"
-          error={errors.postal_code?.message}
-          {...register('postal_code')}
-        />
+
         <Button type="submit" disabled={isSubmitting}>
           {isEditing ? 'Lưu thay đổi' : 'Thêm địa chỉ'}
         </Button>

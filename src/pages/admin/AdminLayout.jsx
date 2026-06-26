@@ -1,4 +1,6 @@
-import { NavLink, Link, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Link, Outlet, useLocation } from 'react-router-dom'
+import * as Dialog from '@radix-ui/react-dialog'
 import {
   LayoutDashboard,
   FolderTree,
@@ -6,17 +8,20 @@ import {
   Receipt,
   Ticket,
   Star,
-  Users,
+  ShieldCheck,
+  Users2,
   ScrollText,
-  ArrowLeft,
+  Store,
+  Menu,
+  X,
+  ChevronsUpDown,
+  LogOut,
 } from 'lucide-react'
 import { useLogout } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
 
 const navGroups = [
-  {
-    items: [{ to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true }],
-  },
+  { items: [{ to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true }] },
   {
     title: 'Danh mục',
     items: [
@@ -31,120 +36,201 @@ const navGroups = [
       { to: '/admin/vouchers', label: 'Voucher', icon: Ticket },
     ],
   },
+  { title: 'Cộng đồng', items: [{ to: '/admin/reviews', label: 'Đánh giá', icon: Star }] },
   {
-    title: 'Cộng đồng',
-    items: [{ to: '/admin/reviews', label: 'Đánh giá', icon: Star }],
-  },
-  {
-    title: 'Hệ thống',
+    title: 'Nhân sự',
     items: [
-      { to: '/admin/users', label: 'Người dùng', icon: Users },
-      { to: '/admin/audit-logs', label: 'Nhật ký', icon: ScrollText },
+      { to: '/admin/employees', label: 'Nhân viên', icon: ShieldCheck },
+      { to: '/admin/customers', label: 'Khách hàng', icon: Users2 },
     ],
   },
+  { title: 'Hệ thống', items: [{ to: '/admin/audit-logs', label: 'Nhật ký', icon: ScrollText }] },
 ]
 
 const allItems = navGroups.flatMap((group) => group.items)
 
+function activeTitle(pathname) {
+  const match = allItems
+    .filter((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to)))
+    .sort((a, b) => b.to.length - a.to.length)[0]
+  return match?.label ?? 'Quản trị'
+}
+
+function initials(name = '') {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'A'
+  return (parts[0][0] + (parts[parts.length - 1][0] ?? '')).toUpperCase()
+}
+
 const navLinkClass = ({ isActive }) =>
-  `flex items-center gap-3 rounded-control border-l-2 px-3 py-2 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+  `group flex items-center gap-3 rounded-r-control border-l-2 px-3 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
     isActive
       ? 'border-accent bg-surface-alt font-medium text-foreground'
-      : 'border-transparent text-muted-foreground hover:bg-surface-alt hover:text-foreground'
+      : 'border-transparent text-muted-foreground hover:bg-surface-alt/60 hover:text-foreground'
   }`
+
+function SidebarNav({ onNavigate }) {
+  return (
+    <nav className="flex-1 overflow-y-auto px-3 pb-4">
+      {navGroups.map((group, index) => (
+        <div key={group.title ?? index} className={index === 0 ? '' : 'mt-6'}>
+          {group.title && (
+            <p className="px-3 pb-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/60">
+              {group.title}
+            </p>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {group.items.map((item) => {
+              const Icon = item.icon
+              return (
+                <NavLink key={item.to} to={item.to} end={item.end} onClick={onNavigate} className={navLinkClass}>
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        size={18}
+                        className={isActive ? 'text-accent' : 'text-muted-foreground transition-colors group-hover:text-foreground'}
+                        aria-hidden="true"
+                      />
+                      {item.label}
+                    </>
+                  )}
+                </NavLink>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  )
+}
+
+function Brand() {
+  return (
+    <Link
+      to="/admin"
+      className="flex items-center gap-2.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-control bg-foreground font-display text-lg text-surface">N</span>
+      <span>
+        <span className="block font-display text-lg leading-none text-foreground">Nestify</span>
+        <span className="block text-[0.65rem] uppercase tracking-[0.18em] text-muted-foreground">Admin</span>
+      </span>
+    </Link>
+  )
+}
+
+function UserMenu({ user, onLogout }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      {open && <button className="fixed inset-0 z-10 cursor-default" aria-hidden="true" onClick={() => setOpen(false)} />}
+
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="relative z-20 flex w-full items-center gap-3 rounded-control p-2 text-left transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-alt text-xs font-semibold text-muted-foreground ring-1 ring-inset ring-border">
+          {initials(user?.name)}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-foreground">{user?.name ?? 'Quản trị viên'}</span>
+          <span className="block truncate text-xs text-muted-foreground">{user?.email}</span>
+        </span>
+        <ChevronsUpDown size={15} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div role="menu" className="absolute bottom-full left-0 z-20 mb-2 w-full rounded-card border border-border bg-surface p-1.5 shadow-card">
+          <Link
+            to="/"
+            role="menuitem"
+            className="flex items-center gap-2.5 rounded-control px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground"
+          >
+            <Store size={16} /> Về cửa hàng
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={onLogout}
+            className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-surface-alt hover:text-destructive"
+          >
+            <LogOut size={16} /> Đăng xuất
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function AdminLayout() {
   const logout = useLogout()
   const user = useAuthStore((state) => state.user)
+  const { pathname } = useLocation()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const title = activeTitle(pathname)
+  const handleLogout = () => logout.mutate()
 
   return (
     <div className="flex min-h-dvh bg-background">
-      <h1 className="sr-only">Quản trị</h1>
-
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
-        <div className="px-6 py-6">
-          <Link
-            to="/admin"
-            className="rounded font-display text-2xl tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-          >
-            Nestify
-          </Link>
-          <p className="mt-0.5 text-xs uppercase tracking-[0.18em] text-muted-foreground">Bảng điều khiển</p>
+        <div className="px-5 py-5">
+          <Brand />
         </div>
-
-        <nav className="flex-1 overflow-y-auto px-3 pb-4">
-          {navGroups.map((group, index) => (
-            <div key={group.title ?? index} className={index === 0 ? '' : 'mt-6'}>
-              {group.title && (
-                <p className="px-3 pb-2 text-[0.7rem] font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
-                  {group.title}
-                </p>
-              )}
-              <div className="flex flex-col gap-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
-                      <Icon size={18} />
-                      {item.label}
-                    </NavLink>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        <div className="border-t border-border px-6 py-4">
-          {user?.name && <p className="truncate text-sm font-medium text-foreground">{user.name}</p>}
-          <div className="mt-2 flex flex-col gap-1.5 text-sm">
-            <Link to="/" className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent">
-              <ArrowLeft size={14} />
-              Về cửa hàng
-            </Link>
-            <button
-              type="button"
-              onClick={() => logout.mutate()}
-              className="text-left text-muted-foreground transition-colors hover:text-destructive"
-            >
-              Đăng xuất
-            </button>
-          </div>
+        <SidebarNav />
+        <div className="border-t border-border p-3">
+          <UserMenu user={user} onLogout={handleLogout} />
         </div>
       </aside>
 
+      {/* Mobile slide-in nav */}
+      <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm lg:hidden" />
+          <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-surface shadow-card lg:hidden">
+            <Dialog.Title className="sr-only">Điều hướng quản trị</Dialog.Title>
+            <Dialog.Description className="sr-only">Danh sách các mục quản trị.</Dialog.Description>
+            <div className="flex items-center justify-between px-5 py-5">
+              <Brand />
+              <Dialog.Close aria-label="Đóng" className="rounded-control p-1 text-muted-foreground transition-colors hover:text-foreground">
+                <X size={20} />
+              </Dialog.Close>
+            </div>
+            <SidebarNav onNavigate={() => setMobileOpen(false)} />
+            <div className="border-t border-border p-3">
+              <UserMenu user={user} onLogout={handleLogout} />
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar (mobile) */}
-        <header className="sticky top-0 z-20 border-b border-border bg-surface/90 px-4 py-3 backdrop-blur-md lg:hidden">
-          <div className="flex items-center justify-between">
-            <Link to="/admin" className="font-display text-xl text-foreground">
-              Nestify
-            </Link>
-            <Link to="/" className="text-sm text-muted-foreground hover:text-accent">
-              Về cửa hàng
-            </Link>
-          </div>
-          <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {allItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `whitespace-nowrap rounded-control px-3 py-1.5 text-sm transition-colors ${
-                    isActive ? 'bg-foreground text-surface' : 'bg-surface-alt text-muted-foreground'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+        {/* Sticky top bar */}
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-md lg:px-8">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Mở menu"
+            className="rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground lg:hidden"
+          >
+            <Menu size={20} />
+          </button>
+          <h1 className="truncate font-display text-lg text-foreground">{title}</h1>
+          <Link
+            to="/"
+            className="ml-auto hidden items-center gap-1.5 rounded-control px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground sm:flex"
+          >
+            <Store size={15} /> Về cửa hàng
+          </Link>
         </header>
 
         <main className="flex-1">
-          <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
+          <div className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
             <Outlet />
           </div>
         </main>

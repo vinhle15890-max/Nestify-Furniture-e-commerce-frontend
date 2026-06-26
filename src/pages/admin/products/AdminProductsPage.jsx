@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Package } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { PageHeader } from '../../../components/admin/PageHeader'
 import { useAdminProducts } from '../../../features/admin/products/hooks'
 import { formatPrice } from '../../../lib/format'
 import { ProductFormModal } from './ProductFormModal'
@@ -29,10 +31,12 @@ export function AdminProductsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-2xl text-foreground">Sản phẩm</h2>
-        <Button onClick={() => setModalOpen(true)}>Thêm sản phẩm</Button>
-      </div>
+      <PageHeader
+        icon={Package}
+        title="Sản phẩm"
+        description="Quản lý danh mục sản phẩm, biến thể và tồn kho."
+        actions={<Button onClick={() => setModalOpen(true)}>Thêm sản phẩm</Button>}
+      />
 
       <div className="mt-6">
         {isLoading ? (

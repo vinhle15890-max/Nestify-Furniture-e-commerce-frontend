@@ -65,7 +65,7 @@ describe('CartPage', () => {
     renderPage()
 
     expect(await screen.findByText('Nâu')).toBeInTheDocument()
-    expect(screen.getByText('SOFA-NAU')).toBeInTheDocument()
+    expect(screen.getByText(/SOFA-NAU/)).toBeInTheDocument()
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 

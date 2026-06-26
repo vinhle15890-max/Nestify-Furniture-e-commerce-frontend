@@ -8,6 +8,7 @@ import { BackLink } from '../../components/BackLink'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
+import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 
@@ -82,7 +83,12 @@ export function OrderDetailPage() {
         <h1 className="font-display text-[clamp(1.9rem,3.6vw,2.8rem)] text-foreground">Đơn hàng #{order.id}</h1>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {formatDate(order.created_at)}
+        {order.payment_method && (
+          <> · {order.payment_method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán online (PayOS)'}</>
+        )}
+      </p>
 
       <div className={`mt-8 flex flex-col gap-2 ${sectionClass}`}>
         <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
@@ -99,17 +105,31 @@ export function OrderDetailPage() {
       <div className={`mt-6 flex flex-col gap-4 ${sectionClass}`}>
         <h2 className="font-display text-xl text-foreground">Sản phẩm</h2>
         <ul className="flex flex-col divide-y divide-border">
-          {order.items.map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-4 py-3 text-sm first:pt-0">
-              <div>
-                <p className="font-medium text-foreground">{item.variant_snapshot?.name}</p>
-                <p className="text-muted-foreground">
-                  {item.variant_snapshot?.sku} · x{item.quantity}
-                </p>
-              </div>
-              <p className="font-medium text-foreground">{formatPrice(item.subtotal)}</p>
-            </li>
-          ))}
+          {order.items.map((item) => {
+            const snapshot = item.variant_snapshot ?? {}
+            const title = snapshot.product_name ?? snapshot.name
+            return (
+              <li key={item.id} className="flex items-center gap-4 py-3 text-sm first:pt-0">
+                <ProductThumb src={snapshot.thumbnail} alt={title} size="h-14 w-14" />
+                <div className="min-w-0 flex-1">
+                  {snapshot.product_slug ? (
+                    <Link
+                      to={`/p/${snapshot.product_slug}`}
+                      className="font-medium text-foreground transition-colors duration-200 hover:text-accent"
+                    >
+                      {title}
+                    </Link>
+                  ) : (
+                    <p className="font-medium text-foreground">{title}</p>
+                  )}
+                  <p className="text-muted-foreground">
+                    {snapshot.name} · x{item.quantity}
+                  </p>
+                </div>
+                <p className="shrink-0 font-medium text-foreground">{formatPrice(item.subtotal)}</p>
+              </li>
+            )
+          })}
         </ul>
 
         <div className="flex flex-col gap-2 border-t border-border pt-4 text-sm">
