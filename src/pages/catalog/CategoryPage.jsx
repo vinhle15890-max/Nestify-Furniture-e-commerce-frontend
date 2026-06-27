@@ -5,7 +5,9 @@ import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 import { Reveal } from '../../components/Reveal'
-import { useCategory, useInfiniteProducts } from '../../features/catalog/hooks'
+import { useCategory, useCategories, useInfiniteProducts } from '../../features/catalog/hooks'
+import { Breadcrumb } from '../../components/Breadcrumb'
+import { findCategoryPath } from '../../lib/categoryPath'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Mặc định' },
@@ -26,6 +28,19 @@ export function CategoryPage() {
 
   const categoryQuery = useCategory(isAll ? undefined : categorySlug)
   const category = categoryQuery.data?.data
+
+  const { data: categoriesData } = useCategories()
+  const categoryPath = isAll ? [] : findCategoryPath(categoriesData?.data ?? [], categorySlug)
+  const breadcrumbItems = [
+    { label: 'Trang chủ', to: '/' },
+    ...(isAll
+      ? [{ label: 'Tất cả sản phẩm' }]
+      : categoryPath.length > 0
+        ? categoryPath.map((c, i) =>
+            i === categoryPath.length - 1 ? { label: c.name } : { label: c.name, to: `/c/${c.slug}` },
+          )
+        : [{ label: category?.name ?? 'Danh mục' }]),
+  ]
 
   const productsQuery = useInfiniteProducts({
     category: isAll ? undefined : categorySlug,
@@ -49,6 +64,9 @@ export function CategoryPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
+      <div className="mb-6">
+        <Breadcrumb items={breadcrumbItems} />
+      </div>
       <Reveal>
         <p className="eyebrow">Bộ sưu tập</p>
         <h1 className="mt-4 font-display text-[clamp(2rem,4vw,3.2rem)] leading-tight text-foreground">

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -38,6 +38,9 @@ describe('CategoryPage', () => {
     catalogApi.getCategory.mockResolvedValue({
       data: { id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] },
     })
+    catalogApi.getCategories.mockResolvedValue({
+      data: [{ id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] }],
+    })
     catalogApi.getProducts.mockResolvedValue({
       data: [product()],
       meta: { pagination: { has_more: false, next_cursor: null, limit: 20 } },
@@ -75,5 +78,13 @@ describe('CategoryPage', () => {
         expect.objectContaining({ category: 'phong-khach', brand: 'IKEA' }),
       ),
     )
+  })
+
+  it('hiển thị breadcrumb với danh mục hiện tại', async () => {
+    renderPage()
+    const nav = await screen.findByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(nav).getByRole('link', { name: 'Trang chủ' })).toHaveAttribute('href', '/')
+    const current = await within(nav).findByText('Phòng khách')
+    expect(current).toHaveAttribute('aria-current', 'page')
   })
 })

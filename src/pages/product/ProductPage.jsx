@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
 import './ProductDescription.css'
-import { Heart, Star, ChevronRight, Box, ImageOff } from 'lucide-react'
+import { Heart, Star, Box, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
@@ -16,6 +16,9 @@ import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
 import { ProductOptions } from './ProductOptions'
 import { resolveVariant } from '../../lib/variantOptions'
+import { Breadcrumb } from '../../components/Breadcrumb'
+import { findCategoryPath } from '../../lib/categoryPath'
+import { useCategories } from '../../features/catalog/hooks'
 import { useUiStore } from '../../store/uiStore'
 import { useToastStore } from '../../store/toastStore'
 
@@ -56,6 +59,7 @@ export function ProductPage() {
   const { productSlug } = useParams()
   const { data, isLoading, isError } = useProduct(productSlug)
   const product = data?.data
+  const { data: categoriesData } = useCategories()
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
   const staff = isStaff(user)
@@ -272,23 +276,22 @@ export function ProductPage() {
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : null
 
+  const categoryPath = product?.category
+    ? findCategoryPath(categoriesData?.data ?? [], product.category.slug)
+    : []
+  const breadcrumbItems = [
+    { label: 'Trang chủ', to: '/' },
+    ...(categoryPath.length > 0
+      ? categoryPath.map((c) => ({ label: c.name, to: `/c/${c.slug}` }))
+      : product?.category
+        ? [{ label: product.category.name, to: `/c/${product.category.slug}` }]
+        : []),
+    { label: product.name },
+  ]
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
-      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-        <Link to="/" className="transition-colors hover:text-accent">
-          Trang chủ
-        </Link>
-        {product.category && (
-          <>
-            <ChevronRight size={14} className="text-border-strong" />
-            <Link to={`/c/${product.category.slug}`} className="transition-colors hover:text-accent">
-              {product.category.name}
-            </Link>
-          </>
-        )}
-        <ChevronRight size={14} className="text-border-strong" />
-        <span className="text-foreground">{product.name}</span>
-      </nav>
+      <Breadcrumb items={breadcrumbItems} />
 
       <div className="mt-8 grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
         <div>

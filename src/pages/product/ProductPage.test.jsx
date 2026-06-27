@@ -97,6 +97,7 @@ describe('ProductPage', () => {
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao', roles: ['customer'] } })
     catalogApi.getProduct.mockResolvedValue(productResponse)
     catalogApi.getProductReviews.mockResolvedValue(reviewsResponse)
+    catalogApi.getCategories.mockResolvedValue({ data: [] })
     cartApi.addItem.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
     wishlistApi.addItem.mockResolvedValue({ data: { id: 1 } })
     ordersApi.getOrders.mockResolvedValue({ data: [] })
@@ -127,7 +128,7 @@ describe('ProductPage', () => {
     expect(document.title).toBe('Ghế sofa da bò Ý | Nestify')
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toContain('bảo hành 5 năm')
 
-    const ld = document.querySelector('script[type="application/ld+json"]')
+    const ld = document.querySelector('script[type="application/ld+json"][data-nestify-seo]')
     expect(ld).not.toBeNull()
     const data = JSON.parse(ld.textContent)
     expect(data['@type']).toBe('Product')
