@@ -97,6 +97,7 @@ describe('ProductPage', () => {
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao', roles: ['customer'] } })
     catalogApi.getProduct.mockResolvedValue(productResponse)
     catalogApi.getProductReviews.mockResolvedValue(reviewsResponse)
+    catalogApi.getCategories.mockResolvedValue({ data: [] })
     cartApi.addItem.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
     wishlistApi.addItem.mockResolvedValue({ data: { id: 1 } })
     ordersApi.getOrders.mockResolvedValue({ data: [] })
@@ -127,7 +128,7 @@ describe('ProductPage', () => {
     expect(document.title).toBe('Ghế sofa da bò Ý | Nestify')
     expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toContain('bảo hành 5 năm')
 
-    const ld = document.querySelector('script[type="application/ld+json"]')
+    const ld = document.querySelector('script[type="application/ld+json"][data-nestify-seo]')
     expect(ld).not.toBeNull()
     const data = JSON.parse(ld.textContent)
     expect(data['@type']).toBe('Product')
@@ -156,6 +157,15 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
 
     expect(cartApi.addItem).toHaveBeenCalledWith({ variant_id: 1, quantity: 1 })
+  })
+
+  it('hides the add-to-cart button and shows a notice for staff users', async () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 9, name: 'Admin', roles: ['super_admin'] } })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.queryByRole('button', { name: 'Thêm vào giỏ' })).not.toBeInTheDocument()
+    expect(screen.getByText('Tài khoản quản trị không thể mua hàng.')).toBeInTheDocument()
   })
 
   it('shows an inline message and clamps quantity on insufficient stock', async () => {

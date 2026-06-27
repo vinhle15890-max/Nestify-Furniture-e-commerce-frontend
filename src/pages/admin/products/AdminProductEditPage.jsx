@@ -24,6 +24,8 @@ import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 import { formatPrice } from '../../../lib/format'
 import { VariantFormModal } from './VariantFormModal'
+import { VariantOptionsPanel } from './VariantOptionsPanel'
+import { VariantMatrixGenerator } from './VariantMatrixGenerator'
 import { DescriptionSeoFields } from './DescriptionSeoFields'
 import { productSchema, flattenCategories, toProductPayload } from './productForm'
 
@@ -97,6 +99,7 @@ function ProductEditor({ initialProduct }) {
   const [editingVariant, setEditingVariant] = useState(null)
   const [mediaType, setMediaType] = useState('image')
   const [variantPage, setVariantPage] = useState(1)
+  const [variantOptions, setVariantOptions] = useState(initialProduct?.variant_options ?? [])
 
   const {
     register,
@@ -124,7 +127,11 @@ function ProductEditor({ initialProduct }) {
 
   const onSubmit = async (values) => {
     try {
-      const response = await updateProduct.mutateAsync({ id: product.id, ...toProductPayload(values) })
+      const response = await updateProduct.mutateAsync({
+        id: product.id,
+        ...toProductPayload(values),
+        variant_options: variantOptions,
+      })
       setProduct((current) => ({ ...current, ...response.data }))
       addToast({ title: 'Đã lưu sản phẩm.', variant: 'success' })
     } catch (error) {
@@ -408,6 +415,30 @@ function ProductEditor({ initialProduct }) {
           )}
         </Panel>
       </div>
+
+      {/* Full-width — variant options (Shopify-style) + matrix generator */}
+      <Panel padded={false}>
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="font-display text-lg text-foreground">Thuộc tính biến thể</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Định nghĩa các thuộc tính (màu sắc, kích thước…) rồi sinh tự động các biến thể tổ hợp.
+          </p>
+        </div>
+        <div className="flex flex-col gap-6 p-5">
+          <VariantOptionsPanel value={variantOptions} onChange={setVariantOptions} />
+          <p className="text-xs text-muted-foreground">
+            Lưu thuộc tính bằng nút “Lưu sản phẩm” ở trên, sau đó sinh biến thể bên dưới.
+          </p>
+          <div className="border-t border-border pt-5">
+            <VariantMatrixGenerator
+              productId={product.id}
+              options={variantOptions}
+              variants={allVariants}
+              onCreated={(variants) => setProduct((current) => ({ ...current, variants }))}
+            />
+          </div>
+        </div>
+      </Panel>
 
       {/* Full-width — description & SEO */}
       <DescriptionSeoFields

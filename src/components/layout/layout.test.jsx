@@ -42,8 +42,15 @@ describe('Header', () => {
     expect(screen.getByText('Đăng xuất')).toBeInTheDocument()
   })
 
-  it('shows the admin link only for super_admin users', () => {
+  it('shows the admin link for super_admin users', () => {
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Admin', roles: ['super_admin'] } })
+    renderWithProviders(<Header />)
+
+    expect(screen.getByText('Quản trị')).toBeInTheDocument()
+  })
+
+  it('shows the admin link for non-super-admin staff roles', () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'NV', roles: ['store_manager'] } })
     renderWithProviders(<Header />)
 
     expect(screen.getByText('Quản trị')).toBeInTheDocument()

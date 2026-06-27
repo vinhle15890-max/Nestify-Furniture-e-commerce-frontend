@@ -4,6 +4,7 @@ import { ShoppingCart, Menu, User } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
 import { useCart } from '../../features/cart/hooks'
+import { isStaff } from '../../lib/roles'
 import { Logo } from '../Logo'
 import { CategoryNav } from './CategoryNav'
 
@@ -32,7 +33,7 @@ export function Header() {
   const logout = useAuthStore((state) => state.logout)
   const toggleMobileNav = useUiStore((state) => state.toggleMobileNav)
   const toggleCart = useUiStore((state) => state.toggleCart)
-  const isAdmin = user?.roles?.includes('super_admin')
+  const isAdmin = isStaff(user)
 
   const { data: cartData } = useCart()
   const cartCount = (cartData?.data?.items ?? []).reduce((sum, item) => sum + item.quantity, 0)
