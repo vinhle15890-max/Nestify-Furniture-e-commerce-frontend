@@ -158,6 +158,15 @@ describe('ProductPage', () => {
     expect(cartApi.addItem).toHaveBeenCalledWith({ variant_id: 1, quantity: 1 })
   })
 
+  it('hides the add-to-cart button and shows a notice for staff users', async () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 9, name: 'Admin', roles: ['super_admin'] } })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.queryByRole('button', { name: 'Thêm vào giỏ' })).not.toBeInTheDocument()
+    expect(screen.getByText('Tài khoản quản trị không thể mua hàng.')).toBeInTheDocument()
+  })
+
   it('shows an inline message and clamps quantity on insufficient stock', async () => {
     cartApi.addItem.mockRejectedValue(
       new ApiError('INSUFFICIENT_STOCK', 'Không đủ hàng trong kho', { variant_id: 1, requested: 1, available: 2 }, 409),

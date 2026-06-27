@@ -134,4 +134,9 @@ describe('App routes', () => {
     // The admin shell's top bar shows the active section title.
     expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
   })
+
+  it('renders the admin dashboard for a non-super-admin staff user', async () => {
+    renderAt('/admin', { id: 1, name: 'NV', roles: ['order_staff'] })
+    expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
+  })
 })

@@ -14,6 +14,8 @@ import { Spinner } from '../../components/Spinner'
 import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
+import { useAuthStore } from '../../store/authStore'
+import { isStaff } from '../../lib/roles'
 
 function CheckoutNotice({ children }) {
   return (
@@ -34,6 +36,7 @@ export function CheckoutPage() {
   const createOrder = useCreateOrder()
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
+  const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
 
   const [addressId, setAddressId] = useState(null)
@@ -63,6 +66,14 @@ export function CheckoutPage() {
       <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
         <Spinner />
       </div>
+    )
+  }
+
+  if (isStaff(user)) {
+    return (
+      <CheckoutNotice>
+        Tài khoản quản trị không thể mua hàng. Vui lòng dùng tài khoản khách hàng.
+      </CheckoutNotice>
     )
   }
 

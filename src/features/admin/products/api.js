@@ -28,6 +28,10 @@ export function createVariant(productId, payload) {
   return apiClient.post(`/admin/products/${productId}/variants`, payload)
 }
 
+export function bulkCreateVariants(productId, variants) {
+  return apiClient.post(`/admin/products/${productId}/variants/bulk`, { variants })
+}
+
 export function updateVariant(id, payload) {
   return apiClient.patch(`/admin/variants/${id}`, payload)
 }

@@ -13,6 +13,9 @@ import { useAddWishlistItem } from '../../features/wishlist/hooks'
 import { useOrders } from '../../features/orders/hooks'
 import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
 import { useAuthStore } from '../../store/authStore'
+import { isStaff } from '../../lib/roles'
+import { ProductOptions } from './ProductOptions'
+import { resolveVariant } from '../../lib/variantOptions'
 import { useUiStore } from '../../store/uiStore'
 import { useToastStore } from '../../store/toastStore'
 
@@ -54,6 +57,8 @@ export function ProductPage() {
   const { data, isLoading, isError } = useProduct(productSlug)
   const product = data?.data
   const token = useAuthStore((state) => state.token)
+  const user = useAuthStore((state) => state.user)
+  const staff = isStaff(user)
   const openCart = useUiStore((state) => state.openCart)
   const addToast = useToastStore((state) => state.addToast)
   const addCartItem = useAddCartItem()
@@ -65,19 +70,25 @@ export function ProductPage() {
     [product],
   )
   const variants = useMemo(() => product?.variants ?? [], [product])
+  const variantOptions = useMemo(() => product?.variant_options ?? [], [product])
+  const hasOptions = variantOptions.length > 0
 
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0)
   const [selectedVariantId, setSelectedVariantId] = useState(null)
+  const [selectedOptions, setSelectedOptions] = useState({})
   const [quantity, setQuantity] = useState(1)
 
   useEffect(() => {
     if (!product) return
     setSelectedMediaIndex(0)
     setSelectedVariantId(product.variants?.[0]?.id ?? null)
+    setSelectedOptions({})
     setQuantity(1)
   }, [product])
 
-  const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) ?? variants[0]
+  const selectedVariant = hasOptions
+    ? resolveVariant(selectedOptions, variants, variantOptions)
+    : variants.find((variant) => variant.id === selectedVariantId) ?? variants[0]
   const price = selectedVariant?.price ?? product?.base_price
   const availableStock = selectedVariant?.available_stock ?? 0
   const outOfStock = availableStock < 1
@@ -88,7 +99,7 @@ export function ProductPage() {
 
   useEffect(() => {
     setStockError(null)
-  }, [selectedVariantId])
+  }, [selectedVariantId, selectedVariant?.id])
 
   // SEO: drive <title>, meta description, Open Graph, and schema.org/Product
   // JSON-LD from the product's editorial meta fields (falls back to name/desc).
@@ -346,32 +357,48 @@ export function ProductPage() {
 
           <div className="mt-8 h-px w-full bg-border" />
 
-          {variants.length > 0 && (
+          {hasOptions ? (
             <div className="mt-8">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Phiên bản</p>
-              <div className="mt-3 flex flex-wrap gap-2.5">
-                {variants.map((variant) => (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    onClick={() => setSelectedVariantId(variant.id)}
-                    aria-pressed={variant.id === selectedVariant?.id}
-                    className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                      variant.id === selectedVariant?.id
-                        ? 'border-foreground bg-foreground text-surface'
-                        : 'border-border-strong text-foreground hover:border-foreground'
-                    }`}
-                  >
-                    {variant.name}
-                  </button>
-                ))}
-              </div>
+              <ProductOptions
+                options={variantOptions}
+                variants={variants}
+                selected={selectedOptions}
+                onSelect={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))}
+              />
+              {!selectedVariant && (
+                <p className="mt-3 text-sm text-muted-foreground">Vui lòng chọn đầy đủ thuộc tính.</p>
+              )}
             </div>
+          ) : (
+            variants.length > 0 && (
+              <div className="mt-8">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Phiên bản</p>
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  {variants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      aria-pressed={variant.id === selectedVariant?.id}
+                      className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                        variant.id === selectedVariant?.id
+                          ? 'border-foreground bg-foreground text-surface'
+                          : 'border-border-strong text-foreground hover:border-foreground'
+                      }`}
+                    >
+                      {variant.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
           )}
 
-          <p className={`mt-5 text-sm ${outOfStock ? 'text-destructive' : 'text-secondary'}`}>
-            {outOfStock ? 'Hết hàng' : `Còn ${availableStock} sản phẩm`}
-          </p>
+          {selectedVariant && (
+            <p className={`mt-5 text-sm ${outOfStock ? 'text-destructive' : 'text-secondary'}`}>
+              {outOfStock ? 'Hết hàng' : `Còn ${availableStock} sản phẩm`}
+            </p>
+          )}
 
           {selectedVariant?.model_3d_url && (
             <a
@@ -403,11 +430,15 @@ export function ProductPage() {
               />
             </label>
 
-            {token ? (
+            {token && staff ? (
+              <p className="rounded-control border border-border bg-surface-muted px-5 py-3.5 text-sm text-muted-foreground">
+                Tài khoản quản trị không thể mua hàng.
+              </p>
+            ) : token ? (
               <>
                 <Button
                   onClick={handleAddToCart}
-                  disabled={outOfStock || addCartItem.isPending}
+                  disabled={!selectedVariant || outOfStock || addCartItem.isPending}
                   className="px-8 py-3.5"
                 >
                   Thêm vào giỏ
@@ -417,7 +448,7 @@ export function ProductPage() {
                   variant="secondary"
                   aria-label="Thêm vào yêu thích"
                   onClick={handleAddToWishlist}
-                  disabled={addWishlistItem.isPending}
+                  disabled={!selectedVariant || addWishlistItem.isPending}
                   className="px-4 py-3.5"
                 >
                   <Heart size={18} />

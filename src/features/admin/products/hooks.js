@@ -60,6 +60,15 @@ export function useCreateVariant() {
   })
 }
 
+export function useBulkCreateVariants() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ productId, variants }) => productsApi.bulkCreateVariants(productId, variants),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+  })
+}
+
 export function useUpdateVariant() {
   const queryClient = useQueryClient()
 
