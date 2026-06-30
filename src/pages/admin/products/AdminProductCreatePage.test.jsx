@@ -46,7 +46,7 @@ describe('AdminProductCreatePage', () => {
     renderPage()
 
     await userEvent.type(screen.getByLabelText('Tên sản phẩm'), 'Đèn bàn')
-    await userEvent.type(screen.getByLabelText('Slug'), 'den-ban')
+    expect(screen.getByLabelText('Slug')).toHaveValue('den-ban')
     await userEvent.selectOptions(await screen.findByLabelText('Danh mục'), '1')
     await userEvent.click(screen.getByRole('button', { name: 'Tạo sản phẩm' }))
 
@@ -70,10 +70,32 @@ describe('AdminProductCreatePage', () => {
     renderPage()
 
     await userEvent.type(screen.getByLabelText('Tên sản phẩm'), 'Đèn bàn gỗ')
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
     await userEvent.click(screen.getByRole('button', { name: /Gợi ý bằng AI/ }))
 
     await waitFor(() => expect(productsApi.generateProductDescription).toHaveBeenCalledTimes(1))
     expect(await screen.findByLabelText('Mô tả')).toHaveValue('<p>Đèn bàn gỗ sồi tối giản.</p>')
     expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('Đèn bàn gỗ sồi | Nestify')
+  })
+
+  it('stops auto-filling the slug once it is manually edited', async () => {
+    renderPage()
+
+    await userEvent.type(screen.getByLabelText('Tên sản phẩm'), 'Đèn bàn')
+    expect(screen.getByLabelText('Slug')).toHaveValue('den-ban')
+
+    const slug = screen.getByLabelText('Slug')
+    await userEvent.clear(slug)
+    await userEvent.type(slug, 'den-ban-custom')
+
+    await userEvent.clear(screen.getByLabelText('Tên sản phẩm'))
+    await userEvent.type(screen.getByLabelText('Tên sản phẩm'), 'Đèn treo')
+    expect(screen.getByLabelText('Slug')).toHaveValue('den-ban-custom')
+  })
+
+  it('locks the variants and images tabs until the product is saved', () => {
+    renderPage()
+    expect(screen.getByRole('tab', { name: 'Biến thể' })).toBeDisabled()
+    expect(screen.getByRole('tab', { name: 'Hình ảnh' })).toBeDisabled()
   })
 })

@@ -98,6 +98,7 @@ describe('AdminReviewsPage', () => {
     })
     renderPage()
 
-    expect(await screen.findByText('Không có đánh giá chờ duyệt.')).toBeInTheDocument()
+    expect(await screen.findByText('Không có đánh giá chờ duyệt')).toBeInTheDocument()
+    expect(screen.getByText('Mọi đánh giá đã được xử lý.')).toBeInTheDocument()
   })
 })

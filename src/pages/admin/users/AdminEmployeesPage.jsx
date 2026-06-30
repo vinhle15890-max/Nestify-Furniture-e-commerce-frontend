@@ -108,6 +108,7 @@ export function AdminEmployeesPage() {
           </div>
         ) : rows.length === 0 ? (
           <EmptyState
+            illustration="chair"
             icon={Users}
             title="Chưa có nhân viên"
             description="Không có nhân viên nào khớp bộ lọc. Dùng “Thêm nhân viên” để cấp vai trò cho một người dùng."

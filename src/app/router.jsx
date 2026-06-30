@@ -38,6 +38,7 @@ const AdminVouchersPage = named(() => import('../pages/admin/vouchers/AdminVouch
 const AdminEmployeesPage = named(() => import('../pages/admin/users/AdminEmployeesPage'), 'AdminEmployeesPage')
 const AdminCustomersPage = named(() => import('../pages/admin/users/AdminCustomersPage'), 'AdminCustomersPage')
 const AdminAuditLogsPage = named(() => import('../pages/admin/auditLogs/AdminAuditLogsPage'), 'AdminAuditLogsPage')
+const RoomPlannerPage = named(() => import('../pages/roomPlanner/RoomPlannerPage'), 'RoomPlannerPage')
 const NotFoundPage = named(() => import('../pages/NotFoundPage'), 'NotFoundPage')
 
 const pageFallback = (
@@ -75,6 +76,14 @@ export const routes = [
         ],
       },
       { path: '*', element: lazyPage(<NotFoundPage />) },
+    ],
+  },
+  {
+    // Full-screen 3D planner — standalone chrome, logged-in only.
+    element: <ProtectedRoute />,
+    children: [
+      { path: '/room-planner', element: lazyPage(<RoomPlannerPage />) },
+      { path: '/room-planner/:id', element: lazyPage(<RoomPlannerPage />) },
     ],
   },
   {

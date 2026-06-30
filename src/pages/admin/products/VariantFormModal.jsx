@@ -11,7 +11,7 @@ import { applyServerErrors } from '../../../lib/formErrors'
 
 const createSchema = yup.object({
   sku: yup.string().max(100, 'Tối đa 100 ký tự.'),
-  name: yup.string().required('Vui lòng nhập tên phiên bản.').max(255, 'Tối đa 255 ký tự.'),
+  name: yup.string().required('Vui lòng nhập tên biến thể.').max(255, 'Tối đa 255 ký tự.'),
   price: yup.number().typeError('Giá phải là số.').required('Vui lòng nhập giá.').min(0, 'Giá phải lớn hơn hoặc bằng 0.'),
   stock_quantity: yup
     .number()
@@ -76,7 +76,7 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           model_3d_url: values.model_3d_url || null,
           is_active: values.is_active,
         })
-        addToast({ title: 'Đã cập nhật phiên bản.', variant: 'success' })
+        addToast({ title: 'Đã cập nhật biến thể.', variant: 'success' })
         onSaved?.(response.data)
       } else {
         const response = await createVariant.mutateAsync({
@@ -87,7 +87,7 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           stock_quantity: Number(values.stock_quantity),
           model_3d_url: values.model_3d_url || undefined,
         })
-        addToast({ title: 'Đã thêm phiên bản mới.', variant: 'success' })
+        addToast({ title: 'Đã thêm biến thể mới.', variant: 'success' })
         onSaved?.(response.data)
       }
       onOpenChange(false)
@@ -98,7 +98,7 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
   }
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa phiên bản' : 'Thêm phiên bản mới'}>
+    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa biến thể' : 'Thêm biến thể mới'}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         {!isEditing && (
           <div className="flex flex-col gap-1">
@@ -112,7 +112,7 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
             <p className="text-xs text-muted-foreground">Bỏ trống để hệ thống tự sinh mã từ tên sản phẩm.</p>
           </div>
         )}
-        <Input label="Tên phiên bản" id="variant-name" error={errors.name?.message} {...register('name')} />
+        <Input label="Tên biến thể" id="variant-name" error={errors.name?.message} {...register('name')} />
         <Input label="Giá" id="variant-price" type="number" error={errors.price?.message} {...register('price')} />
         <Input
           label="Số lượng kho"
@@ -136,7 +136,7 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
         )}
 
         <Button type="submit" disabled={isSubmitting}>
-          {isEditing ? 'Lưu thay đổi' : 'Thêm phiên bản'}
+          {isEditing ? 'Lưu thay đổi' : 'Thêm biến thể'}
         </Button>
       </form>
     </Modal>

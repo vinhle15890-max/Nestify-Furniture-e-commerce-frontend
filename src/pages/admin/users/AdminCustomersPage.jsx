@@ -60,6 +60,7 @@ export function AdminCustomersPage() {
           </div>
         ) : users.length === 0 ? (
           <EmptyState
+            illustration="chair"
             icon={UserRound}
             title="Không có khách hàng"
             description="Không có khách hàng nào khớp tìm kiếm."

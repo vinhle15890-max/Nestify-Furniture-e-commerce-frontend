@@ -11,6 +11,7 @@ import { Input } from '../../../components/Input'
 import { Pagination } from '../../../components/Pagination'
 import { Panel } from '../../../components/admin/Panel'
 import { EmptyState } from '../../../components/admin/EmptyState'
+import { Tabs, TabList, Tab, TabPanel } from '../../../components/admin/Tabs'
 import { useCategories } from '../../../features/catalog/hooks'
 import {
   useAdminProduct,
@@ -36,6 +37,20 @@ const STATUS_LABELS = {
 
 // How many variants to show per page in the variants table.
 const VARIANTS_PER_PAGE = 8
+
+// Which tab each react-hook-form field lives on, so a failed submit can jump to
+// the first tab that has an error (its panel is hidden while another tab is active).
+const FIELD_TAB = {
+  name: 'thong-tin',
+  slug: 'thong-tin',
+  category_id: 'thong-tin',
+  status: 'thong-tin',
+  description: 'mo-ta-seo',
+  meta_title: 'mo-ta-seo',
+  meta_description: 'mo-ta-seo',
+  focus_keyword: 'mo-ta-seo',
+}
+const TAB_ORDER = ['thong-tin', 'bien-the', 'mo-ta-seo', 'hinh-anh']
 
 function findProductInCache(queryClient, productId) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['admin', 'products'] })
@@ -124,6 +139,24 @@ function ProductEditor({ initialProduct }) {
         }
       : undefined,
   })
+
+  const [activeTab, setActiveTab] = useState('thong-tin')
+
+  const erroredTabs = new Set(
+    Object.keys(errors)
+      .map((field) => FIELD_TAB[field])
+      .filter(Boolean),
+  )
+
+  const focusFirstErrorTab = (formErrors) => {
+    const tabs = new Set(
+      Object.keys(formErrors)
+        .map((field) => FIELD_TAB[field])
+        .filter(Boolean),
+    )
+    const first = TAB_ORDER.find((tab) => tabs.has(tab))
+    if (first) setActiveTab(first)
+  }
 
   const onSubmit = async (values) => {
     try {
@@ -246,7 +279,7 @@ function ProductEditor({ initialProduct }) {
     <div className="flex flex-col gap-6">
       <BackLink to="/admin/products">Quay lại danh sách sản phẩm</BackLink>
 
-      {/* Title bar: name + live status + page-level actions */}
+      {/* Title bar: name + status + global Save */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
@@ -259,292 +292,300 @@ function ProductEditor({ initialProduct }) {
           <Button variant="secondary" onClick={() => navigate('/admin/products')}>
             Hủy
           </Button>
+          <Button type="button" disabled={isSubmitting} onClick={handleSubmit(onSubmit, focusFirstErrorTab)}>
+            Lưu sản phẩm
+          </Button>
         </div>
       </div>
 
-      {/* Two-column workspace: configuration (left) + variant data table (right) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_1fr] lg:items-start">
-        {/* LEFT — product metadata */}
-        <Panel padded={false}>
-          <div className="border-b border-border px-5 py-4">
-            <h3 className="font-display text-lg text-foreground">Thông tin sản phẩm</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">Cấu hình metadata của sản phẩm.</p>
-          </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabList ariaLabel="Cấu hình sản phẩm">
+          <Tab value="thong-tin" hasError={erroredTabs.has('thong-tin')}>Thông tin</Tab>
+          <Tab value="bien-the">Biến thể</Tab>
+          <Tab value="mo-ta-seo" hasError={erroredTabs.has('mo-ta-seo')}>Mô tả &amp; SEO</Tab>
+          <Tab value="hinh-anh">Hình ảnh</Tab>
+        </TabList>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4 p-5">
-            <Input label="Tên sản phẩm" id="name" error={errors.name?.message} {...register('name')} />
-            <Input label="Slug" id="slug" error={errors.slug?.message} {...register('slug')} />
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="category_id" className="text-sm font-medium text-foreground">
-                Danh mục
-              </label>
-              <select
-                id="category_id"
-                {...register('category_id')}
-                className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Chọn danh mục</option>
-                {categoryOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {'— '.repeat(option.depth)}
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-              {errors.category_id && (
-                <p role="alert" className="text-sm text-destructive">
-                  {errors.category_id.message}
-                </p>
-              )}
+        {/* THÔNG TIN — metadata fields (no inner <form>; Save is global) */}
+        <TabPanel value="thong-tin">
+          <Panel padded={false}>
+            <div className="border-b border-border px-5 py-4">
+              <h3 className="font-display text-lg text-foreground">Thông tin sản phẩm</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">Cấu hình metadata của sản phẩm.</p>
             </div>
+            <div className="flex flex-col gap-4 p-5">
+              <Input label="Tên sản phẩm" id="name" error={errors.name?.message} {...register('name')} />
+              <Input label="Slug" id="slug" error={errors.slug?.message} {...register('slug')} />
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="status" className="text-sm font-medium text-foreground">
-                Trạng thái
-              </label>
-              <select
-                id="status"
-                {...register('status')}
-                className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="active">Đang bán</option>
-                <option value="archived">Đã lưu trữ</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2 border-t border-border pt-4">
-              <Button type="submit" disabled={isSubmitting}>
-                Lưu sản phẩm
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => navigate('/admin/products')}>
-                Hủy
-              </Button>
-            </div>
-          </form>
-        </Panel>
-
-        {/* RIGHT — variants data table (primary working area) */}
-        <Panel padded={false}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-            <div className="min-w-0">
-              <h3 className="flex items-center gap-2 font-display text-lg text-foreground">
-                <Layers size={18} className="text-accent" aria-hidden="true" />
-                Phiên bản
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {allVariants.length} phiên bản · giá &amp; tồn kho
-              </p>
-            </div>
-            <Button onClick={openCreateVariantModal}>
-              <Plus size={16} aria-hidden="true" />
-              Thêm phiên bản
-            </Button>
-          </div>
-
-          {allVariants.length === 0 ? (
-            <EmptyState
-              icon={Layers}
-              title="Chưa có phiên bản nào"
-              description="Thêm phiên bản đầu tiên để thiết lập SKU, giá bán và tồn kho cho sản phẩm này."
-              action={
-                <Button onClick={openCreateVariantModal}>
-                  <Plus size={16} aria-hidden="true" />
-                  Thêm phiên bản
-                </Button>
-              }
-            />
-          ) : (
-            <>
-              <div className="max-h-[30rem] overflow-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-surface-alt/60 text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                      <th className="sticky top-0 bg-surface-alt px-5 py-3">SKU</th>
-                      <th className="sticky top-0 bg-surface-alt px-5 py-3">Tên</th>
-                      <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Giá</th>
-                      <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Tồn kho</th>
-                      <th className="sticky top-0 bg-surface-alt px-5 py-3">Trạng thái</th>
-                      <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedVariants.map((variant) => (
-                      <tr
-                        key={variant.id}
-                        className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40"
-                      >
-                        <td className="px-5 py-3 font-mono text-xs text-foreground">{variant.sku}</td>
-                        <td className="px-5 py-3 font-medium text-foreground">{variant.name}</td>
-                        <td className="px-5 py-3 text-right text-foreground">{formatPrice(variant.price)}</td>
-                        <td
-                          className={`px-5 py-3 text-right tabular-nums ${
-                            variant.available_stock === 0 ? 'font-medium text-destructive' : 'text-foreground'
-                          }`}
-                        >
-                          {variant.available_stock}
-                        </td>
-                        <td className="px-5 py-3">
-                          <Badge tone={variant.is_active ? 'in-stock' : 'neutral'}>
-                            {variant.is_active ? 'Hoạt động' : 'Tạm ngưng'}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <button
-                            type="button"
-                            aria-label="Sửa phiên bản"
-                            title="Sửa phiên bản"
-                            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-surface-alt hover:text-accent"
-                            onClick={() => openEditVariantModal(variant)}
-                          >
-                            <Pencil size={16} aria-hidden="true" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {variantLastPage > 1 && (
-                <div className="border-t border-border px-5 py-4">
-                  <Pagination page={currentVariantPage} lastPage={variantLastPage} onPageChange={setVariantPage} />
-                </div>
-              )}
-            </>
-          )}
-        </Panel>
-      </div>
-
-      {/* Full-width — variant options (Shopify-style) + matrix generator */}
-      <Panel padded={false}>
-        <div className="border-b border-border px-5 py-4">
-          <h3 className="font-display text-lg text-foreground">Thuộc tính biến thể</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Định nghĩa các thuộc tính (màu sắc, kích thước…) rồi sinh tự động các biến thể tổ hợp.
-          </p>
-        </div>
-        <div className="flex flex-col gap-6 p-5">
-          <VariantOptionsPanel value={variantOptions} onChange={setVariantOptions} />
-          <p className="text-xs text-muted-foreground">
-            Lưu thuộc tính bằng nút “Lưu sản phẩm” ở trên, sau đó sinh biến thể bên dưới.
-          </p>
-          <div className="border-t border-border pt-5">
-            <VariantMatrixGenerator
-              productId={product.id}
-              options={variantOptions}
-              variants={allVariants}
-              onCreated={(variants) => setProduct((current) => ({ ...current, variants }))}
-            />
-          </div>
-        </div>
-      </Panel>
-
-      {/* Full-width — description & SEO */}
-      <DescriptionSeoFields
-        control={control}
-        register={register}
-        errors={errors}
-        watch={watch}
-        slug={product.slug}
-        namePlaceholder={product.name}
-        onGenerate={handleGenerateDescription}
-        isGenerating={generateDescription.isPending}
-        onEditorError={(error) =>
-          addToast({ title: 'Không thể chèn ảnh.', description: error.message, variant: 'error' })
-        }
-      />
-
-      {/* Full-width — media library */}
-      <Panel padded={false}>
-        <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          <ImagePlus size={18} className="text-accent" aria-hidden="true" />
-          <h3 className="font-display text-lg text-foreground">Hình ảnh / Video</h3>
-        </div>
-
-        <div className="p-5">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {sortedMedia.map((media, index) => (
-            <div key={media.id} className="flex flex-col gap-2 rounded-card border border-border p-2">
-              <div className="aspect-square overflow-hidden rounded-control bg-background">
-                {media.type === 'video' ? (
-                  <video src={media.url} className="h-full w-full object-cover" />
-                ) : (
-                  <img src={media.url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="category_id" className="text-sm font-medium text-foreground">
+                  Danh mục
+                </label>
+                <select
+                  id="category_id"
+                  {...register('category_id')}
+                  className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Chọn danh mục</option>
+                  {categoryOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {'— '.repeat(option.depth)}
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.category_id && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {errors.category_id.message}
+                  </p>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {media.type === 'video' ? 'Video' : 'Ảnh'} · Thứ tự {media.sort_order}
-              </p>
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    aria-label="Lên"
-                    disabled={index === 0}
-                    onClick={() => handleMoveMedia(index, -1)}
-                    className="cursor-pointer text-foreground hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Lên
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Xuống"
-                    disabled={index === sortedMedia.length - 1}
-                    onClick={() => handleMoveMedia(index, 1)}
-                    className="cursor-pointer text-foreground hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Xuống
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  className="cursor-pointer text-destructive hover:opacity-80"
-                  onClick={() => handleDeleteMedia(media)}
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="status" className="text-sm font-medium text-foreground">
+                  Trạng thái
+                </label>
+                <select
+                  id="status"
+                  {...register('status')}
+                  className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  Xóa
-                </button>
+                  <option value="active">Đang bán</option>
+                  <option value="archived">Đã lưu trữ</option>
+                </select>
               </div>
             </div>
-          ))}
-        </div>
+          </Panel>
+        </TabPanel>
 
-        <form onSubmit={handleUploadMedia} className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="media-type" className="text-sm font-medium text-foreground">
-              Loại tệp
-            </label>
-            <select
-              id="media-type"
-              name="type"
-              value={mediaType}
-              onChange={(event) => setMediaType(event.target.value)}
-              className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="image">Ảnh</option>
-              <option value="video">Video</option>
-            </select>
+        {/* BIẾN THỂ — variants table + options + matrix generator */}
+        <TabPanel value="bien-the">
+          <div className="flex flex-col gap-6">
+            <Panel padded={false}>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+                <div className="min-w-0">
+                  <h3 className="flex items-center gap-2 font-display text-lg text-foreground">
+                    <Layers size={18} className="text-accent" aria-hidden="true" />
+                    Biến thể
+                  </h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {allVariants.length} biến thể · giá &amp; tồn kho
+                  </p>
+                </div>
+                <Button onClick={openCreateVariantModal}>
+                  <Plus size={16} aria-hidden="true" />
+                  Thêm biến thể
+                </Button>
+              </div>
+
+              {allVariants.length === 0 ? (
+                <EmptyState
+                  illustration="package"
+                  icon={Layers}
+                  title="Chưa có biến thể nào"
+                  description="Thêm biến thể đầu tiên để thiết lập SKU, giá bán và tồn kho cho sản phẩm này."
+                  action={
+                    <Button onClick={openCreateVariantModal}>
+                      <Plus size={16} aria-hidden="true" />
+                      Thêm biến thể
+                    </Button>
+                  }
+                />
+              ) : (
+                <>
+                  <div className="max-h-[30rem] overflow-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-surface-alt/60 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                          <th className="sticky top-0 bg-surface-alt px-5 py-3">SKU</th>
+                          <th className="sticky top-0 bg-surface-alt px-5 py-3">Tên</th>
+                          <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Giá</th>
+                          <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Tồn kho</th>
+                          <th className="sticky top-0 bg-surface-alt px-5 py-3">Trạng thái</th>
+                          <th className="sticky top-0 bg-surface-alt px-5 py-3 text-right">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedVariants.map((variant) => (
+                          <tr
+                            key={variant.id}
+                            className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40"
+                          >
+                            <td className="px-5 py-3 font-mono text-xs text-foreground">{variant.sku}</td>
+                            <td className="px-5 py-3 font-medium text-foreground">{variant.name}</td>
+                            <td className="px-5 py-3 text-right text-foreground">{formatPrice(variant.price)}</td>
+                            <td
+                              className={`px-5 py-3 text-right tabular-nums ${
+                                variant.available_stock === 0 ? 'font-medium text-destructive' : 'text-foreground'
+                              }`}
+                            >
+                              {variant.available_stock}
+                            </td>
+                            <td className="px-5 py-3">
+                              <Badge tone={variant.is_active ? 'in-stock' : 'neutral'}>
+                                {variant.is_active ? 'Hoạt động' : 'Tạm ngưng'}
+                              </Badge>
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              <button
+                                type="button"
+                                aria-label="Sửa biến thể"
+                                title="Sửa biến thể"
+                                className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-surface-alt hover:text-accent"
+                                onClick={() => openEditVariantModal(variant)}
+                              >
+                                <Pencil size={16} aria-hidden="true" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {variantLastPage > 1 && (
+                    <div className="border-t border-border px-5 py-4">
+                      <Pagination page={currentVariantPage} lastPage={variantLastPage} onPageChange={setVariantPage} />
+                    </div>
+                  )}
+                </>
+              )}
+            </Panel>
+            <Panel padded={false}>
+              <div className="border-b border-border px-5 py-4">
+                <h3 className="font-display text-lg text-foreground">Thuộc tính biến thể</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Định nghĩa các thuộc tính (màu sắc, kích thước…) rồi sinh tự động các biến thể tổ hợp.
+                </p>
+              </div>
+              <div className="flex flex-col gap-6 p-5">
+                <VariantOptionsPanel value={variantOptions} onChange={setVariantOptions} />
+                <p className="text-xs text-muted-foreground">
+                  {`Lưu thuộc tính bằng nút "Lưu sản phẩm" ở trên, sau đó sinh biến thể bên dưới.`}
+                </p>
+                <div className="border-t border-border pt-5">
+                  <VariantMatrixGenerator
+                    productId={product.id}
+                    options={variantOptions}
+                    variants={allVariants}
+                    onCreated={(variants) => setProduct((current) => ({ ...current, variants }))}
+                  />
+                </div>
+              </div>
+            </Panel>
           </div>
+        </TabPanel>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="media-file" className="text-sm font-medium text-foreground">
-              Tệp
-            </label>
-            <input
-              id="media-file"
-              name="file"
-              type="file"
-              accept={mediaType === 'video' ? 'video/mp4,video/quicktime,video/webm' : 'image/jpeg,image/png,image/webp'}
-              className="text-sm text-foreground"
-            />
-          </div>
+        {/* MÔ TẢ & SEO */}
+        <TabPanel value="mo-ta-seo">
+          <DescriptionSeoFields
+            control={control}
+            register={register}
+            errors={errors}
+            watch={watch}
+            slug={product.slug}
+            namePlaceholder={product.name}
+            onGenerate={handleGenerateDescription}
+            isGenerating={generateDescription.isPending}
+            onEditorError={(error) =>
+              addToast({ title: 'Không thể chèn ảnh.', description: error.message, variant: 'error' })
+            }
+          />
+        </TabPanel>
 
-          <Button type="submit" disabled={uploadMedia.isPending}>
-            Tải lên
-          </Button>
-        </form>
-        </div>
-      </Panel>
+        {/* HÌNH ẢNH — media library */}
+        <TabPanel value="hinh-anh">
+          <Panel padded={false}>
+            <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+              <ImagePlus size={18} className="text-accent" aria-hidden="true" />
+              <h3 className="font-display text-lg text-foreground">Hình ảnh / Video</h3>
+            </div>
+
+            <div className="p-5">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {sortedMedia.map((media, index) => (
+                  <div key={media.id} className="flex flex-col gap-2 rounded-card border border-border p-2">
+                    <div className="aspect-square overflow-hidden rounded-control bg-background">
+                      {media.type === 'video' ? (
+                        <video src={media.url} className="h-full w-full object-cover" />
+                      ) : (
+                        <img src={media.url} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {media.type === 'video' ? 'Video' : 'Ảnh'} · Thứ tự {media.sort_order}
+                    </p>
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          aria-label="Lên"
+                          disabled={index === 0}
+                          onClick={() => handleMoveMedia(index, -1)}
+                          className="cursor-pointer text-foreground hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Lên
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Xuống"
+                          disabled={index === sortedMedia.length - 1}
+                          onClick={() => handleMoveMedia(index, 1)}
+                          className="cursor-pointer text-foreground hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Xuống
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="cursor-pointer text-destructive hover:opacity-80"
+                        onClick={() => handleDeleteMedia(media)}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <form onSubmit={handleUploadMedia} className="mt-4 flex flex-wrap items-end gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="media-type" className="text-sm font-medium text-foreground">
+                    Loại tệp
+                  </label>
+                  <select
+                    id="media-type"
+                    name="type"
+                    value={mediaType}
+                    onChange={(event) => setMediaType(event.target.value)}
+                    className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="image">Ảnh</option>
+                    <option value="video">Video</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="media-file" className="text-sm font-medium text-foreground">
+                    Tệp
+                  </label>
+                  <input
+                    id="media-file"
+                    name="file"
+                    type="file"
+                    accept={mediaType === 'video' ? 'video/mp4,video/quicktime,video/webm' : 'image/jpeg,image/png,image/webp'}
+                    className="text-sm text-foreground"
+                  />
+                </div>
+
+                <Button type="submit" disabled={uploadMedia.isPending}>
+                  Tải lên
+                </Button>
+              </form>
+            </div>
+          </Panel>
+        </TabPanel>
+      </Tabs>
 
       <VariantFormModal
         open={variantModalOpen}

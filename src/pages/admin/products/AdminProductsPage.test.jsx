@@ -79,4 +79,12 @@ describe('AdminProductsPage', () => {
 
     expect(await screen.findByText('Trang tạo sản phẩm')).toBeInTheDocument()
   })
+
+  it('shows a branded empty state with an action-oriented message when there are no products', async () => {
+    productsApi.getProducts.mockResolvedValue({ data: [], meta: { last_page: 1 } })
+    const { container } = renderPage()
+    expect(await screen.findByText('Chưa có sản phẩm nào')).toBeInTheDocument()
+    expect(screen.getByText('Thêm sản phẩm đầu tiên để bắt đầu bán.')).toBeInTheDocument()
+    expect(container.querySelector('svg.animate-rise')).toBeTruthy()
+  })
 })

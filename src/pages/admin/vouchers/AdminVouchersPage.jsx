@@ -6,6 +6,7 @@ import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
+import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminVouchers, useDeleteVoucher } from '../../../features/admin/vouchers/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { formatPrice, formatDate } from '../../../lib/format'
@@ -81,7 +82,11 @@ export function AdminVouchersPage() {
           <Spinner label="Đang tải voucher..." />
         ) : vouchers.length === 0 ? (
           <Card>
-            <p className="text-sm text-muted-foreground">Chưa có voucher nào.</p>
+            <EmptyState
+              illustration="lamp"
+              title="Chưa có voucher nào"
+              description="Tạo voucher để chạy khuyến mãi."
+            />
           </Card>
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">

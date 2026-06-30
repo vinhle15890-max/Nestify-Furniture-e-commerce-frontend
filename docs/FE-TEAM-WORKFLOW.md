@@ -191,6 +191,63 @@ Laravel API (api.nestify.asia)
 
 ---
 
+## 10b. Thiết kế phòng 3D (Room Planner) — chức năng nâng cao
+
+**Actor:** Customer (đã đăng nhập). **Entry:** link header "Thiết kế phòng 3D" → `/room-planner` (tạo mới) và
+`/room-planner/:id` (mở scene đã lưu), **sau `ProtectedRoute`**, route **top-level đứng riêng** (KHÔNG nằm trong storefront
+`Layout` → toàn màn hình, không Header/Footer). **Feature:** `features/roomPlanner`, `pages/roomPlanner/*`.
+
+- **Luồng tầng:** `RoomPlannerPage` điều phối → `useEditorStore` (Zustand) giữ `room` (rộng/sâu/cao, **đơn vị mét**) + `items`
+  (mỗi item: `variant` + `position/rotation/scale`) + `selectedId` + `gizmoMode` + `dirty/status`. Canvas 3D ở
+  `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
+  TransformControls di chuyển/xoay/phóng to). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
+  (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
+- **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
+  payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
+- **Hiệu ứng phụ:** lần lưu đầu chuyển hướng `/room-planner` → `/room-planner/:id` (replace). Có **`beforeunload`** + chặn lúc
+  "Thoát" khi còn `dirty` (cảnh báo mất thay đổi). Màn hình nhỏ (<lg) hiện `SmallScreenNotice` thay vì editor.
+- **Đã loại khỏi MVP (BE có sẵn, FE chưa nối):** danh sách scene, chia sẻ (`/share`), chuyển scene → đơn (`convert-to-order`).
+
+> **Phản biện:** (1) **three.js lazy-load** (chunk riêng ~960 kB) — không phình bundle khởi đầu, chỉ tải khi vào planner.
+> (2) **Đơn vị mét** theo chuẩn glTF → khớp tỉ lệ model `.glb` thật. (3) **PATCH thay toàn bộ items** (xoá + tạo lại) → lưu
+> idempotent, state editor là nguồn sự thật, không cần diff từng item. (4) **WebGL không unit-test** (jsdom không render canvas)
+> → thay vào đó test **logic thuần** (`threeD`/`mappers`/`editorStore`) + test component với canvas **mock**. (5) Điều kiện demo:
+> variant phải có **`model_3d_url` (.glb) thật** mới hiện trong khay — seed hiện chưa có model nên khay rỗng tới khi gắn model.
+
+---
+
+## 10c. Form sản phẩm admin — cấu trúc tab & slug tự động
+
+Cả trang tạo (`AdminProductCreatePage`) và trang sửa (`AdminProductEditPage`) dùng chung lớp tab bốn tab được xây trên
+`components/admin/Tabs.jsx` (Radix Tabs, roving-tabindex, force-mount để giữ trạng thái form xuyên tab):
+
+**Cấu trúc tab:** `Thông tin · Biến thể · Mô tả & SEO · Hình ảnh`
+
+- **Trang tạo:** tab `Biến thể` và `Hình ảnh` bị **disabled** ("khóa cho đến khi lưu") vì endpoint media/variant yêu cầu
+  `product_id` — chỉ có sau khi tạo xong. Sau khi submit thành công, điều hướng thẳng vào trang sửa đầy đủ.
+- **Trang sửa:** cả bốn tab đều hoạt động; nút Save toàn cục nằm ở thanh tiêu đề; validation highlight tab đang chứa lỗi đầu tiên.
+
+**Slug tự động (chỉ trang tạo):**
+- Khi `slugTouched === false`, `useEffect` giữ `slug` đồng bộ với `slugify(name)` (từ `lib/slugify.js`).
+- Ngay khi người dùng chỉnh slug (onChange đầu tiên), cờ `slugTouched` lật sang `true` và đồng bộ dừng lại.
+- Trang sửa giữ slug thủ công — không tự đồng bộ (tránh ghi đè slug đã SEO).
+
+**Thuật ngữ:** admin dùng **"biến thể"** (tab label, toast, placeholder). Storefront dùng "phiên bản" — không đổi.
+
+---
+
+## 10d. Brand layer admin — minh hoạ line-art (empty state & hero)
+
+Admin mang danh sắc nhà hàng qua 1 thành phần `components/admin/BrandIllustration.jsx` — SVG line-art
+với 5 motif (`sofa`, `lamp`, `chair`, `package`, `search`), vẽ bằng `currentColor` để lấy màu từ token
+(ví dụ `text-accent`). Wired vào `EmptyState` qua prop tuỳ chọn `illustration` (tên motif); khi có
+thì render hình, không thì giữ icon neutral lucide. Danh sách admin rỗng dùng nó với text hành động
+tiếng Việt. Dashboard revenue hero mang watermark `lamp` độ trong `text-accent/20` — **signature moment**.
+Animation vào bằng `animate-rise` (`globals.css`), tự tắt nếu `prefers-reduced-motion`. Không thêm token
+mới; chỉ admin (storefront không thay đổi).
+
+---
+
 ## 11. Xuyên suốt — state, lỗi, phân trang, RBAC, token thiết kế
 
 - **State boundary:** server → TanStack Query (cache + invalidation); auth → `authStore` (persist); UI tạm → `uiStore`/`toastStore`
@@ -218,7 +275,8 @@ Chia theo **miền** để mỗi người sở hữu một mảng *end-to-end* (
 | **FE4 — Quản trị & Chất lượng** | _(tên)_ | §10 Admin · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
 
 > **Lưu ý nền tảng (FE3):** vì sở hữu `lib/`, `store/`, `router`, `AuthLayout` — mọi thay đổi ảnh hưởng cả nhóm → **PR review kỹ,
-> báo trước nhóm**. Phase 6 (3D Room Planner) đang **hoãn**; ai xong track sớm nhận thêm (cần `three` + `@react-three/fiber` + `drei`).
+> báo trước nhóm**. **3D Room Planner (§10b)** đã làm **MVP** (tạo phòng + thêm/biến đổi nội thất + lưu/sửa) bằng `three` +
+> `@react-three/fiber@8` + `drei@9`; phần danh sách scene / chia sẻ / chuyển-đơn còn **hoãn** — ai xong track sớm nhận mở rộng.
 
 ---
 

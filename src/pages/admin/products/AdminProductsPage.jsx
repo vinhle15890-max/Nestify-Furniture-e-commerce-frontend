@@ -7,6 +7,7 @@ import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
+import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminProducts } from '../../../features/admin/products/hooks'
 import { formatPrice } from '../../../lib/format'
 
@@ -42,7 +43,11 @@ export function AdminProductsPage() {
           <Spinner label="Đang tải sản phẩm..." />
         ) : products.length === 0 ? (
           <Card>
-            <p className="text-sm text-muted-foreground">Chưa có sản phẩm nào.</p>
+            <EmptyState
+              illustration="sofa"
+              title="Chưa có sản phẩm nào"
+              description="Thêm sản phẩm đầu tiên để bắt đầu bán."
+            />
           </Card>
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
@@ -53,7 +58,7 @@ export function AdminProductsPage() {
                   <th className="px-4 py-3">Danh mục</th>
                   <th className="px-4 py-3">Giá</th>
                   <th className="px-4 py-3">Trạng thái</th>
-                  <th className="px-4 py-3">Phiên bản</th>
+                  <th className="px-4 py-3">Biến thể</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>

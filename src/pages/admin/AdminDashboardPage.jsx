@@ -1,6 +1,7 @@
 import { Package, ShoppingBag, Users, Star, TrendingUp } from 'lucide-react'
 import { Spinner } from '../../components/Spinner'
 import { PageHeader } from '../../components/admin/PageHeader'
+import { BrandIllustration } from '../../components/admin/BrandIllustration'
 import { useAdminDashboard } from '../../features/admin/dashboard/hooks'
 import { formatPrice } from '../../lib/format'
 
@@ -55,13 +56,22 @@ export function AdminDashboardPage() {
 
       {/* Revenue hero + key KPIs */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-card border border-border bg-foreground p-7 text-surface lg:row-span-1">
-          <div className="flex items-center gap-2 text-sm text-surface/70">
-            <TrendingUp size={18} className="text-accent" />
-            Doanh thu
+        <div className="relative overflow-hidden rounded-card border border-border bg-foreground p-7 text-surface lg:row-span-1">
+          <BrandIllustration
+            name="lamp"
+            decorative
+            data-brand-watermark
+            size={150}
+            className="animate-rise pointer-events-none absolute -bottom-6 -right-4 text-accent/20"
+          />
+          <div className="relative">
+            <div className="flex items-center gap-2 text-sm text-surface/70">
+              <TrendingUp size={18} className="text-accent" />
+              Doanh thu
+            </div>
+            <p className="mt-4 font-display text-[clamp(2rem,3.5vw,3rem)] leading-none">{formatPrice(stats.revenue)}</p>
+            <p className="mt-3 text-sm text-surface/60">Tổng doanh thu đã ghi nhận</p>
           </div>
-          <p className="mt-4 font-display text-[clamp(2rem,3.5vw,3rem)] leading-none">{formatPrice(stats.revenue)}</p>
-          <p className="mt-3 text-sm text-surface/60">Tổng doanh thu đã ghi nhận</p>
         </div>
 
         <Kpi label="Tổng đơn hàng" value={stats.orders.total} icon={ShoppingBag} />

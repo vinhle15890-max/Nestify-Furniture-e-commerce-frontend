@@ -71,7 +71,11 @@ describe('AdminProductEditPage', () => {
 
     expect(await screen.findByLabelText('Tên sản phẩm')).toHaveValue('Ghế Sofa')
     expect(screen.getByLabelText('Slug')).toHaveValue('ghe-sofa')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
     expect(screen.getByLabelText('Mô tả')).toHaveValue('Mô tả sofa')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
     expect(screen.getByText('SOFA-NAU')).toBeInTheDocument()
   })
 
@@ -123,6 +127,7 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
     await userEvent.click(screen.getByRole('button', { name: /Gợi ý bằng AI/ }))
 
     await waitFor(() => expect(productsApi.generateProductDescription).toHaveBeenCalledTimes(1))
@@ -138,12 +143,13 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm phiên bản' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
     await userEvent.type(screen.getByLabelText('SKU'), 'SOFA-XAM')
-    await userEvent.type(screen.getByLabelText('Tên phiên bản'), 'Xám')
+    await userEvent.type(screen.getByLabelText('Tên biến thể'), 'Xám')
     await userEvent.type(screen.getByLabelText('Giá'), '5500000')
     await userEvent.type(screen.getByLabelText('Số lượng kho'), '3')
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm phiên bản' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
 
     await waitFor(() =>
       expect(productsApi.createVariant).toHaveBeenCalledWith(
@@ -161,12 +167,13 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm phiên bản' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
     // SKU left blank on purpose
-    await userEvent.type(screen.getByLabelText('Tên phiên bản'), 'Be')
+    await userEvent.type(screen.getByLabelText('Tên biến thể'), 'Be')
     await userEvent.type(screen.getByLabelText('Giá'), '5000000')
     await userEvent.type(screen.getByLabelText('Số lượng kho'), '2')
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm phiên bản' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
 
     await waitFor(() => expect(productsApi.createVariant).toHaveBeenCalledTimes(1))
     expect(productsApi.createVariant.mock.calls[0][1].sku).toBeUndefined()
@@ -180,9 +187,10 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Sửa phiên bản' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa biến thể' }))
 
-    const nameInput = await screen.findByLabelText('Tên phiên bản')
+    const nameInput = await screen.findByLabelText('Tên biến thể')
     await waitFor(() => expect(nameInput).toHaveValue('Nâu'))
     await userEvent.clear(nameInput)
     await userEvent.type(nameInput, 'Nâu đậm')
@@ -204,6 +212,8 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+
     const file = new File(['content'], 'photo.jpg', { type: 'image/jpeg' })
     await userEvent.upload(screen.getByLabelText('Tệp'), file)
     await userEvent.click(screen.getByRole('button', { name: 'Tải lên' }))
@@ -219,6 +229,8 @@ describe('AdminProductEditPage', () => {
     productsApi.deleteMedia.mockResolvedValue({})
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
 
     const deleteButtons = screen.getAllByRole('button', { name: 'Xóa' })
     await userEvent.click(deleteButtons[0])
@@ -236,10 +248,24 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+
     const moveDownButtons = screen.getAllByRole('button', { name: 'Xuống' })
     await userEvent.click(moveDownButtons[0])
 
     await waitFor(() => expect(productsApi.reorderMedia).toHaveBeenCalledWith(1, [20, 10]))
+  })
+
+  it('switches to the info tab and flags it when a required field is missing on submit', async () => {
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
+    await userEvent.clear(screen.getByLabelText('Tên sản phẩm'))
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu sản phẩm' }))
+
+    expect(await screen.findByText('Vui lòng nhập tên sản phẩm.')).toBeVisible()
+    expect(screen.getByRole('tab', { name: 'Thông tin' }).querySelector('[data-error-dot]')).toBeInTheDocument()
   })
 
   it('shows a not-found message when no product data is available', async () => {

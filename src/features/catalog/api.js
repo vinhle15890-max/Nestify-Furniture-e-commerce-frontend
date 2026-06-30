@@ -8,10 +8,11 @@ export function getCategory(slug) {
   return apiClient.get(`/categories/${slug}`)
 }
 
-export function getProducts({ category, brand, sort, cursor, limit } = {}) {
+export function getProducts({ category, brand, sort, cursor, limit, search } = {}) {
   const params = {}
   if (category) params['filter[category]'] = category
   if (brand) params['filter[brand]'] = brand
+  if (search) params['filter[search]'] = search
   if (sort) params.sort = sort
   if (cursor) params.cursor = cursor
   if (limit) params.limit = limit
