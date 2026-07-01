@@ -131,7 +131,7 @@ as each phase lands rather than creating duplicates.
 
 - [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
 - [x] `features/checkout/api.js` — `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)` (addresses/voucher reused from existing `features/addresses` and `features/cart`)
-- [x] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **gateway picker** (`payos` | `stripe`), submit → create order → create payment session → redirect
+- [x] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **payment method picker** (`payos` online | `cod`), submit → create order → (PayOS: create payment session → redirect; COD: xác nhận ngay → trang đơn)
 - [x] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
 - [x] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder` (retry payment reuses `useCreatePaymentSession` from `features/checkout/hooks.js`)
 - [x] `/orders` page — order history list

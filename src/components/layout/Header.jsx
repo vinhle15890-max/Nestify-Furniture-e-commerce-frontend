@@ -68,6 +68,9 @@ export function Header() {
           <NavLink to="/c/all" className={navLinkClass}>
             Sản phẩm
           </NavLink>
+          <NavLink to="/room-planner" className={navLinkClass}>
+            Thiết kế phòng 3D
+          </NavLink>
           {isAdmin && (
             <NavLink to="/admin" className={navLinkClass}>
               Quản trị

@@ -4,6 +4,7 @@ import { Card } from '../../../components/Card'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
+import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminAuditLogs } from '../../../features/admin/auditLogs/hooks'
 import { formatDate } from '../../../lib/format'
 
@@ -27,7 +28,11 @@ export function AdminAuditLogsPage() {
           <Spinner label="Đang tải nhật ký..." />
         ) : logs.length === 0 ? (
           <Card>
-            <p className="text-sm text-muted-foreground">Chưa có nhật ký nào.</p>
+            <EmptyState
+              illustration="search"
+              title="Chưa có nhật ký nào"
+              description="Hoạt động quản trị sẽ được ghi lại ở đây."
+            />
           </Card>
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">

@@ -3,6 +3,7 @@ import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
+import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminReviews, useApproveReview, useRejectReview } from '../../../features/admin/reviews/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { formatDate } from '../../../lib/format'
@@ -46,7 +47,11 @@ export function AdminReviewsPage() {
           <Spinner label="Đang tải đánh giá..." />
         ) : reviews.length === 0 ? (
           <Card>
-            <p className="text-sm text-muted-foreground">Không có đánh giá chờ duyệt.</p>
+            <EmptyState
+              illustration="chair"
+              title="Không có đánh giá chờ duyệt"
+              description="Mọi đánh giá đã được xử lý."
+            />
           </Card>
         ) : (
           <ul className="flex flex-col gap-4">

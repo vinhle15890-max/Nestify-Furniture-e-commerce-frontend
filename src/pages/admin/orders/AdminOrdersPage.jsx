@@ -6,6 +6,7 @@ import { Badge } from '../../../components/Badge'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
+import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminOrders } from '../../../features/admin/orders/hooks'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { formatPrice, formatDate } from '../../../lib/format'
@@ -52,7 +53,11 @@ export function AdminOrdersPage() {
           <Spinner label="Đang tải đơn hàng..." />
         ) : orders.length === 0 ? (
           <Card>
-            <p className="text-sm text-muted-foreground">Chưa có đơn hàng nào.</p>
+            <EmptyState
+              illustration="package"
+              title="Chưa có đơn hàng nào"
+              description="Đơn hàng của khách sẽ xuất hiện ở đây."
+            />
           </Card>
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">

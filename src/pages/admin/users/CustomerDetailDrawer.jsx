@@ -4,6 +4,7 @@ import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
 import { RoleBadge } from '../../../components/RoleBadge'
 import { UserCell } from './UserCell'
+import { LockUserButton } from './LockUserButton'
 
 function Field({ label, children }) {
   return (
@@ -41,7 +42,7 @@ export function CustomerDetailDrawer({ user, open, onOpenChange, onPromote }) {
               <div className="mt-6">
                 <Field label="Trạng thái">
                   <Badge tone={user.status === 'active' ? 'in-stock' : 'neutral'}>
-                    {user.status === 'active' ? 'Hoạt động' : 'Đã lưu trữ'}
+                    {user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}
                   </Badge>
                 </Field>
                 <Field label="Email">
@@ -68,11 +69,12 @@ export function CustomerDetailDrawer({ user, open, onOpenChange, onPromote }) {
             </div>
           )}
 
-          <div className="border-t border-border px-6 py-5">
+          <div className="flex flex-col gap-2 border-t border-border px-6 py-5">
             <Button onClick={() => onPromote(user)} className="w-full gap-2">
               <UserCog size={16} />
               Thăng thành nhân viên
             </Button>
+            {user && <LockUserButton user={user} onSuccess={() => onOpenChange(false)} />}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

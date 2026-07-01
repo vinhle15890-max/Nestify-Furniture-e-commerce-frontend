@@ -4,6 +4,7 @@ import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
+import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminCategories, useDeleteCategory } from '../../../features/admin/categories/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { CategoryFormModal } from './CategoryFormModal'
@@ -81,7 +82,11 @@ export function AdminCategoriesPage() {
           <Spinner label="Đang tải danh mục..." />
         ) : categories.length === 0 ? (
           <Card>
-            <p className="text-sm text-muted-foreground">Chưa có danh mục nào.</p>
+            <EmptyState
+              illustration="sofa"
+              title="Chưa có danh mục nào"
+              description="Tạo danh mục để sắp xếp sản phẩm."
+            />
           </Card>
         ) : (
           <Card>

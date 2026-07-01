@@ -17,10 +17,11 @@ export function useCategory(slug) {
   })
 }
 
-export function useInfiniteProducts(filters = {}) {
+export function useInfiniteProducts(filters = {}, { enabled = true } = {}) {
   return useCursorQuery({
     queryKey: ['products', filters],
     queryFn: (cursor) => catalogApi.getProducts({ ...filters, cursor }),
+    enabled,
   })
 }
 

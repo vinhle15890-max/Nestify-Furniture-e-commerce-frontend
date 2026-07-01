@@ -83,4 +83,20 @@ describe('AdminEmployeesPage', () => {
 
     expect(await screen.findByText(/Tìm một người dùng hiện có/)).toBeInTheDocument()
   })
+
+  it('renders a lock action for a staff row', async () => {
+    renderPage()
+    const row = (await screen.findByText('Bao Le')).closest('tr')
+    expect(within(row).getByRole('button', { name: 'Khóa' })).toBeInTheDocument()
+  })
+
+  it('shows "Đã khóa" badge for an archived staff user', async () => {
+    usersApi.getUsers.mockResolvedValue({
+      ...staffResponse,
+      data: [{ ...staffResponse.data[0], status: 'archived' }],
+    })
+    renderPage()
+    const row = (await screen.findByText('Bao Le')).closest('tr')
+    expect(within(row).getByText('Đã khóa')).toBeInTheDocument()
+  })
 })

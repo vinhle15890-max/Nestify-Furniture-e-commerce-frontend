@@ -36,4 +36,13 @@ export default [
       'react/prop-types': 'off',
     },
   },
+  // React Three Fiber scene files use Three.js JSX (position, rotation, args, castShadow, …)
+  // that are valid R3F props but unknown to the standard react/no-unknown-property rule.
+  // This override must come AFTER the general block so it takes precedence.
+  {
+    files: ['src/pages/roomPlanner/scene/**/*.{js,jsx}'],
+    rules: {
+      'react/no-unknown-property': 'off',
+    },
+  },
 ]

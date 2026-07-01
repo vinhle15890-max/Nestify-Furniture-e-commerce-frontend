@@ -1,4 +1,5 @@
 import { Hero } from '../../components/home/Hero'
+import { PersonalizedSection } from '../../components/personalization/PersonalizedSection'
 import { FeaturedCategories } from '../../components/home/FeaturedCategories'
 import { CuratedCollections } from '../../components/home/CuratedCollections'
 import { BestSellers } from '../../components/home/BestSellers'
@@ -12,6 +13,7 @@ export function HomePage() {
   return (
     <>
       <Hero />
+      <PersonalizedSection />
       <FeaturedCategories />
       <CuratedCollections />
       <BestSellers />

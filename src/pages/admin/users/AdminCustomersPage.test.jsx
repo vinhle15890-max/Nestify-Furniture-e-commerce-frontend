@@ -73,4 +73,10 @@ describe('AdminCustomersPage', () => {
     // Customer role (id 9) is dropped; only the selected staff role is sent.
     expect(usersApi.assignUserRoles).toHaveBeenCalledWith(2, [11])
   })
+
+  it('renders a lock action for a customer row', async () => {
+    renderPage()
+    const row = (await screen.findByText('Mai Anh')).closest('tr')
+    expect(within(row).getByRole('button', { name: 'Khóa' })).toBeInTheDocument()
+  })
 })

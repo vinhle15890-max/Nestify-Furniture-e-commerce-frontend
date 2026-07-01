@@ -13,6 +13,7 @@ import { useAdminUsers, useRoles } from '../../../features/admin/users/hooks'
 import { UserCell } from './UserCell'
 import { AssignRolesDialog } from './AssignRolesDialog'
 import { AddEmployeeDialog } from './AddEmployeeDialog'
+import { LockUserButton } from './LockUserButton'
 
 const thClass = 'px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground'
 
@@ -108,6 +109,7 @@ export function AdminEmployeesPage() {
           </div>
         ) : rows.length === 0 ? (
           <EmptyState
+            illustration="chair"
             icon={Users}
             title="Chưa có nhân viên"
             description="Không có nhân viên nào khớp bộ lọc. Dùng “Thêm nhân viên” để cấp vai trò cho một người dùng."
@@ -139,7 +141,7 @@ export function AdminEmployeesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge tone={user.status === 'active' ? 'in-stock' : 'neutral'}>
-                        {user.status === 'active' ? 'Hoạt động' : 'Đã lưu trữ'}
+                        {user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
@@ -150,9 +152,12 @@ export function AdminEmployeesPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="secondary" className="px-3 py-1.5" onClick={() => setEditingUser(user)}>
-                        Phân quyền
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="secondary" className="px-3 py-1.5" onClick={() => setEditingUser(user)}>
+                          Phân quyền
+                        </Button>
+                        <LockUserButton user={user} />
+                      </div>
                     </td>
                   </tr>
                 ))}

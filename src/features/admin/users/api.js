@@ -12,3 +12,7 @@ export function getRoles() {
 export function assignUserRoles(id, roleIds) {
   return apiClient.patch(`/admin/users/${id}/roles`, { role_ids: roleIds })
 }
+
+export function updateUserStatus(id, status) {
+  return apiClient.patch(`/admin/users/${id}/status`, { status })
+}

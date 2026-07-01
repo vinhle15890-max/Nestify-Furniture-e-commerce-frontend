@@ -48,4 +48,10 @@ describe('AdminDashboardPage', () => {
     expect(screen.getByText('Khách hàng')).toBeInTheDocument()
     expect(screen.getByText('Đánh giá chờ duyệt')).toBeInTheDocument()
   })
+
+  it('renders a decorative brand watermark in the revenue hero', async () => {
+    const { container } = renderPage()
+    expect(await screen.findByText('Doanh thu')).toBeInTheDocument()
+    expect(container.querySelector('[data-brand-watermark]')).toBeTruthy()
+  })
 })

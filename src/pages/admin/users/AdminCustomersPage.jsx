@@ -12,6 +12,7 @@ import { useAdminUsers } from '../../../features/admin/users/hooks'
 import { UserCell } from './UserCell'
 import { CustomerDetailDrawer } from './CustomerDetailDrawer'
 import { AssignRolesDialog } from './AssignRolesDialog'
+import { LockUserButton } from './LockUserButton'
 
 const thClass = 'px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground'
 
@@ -60,6 +61,7 @@ export function AdminCustomersPage() {
           </div>
         ) : users.length === 0 ? (
           <EmptyState
+            illustration="chair"
             icon={UserRound}
             title="Không có khách hàng"
             description="Không có khách hàng nào khớp tìm kiếm."
@@ -83,7 +85,7 @@ export function AdminCustomersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge tone={user.status === 'active' ? 'in-stock' : 'neutral'}>
-                        {user.status === 'active' ? 'Hoạt động' : 'Đã lưu trữ'}
+                        {user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
@@ -94,9 +96,12 @@ export function AdminCustomersPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="secondary" className="px-3 py-1.5" onClick={() => setDetailUser(user)}>
-                        Chi tiết
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="secondary" className="px-3 py-1.5" onClick={() => setDetailUser(user)}>
+                          Chi tiết
+                        </Button>
+                        <LockUserButton user={user} />
+                      </div>
                     </td>
                   </tr>
                 ))}

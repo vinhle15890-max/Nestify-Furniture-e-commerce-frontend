@@ -4,7 +4,7 @@
 > teammate đọc, hiểu hệ thống, **phản biện** (trả lời câu hỏi hội đồng), đồng thời **chia việc cho 4 FE**.
 > **Cách đọc mỗi mục:** *Actor → Entry (route/page) → Luồng qua các tầng (page → hooks → api → apiClient) →
 > Side-effect (cache/store/toast) → Lỗi → **Điểm phản biện*** (vì sao thiết kế thế, câu hỏi hay bị hỏi).
-> **Last updated:** 2026-06-27 · **See also:** `AGENTS.md` (convention + stack), `docs/TASKS.md` (bảng việc theo phase),
+> **Last updated:** 2026-07-01 · **See also:** `AGENTS.md` (convention + stack), `docs/TASKS.md` (bảng việc theo phase),
 > `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` (spec thiết kế + hợp đồng FE/BE),
 > BE `docs/14-workflows.md` (luồng phía server — đối chiếu hợp đồng).
 
@@ -176,6 +176,52 @@ Laravel API (api.nestify.asia)
 
 ---
 
+## 9b. Personalization (cá nhân hoá — recently viewed & suggestions)
+
+**Actor:** Customer (logged-in + verified only). **Entry:** `ProductPage` → ghi xem + hiện "Bạn vừa xem"; `HomePage` → `PersonalizedSection` giữa Hero và Featured Categories.
+
+**Feature structure:** `src/features/personalization/`:
+- `api.js` — `recordProductView(slug)` (fire-and-forget POST), `getRecentlyViewed(limit=10)` (GET).
+- `hooks.js` — `useRecordProductView()` (mutation, không await), `useRecentlyViewed({ enabled, limit })`  (query, enabled chỉ khi logged-in).
+- `recommend.js` — `topCategorySlug(recentlyViewed)` (logic JS thuần: tìm danh mục xuất hiện nhiều nhất trong recently-viewed).
+
+**Components under `src/components/personalization/`:**
+- `PersonalizedGreeting` — "Chào [tên], hôm nay có gì mới?" (chỉ logged-in customer).
+- `RecentlyViewedStrip` — cuộn ngang recently-viewed, exclude current product (ở ProductPage), auto-hide nếu rỗng.
+- `SuggestedForYou` — top 5 products từ category được gợi ý (via `topCategorySlug`), fetch qua `GET /products?filter[category]=...`, auto-hide nếu rỗng.
+- `PersonalizedSection` — **composition root** — gate `token && !isStaff(user)` (logged-in customers only), wrap PersonalizedGreeting + RecentlyViewedStrip + SuggestedForYou, render ở HomePage.
+
+**Luồng:**
+1. **ProductPage:** on mount → call `useRecordProductView()` (không await) → ghi event. Hiển thị `RecentlyViewedStrip` (nếu logged-in customer, exclude current product).
+2. **HomePage:** render `PersonalizedSection` giữa Hero + FeaturedCategories → gate `isCustomer = Boolean(token) && !isStaff(user)` (logged-in customer, loại staff/admin) → gọi `useRecentlyViewed({ enabled: isCustomer })` → gợi ý danh mục top via `topCategorySlug()`.
+3. **Visibility:** admin/staff xem storefront → `PersonalizedSection` invisible (`render null`); guest → `render null`. Chỉ **customer** (đã verify) thấy.
+
+**Side-effect & Lỗi:**
+- `recordProductView` fail (404/network) → **silent** (fire-and-forget, không toast).
+- `useRecentlyViewed` rỗng → `RecentlyViewedStrip` / `SuggestedForYou` auto-hide (không hiện empty state).
+- `topCategorySlug` fallback → category đầu tiên của tree (hoặc "all") khi không có recently-viewed.
+
+> **Phản biện:** (1) Fire-and-forget `recordProductView` → không chậm page load; silent fail chống nát UX. (2) Gate `token && !isStaff(user)` → customer-only surfaces; admin xem storefront vẫn nhìn catalog bình thường. (3) `RecentlyViewedStrip` exclude current product → tránh "sản phẩm đang xem" xuất hiện lại. (4) `topCategorySlug` là logic JS không gọi API → tái dùng danh sách recently-viewed đã fetch, không thêm request. (5) Auto-hide empty → UX sạch, không phải xử lý null-check ở page.
+
+---
+
+## 10a. Khóa/Mở-khóa người dùng (admin)
+
+`LockUserButton` (`pages/admin/users/LockUserButton.jsx`) xuất hiện ở ba điểm trong khu vực admin:
+- **Bảng Nhân viên** (`AdminEmployeesPage`) — một nút cuối mỗi hàng, cạnh nút "Phân quyền".
+- **Bảng Khách hàng** (`AdminCustomersPage`) — một nút cuối mỗi hàng, cạnh nút "Chi tiết".
+- **Footer drawer chi tiết khách hàng** (`CustomerDetailDrawer`) — bên dưới nút "Thăng thành nhân viên".
+
+**Luồng:** Admin nhấn nút → `Modal` xác nhận hiện ra (mô tả hệ quả) → nhấn "Xác nhận khóa" / "Xác nhận mở khóa" → gọi `PATCH /admin/users/{id}/status` qua `useUpdateUserStatus` → toast thành công + invalidate cache `['admin', 'users']`. Người dùng bị khóa bị đăng xuất ngay phía backend.
+
+**Tự ẩn:** nút render `null` khi `user.id === authStore.user.id` (admin không tự khóa mình); trong môi trường test `authStore.user = null` nên nút luôn hiện.
+
+**Badge trạng thái:** status `archived` hiển thị "Đã khóa" (không còn "Đã lưu trữ") ở cả ba bề mặt trên.
+
+> **Phản biện:** Gate UX tự ẩn trên hàng mình tránh nhầm lẫn; BE cũng chặn tự-đổi-status là lớp bảo vệ thứ hai. `Modal` xác nhận bắt buộc để tránh click nhầm trên danh sách dài.
+
+---
+
 ## 10. Khu vực Admin (back-office)
 
 **Actor:** Staff (role ≠ customer). **Entry:** `/admin/*` sau `AdminRoute`. **Feature:** `features/admin/*`, `pages/admin/*`.
@@ -188,6 +234,63 @@ Laravel API (api.nestify.asia)
 > **Phản biện:** (1) Trang admin detail **hydrate từ cache** (BE không có `GET /admin/products/{id}` lúc đầu → seed từ list/router
 > state, fallback fetch). (2) Reorder media là `{ids:[...]}` (không phải `media_order`); voucher đọc `meta.last_page` phẳng
 > (deviation Phase 8–9 trong `TASKS.md`). (3) Gate admin = `isStaff` (role ≠ customer); chỉ customer mới mua được hàng.
+
+---
+
+## 10b. Thiết kế phòng 3D (Room Planner) — chức năng nâng cao
+
+**Actor:** Customer (đã đăng nhập). **Entry:** link header "Thiết kế phòng 3D" → `/room-planner` (tạo mới) và
+`/room-planner/:id` (mở scene đã lưu), **sau `ProtectedRoute`**, route **top-level đứng riêng** (KHÔNG nằm trong storefront
+`Layout` → toàn màn hình, không Header/Footer). **Feature:** `features/roomPlanner`, `pages/roomPlanner/*`.
+
+- **Luồng tầng:** `RoomPlannerPage` điều phối → `useEditorStore` (Zustand) giữ `room` (rộng/sâu/cao, **đơn vị mét**) + `items`
+  (mỗi item: `variant` + `position/rotation/scale`) + `selectedId` + `gizmoMode` + `dirty/status`. Canvas 3D ở
+  `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
+  TransformControls di chuyển/xoay/phóng to). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
+  (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
+- **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
+  payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
+- **Hiệu ứng phụ:** lần lưu đầu chuyển hướng `/room-planner` → `/room-planner/:id` (replace). Có **`beforeunload`** + chặn lúc
+  "Thoát" khi còn `dirty` (cảnh báo mất thay đổi). Màn hình nhỏ (<lg) hiện `SmallScreenNotice` thay vì editor.
+- **Đã loại khỏi MVP (BE có sẵn, FE chưa nối):** danh sách scene, chia sẻ (`/share`), chuyển scene → đơn (`convert-to-order`).
+
+> **Phản biện:** (1) **three.js lazy-load** (chunk riêng ~960 kB) — không phình bundle khởi đầu, chỉ tải khi vào planner.
+> (2) **Đơn vị mét** theo chuẩn glTF → khớp tỉ lệ model `.glb` thật. (3) **PATCH thay toàn bộ items** (xoá + tạo lại) → lưu
+> idempotent, state editor là nguồn sự thật, không cần diff từng item. (4) **WebGL không unit-test** (jsdom không render canvas)
+> → thay vào đó test **logic thuần** (`threeD`/`mappers`/`editorStore`) + test component với canvas **mock**. (5) Điều kiện demo:
+> variant phải có **`model_3d_url` (.glb) thật** mới hiện trong khay — seed hiện chưa có model nên khay rỗng tới khi gắn model.
+
+---
+
+## 10c. Form sản phẩm admin — cấu trúc tab & slug tự động
+
+Cả trang tạo (`AdminProductCreatePage`) và trang sửa (`AdminProductEditPage`) dùng chung lớp tab bốn tab được xây trên
+`components/admin/Tabs.jsx` (Radix Tabs, roving-tabindex, force-mount để giữ trạng thái form xuyên tab):
+
+**Cấu trúc tab:** `Thông tin · Biến thể · Mô tả & SEO · Hình ảnh`
+
+- **Trang tạo:** tab `Biến thể` và `Hình ảnh` bị **disabled** ("khóa cho đến khi lưu") vì endpoint media/variant yêu cầu
+  `product_id` — chỉ có sau khi tạo xong. Sau khi submit thành công, điều hướng thẳng vào trang sửa đầy đủ.
+- **Trang sửa:** cả bốn tab đều hoạt động; nút Save toàn cục nằm ở thanh tiêu đề; validation highlight tab đang chứa lỗi đầu tiên.
+
+**Slug tự động (chỉ trang tạo):**
+- Khi `slugTouched === false`, `useEffect` giữ `slug` đồng bộ với `slugify(name)` (từ `lib/slugify.js`).
+- Ngay khi người dùng chỉnh slug (onChange đầu tiên), cờ `slugTouched` lật sang `true` và đồng bộ dừng lại.
+- Trang sửa giữ slug thủ công — không tự đồng bộ (tránh ghi đè slug đã SEO).
+
+**Thuật ngữ:** admin dùng **"biến thể"** (tab label, toast, placeholder). Storefront dùng "phiên bản" — không đổi.
+
+---
+
+## 10d. Brand layer admin — minh hoạ line-art (empty state & hero)
+
+Admin mang danh sắc nhà hàng qua 1 thành phần `components/admin/BrandIllustration.jsx` — SVG line-art
+với 5 motif (`sofa`, `lamp`, `chair`, `package`, `search`), vẽ bằng `currentColor` để lấy màu từ token
+(ví dụ `text-accent`). Wired vào `EmptyState` qua prop tuỳ chọn `illustration` (tên motif); khi có
+thì render hình, không thì giữ icon neutral lucide. Danh sách admin rỗng dùng nó với text hành động
+tiếng Việt. Dashboard revenue hero mang watermark `lamp` độ trong `text-accent/20` — **signature moment**.
+Animation vào bằng `animate-rise` (`globals.css`), tự tắt nếu `prefers-reduced-motion`. Không thêm token
+mới; chỉ admin (storefront không thay đổi).
 
 ---
 
@@ -212,13 +315,14 @@ Chia theo **miền** để mỗi người sở hữu một mảng *end-to-end* (
 
 | Track | Người phụ trách | Chức năng phụ trách (mục §) | Thư mục sở hữu chính |
 |---|---|---|---|
-| **FE1 — Khám phá storefront** | _(tên)_ | §2 Catalog · §3 Chi tiết SP & biến thể | `pages/{home,catalog,product}`, `features/catalog`, `components/{home,layout}`, `Breadcrumb`, `ProductCard` |
+| **FE1 — Khám phá storefront** | _(tên)_ | §2 Catalog · §3 Chi tiết SP & biến thể · §9b Personalization (recently viewed & gợi ý) | `pages/{home,catalog,product}`, `features/{catalog,personalization}`, `components/{home,layout}`, `Breadcrumb`, `ProductCard` |
 | **FE2 — Phễu mua hàng** | _(tên)_ | §4 Giỏ · §5 Wishlist · §6 Checkout · §7 Đơn hàng · §8 Review | `pages/{cart,wishlist,checkout,orders}`, `features/{cart,wishlist,checkout,orders,reviews}` |
-| **FE3 — Tài khoản & Nền tảng** | _(tên)_ | §1 Auth/Account · §9 AI Chat · §11 Hạ tầng dùng chung | `pages/{auth,account}`, `features/{auth,addresses,chat}`, `lib/`, `store/`, `routes/`, `app/router.jsx` |
-| **FE4 — Quản trị & Chất lượng** | _(tên)_ | §10 Admin · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
+| **FE3 — Tài khoản & Nền tảng** | _(tên)_ | §1 Auth/Account · §9 AI Chat · §10b Room Planner 3D · §11 Hạ tầng dùng chung | `pages/{auth,account}`, `features/{auth,addresses,chat,roomPlanner}`, `lib/`, `store/`, `routes/`, `app/router.jsx` |
+| **FE4 — Quản trị & Chất lượng** | _(tên)_ | §10 Admin (gồm §10a Khóa/mở-khóa người dùng · §10c Form sản phẩm admin · §10d Brand layer) · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
 
 > **Lưu ý nền tảng (FE3):** vì sở hữu `lib/`, `store/`, `router`, `AuthLayout` — mọi thay đổi ảnh hưởng cả nhóm → **PR review kỹ,
-> báo trước nhóm**. Phase 6 (3D Room Planner) đang **hoãn**; ai xong track sớm nhận thêm (cần `three` + `@react-three/fiber` + `drei`).
+> báo trước nhóm**. **3D Room Planner (§10b)** đã làm **MVP** (tạo phòng + thêm/biến đổi nội thất + lưu/sửa) bằng `three` +
+> `@react-three/fiber@8` + `drei@9`; phần danh sách scene / chia sẻ / chuyển-đơn còn **hoãn** — ai xong track sớm nhận mở rộng.
 
 ---
 
@@ -282,4 +386,4 @@ chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail 
 
 ---
 
-_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-06-27._
+_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-01._
