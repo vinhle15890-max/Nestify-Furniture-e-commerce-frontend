@@ -176,6 +176,52 @@ Laravel API (api.nestify.asia)
 
 ---
 
+## 9b. Personalization (cá nhân hoá — recently viewed & suggestions)
+
+**Actor:** Customer (logged-in + verified only). **Entry:** `ProductPage` → ghi xem + hiện "Bạn vừa xem"; `HomePage` → `PersonalizedSection` giữa Hero và Featured Categories.
+
+**Feature structure:** `src/features/personalization/`:
+- `api.js` — `recordProductView(slug)` (fire-and-forget POST), `getRecentlyViewed(limit=10)` (GET).
+- `hooks.js` — `useRecordProductView()` (mutation, không await), `useRecentlyViewed({ enabled, limit })`  (query, enabled chỉ khi logged-in).
+- `recommend.js` — `topCategorySlug(recentlyViewed)` (logic JS thuần: tìm danh mục xuất hiện nhiều nhất trong recently-viewed).
+
+**Components under `src/components/personalization/`:**
+- `PersonalizedGreeting` — "Chào [tên], hôm nay có gì mới?" (chỉ logged-in customer).
+- `RecentlyViewedStrip` — cuộn ngang recently-viewed, exclude current product (ở ProductPage), auto-hide nếu rỗng.
+- `SuggestedForYou` — top 5 products từ category được gợi ý (via `topCategorySlug`), fetch qua `GET /products?filter[category]=...`, auto-hide nếu rỗng.
+- `PersonalizedSection` — **composition root** — gate `token && !isStaff(user)` (logged-in customers only), wrap PersonalizedGreeting + RecentlyViewedStrip + SuggestedForYou, render ở HomePage.
+
+**Luồng:**
+1. **ProductPage:** on mount → call `useRecordProductView()` (không await) → ghi event. Hiển thị `RecentlyViewedStrip` (nếu logged-in customer, exclude current product).
+2. **HomePage:** render `PersonalizedSection` giữa Hero + FeaturedCategories → gate `isCustomer = Boolean(token) && !isStaff(user)` (logged-in customer, loại staff/admin) → gọi `useRecentlyViewed({ enabled: isCustomer })` → gợi ý danh mục top via `topCategorySlug()`.
+3. **Visibility:** admin/staff xem storefront → `PersonalizedSection` invisible (`render null`); guest → `render null`. Chỉ **customer** (đã verify) thấy.
+
+**Side-effect & Lỗi:**
+- `recordProductView` fail (404/network) → **silent** (fire-and-forget, không toast).
+- `useRecentlyViewed` rỗng → `RecentlyViewedStrip` / `SuggestedForYou` auto-hide (không hiện empty state).
+- `topCategorySlug` fallback → category đầu tiên của tree (hoặc "all") khi không có recently-viewed.
+
+> **Phản biện:** (1) Fire-and-forget `recordProductView` → không chậm page load; silent fail chống nát UX. (2) Gate `token && !isStaff(user)` → customer-only surfaces; admin xem storefront vẫn nhìn catalog bình thường. (3) `RecentlyViewedStrip` exclude current product → tránh "sản phẩm đang xem" xuất hiện lại. (4) `topCategorySlug` là logic JS không gọi API → tái dùng danh sách recently-viewed đã fetch, không thêm request. (5) Auto-hide empty → UX sạch, không phải xử lý null-check ở page.
+
+---
+
+## 10a. Khóa/Mở-khóa người dùng (admin)
+
+`LockUserButton` (`pages/admin/users/LockUserButton.jsx`) xuất hiện ở ba điểm trong khu vực admin:
+- **Bảng Nhân viên** (`AdminEmployeesPage`) — một nút cuối mỗi hàng, cạnh nút "Phân quyền".
+- **Bảng Khách hàng** (`AdminCustomersPage`) — một nút cuối mỗi hàng, cạnh nút "Chi tiết".
+- **Footer drawer chi tiết khách hàng** (`CustomerDetailDrawer`) — bên dưới nút "Thăng thành nhân viên".
+
+**Luồng:** Admin nhấn nút → `Modal` xác nhận hiện ra (mô tả hệ quả) → nhấn "Xác nhận khóa" / "Xác nhận mở khóa" → gọi `PATCH /admin/users/{id}/status` qua `useUpdateUserStatus` → toast thành công + invalidate cache `['admin', 'users']`. Người dùng bị khóa bị đăng xuất ngay phía backend.
+
+**Tự ẩn:** nút render `null` khi `user.id === authStore.user.id` (admin không tự khóa mình); trong môi trường test `authStore.user = null` nên nút luôn hiện.
+
+**Badge trạng thái:** status `archived` hiển thị "Đã khóa" (không còn "Đã lưu trữ") ở cả ba bề mặt trên.
+
+> **Phản biện:** Gate UX tự ẩn trên hàng mình tránh nhầm lẫn; BE cũng chặn tự-đổi-status là lớp bảo vệ thứ hai. `Modal` xác nhận bắt buộc để tránh click nhầm trên danh sách dài.
+
+---
+
 ## 10. Khu vực Admin (back-office)
 
 **Actor:** Staff (role ≠ customer). **Entry:** `/admin/*` sau `AdminRoute`. **Feature:** `features/admin/*`, `pages/admin/*`.

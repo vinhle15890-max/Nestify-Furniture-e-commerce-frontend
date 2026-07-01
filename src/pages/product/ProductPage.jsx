@@ -12,6 +12,8 @@ import { useAddCartItem } from '../../features/cart/hooks'
 import { useAddWishlistItem } from '../../features/wishlist/hooks'
 import { useOrders } from '../../features/orders/hooks'
 import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
+import { useRecordProductView } from '../../features/personalization/hooks'
+import { RecentlyViewedStrip } from '../../components/personalization/RecentlyViewedStrip'
 import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
 import { ProductOptions } from './ProductOptions'
@@ -63,6 +65,8 @@ export function ProductPage() {
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
   const staff = isStaff(user)
+  const isCustomer = Boolean(token) && !staff
+  const recordView = useRecordProductView()
   const openCart = useUiStore((state) => state.openCart)
   const addToast = useToastStore((state) => state.addToast)
   const addCartItem = useAddCartItem()
@@ -104,6 +108,12 @@ export function ProductPage() {
   useEffect(() => {
     setStockError(null)
   }, [selectedVariantId, selectedVariant?.id])
+
+  useEffect(() => {
+    if (!product?.id || !isCustomer) return
+    recordView.mutate(productSlug)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, isCustomer, productSlug])
 
   // SEO: drive <title>, meta description, Open Graph, and schema.org/Product
   // JSON-LD from the product's editorial meta fields (falls back to name/desc).
@@ -625,6 +635,8 @@ export function ProductPage() {
           </div>
         )}
       </section>
+
+      {isCustomer && <RecentlyViewedStrip excludeSlug={productSlug} />}
     </div>
   )
 }

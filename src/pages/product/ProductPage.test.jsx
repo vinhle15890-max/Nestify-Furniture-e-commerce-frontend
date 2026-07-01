@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -9,6 +9,7 @@ import * as cartApi from '../../features/cart/api'
 import * as wishlistApi from '../../features/wishlist/api'
 import * as ordersApi from '../../features/orders/api'
 import * as reviewsApi from '../../features/reviews/api'
+import * as personalizationHooks from '../../features/personalization/hooks'
 import { useAuthStore } from '../../store/authStore'
 import { ApiError } from '../../lib/errors'
 
@@ -17,6 +18,7 @@ vi.mock('../../features/cart/api')
 vi.mock('../../features/wishlist/api')
 vi.mock('../../features/orders/api')
 vi.mock('../../features/reviews/api')
+vi.mock('../../features/personalization/hooks')
 
 function renderPage(slug = 'ghe-sofa-da') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -101,6 +103,8 @@ describe('ProductPage', () => {
     cartApi.addItem.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
     wishlistApi.addItem.mockResolvedValue({ data: { id: 1 } })
     ordersApi.getOrders.mockResolvedValue({ data: [] })
+    personalizationHooks.useRecordProductView.mockReturnValue({ mutate: vi.fn() })
+    personalizationHooks.useRecentlyViewed.mockReturnValue({ data: { data: [] } })
   })
 
   it('renders product details, sanitized description, and approved reviews', async () => {
@@ -236,5 +240,28 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
 
     expect(reviewsApi.createComment).toHaveBeenCalledWith(1, 'Cảm ơn')
+  })
+
+  it('records a product view for a logged-in customer', async () => {
+    const mutate = vi.fn()
+    personalizationHooks.useRecordProductView.mockReturnValue({ mutate })
+    personalizationHooks.useRecentlyViewed.mockReturnValue({ data: { data: [] } })
+    useAuthStore.setState({ token: 't', user: { name: 'Bảo', roles: ['customer'] } })
+
+    renderPage('ghe-sofa-da')
+
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith('ghe-sofa-da'))
+  })
+
+  it('does not record a view for a guest', async () => {
+    const mutate = vi.fn()
+    personalizationHooks.useRecordProductView.mockReturnValue({ mutate })
+    personalizationHooks.useRecentlyViewed.mockReturnValue({ data: { data: [] } })
+    useAuthStore.setState({ token: null, user: null })
+
+    renderPage('ghe-sofa-da')
+
+    await new Promise((r) => setTimeout(r, 0))
+    expect(mutate).not.toHaveBeenCalled()
   })
 })
