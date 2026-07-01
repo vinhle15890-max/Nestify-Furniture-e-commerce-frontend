@@ -4,7 +4,7 @@
 > teammate đọc, hiểu hệ thống, **phản biện** (trả lời câu hỏi hội đồng), đồng thời **chia việc cho 4 FE**.
 > **Cách đọc mỗi mục:** *Actor → Entry (route/page) → Luồng qua các tầng (page → hooks → api → apiClient) →
 > Side-effect (cache/store/toast) → Lỗi → **Điểm phản biện*** (vì sao thiết kế thế, câu hỏi hay bị hỏi).
-> **Last updated:** 2026-06-27 · **See also:** `AGENTS.md` (convention + stack), `docs/TASKS.md` (bảng việc theo phase),
+> **Last updated:** 2026-07-01 · **See also:** `AGENTS.md` (convention + stack), `docs/TASKS.md` (bảng việc theo phase),
 > `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` (spec thiết kế + hợp đồng FE/BE),
 > BE `docs/14-workflows.md` (luồng phía server — đối chiếu hợp đồng).
 
@@ -315,10 +315,10 @@ Chia theo **miền** để mỗi người sở hữu một mảng *end-to-end* (
 
 | Track | Người phụ trách | Chức năng phụ trách (mục §) | Thư mục sở hữu chính |
 |---|---|---|---|
-| **FE1 — Khám phá storefront** | _(tên)_ | §2 Catalog · §3 Chi tiết SP & biến thể | `pages/{home,catalog,product}`, `features/catalog`, `components/{home,layout}`, `Breadcrumb`, `ProductCard` |
+| **FE1 — Khám phá storefront** | _(tên)_ | §2 Catalog · §3 Chi tiết SP & biến thể · §9b Personalization (recently viewed & gợi ý) | `pages/{home,catalog,product}`, `features/{catalog,personalization}`, `components/{home,layout}`, `Breadcrumb`, `ProductCard` |
 | **FE2 — Phễu mua hàng** | _(tên)_ | §4 Giỏ · §5 Wishlist · §6 Checkout · §7 Đơn hàng · §8 Review | `pages/{cart,wishlist,checkout,orders}`, `features/{cart,wishlist,checkout,orders,reviews}` |
-| **FE3 — Tài khoản & Nền tảng** | _(tên)_ | §1 Auth/Account · §9 AI Chat · §11 Hạ tầng dùng chung | `pages/{auth,account}`, `features/{auth,addresses,chat}`, `lib/`, `store/`, `routes/`, `app/router.jsx` |
-| **FE4 — Quản trị & Chất lượng** | _(tên)_ | §10 Admin · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
+| **FE3 — Tài khoản & Nền tảng** | _(tên)_ | §1 Auth/Account · §9 AI Chat · §10b Room Planner 3D · §11 Hạ tầng dùng chung | `pages/{auth,account}`, `features/{auth,addresses,chat,roomPlanner}`, `lib/`, `store/`, `routes/`, `app/router.jsx` |
+| **FE4 — Quản trị & Chất lượng** | _(tên)_ | §10 Admin (gồm §10a Khóa/mở-khóa người dùng · §10c Form sản phẩm admin · §10d Brand layer) · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
 
 > **Lưu ý nền tảng (FE3):** vì sở hữu `lib/`, `store/`, `router`, `AuthLayout` — mọi thay đổi ảnh hưởng cả nhóm → **PR review kỹ,
 > báo trước nhóm**. **3D Room Planner (§10b)** đã làm **MVP** (tạo phòng + thêm/biến đổi nội thất + lưu/sửa) bằng `three` +
@@ -386,4 +386,4 @@ chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail 
 
 ---
 
-_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-06-27._
+_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-01._
