@@ -180,6 +180,71 @@ describe('AdminProductEditPage', () => {
     expect(productsApi.createVariant.mock.calls[0][1]).toEqual(expect.objectContaining({ name: 'Be', stock_quantity: 2 }))
   })
 
+  it('adds a variant by selecting attribute values when the product has options', async () => {
+    const productWithOptions = {
+      ...baseProduct,
+      id: 2,
+      variant_options: [
+        { name: 'Màu sắc', type: 'color', values: [{ label: 'Đỏ', hex: '#C0392B' }, { label: 'Xanh', hex: '#2E5FCC' }] },
+        { name: 'Kích thước', type: 'text', values: [{ label: 'S' }, { label: 'M' }] },
+      ],
+      variants: [
+        { id: 150, sku: 'X-M', name: 'Xanh / M', attributes: { 'Màu sắc': 'Xanh', 'Kích thước': 'M' }, price: 1000, available_stock: 1, is_active: true, model_3d_url: null },
+      ],
+    }
+    productsApi.createVariant.mockResolvedValue({
+      data: { id: 300, sku: 'D-S', name: 'Đỏ / S', price: 1200, available_stock: 4, is_active: true, model_3d_url: null },
+    })
+    renderPage(productWithOptions)
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
+
+    // Sản phẩm có thuộc tính → KHÔNG có ô nhập tên tự do, thay bằng selector từng thuộc tính.
+    expect(screen.queryByLabelText('Tên biến thể')).not.toBeInTheDocument()
+    await userEvent.selectOptions(screen.getByLabelText('Màu sắc'), 'Đỏ')
+    await userEvent.selectOptions(screen.getByLabelText('Kích thước'), 'S')
+    await userEvent.type(screen.getByLabelText('Giá'), '1200')
+    await userEvent.type(screen.getByLabelText('Số lượng kho'), '4')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
+
+    await waitFor(() =>
+      expect(productsApi.createVariant).toHaveBeenCalledWith(
+        2,
+        expect.objectContaining({ attributes: { 'Màu sắc': 'Đỏ', 'Kích thước': 'S' }, price: 1200, stock_quantity: 4 }),
+      ),
+    )
+    // Không gửi name tự do khi có thuộc tính (BE tự suy ra tên).
+    expect(productsApi.createVariant.mock.calls[0][1].name).toBeUndefined()
+  })
+
+  it('blocks a duplicate attribute combination in the variant modal', async () => {
+    const productWithOptions = {
+      ...baseProduct,
+      id: 3,
+      variant_options: [
+        { name: 'Màu sắc', type: 'color', values: [{ label: 'Đỏ', hex: '#C0392B' }, { label: 'Xanh', hex: '#2E5FCC' }] },
+      ],
+      variants: [
+        { id: 160, sku: 'DO', name: 'Đỏ', attributes: { 'Màu sắc': 'Đỏ' }, price: 1000, available_stock: 1, is_active: true, model_3d_url: null },
+      ],
+    }
+    renderPage(productWithOptions)
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
+
+    await userEvent.selectOptions(screen.getByLabelText('Màu sắc'), 'Đỏ')
+    await userEvent.type(screen.getByLabelText('Giá'), '1200')
+    await userEvent.type(screen.getByLabelText('Số lượng kho'), '4')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
+
+    expect(await screen.findByText('Tổ hợp thuộc tính này đã có biến thể.')).toBeInTheDocument()
+    expect(productsApi.createVariant).not.toHaveBeenCalled()
+  })
+
   it('edits an existing variant', async () => {
     productsApi.updateVariant.mockResolvedValue({
       data: { id: 100, sku: 'SOFA-NAU', name: 'Nâu đậm', price: 5200000, available_stock: 5, is_active: true, model_3d_url: null },
