@@ -17,7 +17,7 @@ export function Toaster() {
         <RadixToast.Root
           key={toast.id}
           duration={4000}
-          className={`relative rounded-control border bg-surface p-4 pr-8 shadow-soft ${variantClasses[toast.variant] ?? variantClasses.default}`}
+          className={`pointer-events-auto relative rounded-control border bg-surface p-4 pr-8 shadow-card ${variantClasses[toast.variant] ?? variantClasses.default}`}
           onOpenChange={(open) => {
             if (!open) removeToast(toast.id)
           }}
@@ -33,7 +33,10 @@ export function Toaster() {
           </RadixToast.Close>
         </RadixToast.Root>
       ))}
-      <RadixToast.Viewport className="fixed bottom-0 right-0 z-100 flex w-96 max-w-full flex-col gap-2 p-4" />
+      {/* Top-anchored so transient toasts never cover the cart drawer footer /
+          primary CTA at the bottom. pointer-events-none keeps the empty viewport
+          area click-through; only toast cards (pointer-events-auto) capture input. */}
+      <RadixToast.Viewport className="pointer-events-none fixed right-0 top-0 z-100 flex w-96 max-w-full flex-col gap-2 p-4 sm:p-6" />
     </RadixToast.Provider>
   )
 }

@@ -8,16 +8,26 @@ export function getCategory(slug) {
   return apiClient.get(`/categories/${slug}`)
 }
 
-export function getProducts({ category, brand, sort, cursor, limit, search } = {}) {
+export function getProducts({ category, brand, woodType, priceMin, priceMax, sort, cursor, limit, search } = {}) {
   const params = {}
   if (category) params['filter[category]'] = category
   if (brand) params['filter[brand]'] = brand
+  if (woodType) params['filter[wood_type]'] = woodType
+  if (priceMin != null && priceMin !== '') params['filter[price_min]'] = priceMin
+  if (priceMax != null && priceMax !== '') params['filter[price_max]'] = priceMax
   if (search) params['filter[search]'] = search
   if (sort) params.sort = sort
   if (cursor) params.cursor = cursor
   if (limit) params.limit = limit
 
   return apiClient.get('/products', { params })
+}
+
+export function getBestSellers({ limit } = {}) {
+  const params = {}
+  if (limit) params.limit = limit
+
+  return apiClient.get('/products/best-sellers', { params })
 }
 
 export function getProduct(slug) {

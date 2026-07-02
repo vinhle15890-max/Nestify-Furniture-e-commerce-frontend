@@ -25,6 +25,13 @@ export function useInfiniteProducts(filters = {}, { enabled = true } = {}) {
   })
 }
 
+export function useBestSellers(limit = 8) {
+  return useQuery({
+    queryKey: ['products', 'best-sellers', limit],
+    queryFn: () => catalogApi.getBestSellers({ limit }),
+  })
+}
+
 export function useProduct(slug) {
   return useQuery({
     queryKey: ['products', slug],

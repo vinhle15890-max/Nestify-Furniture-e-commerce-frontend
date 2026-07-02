@@ -39,7 +39,10 @@ describe('CategoryPage', () => {
       data: { id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] },
     })
     catalogApi.getCategories.mockResolvedValue({
-      data: [{ id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] }],
+      data: [
+        { id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] },
+        { id: 2, name: 'Phòng ngủ', slug: 'phong-ngu', children: [] },
+      ],
     })
     catalogApi.getProducts.mockResolvedValue({
       data: [product()],
@@ -67,15 +70,54 @@ describe('CategoryPage', () => {
     )
   })
 
-  it('refetches with the brand filter once a brand option is available', async () => {
+  it('chuyển danh mục qua dropdown Danh mục và nạp lại theo danh mục mới', async () => {
     renderPage()
     await screen.findByText('Ghế sofa')
 
-    await userEvent.selectOptions(screen.getByLabelText('Thương hiệu'), 'IKEA')
+    await userEvent.selectOptions(screen.getByLabelText('Danh mục'), 'phong-ngu')
 
     await waitFor(() =>
       expect(catalogApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ category: 'phong-khach', brand: 'IKEA' }),
+        expect.objectContaining({ category: 'phong-ngu' }),
+      ),
+    )
+  })
+
+  it('tìm kiếm thủ công gọi API với filter search (debounced)', async () => {
+    renderPage()
+    await screen.findByText('Ghế sofa')
+
+    await userEvent.type(screen.getByLabelText('Tìm sản phẩm trong danh mục...'), 'sofa')
+
+    await waitFor(() =>
+      expect(catalogApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'phong-khach', search: 'sofa' }),
+      ),
+    )
+  })
+
+  it('lọc theo khoảng giá gọi API với price_min/price_max', async () => {
+    renderPage()
+    await screen.findByText('Ghế sofa')
+
+    await userEvent.selectOptions(screen.getByLabelText('Khoảng giá'), '2000000-5000000')
+
+    await waitFor(() =>
+      expect(catalogApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'phong-khach', priceMin: '2000000', priceMax: '5000000' }),
+      ),
+    )
+  })
+
+  it('sắp xếp theo giá gọi API với sort base_price', async () => {
+    renderPage()
+    await screen.findByText('Ghế sofa')
+
+    await userEvent.selectOptions(screen.getByLabelText('Sắp xếp'), 'base_price')
+
+    await waitFor(() =>
+      expect(catalogApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'phong-khach', sort: 'base_price' }),
       ),
     )
   })
