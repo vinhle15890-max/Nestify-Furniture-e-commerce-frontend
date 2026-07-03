@@ -24,7 +24,7 @@ describe('HomePage', () => {
   })
 
   it('renders the hero headline and key editorial sections', async () => {
-    catalogApi.getProducts.mockResolvedValue({
+    catalogApi.getBestSellers.mockResolvedValue({
       data: [
         {
           id: 1,
@@ -35,7 +35,6 @@ describe('HomePage', () => {
           category: { id: 1, name: 'Phòng khách', slug: 'phong-khach' },
         },
       ],
-      meta: { pagination: { has_more: false, next_cursor: null, limit: 20 } },
     })
 
     renderPage()
@@ -50,10 +49,7 @@ describe('HomePage', () => {
   })
 
   it('shows an empty state in best sellers when there are no products', async () => {
-    catalogApi.getProducts.mockResolvedValue({
-      data: [],
-      meta: { pagination: { has_more: false, next_cursor: null, limit: 20 } },
-    })
+    catalogApi.getBestSellers.mockResolvedValue({ data: [] })
 
     renderPage()
 

@@ -4,11 +4,11 @@ import { SectionHeading } from './SectionHeading'
 import { Reveal } from '../Reveal'
 import { ProductCard } from '../ProductCard'
 import { Spinner } from '../Spinner'
-import { useInfiniteProducts } from '../../features/catalog/hooks'
+import { useBestSellers } from '../../features/catalog/hooks'
 
 export function BestSellers() {
-  const query = useInfiniteProducts({})
-  const products = (query.data?.pages?.[0]?.data ?? []).slice(0, 8)
+  const query = useBestSellers(8)
+  const products = query.data?.data ?? []
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">

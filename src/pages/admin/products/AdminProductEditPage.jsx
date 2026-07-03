@@ -593,6 +593,8 @@ function ProductEditor({ initialProduct }) {
         productId={product.id}
         variant={editingVariant}
         onSaved={handleVariantSaved}
+        options={product.variant_options ?? []}
+        variants={allVariants}
       />
     </div>
   )
