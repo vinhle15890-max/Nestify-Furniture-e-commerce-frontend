@@ -99,6 +99,33 @@ describe('CartPage', () => {
     expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(1)
   })
 
+  it('warns and blocks checkout when a saved line exceeds current stock', async () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
+    cartApi.getCart.mockResolvedValue({
+      data: {
+        id: 1,
+        items: [
+          {
+            id: 10,
+            variant: { id: 1, sku: 'SOFA-NAU', name: 'Nâu', attributes: {}, price: 5000000, available_stock: 1, model_3d_url: null, is_active: true },
+            quantity: 2,
+            unit_price_snapshot: 5000000,
+            subtotal: 10000000,
+          },
+        ],
+        total: 10000000,
+      },
+    })
+    renderPage()
+
+    await screen.findByText('Nâu')
+
+    expect(screen.getByText(/Chỉ còn 1 sản phẩm trong kho — vui lòng giảm số lượng/)).toBeInTheDocument()
+    // The checkout affordance becomes a disabled button, not a link to /checkout.
+    expect(screen.getByRole('button', { name: 'Tiến hành thanh toán' })).toBeDisabled()
+    expect(screen.queryByRole('link', { name: 'Tiến hành thanh toán' })).not.toBeInTheDocument()
+  })
+
   it('applies a voucher to the order summary without changing the cart total', async () => {
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
     cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })

@@ -102,6 +102,8 @@ describe('ProductPage', () => {
     catalogApi.getCategories.mockResolvedValue({ data: [] })
     cartApi.addItem.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
     wishlistApi.addItem.mockResolvedValue({ data: { id: 1 } })
+    wishlistApi.removeItem.mockResolvedValue({})
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [] } })
     ordersApi.getOrders.mockResolvedValue({ data: [] })
     personalizationHooks.useRecordProductView.mockReturnValue({ mutate: vi.fn() })
     personalizationHooks.useRecentlyViewed.mockReturnValue({ data: { data: [] } })
@@ -192,6 +194,28 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào yêu thích' }))
 
     expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 1 })
+  })
+
+  it('reflects that the selected variant is already in the wishlist', async () => {
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [{ id: 77, variant: { id: 1 } }] } })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    // The button flips to an "already saved" state (pressed + remove label).
+    const button = await screen.findByRole('button', { name: 'Bỏ khỏi yêu thích' })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Thêm vào yêu thích' })).not.toBeInTheDocument()
+  })
+
+  it('removes the variant from the wishlist when the saved button is clicked', async () => {
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [{ id: 77, variant: { id: 1 } }] } })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bỏ khỏi yêu thích' }))
+
+    expect(wishlistApi.removeItem).toHaveBeenCalledWith(77)
+    expect(wishlistApi.addItem).not.toHaveBeenCalled()
   })
 
   it('does not show a review form without a delivered order containing this product', async () => {

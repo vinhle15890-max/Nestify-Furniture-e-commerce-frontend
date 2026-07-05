@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Users2,
   ScrollText,
+  Sparkles,
   Store,
   Menu,
   X,
@@ -26,7 +27,8 @@ const navGroups = [
     title: 'Danh mục',
     items: [
       { to: '/admin/categories', label: 'Danh mục', icon: FolderTree },
-      { to: '/admin/products', label: 'Sản phẩm', icon: Package },
+      { to: '/admin/products', label: 'Sản phẩm', icon: Package, end: true },
+      { to: '/admin/products/seo', label: 'Duyệt SEO', icon: Sparkles },
     ],
   },
   {

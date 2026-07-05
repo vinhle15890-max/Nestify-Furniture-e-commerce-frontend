@@ -8,6 +8,6 @@ export function getOrder(id) {
   return apiClient.get(`/orders/${id}`)
 }
 
-export function cancelOrder(id) {
-  return apiClient.post(`/orders/${id}/cancel`)
+export function cancelOrder(id, reason) {
+  return apiClient.post(`/orders/${id}/cancel`, { reason })
 }

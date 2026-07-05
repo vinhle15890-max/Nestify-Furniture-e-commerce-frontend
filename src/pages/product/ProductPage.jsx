@@ -9,7 +9,7 @@ import { Spinner } from '../../components/Spinner'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
-import { useAddWishlistItem } from '../../features/wishlist/hooks'
+import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../features/wishlist/hooks'
 import { useOrders } from '../../features/orders/hooks'
 import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
 import { useRecordProductView } from '../../features/personalization/hooks'
@@ -71,6 +71,8 @@ export function ProductPage() {
   const addToast = useToastStore((state) => state.addToast)
   const addCartItem = useAddCartItem()
   const addWishlistItem = useAddWishlistItem()
+  const removeWishlistItem = useRemoveWishlistItem()
+  const { data: wishlistData } = useWishlist({ enabled: isCustomer })
   const [stockError, setStockError] = useState(null)
 
   const media = useMemo(
@@ -100,6 +102,14 @@ export function ProductPage() {
   const price = selectedVariant?.price ?? product?.base_price
   const availableStock = selectedVariant?.available_stock ?? 0
   const outOfStock = availableStock < 1
+
+  // Wishlist membership for the CURRENTLY selected variant (each variant is tracked
+  // independently), so the heart button reflects saved state and toggles.
+  const wishlistItems = wishlistData?.data?.items ?? []
+  const wishlistItem = selectedVariant
+    ? wishlistItems.find((item) => item.variant?.id === selectedVariant.id)
+    : undefined
+  const isWishlisted = Boolean(wishlistItem)
 
   useEffect(() => {
     setQuantity((current) => Math.min(Math.max(current, 1), Math.max(availableStock, 1)))
@@ -192,14 +202,21 @@ export function ProductPage() {
     )
   }
 
-  function handleAddToWishlist() {
-    addWishlistItem.mutate(
-      { variant_id: selectedVariant.id },
-      {
-        onSuccess: () => addToast({ title: 'Đã thêm vào yêu thích', variant: 'success' }),
-        onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: error.message, variant: 'error' }),
-      },
-    )
+  function handleToggleWishlist() {
+    if (isWishlisted) {
+      removeWishlistItem.mutate(wishlistItem.id, {
+        onSuccess: () => addToast({ title: 'Đã bỏ khỏi yêu thích', variant: 'success' }),
+        onError: (error) => addToast({ title: 'Không thể bỏ khỏi yêu thích', description: error.message, variant: 'error' }),
+      })
+    } else {
+      addWishlistItem.mutate(
+        { variant_id: selectedVariant.id },
+        {
+          onSuccess: () => addToast({ title: 'Đã thêm vào yêu thích', variant: 'success' }),
+          onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: error.message, variant: 'error' }),
+        },
+      )
+    }
   }
 
   const reviewsQuery = useProductReviews(productSlug)
@@ -459,12 +476,13 @@ export function ProductPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  aria-label="Thêm vào yêu thích"
-                  onClick={handleAddToWishlist}
-                  disabled={!selectedVariant || addWishlistItem.isPending}
+                  aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
+                  aria-pressed={isWishlisted}
+                  onClick={handleToggleWishlist}
+                  disabled={!selectedVariant || addWishlistItem.isPending || removeWishlistItem.isPending}
                   className="px-4 py-3.5"
                 >
-                  <Heart size={18} />
+                  <Heart size={18} className={isWishlisted ? 'fill-current text-accent' : ''} />
                 </Button>
               </>
             ) : (

@@ -115,13 +115,23 @@ describe('AdminProductEditPage', () => {
     )
   })
 
-  it('fills description and SEO fields from the AI draft', async () => {
+  it('offers AI variations and fills fields from the chosen one', async () => {
     productsApi.generateProductDescription.mockResolvedValue({
       data: {
-        description: '<p>Sofa da bò Ý sang trọng.</p>',
-        meta_title: 'Sofa da bò Ý 3 chỗ | Nestify',
-        meta_description: 'Sofa da bò Ý 3 chỗ khung gỗ sồi. Mua ngay tại Nestify.',
-        focus_keyword: 'sofa da bò',
+        drafts: [
+          {
+            description: '<p>Sofa da bò Ý sang trọng.</p>',
+            meta_title: 'Sofa da bò Ý 3 chỗ | Nestify',
+            meta_description: 'Sofa da bò Ý 3 chỗ khung gỗ sồi. Mua ngay tại Nestify.',
+            focus_keyword: 'sofa da bò',
+          },
+          {
+            description: '<p>Phương án B thân thiện.</p>',
+            meta_title: 'Sofa da bò Ý ấm cúng | Nestify',
+            meta_description: 'Bản B.',
+            focus_keyword: 'sofa da bò',
+          },
+        ],
       },
     })
     renderPage()
@@ -130,10 +140,66 @@ describe('AdminProductEditPage', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
     await userEvent.click(screen.getByRole('button', { name: /Gợi ý bằng AI/ }))
 
-    await waitFor(() => expect(productsApi.generateProductDescription).toHaveBeenCalledTimes(1))
+    const useButtons = await screen.findAllByRole('button', { name: 'Dùng bản này' })
+    expect(useButtons).toHaveLength(2)
+    await userEvent.click(useButtons[0])
+
     expect(await screen.findByLabelText('Mô tả')).toHaveValue('<p>Sofa da bò Ý sang trọng.</p>')
     expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('Sofa da bò Ý 3 chỗ | Nestify')
     expect(screen.getByLabelText('Từ khóa chính')).toHaveValue('sofa da bò')
+    expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 2, tone: 'sang_trong' }),
+    )
+  })
+
+  it('drafts a single SEO field from its per-field suggest button', async () => {
+    productsApi.generateProductDescription.mockResolvedValue({
+      data: { meta_description: 'Mô tả SEO mới do AI viết cho sofa da bò cao cấp.' },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
+
+    // Live SEO score panel is present.
+    expect(screen.getByText('Điểm SEO')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Gợi ý mô tả SEO bằng AI' }))
+
+    await waitFor(() =>
+      expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
+        expect.objectContaining({ field: 'meta_description' }),
+      ),
+    )
+    // Only the meta description is filled; the title is left untouched.
+    expect(await screen.findByLabelText('Mô tả SEO')).toHaveValue('Mô tả SEO mới do AI viết cho sofa da bò cao cấp.')
+    expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('')
+  })
+
+  it('drafts SEO from the product images and opens the variations modal', async () => {
+    productsApi.generateProductDescription.mockResolvedValue({
+      data: {
+        drafts: [
+          { description: '<p>Từ ảnh A.</p>', meta_title: 'A', meta_description: 'A', focus_keyword: 'sofa' },
+          { description: '<p>Từ ảnh B.</p>', meta_title: 'B', meta_description: 'B', focus_keyword: 'sofa' },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Gợi ý từ ảnh' }))
+
+    await waitFor(() =>
+      expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          count: 2,
+          image_urls: ['https://example.com/1.jpg', 'https://example.com/2.jpg'],
+        }),
+      ),
+    )
+    expect(await screen.findAllByRole('button', { name: 'Dùng bản này' })).toHaveLength(2)
   })
 
   it('adds a new variant', async () => {

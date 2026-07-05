@@ -8,6 +8,7 @@ import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
 import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice } from '../../lib/format'
+import { stockShortfall, cartHasStockShortfall } from '../../lib/stock'
 
 const MAX_QUANTITY = 100
 
@@ -55,6 +56,7 @@ export function CartPage() {
 
   const cart = data?.data
   const items = cart?.items ?? []
+  const checkoutBlocked = cartHasStockShortfall(items)
 
   function updateQuantity(item, nextQuantity) {
     const clamped = Math.min(Math.max(nextQuantity, 1), MAX_QUANTITY)
@@ -116,6 +118,10 @@ export function CartPage() {
                 stockErrors[item.id] ?? item.variant?.available_stock ?? MAX_QUANTITY,
                 MAX_QUANTITY,
               )
+              // Payload-derived shortfall (the saved quantity already exceeds current
+              // stock, e.g. others bought while this sat in the cart). Suppressed when a
+              // live update-failure message is already shown for this line.
+              const shortfall = stockErrors[item.id] === undefined ? stockShortfall(item) : null
 
               return (
                 <li key={item.id} className="py-6 first:pt-0">
@@ -195,6 +201,14 @@ export function CartPage() {
                       Chỉ còn {stockErrors[item.id]} sản phẩm trong kho
                     </p>
                   )}
+
+                  {shortfall && (
+                    <p role="alert" className="mt-2 text-sm text-destructive">
+                      {shortfall.kind === 'out'
+                        ? 'Sản phẩm đã hết hàng — vui lòng xóa khỏi giỏ.'
+                        : `Chỉ còn ${shortfall.available} sản phẩm trong kho — vui lòng giảm số lượng.`}
+                    </p>
+                  )}
                 </li>
               )
             })}
@@ -236,9 +250,18 @@ export function CartPage() {
               )}
             </div>
 
-            <Link to="/checkout" className="mt-6 block">
-              <Button className="w-full py-3.5">Tiến hành thanh toán</Button>
-            </Link>
+            {checkoutBlocked ? (
+              <div className="mt-6">
+                <Button className="w-full py-3.5" disabled>Tiến hành thanh toán</Button>
+                <p role="alert" className="mt-2 text-sm text-destructive">
+                  Một số sản phẩm vượt quá số lượng còn trong kho. Vui lòng điều chỉnh giỏ hàng để tiếp tục.
+                </p>
+              </div>
+            ) : (
+              <Link to="/checkout" className="mt-6 block">
+                <Button className="w-full py-3.5">Tiến hành thanh toán</Button>
+              </Link>
+            )}
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingBag, Plus, Pencil, CreditCard, Banknote, MapPin } from 'lucide-react'
 import { useCart, useApplyVoucher } from '../../features/cart/hooks'
@@ -16,6 +17,7 @@ import { formatPrice } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
+import { cartHasStockShortfall } from '../../lib/stock'
 
 function CheckoutNotice({ children }) {
   return (
@@ -38,6 +40,7 @@ export function CheckoutPage() {
   const addToast = useToastStore((state) => state.addToast)
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const [addressId, setAddressId] = useState(null)
   const [addressModalOpen, setAddressModalOpen] = useState(false)
@@ -52,6 +55,10 @@ export function CheckoutPage() {
   const cart = cartData?.data
   const items = cart?.items ?? []
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+  // Proactive gate: block placing the order if a line already exceeds current stock
+  // (deep-link into /checkout, or stock dropped while the cart page was open). The BE
+  // reserve step is still the authoritative guard; this just fails fast with context.
+  const stockBlocked = cartHasStockShortfall(items)
 
   useEffect(() => {
     const addressList = addressesData?.data
@@ -141,7 +148,22 @@ export function CheckoutPage() {
       })
       order = response.data
     } catch (error) {
-      setOrderError(error.message)
+      if (error.code === 'INSUFFICIENT_STOCK') {
+        // Stock changed under us at the reserve step. Refresh the cart so the summary
+        // reflects the new availability, and name the offending item so the user knows
+        // exactly what to fix back in the cart.
+        queryClient.invalidateQueries({ queryKey: ['cart'] })
+        const shortItem = items.find((item) => item.variant?.id === error.details?.variant_id)
+        const name = shortItem?.variant?.product_name ?? shortItem?.variant?.name
+        const available = error.details?.available ?? 0
+        setOrderError(
+          name
+            ? `"${name}" chỉ còn ${available} sản phẩm trong kho. Vui lòng quay lại giỏ hàng để điều chỉnh.`
+            : error.message,
+        )
+      } else {
+        setOrderError(error.message)
+      }
       return
     }
 
@@ -331,9 +353,19 @@ export function CheckoutPage() {
             )}
           </div>
 
+          {stockBlocked && (
+            <p role="alert" className="mt-3 text-sm text-destructive">
+              Một số sản phẩm trong giỏ đã vượt số lượng còn trong kho.{' '}
+              <Link to="/cart" className="underline decoration-accent underline-offset-4 hover:text-accent">
+                Quay lại giỏ hàng
+              </Link>{' '}
+              để điều chỉnh.
+            </p>
+          )}
+
           {orderError && <p role="alert" className="mt-3 text-sm text-destructive">{orderError}</p>}
 
-          <Button type="submit" disabled={isSubmitting} className="mt-6 w-full py-3.5">
+          <Button type="submit" disabled={isSubmitting || stockBlocked} className="mt-6 w-full py-3.5">
             {isSubmitting ? 'Đang xử lý...' : 'Đặt hàng'}
           </Button>
         </div>

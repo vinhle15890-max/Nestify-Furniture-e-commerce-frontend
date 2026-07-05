@@ -37,17 +37,17 @@ describe('VerifyEmailPage', () => {
     useAuthStore.setState({ token: 'abc123', user: { id: 1, name: 'Bao', email_verified_at: null } })
     authApi.verifyEmail.mockResolvedValue({ data: { message: 'Email đã được xác thực.' } })
 
-    renderPage('/verify-email?id=1&hash=abc')
+    renderPage('/verify-email?id=1&expires=1893456000&signature=abc')
 
     expect(await screen.findByText('Email đã được xác thực.')).toBeInTheDocument()
-    expect(authApi.verifyEmail).toHaveBeenCalledWith({ id: '1', hash: 'abc' })
+    expect(authApi.verifyEmail).toHaveBeenCalledWith({ id: '1', expires: '1893456000', signature: 'abc' })
     expect(useAuthStore.getState().user.email_verified_at).toBeTruthy()
   })
 
   it('shows an error message for an invalid link', async () => {
     authApi.verifyEmail.mockRejectedValue(new ApiError('INVALID_LINK', 'Liên kết không hợp lệ hoặc đã hết hạn.', null, 403))
 
-    renderPage('/verify-email?id=1&hash=abc')
+    renderPage('/verify-email?id=1&expires=1893456000&signature=abc')
 
     expect(await screen.findByText('Liên kết không hợp lệ hoặc đã hết hạn.')).toBeInTheDocument()
   })

@@ -161,9 +161,9 @@ describe('CheckoutPage', () => {
     expect(navigation.redirectToExternal).not.toHaveBeenCalled()
   })
 
-  it('shows an inline error on insufficient stock and does not create a payment session', async () => {
+  it('shows a precise, item-named error on insufficient stock and does not create a payment session', async () => {
     checkoutApi.createOrder.mockRejectedValue(
-      new ApiError('INSUFFICIENT_STOCK', 'Không đủ hàng trong kho', { variant_id: 1, requested: 2, available: 1 }, 409),
+      new ApiError('INSUFFICIENT_STOCK', 'Sản phẩm không đủ số lượng trong kho.', { variant_id: 1, requested: 2, available: 1 }, 409),
     )
     renderPage()
 
@@ -171,7 +171,35 @@ describe('CheckoutPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
 
-    expect(await screen.findByText('Không đủ hàng trong kho')).toBeInTheDocument()
+    expect(await screen.findByText(/"Nâu" chỉ còn 1 sản phẩm trong kho/)).toBeInTheDocument()
     expect(checkoutApi.createPaymentSession).not.toHaveBeenCalled()
+  })
+
+  it('blocks placing the order when a cart line already exceeds available stock', async () => {
+    cartApi.getCart.mockResolvedValue({
+      data: {
+        id: 1,
+        items: [
+          {
+            id: 10,
+            variant: { id: 1, sku: 'SOFA-NAU', name: 'Nâu', attributes: {}, price: 5000000, available_stock: 1, model_3d_url: null, is_active: true },
+            quantity: 2,
+            unit_price_snapshot: 5000000,
+            subtotal: 10000000,
+          },
+        ],
+        total: 10000000,
+      },
+    })
+    renderPage()
+
+    await screen.findByText('Nâu')
+
+    expect(screen.getByText(/vượt số lượng còn trong kho/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Đặt hàng' })).toBeDisabled()
+
+    // The submit is disabled, so no order is attempted.
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+    expect(checkoutApi.createOrder).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Package, Plus } from 'lucide-react'
+import { Package, Plus, Sparkles } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
@@ -9,6 +9,8 @@ import { Spinner } from '../../../components/Spinner'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminProducts } from '../../../features/admin/products/hooks'
+import { useBulkGenerateSeo } from '../../../features/admin/seo/hooks'
+import { useToastStore } from '../../../store/toastStore'
 import { formatPrice } from '../../../lib/format'
 
 const STATUS_LABELS = {
@@ -18,11 +20,42 @@ const STATUS_LABELS = {
 
 export function AdminProductsPage() {
   const [page, setPage] = useState(1)
+  const [selected, setSelected] = useState(() => new Set())
   const { data, isLoading } = useAdminProducts(page)
+  const bulk = useBulkGenerateSeo()
+  const addToast = useToastStore((state) => state.addToast)
   const navigate = useNavigate()
 
   const products = data?.data ?? []
   const meta = data?.meta ?? { last_page: 1 }
+
+  const toggle = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+
+  const toggleAll = () =>
+    setSelected((prev) =>
+      prev.size === products.length ? new Set() : new Set(products.map((p) => p.id)),
+    )
+
+  const handleGenerateSelected = () => {
+    bulk.mutate(
+      { scope: 'selected', product_ids: [...selected] },
+      {
+        onSuccess: (res) => {
+          addToast({
+            title: `Đã xếp ${res.data?.queued ?? 0} sản phẩm vào hàng đợi sinh SEO`,
+            variant: 'default',
+          })
+          setSelected(new Set())
+        },
+        onError: (error) => addToast({ title: error.message ?? 'Không thể sinh SEO', variant: 'destructive' }),
+      },
+    )
+  }
 
   return (
     <div>
@@ -37,6 +70,19 @@ export function AdminProductsPage() {
           </Button>
         }
       />
+
+      {selected.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-alt/50 px-4 py-3">
+          <span className="text-sm text-foreground">Đã chọn {selected.size} sản phẩm</span>
+          <Button onClick={handleGenerateSelected} disabled={bulk.isPending}>
+            <Sparkles size={15} aria-hidden="true" />
+            Sinh SEO ({selected.size})
+          </Button>
+          <Link to="/admin/products/seo" className="text-sm font-medium text-accent hover:underline">
+            Xem màn duyệt
+          </Link>
+        </div>
+      )}
 
       <div className="mt-6">
         {isLoading ? (
@@ -54,6 +100,14 @@ export function AdminProductsPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                  <th className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Chọn tất cả"
+                      checked={products.length > 0 && selected.size === products.length}
+                      onChange={toggleAll}
+                    />
+                  </th>
                   <th className="px-4 py-3">Sản phẩm</th>
                   <th className="px-4 py-3">Danh mục</th>
                   <th className="px-4 py-3">Giá</th>
@@ -67,6 +121,14 @@ export function AdminProductsPage() {
                   const statusInfo = STATUS_LABELS[product.status] ?? { label: product.status, tone: 'neutral' }
                   return (
                     <tr key={product.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Chọn ${product.name}`}
+                          checked={selected.has(product.id)}
+                          onChange={() => toggle(product.id)}
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-foreground">{product.name}</p>
                         <p className="text-muted-foreground">{product.slug}</p>

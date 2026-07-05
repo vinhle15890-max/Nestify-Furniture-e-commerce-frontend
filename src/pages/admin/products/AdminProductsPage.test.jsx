@@ -6,9 +6,11 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AdminProductsPage } from './AdminProductsPage'
 import * as productsApi from '../../../features/admin/products/api'
 import * as catalogApi from '../../../features/catalog/api'
+import * as seoApi from '../../../features/admin/seo/api'
 
 vi.mock('../../../features/admin/products/api')
 vi.mock('../../../features/catalog/api')
+vi.mock('../../../features/admin/seo/api')
 
 const productsPage1 = {
   data: [
@@ -78,6 +80,19 @@ describe('AdminProductsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Thêm sản phẩm/ }))
 
     expect(await screen.findByText('Trang tạo sản phẩm')).toBeInTheDocument()
+  })
+
+  it('generates SEO for the selected products via the bulk endpoint', async () => {
+    seoApi.bulkGenerateSeo.mockResolvedValue({ data: { batch_id: 'b1', queued: 1 } })
+    renderPage()
+    await screen.findByText('Ghế Sofa')
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Chọn Ghế Sofa' }))
+    await userEvent.click(screen.getByRole('button', { name: /Sinh SEO/ }))
+
+    await waitFor(() =>
+      expect(seoApi.bulkGenerateSeo).toHaveBeenCalledWith({ scope: 'selected', product_ids: [1] }),
+    )
   })
 
   it('shows a branded empty state with an action-oriented message when there are no products', async () => {

@@ -115,6 +115,9 @@ function ProductEditor({ initialProduct }) {
   const [mediaType, setMediaType] = useState('image')
   const [variantPage, setVariantPage] = useState(1)
   const [variantOptions, setVariantOptions] = useState(initialProduct?.variant_options ?? [])
+  const [generatingField, setGeneratingField] = useState(null)
+  const [tone, setTone] = useState('sang_trong')
+  const [variations, setVariations] = useState(null)
 
   const {
     register,
@@ -180,15 +183,63 @@ function ProductEditor({ initialProduct }) {
         category: product.category?.name ?? null,
         keyword: watch('focus_keyword') || null,
         attributes: product.attributes ?? {},
+        tone,
+        count: 2,
       })
-      const draft = response.data
-      setValue('description', draft.description ?? '', { shouldDirty: true })
-      setValue('meta_title', draft.meta_title ?? '', { shouldDirty: true })
-      setValue('meta_description', draft.meta_description ?? '', { shouldDirty: true })
-      if (draft.focus_keyword) setValue('focus_keyword', draft.focus_keyword, { shouldDirty: true })
-      addToast({ title: 'AI đã tạo bản nháp mô tả. Hãy kiểm tra và lưu lại.', variant: 'success' })
+      setVariations(response.data.drafts ?? [])
     } catch (error) {
       addToast({ title: 'Không thể tạo mô tả bằng AI.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const applyDraft = (draft) => {
+    setValue('description', draft.description ?? '', { shouldDirty: true })
+    setValue('meta_title', draft.meta_title ?? '', { shouldDirty: true })
+    setValue('meta_description', draft.meta_description ?? '', { shouldDirty: true })
+    if (draft.focus_keyword) setValue('focus_keyword', draft.focus_keyword, { shouldDirty: true })
+    setVariations(null)
+    addToast({ title: 'Đã áp dụng phương án. Kiểm tra và lưu lại.', variant: 'success' })
+  }
+
+  const productImageUrls = (product.media ?? []).filter((item) => item.type === 'image').map((item) => item.url)
+
+  const handleGenerateFromImages = async () => {
+    try {
+      const response = await generateDescription.mutateAsync({
+        name: watch('name') || product.name,
+        category: product.category?.name ?? null,
+        keyword: watch('focus_keyword') || null,
+        attributes: product.attributes ?? {},
+        tone,
+        count: 2,
+        image_urls: productImageUrls,
+      })
+      setVariations(response.data.drafts ?? [])
+    } catch (error) {
+      addToast({ title: 'Không thể tạo mô tả từ ảnh.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleGenerateField = async (field) => {
+    setGeneratingField(field)
+    try {
+      const response = await generateDescription.mutateAsync({
+        name: watch('name') || product.name,
+        category: product.category?.name ?? null,
+        keyword: watch('focus_keyword') || null,
+        attributes: product.attributes ?? {},
+        description: watch('description') || null,
+        tone,
+        field,
+      })
+      if (response.data[field] !== undefined) {
+        setValue(field, response.data[field] ?? '', { shouldDirty: true })
+      }
+      addToast({ title: 'AI đã cập nhật trường đã chọn. Kiểm tra và lưu lại.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể tạo nội dung bằng AI.', description: error.message, variant: 'error' })
+    } finally {
+      setGeneratingField(null)
     }
   }
 
@@ -486,7 +537,16 @@ function ProductEditor({ initialProduct }) {
             slug={product.slug}
             namePlaceholder={product.name}
             onGenerate={handleGenerateDescription}
-            isGenerating={generateDescription.isPending}
+            onGenerateFromImages={productImageUrls.length > 0 ? handleGenerateFromImages : undefined}
+            isGenerating={generateDescription.isPending && generatingField === null}
+            onGenerateField={handleGenerateField}
+            generatingField={generatingField}
+            tone={tone}
+            onToneChange={setTone}
+            variations={variations}
+            onApplyDraft={applyDraft}
+            onCloseVariations={() => setVariations(null)}
+            onRegenerate={handleGenerateDescription}
             onEditorError={(error) =>
               addToast({ title: 'Không thể chèn ảnh.', description: error.message, variant: 'error' })
             }
