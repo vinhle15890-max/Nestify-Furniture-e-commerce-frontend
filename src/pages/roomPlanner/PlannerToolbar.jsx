@@ -1,4 +1,4 @@
-import { Move3d, RotateCw, Maximize, Save, ShoppingCart, ShoppingBag, Share2, Undo2, Redo2, Magnet, X } from 'lucide-react'
+import { Move3d, RotateCw, Maximize, Save, ShoppingCart, ShoppingBag, Share2, Undo2, Redo2, Magnet, Frame, Ruler, X } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 
@@ -28,6 +28,10 @@ export function PlannerToolbar({
   canRedo,
   snap,
   onToggleSnap,
+  wallSnap,
+  onToggleWallSnap,
+  showScaleRef,
+  onToggleScaleRef,
   itemCount,
   onExit,
 }) {
@@ -91,18 +95,42 @@ export function PlannerToolbar({
           })}
         </div>
 
-        {/* Snap toggle — grid 0.25m / rotation 15°. */}
-        <button
-          type="button"
-          onClick={onToggleSnap}
-          aria-pressed={snap}
-          title="Bắt điểm 0.25m / 15°"
-          className={`flex items-center gap-1.5 rounded-control border border-border px-2.5 py-1.5 text-sm transition-colors ${
-            snap ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
-          }`}
-        >
-          <Magnet size={15} aria-hidden="true" /> Snap
-        </button>
+        {/* Nhóm hỗ trợ đặt món: bắt điểm lưới / bắt tường / mốc tỉ lệ. */}
+        <div className="flex items-center gap-1 rounded-control border border-border p-1">
+          <button
+            type="button"
+            onClick={onToggleSnap}
+            aria-pressed={snap}
+            title="Bắt điểm 0.25m / 15°"
+            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors ${
+              snap ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
+            }`}
+          >
+            <Magnet size={15} aria-hidden="true" /> Snap
+          </button>
+          <button
+            type="button"
+            onClick={onToggleWallSnap}
+            aria-pressed={wallSnap}
+            title="Hút cạnh món áp sát tường khi thả gần (≤ 0.5m)"
+            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors ${
+              wallSnap ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
+            }`}
+          >
+            <Frame size={15} aria-hidden="true" /> Bắt tường
+          </button>
+          <button
+            type="button"
+            onClick={onToggleScaleRef}
+            aria-pressed={showScaleRef}
+            title="Bóng người 1.7m + cửa làm mốc tỉ lệ"
+            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors ${
+              showScaleRef ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
+            }`}
+          >
+            <Ruler size={15} aria-hidden="true" /> Tỉ lệ
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

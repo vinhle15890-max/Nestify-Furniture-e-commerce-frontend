@@ -17,7 +17,14 @@ export function summarizeItems(items) {
     if (existing) {
       existing.qty += 1
     } else {
-      byVariant.set(id, { variantId: id, name: variant.name ?? '', price, qty: 1 })
+      byVariant.set(id, {
+        variantId: id,
+        name: variant.name ?? '',
+        price,
+        qty: 1,
+        slug: variant.product_slug ?? null,
+        productName: variant.product_name ?? null,
+      })
     }
   }
 

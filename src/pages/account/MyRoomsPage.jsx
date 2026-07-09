@@ -42,6 +42,15 @@ function RoomCard({ scene }) {
 
   return (
     <li className="flex flex-col gap-3 rounded-card border border-border bg-surface p-5">
+      <div className="aspect-[16/9] overflow-hidden rounded-control bg-surface-alt">
+        {scene.preview_url ? (
+          <img src={scene.preview_url} alt={`Ảnh phòng ${scene.name}`} loading="lazy" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center p-4">
+            <BecomingRoomArt level={1} className="max-w-[220px]" />
+          </div>
+        )}
+      </div>
       <div className="flex items-start justify-between gap-3">
         {editing ? (
           <Input

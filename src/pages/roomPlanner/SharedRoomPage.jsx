@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { Logo } from '../../components/Logo'
 import { Spinner } from '../../components/Spinner'
 import { SharedSceneCanvas } from './scene/SharedSceneCanvas'
+import { SharedRoomItems } from './SharedRoomItems'
 import { useSharedScene } from '../../features/roomPlanner/hooks'
 import { sceneToEditorState } from '../../features/roomPlanner/mappers'
 
@@ -46,8 +47,13 @@ export function SharedRoomPage() {
           Khám phá cửa hàng
         </Link>
       </header>
-      <main className="relative min-h-0 flex-1">
-        <SharedSceneCanvas room={state.room} items={state.items} />
+      <main className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <div className="relative min-h-0 flex-1">
+          <SharedSceneCanvas room={state.room} items={state.items} />
+        </div>
+        <aside className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-surface-alt/40 p-4 md:max-h-none md:w-80 md:border-l md:border-t-0">
+          <SharedRoomItems items={state.items} />
+        </aside>
       </main>
     </div>
   )

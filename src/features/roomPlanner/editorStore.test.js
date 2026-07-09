@@ -26,12 +26,103 @@ describe('roomPlanner/editorStore', () => {
     expect(s.dirty).toBe(true)
   })
 
-  it('updateTransform clamps position into the room', () => {
+  it('updateTransform kẹp position theo kích thước — cạnh món không xuyên tường', () => {
     useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
     useEditorStore.getState().addVariant(variant)
     const id = useEditorStore.getState().items[0].localId
+    // footprint mặc định 1×1 → nửa 0.5 → tâm bị kẹp ở ±(2 - 0.5) = ±1.5
     useEditorStore.getState().updateTransform(id, { position: { x: 99, y: 0.5, z: -99 } })
-    expect(useEditorStore.getState().items[0].position).toEqual({ x: 2, y: 0.5, z: -2 })
+    expect(useEditorStore.getState().items[0].position).toEqual({ x: 1.5, y: 0.5, z: -1.5 })
+  })
+
+  it('addVariant khởi tạo footprint mặc định {1,1,1}', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    expect(useEditorStore.getState().items[0].footprint).toEqual({ x: 1, y: 1, z: 1 })
+  })
+
+  it('reportFootprint cập nhật footprint mà KHÔNG đụng history/dirty', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const id = useEditorStore.getState().items[0].localId
+    const pastBefore = useEditorStore.getState().past.length
+    useEditorStore.setState({ dirty: false })
+    useEditorStore.getState().reportFootprint(id, { x: 2, y: 0.8, z: 1.5 })
+    const s = useEditorStore.getState()
+    expect(s.items[0].footprint).toEqual({ x: 2, y: 0.8, z: 1.5 })
+    expect(s.past.length).toBe(pastBefore)
+    expect(s.dirty).toBe(false)
+  })
+
+  it('reportFootprint no-op khi size không đổi (không tạo mảng mới)', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const id = useEditorStore.getState().items[0].localId
+    const itemsRef = useEditorStore.getState().items
+    useEditorStore.getState().reportFootprint(id, { x: 1, y: 1, z: 1 })
+    expect(useEditorStore.getState().items).toBe(itemsRef)
+  })
+
+  it('kẹp size-aware — sofa rộng 2m không xuyên tường phòng 4m', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const id = useEditorStore.getState().items[0].localId
+    useEditorStore.getState().reportFootprint(id, { x: 2, y: 1, z: 1 }) // nửa 1m
+    useEditorStore.getState().updateTransform(id, { position: { x: 10, y: 0, z: 0 } })
+    expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1) // 2 - 1
+  })
+
+  it('toggleWallSnap / toggleScaleRef lật cờ', () => {
+    const g = () => useEditorStore.getState()
+    g().initNew({ width: 4, depth: 4, height: 2.8 })
+    expect(g().wallSnap).toBe(false)
+    g().toggleWallSnap()
+    expect(g().wallSnap).toBe(true)
+    expect(g().showScaleRef).toBe(false)
+    g().toggleScaleRef()
+    expect(g().showScaleRef).toBe(true)
+  })
+
+  it('setScaleRefPos kẹp trong phòng, không đụng history/dirty', () => {
+    const g = () => useEditorStore.getState()
+    g().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.setState({ dirty: false })
+    const pastBefore = g().past.length
+    g().setScaleRefPos({ x: 99, z: -99 })
+    expect(g().scaleRefPos).toEqual({ x: 2, z: -2 })
+    expect(g().past.length).toBe(pastBefore)
+    expect(g().dirty).toBe(false)
+  })
+
+  it('updateTransform hút tường khi wallSnap bật', () => {
+    const g = () => useEditorStore.getState()
+    g().initNew({ width: 4, depth: 4, height: 2.8 })
+    g().addVariant({ id: 1, model_3d_url: null }) // footprint 1×1 → nửa 0.5, flush ±1.5
+    const id = g().items[0].localId
+    g().toggleWallSnap()
+    g().updateTransform(id, { position: { x: 1.42, y: 0, z: 0 } }) // cách flush 0.08 < 0.2
+    expect(g().items[0].position.x).toBeCloseTo(1.5)
+  })
+
+  it('updateTransform KHÔNG hút khi wallSnap tắt', () => {
+    const g = () => useEditorStore.getState()
+    g().initNew({ width: 4, depth: 4, height: 2.8 })
+    g().addVariant({ id: 1, model_3d_url: null })
+    const id = g().items[0].localId
+    g().updateTransform(id, { position: { x: 1.42, y: 0, z: 0 } })
+    expect(g().items[0].position.x).toBeCloseTo(1.42)
+  })
+
+  it('resetSelectedTransform KHÔNG xoá footprint đã đo', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const id = useEditorStore.getState().items[0].localId
+    useEditorStore.getState().reportFootprint(id, { x: 2, y: 0.8, z: 1.5 })
+    useEditorStore.getState().updateTransform(id, { scale: { x: 3, y: 3, z: 3 } })
+    useEditorStore.getState().resetSelectedTransform()
+    const item = useEditorStore.getState().items[0]
+    expect(item.scale).toEqual({ x: 1, y: 1, z: 1 }) // transform reset
+    expect(item.footprint).toEqual({ x: 2, y: 0.8, z: 1.5 }) // footprint giữ nguyên
   })
 
   it('deleteSelected removes the selected item', () => {

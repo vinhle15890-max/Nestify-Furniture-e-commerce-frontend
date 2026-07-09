@@ -9,6 +9,8 @@ const base = {
   onAddToCart: vi.fn(), addingToCart: false, onOrder: vi.fn(), ordering: false,
   onUndo: vi.fn(), onRedo: vi.fn(), canUndo: true, canRedo: true,
   snap: false, onToggleSnap: vi.fn(),
+  wallSnap: false, onToggleWallSnap: vi.fn(),
+  showScaleRef: false, onToggleScaleRef: vi.fn(),
   itemCount: 2, onExit: vi.fn(),
 }
 
@@ -67,9 +69,27 @@ describe('PlannerToolbar', () => {
   it('toggles snap', async () => {
     const onToggleSnap = vi.fn()
     render(<PlannerToolbar {...base} onToggleSnap={onToggleSnap} snap={false} />)
-    const btn = screen.getByRole('button', { name: /snap/i })
+    const btn = screen.getByRole('button', { name: /^snap$/i })
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(btn)
     expect(onToggleSnap).toHaveBeenCalled()
+  })
+
+  it('toggles wall-snap', async () => {
+    const onToggleWallSnap = vi.fn()
+    render(<PlannerToolbar {...base} onToggleWallSnap={onToggleWallSnap} wallSnap={false} />)
+    const btn = screen.getByRole('button', { name: /bắt tường/i })
+    expect(btn).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(btn)
+    expect(onToggleWallSnap).toHaveBeenCalled()
+  })
+
+  it('toggles scale reference', async () => {
+    const onToggleScaleRef = vi.fn()
+    render(<PlannerToolbar {...base} onToggleScaleRef={onToggleScaleRef} showScaleRef={false} />)
+    const btn = screen.getByRole('button', { name: /tỉ lệ/i })
+    expect(btn).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(btn)
+    expect(onToggleScaleRef).toHaveBeenCalled()
   })
 })

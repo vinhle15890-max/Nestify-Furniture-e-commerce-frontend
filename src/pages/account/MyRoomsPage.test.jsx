@@ -46,6 +46,19 @@ describe('MyRoomsPage', () => {
     expect(screen.getByRole('link', { name: /Mở/ })).toHaveAttribute('href', '/room-planner/7')
   })
 
+  it('card hiện ảnh preview khi có preview_url', async () => {
+    roomPlannerApi.listScenes.mockResolvedValue({ ...page1, data: [{ ...page1.data[0], preview_url: 'https://cdn/room7.png' }] })
+    renderPage()
+    const img = await screen.findByRole('img', { name: /Ảnh phòng Phòng khách/ })
+    expect(img).toHaveAttribute('src', 'https://cdn/room7.png')
+  })
+
+  it('card dùng placeholder khi chưa có preview_url', async () => {
+    renderPage()
+    await screen.findByText('Phòng khách')
+    expect(screen.queryByRole('img', { name: /Ảnh phòng/ })).not.toBeInTheDocument()
+  })
+
   it('shows an empty state when there are no rooms', async () => {
     roomPlannerApi.listScenes.mockResolvedValue({ data: [], meta: { pagination: { total: 0, page: 1, last_page: 1, per_page: 10 } } })
     renderPage()

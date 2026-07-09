@@ -63,4 +63,19 @@ describe('roomPlanner/mappers', () => {
     expect(state.items).toHaveLength(1)
     expect(state.items[0].variant.id).toBeNull()
   })
+
+  it('giữ product_slug/product_name của variant', () => {
+    const state = sceneToEditorState({
+      id: 1, width: '4', depth: '4', height: '3',
+      items: [{ variant: { id: 9, sku: 'S', name: 'Đỏ', product_slug: 'ghe-sofa', product_name: 'Ghế Sofa' }, position: {}, rotation: {}, scale: {} }],
+    })
+    expect(state.items[0].variant.product_slug).toBe('ghe-sofa')
+    expect(state.items[0].variant.product_name).toBe('Ghế Sofa')
+  })
+
+  it('fallback null khi thiếu slug/name', () => {
+    const state = sceneToEditorState({ id: 1, width: '4', depth: '4', height: '3', items: [{ variant: { id: 9 }, position: {}, rotation: {}, scale: {} }] })
+    expect(state.items[0].variant.product_slug).toBeNull()
+    expect(state.items[0].variant.product_name).toBeNull()
+  })
 })

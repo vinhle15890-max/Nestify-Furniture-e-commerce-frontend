@@ -2,7 +2,7 @@ import { Suspense, useRef } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { FurnitureModel, PlaceholderBox, ModelErrorBoundary } from './FurnitureModel'
 
-export function PlacedItem({ item, selected, gizmoMode, snap, onSelect, onTransform, onDragChange }) {
+export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect, onTransform, onDragChange, onMeasure }) {
   const groupRef = useRef()
   const { position, rotation, scale } = item
 
@@ -29,9 +29,20 @@ export function PlacedItem({ item, selected, gizmoMode, snap, onSelect, onTransf
     >
       <ModelErrorBoundary>
         <Suspense fallback={<PlaceholderBox />}>
-          {item.variant.model_3d_url ? <FurnitureModel url={item.variant.model_3d_url} /> : <PlaceholderBox />}
+          {item.variant.model_3d_url
+            ? <FurnitureModel url={item.variant.model_3d_url} onMeasure={onMeasure} />
+            : <PlaceholderBox />}
         </Suspense>
       </ModelErrorBoundary>
+      {conflict && (
+        // Quầng cảnh báo trên sàn RỘNG HƠN footprint (1.4×) để lộ viền quanh chân
+        // món — mặt phẳng đúng bằng footprint sẽ bị chính model che khuất. `ink` mờ,
+        // nhắc trung tính khi chồng lấn, KHÔNG đỏ báo động.
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+          <planeGeometry args={[item.footprint.x * 1.4, item.footprint.z * 1.4]} />
+          <meshBasicMaterial color="#26262B" transparent opacity={0.22} depthWrite={false} />
+        </mesh>
+      )}
     </group>
   )
 

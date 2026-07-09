@@ -1,12 +1,17 @@
 import { create } from 'zustand'
 import { sceneToEditorState } from './mappers'
 import { makeLocalId, clampToRoom } from './threeD'
+import { clampRectToRoom, rotatedHalfExtents, snapToWalls, WALL_SNAP_THRESHOLD } from './collision'
 
 const IDENTITY = {
   position: { x: 0, y: 0, z: 0 },
   rotation: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
 }
+
+// Footprint (kích thước thật) mặc định trước khi model được đo. KHÔNG gộp vào
+// IDENTITY vì resetSelectedTransform spread IDENTITY — sẽ xoá footprint đã đo.
+const DEFAULT_FOOTPRINT = { x: 1, y: 1, z: 1 }
 
 const HISTORY_CAP = 50
 const snapshot = (items) => structuredClone(items)
@@ -26,6 +31,9 @@ const emptyState = {
   past: [],
   future: [],
   snap: false,
+  wallSnap: false,
+  showScaleRef: false,
+  scaleRefPos: { x: 0, z: 0 },
 }
 
 export const useEditorStore = create((set) => ({
@@ -43,7 +51,7 @@ export const useEditorStore = create((set) => ({
   setRoom: (room) => set({ room, dirty: true }),
 
   addVariant: (variant) => set((s) => {
-    const item = { localId: makeLocalId(), variant, ...structuredClone(IDENTITY) }
+    const item = { localId: makeLocalId(), variant, footprint: { ...DEFAULT_FOOTPRINT }, ...structuredClone(IDENTITY) }
     return { ...pushPast(s), items: [...s.items, item], selectedId: item.localId, dirty: true }
   }),
 
@@ -51,10 +59,11 @@ export const useEditorStore = create((set) => ({
     if (s.selectedId === null) return {}
     const src = s.items.find((it) => it.localId === s.selectedId)
     if (!src) return {}
+    const he = rotatedHalfExtents(src.footprint, src.scale, src.rotation.y)
     const clone = {
       ...structuredClone(src),
       localId: makeLocalId(),
-      position: clampToRoom({ x: src.position.x + 0.3, y: src.position.y, z: src.position.z + 0.3 }, s.room),
+      position: clampRectToRoom({ x: src.position.x + 0.3, y: src.position.y, z: src.position.z + 0.3 }, s.room, he),
     }
     return { ...pushPast(s), items: [...s.items, clone], selectedId: clone.localId, dirty: true }
   }),
@@ -65,15 +74,42 @@ export const useEditorStore = create((set) => ({
 
   toggleSnap: () => set((s) => ({ snap: !s.snap })),
 
+  toggleWallSnap: () => set((s) => ({ wallSnap: !s.wallSnap })),
+
+  // Mốc tỉ lệ = trạng thái xem (view aid): ephemeral, KHÔNG history/dirty/BE.
+  toggleScaleRef: () => set((s) => ({ showScaleRef: !s.showScaleRef })),
+  setScaleRefPos: (pos) => set((s) => {
+    const c = clampToRoom({ x: pos.x, y: 0, z: pos.z }, s.room)
+    return { scaleRefPos: { x: c.x, z: c.z } }
+  }),
+
+  // Ghi kích thước thật (đo từ GLB). KHÔNG vào undo history, KHÔNG set dirty —
+  // đây là metadata dẫn xuất, không phải hành động người dùng. No-op nếu không đổi.
+  reportFootprint: (localId, size) => set((s) => {
+    const idx = s.items.findIndex((it) => it.localId === localId)
+    if (idx === -1) return {}
+    const cur = s.items[idx].footprint
+    const near = (a, b) => Math.abs(a - b) < 1e-4
+    if (near(cur.x, size.x) && near(cur.y, size.y) && near(cur.z, size.z)) return {}
+    const items = s.items.slice()
+    items[idx] = { ...items[idx], footprint: { x: size.x, y: size.y, z: size.z } }
+    return { items }
+  }),
+
   updateTransform: (localId, patch) => set((s) => ({
     ...pushPast(s),
     dirty: true,
     items: s.items.map((it) => {
       if (it.localId !== localId) return it
       const next = { ...it }
-      if ('position' in patch) next.position = clampToRoom(patch.position, s.room)
       if ('rotation' in patch) next.rotation = { ...patch.rotation }
       if ('scale' in patch) next.scale = { ...patch.scale }
+      if ('position' in patch) {
+        const he = rotatedHalfExtents(next.footprint, next.scale, next.rotation.y)
+        let p = clampRectToRoom(patch.position, s.room, he)
+        if (s.wallSnap) p = snapToWalls(p, s.room, he, WALL_SNAP_THRESHOLD)
+        next.position = p
+      }
       return next
     }),
   })),

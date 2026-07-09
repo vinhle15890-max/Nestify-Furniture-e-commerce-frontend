@@ -28,6 +28,12 @@ export function updateScene(id, payload) {
   return apiClient.patch(`/room-scenes/${id}`, payload)
 }
 
+export function uploadScenePreview(id, file) {
+  const form = new FormData()
+  form.append('image', file)
+  return apiClient.post(`/room-scenes/${id}/preview`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+}
+
 export function addSceneToCart(id) {
   return apiClient.post(`/room-scenes/${id}/add-to-cart`)
 }

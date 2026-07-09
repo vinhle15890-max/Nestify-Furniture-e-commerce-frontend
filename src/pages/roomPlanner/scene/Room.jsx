@@ -1,7 +1,9 @@
+import { Grid } from '@react-three/drei'
+
 // Floor + faint walls + grid, sized from room dimensions (metres). Centred at origin.
 // Colours are the "Becoming Room" palette (WebGL can't read CSS tokens, so the hex
-// values mirror tokens.css): canvas floor/walls, `unbuilt` grid + `emerging` axes —
-// the empty-outline "possibility" state before furniture materialises. Never brass/cream.
+// values mirror tokens.css): canvas floor/walls, `unbuilt` grid — the empty-outline
+// "possibility" state before furniture materialises. Never brass/cream.
 export function Room({ width, depth, height }) {
   return (
     <group>
@@ -9,8 +11,20 @@ export function Room({ width, depth, height }) {
         <planeGeometry args={[width, depth]} />
         <meshStandardMaterial color="#F2F0EB" /> {/* canvas */}
       </mesh>
-      {/* centre axes = `emerging` #8A7C68, grid lines = `unbuilt` #C9C4B8 */}
-      <gridHelper args={[Math.max(width, depth), Math.max(width, depth), '#8A7C68', '#C9C4B8']} position={[0, 0.01, 0]} />
+      {/* Lưới KHÍT đúng hình phòng rộng×sâu, mỗi ô = 1m (giúp đọc tỉ lệ). `unbuilt`
+          #C9C4B8. Trước đây gridHelper vuông max(w,d) → tràn ra ngoài tường. */}
+      <Grid
+        args={[width, depth]}
+        position={[0, 0.01, 0]}
+        cellSize={1}
+        cellThickness={1}
+        cellColor="#C9C4B8"
+        sectionSize={Math.max(width, depth)}
+        sectionColor="#C9C4B8"
+        infiniteGrid={false}
+        fadeDistance={40}
+        fadeStrength={1}
+      />
       {/* Back + side walls, low opacity so they never block the view. */}
       <mesh position={[0, height / 2, -depth / 2]}>
         <planeGeometry args={[width, height]} />

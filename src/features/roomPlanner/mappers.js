@@ -33,10 +33,13 @@ export function sceneToEditorState(resource) {
         model_3d_url: item.variant?.model_3d_url ?? null,
         price: item.variant?.price ?? null,
         thumbnail: item.variant?.thumbnail ?? null,
+        product_slug: item.variant?.product_slug ?? null,
+        product_name: item.variant?.product_name ?? null,
       },
       position: vec3(item.position, 0),
       rotation: vec3(item.rotation, 0),
       scale: vec3(item.scale, 1),
+      footprint: { x: 1, y: 1, z: 1 }, // đo lại từ GLB khi render
     })),
   }
 }

@@ -1,5 +1,5 @@
-import { Component, useMemo } from 'react'
-import { Box3 } from 'three'
+import { Component, useEffect, useMemo } from 'react'
+import { Box3, Vector3 } from 'three'
 import { useGLTF } from '@react-three/drei'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { baseOffset } from '../../../features/roomPlanner/threeD'
@@ -8,15 +8,25 @@ import { baseOffset } from '../../../features/roomPlanner/threeD'
 // The clone is shifted so its base sits at local y=0 — a group at y=0 then rests
 // on the floor instead of sinking (models are authored around a centred origin).
 // Suspends while loading; an ErrorBoundary in PlacedItem renders the fallback box.
-export function FurnitureModel({ url }) {
+// `onMeasure(size)` reports the model's real footprint (metres) up to the store so
+// overlap-detection and wall-clamp know how big the item actually is.
+export function FurnitureModel({ url, onMeasure }) {
   const { scene } = useGLTF(url)
-  const object = useMemo(() => {
+  const measured = useMemo(() => {
     const clone = cloneSkinned(scene)
     const box = new Box3().setFromObject(clone)
+    const size = box.getSize(new Vector3())
     clone.position.y += baseOffset(box)
-    return clone
+    return { clone, size: { x: size.x, y: size.y, z: size.z } }
   }, [scene])
-  return <primitive object={object} />
+
+  // Push the real size once when the model is ready. reportFootprint no-ops when
+  // the size is unchanged, so re-firing (if onMeasure's identity changes) is safe.
+  useEffect(() => {
+    onMeasure?.(measured.size)
+  }, [measured, onMeasure])
+
+  return <primitive object={measured.clone} />
 }
 
 export function PlaceholderBox() {

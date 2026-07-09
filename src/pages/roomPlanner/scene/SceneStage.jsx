@@ -45,7 +45,7 @@ function WebGLUnsupportedFallback({ room }) {
 // passing their own scene content (gizmo-editable items, or static models) as
 // `children`. Deciding support BEFORE mounting <Canvas> means react-three-fiber
 // never attempts (and crashes on) context creation when WebGL is unavailable.
-export function SceneStage({ room, orbitEnabled = true, children }) {
+export function SceneStage({ room, orbitEnabled = true, onRendererReady, children }) {
   const webglSupported = useWebGLSupport()
   const [contextLost, setContextLost] = useState(false)
 
@@ -65,11 +65,12 @@ export function SceneStage({ room, orbitEnabled = true, children }) {
       setContextLost(true)
     })
     canvas.addEventListener('webglcontextrestored', () => setContextLost(false))
+    onRendererReady?.(gl)
   }
 
   return (
     <div className="relative h-full w-full">
-      <Canvas onCreated={handleCreated} shadows camera={{ position: [camDistance, camDistance, camDistance], fov: 45 }}>
+      <Canvas gl={{ preserveDrawingBuffer: true }} onCreated={handleCreated} shadows camera={{ position: [camDistance, camDistance, camDistance], fov: 45 }}>
         <hemisphereLight intensity={0.9} groundColor="#C9C4B8" /> {/* unbuilt — Becoming ground bounce */}
         <directionalLight position={[5, 8, 5]} intensity={1.1} castShadow />
         <Room width={room.width} depth={room.depth} height={room.height} />

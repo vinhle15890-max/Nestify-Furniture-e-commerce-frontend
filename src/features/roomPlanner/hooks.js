@@ -71,6 +71,14 @@ export function useUpdateScene() {
   })
 }
 
+export function useUploadScenePreview() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file }) => roomPlannerApi.uploadScenePreview(id, file),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roomScenes'] }),
+  })
+}
+
 export function useAddSceneToCart() {
   const queryClient = useQueryClient()
   return useMutation({

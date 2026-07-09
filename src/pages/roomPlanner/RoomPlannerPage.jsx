@@ -7,11 +7,14 @@ import { PlannerToolbar } from './PlannerToolbar'
 import { ShareSceneDialog } from './ShareSceneDialog'
 import { SelectedItemPanel } from './SelectedItemPanel'
 import { RoomSummary } from './RoomSummary'
+import { OverlapNotice } from './OverlapNotice'
+import { ScaleLegend } from './ScaleLegend'
 import { useEditorShortcuts } from './useEditorShortcuts'
 import { SmallScreenNotice } from './SmallScreenNotice'
 import { Spinner } from '../../components/Spinner'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
-import { useScene, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene } from '../../features/roomPlanner/hooks'
+import { useScene, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview } from '../../features/roomPlanner/hooks'
+import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
 import { useProductPreload } from '../../features/catalog/hooks'
 import { editorStateToPayload } from '../../features/roomPlanner/mappers'
 import { useToastStore } from '../../store/toastStore'
@@ -28,6 +31,7 @@ export function RoomPlannerPage() {
   const updateScene = useUpdateScene()
   const addSceneToCart = useAddSceneToCart()
   const shareScene = useShareScene()
+  const uploadPreview = useUploadScenePreview()
 
   const store = useEditorStore()
   const [setupOpen, setSetupOpen] = useState(!id)
@@ -190,9 +194,18 @@ export function RoomPlannerPage() {
   }
 
   const handleSave = async () => {
+    // Chụp ảnh TRƯỚC khi lưu: ensureSaved có thể navigate(replace) khi tạo mới →
+    // đổi :id → effect [id] gọi store.reset() → status 'idle' → RoomCanvas unmount
+    // → canvas bị huỷ đăng ký. Chụp trước đảm bảo canvas còn sống (fix audit R1).
+    let previewFile = null
     try {
-      await ensureSaved()
+      previewFile = await capturePlannerPreview()
+    } catch { previewFile = null }
+    try {
+      const sceneId = await ensureSaved()
       addToast({ title: 'Đã lưu phòng.', variant: 'success' })
+      // Best-effort: ảnh phòng cho card "Phòng của tôi". Lỗi không đụng tới Save.
+      if (previewFile) uploadPreview.mutate({ id: sceneId, file: previewFile })
     } catch (error) {
       addToast({ title: 'Lưu phòng thất bại.', description: error?.message, variant: 'error' })
     }
@@ -299,6 +312,10 @@ export function RoomPlannerPage() {
           canRedo={store.future.length > 0}
           snap={store.snap}
           onToggleSnap={store.toggleSnap}
+          wallSnap={store.wallSnap}
+          onToggleWallSnap={store.toggleWallSnap}
+          showScaleRef={store.showScaleRef}
+          onToggleScaleRef={store.toggleScaleRef}
           itemCount={store.items.length}
           onExit={handleExit}
         />
@@ -306,10 +323,12 @@ export function RoomPlannerPage() {
           <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-hidden border-r border-border bg-surface-alt/40 p-4">
             <CatalogTray onAdd={store.addVariant} />
             <SelectedItemPanel item={selectedItem} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
+            <OverlapNotice items={store.items} />
             <RoomSummary items={store.items} />
           </aside>
           <main className="relative min-w-0 flex-1 bg-surface">
             {store.status === 'ready' && <RoomCanvas />}
+            {store.status === 'ready' && <ScaleLegend room={store.room} />}
           </main>
         </div>
       </div>
