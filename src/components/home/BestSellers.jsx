@@ -13,11 +13,11 @@ export function BestSellers() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <SectionHeading eyebrow="Tuyển chọn" title="Sản phẩm bán chạy" />
+        <SectionHeading eyebrow="Khám phá" title="Bắt đầu với những thiết kế tiêu biểu" />
         <Reveal
           as={Link}
           to="/c/all"
-          className="group hidden items-center gap-2 rounded-control text-sm font-medium tracking-wide text-foreground transition-colors duration-200 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:inline-flex"
+          className="group hidden items-center gap-2 rounded-control text-sm font-medium tracking-wide text-ink transition-colors duration-200 hover:text-ink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:inline-flex"
         >
           Xem tất cả
           <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />

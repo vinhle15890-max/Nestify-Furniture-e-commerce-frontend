@@ -1,4 +1,4 @@
-import { Move3d, RotateCw, Maximize, Save, X } from 'lucide-react'
+import { Move3d, RotateCw, Maximize, Save, ShoppingCart, X } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 
@@ -8,7 +8,19 @@ const MODES = [
   { key: 'scale', label: 'Phóng to', icon: Maximize },
 ]
 
-export function PlannerToolbar({ name, onNameChange, gizmoMode, onGizmoModeChange, onSave, saving, dirty, onExit }) {
+export function PlannerToolbar({
+  name,
+  onNameChange,
+  gizmoMode,
+  onGizmoModeChange,
+  onSave,
+  saving,
+  dirty,
+  onAddToCart,
+  addingToCart,
+  itemCount,
+  onExit,
+}) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border bg-surface px-4 py-3">
       <div className="flex items-center gap-3">
@@ -43,9 +55,22 @@ export function PlannerToolbar({ name, onNameChange, gizmoMode, onGizmoModeChang
         })}
       </div>
 
-      <Button type="button" onClick={onSave} disabled={saving || !dirty}>
-        {saving ? <Spinner label="Đang lưu" /> : <><Save size={16} /> Lưu</>}
-      </Button>
+      <div className="flex items-center gap-2">
+        {/* State 3 peak (Mentally Real): saving the room is the one valid `imagined` CTA. */}
+        <Button type="button" variant="imagined" onClick={onSave} disabled={saving || !dirty}>
+          {saving ? <Spinner label="Đang lưu" /> : <><Save size={16} /> Lưu</>}
+        </Button>
+        {/* Mechanical handoff to Cart — NOT `imagined` (Save keeps the single imagined
+            peak). The imagined *feeling* carries into the Cart callback, not this button. */}
+        <Button
+          type="button"
+          variant="primary"
+          onClick={onAddToCart}
+          disabled={addingToCart || saving || itemCount === 0}
+        >
+          {addingToCart ? <Spinner label="Đang thêm" /> : <><ShoppingCart size={16} /> Thêm vào giỏ</>}
+        </Button>
+      </div>
     </div>
   )
 }

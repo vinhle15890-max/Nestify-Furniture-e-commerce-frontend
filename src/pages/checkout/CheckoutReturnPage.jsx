@@ -46,6 +46,7 @@ export function CheckoutReturnPage() {
 
   if (!orderId) {
     return (
+      <div className="min-h-screen bg-canvas text-ink">
       <div className="mx-auto max-w-md px-6 py-20">
         <h1 className="text-center font-display text-[clamp(1.8rem,3.5vw,2.6rem)] text-foreground">
           Xác nhận thanh toán
@@ -59,6 +60,7 @@ export function CheckoutReturnPage() {
           </p>
         </div>
       </div>
+      </div>
     )
   }
 
@@ -67,6 +69,7 @@ export function CheckoutReturnPage() {
   const succeeded = status && SUCCESS_STATUSES.includes(status)
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-md px-6 py-20">
       <h1 className="text-center font-display text-[clamp(1.8rem,3.5vw,2.6rem)] text-foreground">
         Xác nhận thanh toán
@@ -89,7 +92,9 @@ export function CheckoutReturnPage() {
           </>
         ) : succeeded ? (
           <>
-            <CheckCircle2 size={40} className="mx-auto text-secondary" />
+            {/* The single `confirmed` (#3D5A45) in the whole system — the one moment
+                a purchase is truly complete (State 4 Committed, Component Bible). */}
+            <CheckCircle2 size={40} className="mx-auto text-confirmed" />
             <p className="mt-4 font-display text-lg text-foreground">Thanh toán thành công!</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Đơn hàng của bạn đang được xử lý.{' '}
@@ -110,6 +115,7 @@ export function CheckoutReturnPage() {
           </>
         )}
       </div>
+    </div>
     </div>
   )
 }

@@ -17,6 +17,7 @@ import { RecentlyViewedStrip } from '../../components/personalization/RecentlyVi
 import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
 import { ProductOptions } from './ProductOptions'
+import { PlannerPreview } from './PlannerPreview'
 import { resolveVariant } from '../../lib/variantOptions'
 import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
@@ -87,6 +88,7 @@ export function ProductPage() {
   const [selectedVariantId, setSelectedVariantId] = useState(null)
   const [selectedOptions, setSelectedOptions] = useState({})
   const [quantity, setQuantity] = useState(1)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   useEffect(() => {
     if (!product) return
@@ -117,6 +119,8 @@ export function ProductPage() {
 
   useEffect(() => {
     setStockError(null)
+    // Changing variant re-filters the gallery — reset to the first visible image.
+    setSelectedMediaIndex(0)
   }, [selectedVariantId, selectedVariant?.id])
 
   useEffect(() => {
@@ -275,15 +279,18 @@ export function ProductPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
 
   if (isError || !product) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-20 lg:px-10">
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-3xl">
         <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm</h1>
         <div className="mt-8 rounded-card border border-border bg-surface p-8 text-center">
           <p className="text-muted-foreground">
@@ -294,10 +301,27 @@ export function ProductPage() {
           </p>
         </div>
       </div>
+      </div>
     )
   }
 
-  const activeMedia = media[selectedMediaIndex]
+  // Gallery filters to the selected variant's media + agnostic (variant_id null)
+  // media; media tagged to OTHER variants is hidden. Untagged products (all
+  // agnostic) → visibleMedia === media, i.e. unchanged from before.
+  const visibleMedia = media.filter(
+    (item) => item.variant_id == null || item.variant_id === selectedVariant?.id,
+  )
+  const activeMedia = visibleMedia[selectedMediaIndex]
+
+  // Planner Preview prefers the variant's OWN image when one exists (so "see it
+  // in a room" shows the right colour/finish), else a product-level (agnostic)
+  // image. `previewIsVariantSpecific` drives the honest-fallback disclaimer.
+  const variantImage = selectedVariant
+    ? media.find((item) => item.type === 'image' && item.variant_id === selectedVariant.id)
+    : undefined
+  const fallbackImage = media.find((item) => item.type === 'image' && item.variant_id == null)
+  const previewIsVariantSpecific = Boolean(variantImage)
+  const previewImage = variantImage?.url ?? fallbackImage?.url ?? null
   const sanitizedDescription = enhanceDescriptionHtml(product.description)
   const averageRating = reviews.length
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
@@ -317,6 +341,7 @@ export function ProductPage() {
   ]
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
       <Breadcrumb items={breadcrumbItems} />
 
@@ -339,9 +364,9 @@ export function ProductPage() {
             )}
           </div>
 
-          {media.length > 1 && (
+          {visibleMedia.length > 1 && (
             <div className="mt-4 flex flex-wrap gap-3">
-              {media.map((item, index) => (
+              {visibleMedia.map((item, index) => (
                 <button
                   key={item.id}
                   type="button"
@@ -425,7 +450,7 @@ export function ProductPage() {
           )}
 
           {selectedVariant && (
-            <p className={`mt-5 text-sm ${outOfStock ? 'text-destructive' : 'text-secondary'}`}>
+            <p className={`mt-5 text-sm ${outOfStock ? 'text-destructive' : 'text-ink/70'}`}>
               {outOfStock ? 'Hết hàng' : `Còn ${availableStock} sản phẩm`}
             </p>
           )}
@@ -460,13 +485,26 @@ export function ProductPage() {
               />
             </label>
 
+            {/* Exploratory Commitment (State 1→2): the primary act here is
+                SEEING it first, not buying. "Xem trong không gian" (primary,
+                ink — not confirmed/imagined) opens the Planner Preview and is
+                available to everyone, no login or variant selection required.
+                Purchase controls sit BELOW as the demoted secondary path. */}
+            <Button onClick={() => setPreviewOpen(true)} className="px-8 py-3.5">
+              Xem trong không gian
+            </Button>
+
             {token && staff ? (
-              <p className="rounded-control border border-border bg-surface-muted px-5 py-3.5 text-sm text-muted-foreground">
+              <p className="rounded-control border border-border bg-unbuilt/40 px-5 py-3.5 text-sm text-muted-foreground">
                 Tài khoản quản trị không thể mua hàng.
               </p>
             ) : token ? (
               <>
+                {/* Demoted to secondary (ink/unbuilt outline). Explicitly NOT the
+                    `confirmed` variant from the Checkout work — buying is not a
+                    Committed-state moment here. */}
                 <Button
+                  variant="secondary"
                   onClick={handleAddToCart}
                   disabled={!selectedVariant || outOfStock || addCartItem.isPending}
                   className="px-8 py-3.5"
@@ -655,6 +693,20 @@ export function ProductPage() {
       </section>
 
       {isCustomer && <RecentlyViewedStrip excludeSlug={productSlug} />}
+    </div>
+
+    <PlannerPreview
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      product={product}
+      image={previewImage}
+      slug={product.slug}
+      variantId={selectedVariant?.id}
+      // Only warn when we're showing a FALLBACK (agnostic) image that could
+      // differ from the selected variant. If the variant has its own tagged
+      // image, previewImage is variant-specific → no disclaimer needed.
+      showVariantNote={!previewIsVariantSpecific && (hasOptions || variants.length > 1)}
+    />
     </div>
   )
 }

@@ -19,8 +19,10 @@ export function CartDrawer() {
   return (
     <Dialog.Root open={isCartOpen} onOpenChange={(open) => !open && closeCart()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-md flex-col bg-surface shadow-card">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-sm" />
+        {/* data-theme lives on Content (not an ancestor): Radix portals this
+            subtree to document.body, so it can't inherit the app-tree scope. */}
+        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-md flex-col bg-surface text-ink shadow-card">
           <div className="flex items-center justify-between border-b border-border px-6 py-5">
             <Dialog.Title className="font-display text-xl text-foreground">Giỏ hàng</Dialog.Title>
             <Dialog.Description className="sr-only">
@@ -68,6 +70,12 @@ export function CartDrawer() {
                       <p className="truncate text-muted-foreground">
                         {item.variant?.name} · x{item.quantity}
                       </p>
+                      {/* imagined callback inherited from the Planner; only for room-sourced items. */}
+                      {item.room?.name && (
+                        <p className="mt-1 truncate text-imagined">
+                          Đã xác nhận vừa với phòng “{item.room.name}”.
+                        </p>
+                      )}
                     </div>
                     <p className="shrink-0 font-medium text-foreground">{formatPrice(item.subtotal)}</p>
                   </li>

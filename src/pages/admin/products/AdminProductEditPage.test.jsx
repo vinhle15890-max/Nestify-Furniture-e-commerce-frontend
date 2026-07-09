@@ -6,9 +6,11 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AdminProductEditPage } from './AdminProductEditPage'
 import * as productsApi from '../../../features/admin/products/api'
 import * as catalogApi from '../../../features/catalog/api'
+import * as mediaApi from '../../../features/admin/media/api'
 
 vi.mock('../../../features/admin/products/api')
 vi.mock('../../../features/catalog/api')
+vi.mock('../../../features/admin/media/api')
 
 // TipTap can't mount in jsdom; swap the editor for a plain labelled textarea so
 // the description still participates in the form and stays queryable.
@@ -333,38 +335,46 @@ describe('AdminProductEditPage', () => {
         expect.objectContaining({ name: 'Nâu đậm' }),
       ),
     )
-    expect(await screen.findByText('Nâu đậm')).toBeInTheDocument()
+    // Scope to the variants table cell — the media "Áp dụng cho" dropdowns also
+    // list variant names as <option>s, so a bare text query is now ambiguous.
+    expect(await screen.findByRole('cell', { name: 'Nâu đậm' })).toBeInTheDocument()
   })
 
-  it('uploads a new media file', async () => {
-    productsApi.uploadMedia.mockResolvedValue({
-      data: { id: 30, product_id: 1, url: 'https://example.com/3.jpg', type: 'image', sort_order: 3 },
+  it('attaches media picked from the library modal', async () => {
+    mediaApi.listMedia.mockResolvedValue({
+      data: [{ id: 5, url: 'https://example.com/lib.jpg', alt_text: 'Ảnh thư viện', usage_count: 0 }],
+      meta: { pagination: { total: 1, page: 1, last_page: 1, per_page: 24 } },
+    })
+    productsApi.attachMedia.mockResolvedValue({
+      data: [
+        ...baseProduct.media,
+        { id: 30, product_id: 1, media_asset_id: 5, url: 'https://example.com/lib.jpg', type: 'image', sort_order: 3 },
+      ],
     })
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }))
 
-    const file = new File(['content'], 'photo.jpg', { type: 'image/jpeg' })
-    await userEvent.upload(screen.getByLabelText('Tệp'), file)
-    await userEvent.click(screen.getByRole('button', { name: 'Tải lên' }))
+    const image = await screen.findByAltText('Ảnh thư viện')
+    await userEvent.click(image.closest('button'))
+    await userEvent.click(screen.getByRole('button', { name: /^chọn/i }))
 
-    await waitFor(() => expect(productsApi.uploadMedia).toHaveBeenCalledTimes(1))
-    const [productId, formData] = productsApi.uploadMedia.mock.calls[0]
-    expect(productId).toBe(1)
-    expect(formData.get('type')).toBe('image')
-    expect(formData.get('file').name).toBe(file.name)
+    await waitFor(() =>
+      expect(productsApi.attachMedia).toHaveBeenCalledWith(1, { media_asset_ids: [5], variant_id: null }),
+    )
   })
 
-  it('deletes a media item', async () => {
+  it('detaches a media item', async () => {
     productsApi.deleteMedia.mockResolvedValue({})
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
 
-    const deleteButtons = screen.getAllByRole('button', { name: 'Xóa' })
-    await userEvent.click(deleteButtons[0])
+    const detachButtons = screen.getAllByRole('button', { name: 'Gỡ' })
+    await userEvent.click(detachButtons[0])
 
     await waitFor(() => expect(productsApi.deleteMedia).toHaveBeenCalledWith(1, 10))
   })
@@ -385,6 +395,21 @@ describe('AdminProductEditPage', () => {
     await userEvent.click(moveDownButtons[0])
 
     await waitFor(() => expect(productsApi.reorderMedia).toHaveBeenCalledWith(1, [20, 10]))
+  })
+
+  it('tags a media item to a variant via the per-card dropdown', async () => {
+    productsApi.updateMedia.mockResolvedValue({
+      data: { id: 10, product_id: 1, variant_id: 100, url: 'https://example.com/1.jpg', type: 'image', sort_order: 1 },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+
+    const selects = screen.getAllByLabelText('Áp dụng cho')
+    await userEvent.selectOptions(selects[0], '100')
+
+    await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, 100))
   })
 
   it('switches to the info tab and flags it when a required field is missing on submit', async () => {

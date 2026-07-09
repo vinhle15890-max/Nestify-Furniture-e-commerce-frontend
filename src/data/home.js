@@ -9,13 +9,18 @@
 const UNSPLASH = 'https://images.unsplash.com'
 export const img = (id, w = 1200) => `${UNSPLASH}/${id}?auto=format&fit=crop&w=${w}&q=80`
 
+// Threshold copy (Story Bible §"Threshold (tiền-Chapter 1)", amended 2026-07-09
+// "Threshold-with-presence"). `question` stays open — an invitation, not a UI
+// instruction. `subtitle` keeps the product value proposition (imagine your
+// future home, see clearly before deciding) WITHOUT describing Planner
+// mechanics. `cta` invites exploration; it never launches or demonstrates the
+// Planner. Scrolling past the Hero remains the canonical Entry Event.
 export const hero = {
-  image: img('photo-1618220179428-22790b461013', 2000),
-  eyebrow: 'Nội thất thủ công',
+  eyebrow: 'Bắt đầu từ một căn phòng trống',
   title: 'Không gian sống mang hơi thở của bạn.',
-  subtitle: 'Nội thất bền vững, chế tác từ vật liệu tự nhiên cho cuộc sống hiện đại.',
-  primaryCta: { label: 'Khám phá bộ sưu tập', to: '/c/all' },
-  secondaryCta: { label: 'Xem Lookbook', to: '#lookbook' },
+  subtitle: 'Hình dung tổ ấm tương lai của bạn — nhìn thấy rõ mọi lựa chọn trước khi quyết định.',
+  question: 'Điều gì sẽ bắt đầu ở đây?',
+  cta: { label: 'Khám phá không gian', to: '/c/all' },
 }
 
 export const categories = [

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -163,6 +163,109 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
 
     expect(cartApi.addItem).toHaveBeenCalledWith({ variant_id: 1, quantity: 1 })
+  })
+
+  it('opens the Planner Preview from the primary "Xem trong không gian" CTA', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    // Primary CTA is the seeing-first action, not add-to-cart.
+    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Xem trong không gian')).toBeInTheDocument()
+    // A variant is selected by default → Continue is enabled (deep-link ready).
+    expect(within(dialog).getByRole('button', { name: /Tiếp tục trong Room Planner/ })).toBeEnabled()
+    // This product has 2 variants → honest "image may differ" disclaimer shows.
+    expect(within(dialog).getByText(/có thể khác với màu\/chất liệu/i)).toBeInTheDocument()
+  })
+
+  it('enables Continue for a single-variant product without any selection', async () => {
+    // One implicit variant, no option-selection UI → selectedVariant must
+    // default to variants[0] so Continue is never disabled forever.
+    catalogApi.getProduct.mockResolvedValue({
+      data: { ...productResponse.data, variant_options: [], variants: [productResponse.data.variants[0]] },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: /Tiếp tục trong Room Planner/ })).toBeEnabled()
+  })
+
+  it('filters the gallery to the selected variant + shared media, hiding other variants', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        media: [
+          { id: 1, product_id: 1, variant_id: 1, url: 'https://example.com/nau.jpg', type: 'image', sort_order: 1 },
+          { id: 2, product_id: 1, variant_id: 2, url: 'https://example.com/xam.jpg', type: 'image', sort_order: 2 },
+          { id: 3, product_id: 1, variant_id: null, url: 'https://example.com/shared.jpg', type: 'image', sort_order: 3 },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    // Default variant Nâu (id 1): active image = its own; thumbnails = nau + shared (xam hidden).
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/nau.jpg')
+    expect(screen.getAllByRole('button', { name: /Xem ảnh/ })).toHaveLength(2)
+
+    // Switch to Xám (id 2): active image switches, xam now visible, nau hidden.
+    await userEvent.click(screen.getByRole('button', { name: 'Xám' }))
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/xam.jpg')
+    expect(screen.getAllByRole('button', { name: /Xem ảnh/ })).toHaveLength(2)
+  })
+
+  it('Preview uses the variant image and drops the disclaimer when the variant has one', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        media: [
+          { id: 1, product_id: 1, variant_id: 1, url: 'https://example.com/nau.jpg', type: 'image', sort_order: 1 },
+          { id: 3, product_id: 1, variant_id: null, url: 'https://example.com/shared.jpg', type: 'image', sort_order: 2 },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
+    const dialog = await screen.findByRole('dialog')
+    // Variant Nâu has its own image → Preview shows it, no fallback disclaimer.
+    expect(within(dialog).getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/nau.jpg')
+    expect(within(dialog).queryByText(/có thể khác với màu\/chất liệu/i)).not.toBeInTheDocument()
+  })
+
+  it('Preview falls back to shared image and keeps the disclaimer when the variant has none', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        media: [
+          { id: 3, product_id: 1, variant_id: null, url: 'https://example.com/shared.jpg', type: 'image', sort_order: 1 },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
+    const dialog = await screen.findByRole('dialog')
+    // Selected variant has no tagged image → fallback shared image + disclaimer stays.
+    expect(within(dialog).getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/shared.jpg')
+    expect(within(dialog).getByText(/có thể khác với màu\/chất liệu/i)).toBeInTheDocument()
+  })
+
+  it('exposes the Planner Preview to guests (no login required to see it first)', async () => {
+    useAuthStore.setState({ token: null, user: null })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByRole('button', { name: 'Xem trong không gian' })).toBeEnabled()
+    // Purchase path for guests is still the login link, not add-to-cart.
+    expect(screen.queryByRole('button', { name: 'Thêm vào giỏ' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Đăng nhập để mua hàng' })).toBeInTheDocument()
   })
 
   it('hides the add-to-cart button and shows a notice for staff users', async () => {

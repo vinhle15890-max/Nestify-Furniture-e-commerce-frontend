@@ -104,3 +104,23 @@ export function useDeleteMedia() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
   })
 }
+
+export function useUpdateMedia() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ productId, mediaId, variantId }) => productsApi.updateMedia(productId, mediaId, variantId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+  })
+}
+
+// Attach media-library assets (from the media feature) to a product/variant.
+export function useAttachMedia() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ productId, mediaAssetIds, variantId = null }) =>
+      productsApi.attachMedia(productId, { media_asset_ids: mediaAssetIds, variant_id: variantId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+  })
+}

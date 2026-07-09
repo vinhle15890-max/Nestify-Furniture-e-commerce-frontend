@@ -42,23 +42,21 @@ export function Header() {
     overlay ? 'bg-transparent' : 'border-b border-border bg-surface/90 backdrop-blur-md'
   }`
 
-  const tone = overlay ? 'text-white' : 'text-foreground'
-  const interactive = overlay ? 'hover:text-white/70' : 'hover:text-accent'
+  // The hero is light (`bg-canvas`), so even when the header floats transparently
+  // over it at the top of home, text must stay dark ink — white would vanish.
+  const tone = 'text-foreground'
+  const interactive = 'hover:text-accent'
 
   const navLinkClass = ({ isActive }) =>
     `text-sm tracking-wide transition-colors duration-200 ease-out ${focusRing} ${tone} ${
-      isActive ? (overlay ? 'text-white' : 'text-accent') : interactive
+      isActive ? 'text-accent' : interactive
     }`
 
   return (
     <header className={headerClass}>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5 lg:px-10">
         <Link to="/" aria-label="Nestify — trang chủ" className={`flex items-center ${focusRing}`}>
-          {overlay ? (
-            <span className="font-display text-2xl tracking-tight text-white">Nestify</span>
-          ) : (
-            <Logo className="h-10 w-auto" />
-          )}
+          <Logo className="h-10 w-auto" />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">

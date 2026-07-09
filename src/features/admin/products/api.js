@@ -46,6 +46,16 @@ export function reorderMedia(productId, ids) {
   return apiClient.patch(`/admin/products/${productId}/media/reorder`, { ids })
 }
 
+// Tag a media item to a variant (variantId) or back to agnostic (null).
+export function updateMedia(productId, mediaId, variantId) {
+  return apiClient.patch(`/admin/products/${productId}/media/${mediaId}`, { variant_id: variantId })
+}
+
 export function deleteMedia(productId, mediaId) {
   return apiClient.delete(`/admin/products/${productId}/media/${mediaId}`)
+}
+
+// Attach existing media-library assets to a product (optionally scoped to a variant).
+export function attachMedia(productId, { media_asset_ids, variant_id = null }) {
+  return apiClient.post(`/admin/products/${productId}/media/attach`, { media_asset_ids, variant_id })
 }

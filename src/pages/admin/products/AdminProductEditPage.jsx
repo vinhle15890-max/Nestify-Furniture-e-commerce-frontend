@@ -16,11 +16,13 @@ import { useCategories } from '../../../features/catalog/hooks'
 import {
   useAdminProduct,
   useUpdateProduct,
-  useUploadMedia,
   useReorderMedia,
   useDeleteMedia,
+  useUpdateMedia,
+  useAttachMedia,
   useGenerateDescription,
 } from '../../../features/admin/products/hooks'
+import { MediaLibraryModal } from '../../../features/admin/media/MediaLibraryModal'
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 import { formatPrice } from '../../../lib/format'
@@ -104,15 +106,16 @@ function ProductEditor({ initialProduct }) {
   const categoryOptions = useMemo(() => flattenCategories(categoriesData?.data ?? []), [categoriesData])
 
   const updateProduct = useUpdateProduct()
-  const uploadMedia = useUploadMedia()
   const reorderMedia = useReorderMedia()
   const deleteMedia = useDeleteMedia()
+  const updateMedia = useUpdateMedia()
+  const attachMedia = useAttachMedia()
   const generateDescription = useGenerateDescription()
   const addToast = useToastStore((state) => state.addToast)
 
   const [variantModalOpen, setVariantModalOpen] = useState(false)
   const [editingVariant, setEditingVariant] = useState(null)
-  const [mediaType, setMediaType] = useState('image')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [variantPage, setVariantPage] = useState(1)
   const [variantOptions, setVariantOptions] = useState(initialProduct?.variant_options ?? [])
   const [generatingField, setGeneratingField] = useState(null)
@@ -266,24 +269,13 @@ function ProductEditor({ initialProduct }) {
     })
   }
 
-  const handleUploadMedia = async (event) => {
-    event.preventDefault()
-    const form = event.target
-    const file = form.elements.file.files[0]
-    if (!file) return
-
-    const formData = new FormData()
-    formData.append('type', form.elements.type.value)
-    formData.append('file', file)
-
+  const handleAttachMedia = async (assets) => {
     try {
-      const response = await uploadMedia.mutateAsync({ productId: product.id, formData })
-      setProduct((current) => ({ ...current, media: [...(current.media ?? []), response.data] }))
-      addToast({ title: 'Đã tải lên tệp.', variant: 'success' })
-      event.target.reset()
-      setMediaType('image')
+      const response = await attachMedia.mutateAsync({ productId: product.id, mediaAssetIds: assets.map((a) => a.id) })
+      setProduct((current) => ({ ...current, media: response.data }))
+      addToast({ title: 'Đã thêm ảnh vào sản phẩm.', variant: 'success' })
     } catch (error) {
-      addToast({ title: 'Không thể tải lên tệp.', description: error.message, variant: 'error' })
+      addToast({ title: 'Không thể thêm ảnh.', description: error.message, variant: 'error' })
     }
   }
 
@@ -291,9 +283,9 @@ function ProductEditor({ initialProduct }) {
     try {
       await deleteMedia.mutateAsync({ productId: product.id, mediaId: media.id })
       setProduct((current) => ({ ...current, media: (current.media ?? []).filter((item) => item.id !== media.id) }))
-      addToast({ title: 'Đã xóa tệp.', variant: 'success' })
+      addToast({ title: 'Đã gỡ ảnh khỏi sản phẩm.', variant: 'success' })
     } catch (error) {
-      addToast({ title: 'Không thể xóa tệp.', description: error.message, variant: 'error' })
+      addToast({ title: 'Không thể gỡ ảnh.', description: error.message, variant: 'error' })
     }
   }
 
@@ -314,7 +306,22 @@ function ProductEditor({ initialProduct }) {
     }
   }
 
+  // Tag a media item to a variant (or back to "all variants"). Empty select → null.
+  const handleTagMedia = async (media, value) => {
+    const variantId = value === '' ? null : Number(value)
+    try {
+      const response = await updateMedia.mutateAsync({ productId: product.id, mediaId: media.id, variantId })
+      setProduct((current) => ({
+        ...current,
+        media: (current.media ?? []).map((item) => (item.id === media.id ? response.data : item)),
+      }))
+    } catch (error) {
+      addToast({ title: 'Không thể gán ảnh cho phiên bản.', description: error.message, variant: 'error' })
+    }
+  }
+
   const sortedMedia = [...(product.media ?? [])].sort((a, b) => a.sort_order - b.sort_order)
+  const attachedAssetIds = (product.media ?? []).map((m) => m.media_asset_id).filter(Boolean)
 
   const allVariants = product.variants ?? []
   const variantLastPage = Math.max(1, Math.ceil(allVariants.length / VARIANTS_PER_PAGE))
@@ -575,6 +582,23 @@ function ProductEditor({ initialProduct }) {
                     <p className="text-xs text-muted-foreground">
                       {media.type === 'video' ? 'Video' : 'Ảnh'} · Thứ tự {media.sort_order}
                     </p>
+                    {product.variants?.length > 0 && (
+                      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                        Áp dụng cho
+                        <select
+                          value={media.variant_id ?? ''}
+                          onChange={(event) => handleTagMedia(media, event.target.value)}
+                          className="rounded-control border border-border bg-background px-2 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <option value="">Tất cả phiên bản</option>
+                          {product.variants.map((variant) => (
+                            <option key={variant.id} value={variant.id}>
+                              {variant.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <div className="flex gap-2">
                         <button
@@ -598,50 +622,29 @@ function ProductEditor({ initialProduct }) {
                       </div>
                       <button
                         type="button"
+                        aria-label="Gỡ"
                         className="cursor-pointer text-destructive hover:opacity-80"
                         onClick={() => handleDeleteMedia(media)}
                       >
-                        Xóa
+                        Gỡ
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <form onSubmit={handleUploadMedia} className="mt-4 flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="media-type" className="text-sm font-medium text-foreground">
-                    Loại tệp
-                  </label>
-                  <select
-                    id="media-type"
-                    name="type"
-                    value={mediaType}
-                    onChange={(event) => setMediaType(event.target.value)}
-                    className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="image">Ảnh</option>
-                    <option value="video">Video</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="media-file" className="text-sm font-medium text-foreground">
-                    Tệp
-                  </label>
-                  <input
-                    id="media-file"
-                    name="file"
-                    type="file"
-                    accept={mediaType === 'video' ? 'video/mp4,video/quicktime,video/webm' : 'image/jpeg,image/png,image/webp'}
-                    className="text-sm text-foreground"
-                  />
-                </div>
-
-                <Button type="submit" disabled={uploadMedia.isPending}>
-                  Tải lên
+              <div className="mt-4">
+                <Button type="button" variant="secondary" onClick={() => setPickerOpen(true)}>
+                  Thêm ảnh
                 </Button>
-              </form>
+              </div>
+              <MediaLibraryModal
+                open={pickerOpen}
+                onClose={() => setPickerOpen(false)}
+                multiple
+                attachedAssetIds={attachedAssetIds}
+                onSelect={handleAttachMedia}
+              />
             </div>
           </Panel>
         </TabPanel>

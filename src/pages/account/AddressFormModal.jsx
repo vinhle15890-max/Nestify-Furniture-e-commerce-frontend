@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Modal } from '../../components/Modal'
+import { BecomingModal } from '../../components/BecomingModal'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { useCreateAddress, useUpdateAddress } from '../../features/addresses/hooks'
@@ -136,7 +136,7 @@ export function AddressFormModal({ open, onOpenChange, address }) {
   }
 
   return (
-    <Modal
+    <BecomingModal
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}
@@ -181,6 +181,6 @@ export function AddressFormModal({ open, onOpenChange, address }) {
           {isEditing ? 'Lưu thay đổi' : 'Thêm địa chỉ'}
         </Button>
       </form>
-    </Modal>
+    </BecomingModal>
   )
 }

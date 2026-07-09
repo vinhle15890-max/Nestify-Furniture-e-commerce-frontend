@@ -6,9 +6,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { AdminCategoriesPage } from './AdminCategoriesPage'
 import { Toaster } from '../../../components/Toast'
 import * as categoriesApi from '../../../features/admin/categories/api'
+import * as mediaApi from '../../../features/admin/media/api'
 import { ApiError } from '../../../lib/errors'
 
 vi.mock('../../../features/admin/categories/api')
+vi.mock('../../../features/admin/media/api')
 
 const tree = [
   {
@@ -85,12 +87,13 @@ describe('AdminCategoriesPage', () => {
     )
   })
 
-  it('uploads an image and submits its url + public_id with the category', async () => {
-    categoriesApi.uploadImage.mockResolvedValue({
-      data: { url: 'https://res.cloudinary.com/x/ghe.webp', public_id: 'furniture/products/ghe' },
+  it('picks an image from the media library and submits its media_asset_id with the category', async () => {
+    mediaApi.listMedia.mockResolvedValue({
+      data: [{ id: 5, url: 'https://example.com/lib/ghe.jpg', alt_text: 'Ảnh thư viện', usage_count: 0 }],
+      meta: { pagination: { total: 1, page: 1, last_page: 1, per_page: 24 } },
     })
     categoriesApi.createCategory.mockResolvedValue({
-      data: { id: 5, name: 'Ghế', slug: 'ghe', parent_id: null, image_url: 'https://res.cloudinary.com/x/ghe.webp', children: [] },
+      data: { id: 5, name: 'Ghế', slug: 'ghe', parent_id: null, image_url: 'https://example.com/lib/ghe.jpg', media_asset_id: 5, children: [] },
     })
     renderPage()
     await screen.findByText('Phòng khách')
@@ -99,11 +102,13 @@ describe('AdminCategoriesPage', () => {
     await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Ghế')
     await userEvent.type(screen.getByLabelText('Slug'), 'ghe')
 
-    const file = new File(['x'], 'ghe.jpg', { type: 'image/jpeg' })
-    await userEvent.upload(screen.getByLabelText('Tải ảnh lên'), file)
+    await userEvent.click(screen.getByRole('button', { name: 'Chọn ảnh từ thư viện' }))
 
-    await waitFor(() => expect(categoriesApi.uploadImage).toHaveBeenCalled())
-    // The preview image should now be shown.
+    const image = await screen.findByAltText('Ảnh thư viện')
+    await userEvent.click(image.closest('button'))
+    await userEvent.click(screen.getByRole('button', { name: /^chọn/i }))
+
+    // The preview image should now be shown in the form.
     expect(await screen.findByAltText('Ảnh đại diện danh mục')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
@@ -113,8 +118,7 @@ describe('AdminCategoriesPage', () => {
         expect.objectContaining({
           name: 'Ghế',
           slug: 'ghe',
-          image_url: 'https://res.cloudinary.com/x/ghe.webp',
-          image_public_id: 'furniture/products/ghe',
+          media_asset_id: 5,
         }),
       ),
     )

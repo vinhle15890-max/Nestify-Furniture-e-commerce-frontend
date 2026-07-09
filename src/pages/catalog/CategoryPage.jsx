@@ -30,17 +30,17 @@ const PRICE_RANGES = [
 ]
 
 const selectClass =
-  'rounded-control border border-border-strong bg-surface px-4 py-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+  'rounded-control border border-unbuilt bg-canvas px-4 py-2.5 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
 
 function FilterChip({ label, onRemove }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-surface py-1 pl-3 pr-1.5 text-xs text-foreground">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-unbuilt bg-canvas py-1 pl-3 pr-1.5 text-xs text-ink">
       {label}
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Bỏ lọc ${label}`}
-        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground"
+        className="rounded-full p-0.5 text-ink/60 transition-colors hover:bg-unbuilt/40 hover:text-ink"
       >
         <X size={13} />
       </button>
@@ -146,168 +146,170 @@ export function CategoryPage() {
   const handleCategoryChange = (value) => navigate(value === 'all' ? '/all' : `/c/${value}`)
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
-      <div className="mb-6">
-        <Breadcrumb items={breadcrumbItems} />
-      </div>
-      <Reveal>
-        <p className="eyebrow">Bộ sưu tập</p>
-        <h1 className="mt-4 font-display text-[clamp(2rem,4vw,3.2rem)] leading-tight text-foreground">
-          {isAll ? 'Tất cả sản phẩm' : (category?.name ?? 'Danh mục')}
-        </h1>
-        {category?.description && (
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">{category.description}</p>
-        )}
-      </Reveal>
-
-      {category?.children?.length > 0 && (
-        <div className="mt-8 flex flex-wrap gap-2">
-          {category.children.map((child) => (
-            <Link
-              key={child.id}
-              to={`/c/${child.slug}`}
-              className="rounded-full border border-border-strong px-4 py-1.5 text-sm text-foreground transition-colors duration-200 hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {child.name}
-            </Link>
-          ))}
+    <div className="min-h-screen bg-canvas text-ink">
+      <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
+        <div className="mb-6">
+          <Breadcrumb items={breadcrumbItems} />
         </div>
-      )}
+        <Reveal>
+          <p className="eyebrow">Bộ sưu tập</p>
+          <h1 className="mt-4 font-display text-[clamp(2rem,4vw,3.2rem)] leading-tight text-ink">
+            {isAll ? 'Tất cả sản phẩm' : (category?.name ?? 'Danh mục')}
+          </h1>
+          {category?.description && (
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink/70">{category.description}</p>
+          )}
+        </Reveal>
 
-      {/* Search + filter + sort toolbar */}
-      <div className="mt-10 border-b border-border pb-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <SearchInput
-            key={`search-${resetKey}`}
-            placeholder="Tìm sản phẩm trong danh mục..."
-            onDebouncedChange={setSearch}
-            className="w-full lg:max-w-sm"
-          />
-
-          <div className="flex flex-wrap gap-4">
-            <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Danh mục
-              <select
-                value={currentCategoryValue}
-                onChange={(event) => handleCategoryChange(event.target.value)}
-                className={selectClass}
+        {category?.children?.length > 0 && (
+          <div className="mt-8 flex flex-wrap gap-2">
+            {category.children.map((child) => (
+              <Link
+                key={child.id}
+                to={`/c/${child.slug}`}
+                className="rounded-full border border-unbuilt px-4 py-1.5 text-sm text-ink transition-colors duration-200 hover:border-ink hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
-                <option value="all">Tất cả sản phẩm</option>
-                {!isAll && !flatCategories.some((c) => c.slug === categorySlug) && (
-                  <option value={categorySlug}>{category?.name ?? 'Danh mục hiện tại'}</option>
-                )}
-                {flatCategories.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {`${'— '.repeat(c.depth)}${c.name}`}
-                  </option>
-                ))}
-              </select>
-            </label>
+                {child.name}
+              </Link>
+            ))}
+          </div>
+        )}
 
-            {woodOptions.length > 0 && (
-              <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Chất liệu gỗ
-                <select value={woodType} onChange={(event) => setWoodType(event.target.value)} className={selectClass}>
-                  <option value="">Tất cả</option>
-                  {woodOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
+        {/* Search + filter + sort toolbar */}
+        <div className="mt-10 border-b border-unbuilt pb-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <SearchInput
+              key={`search-${resetKey}`}
+              placeholder="Tìm sản phẩm trong danh mục..."
+              onDebouncedChange={setSearch}
+              className="w-full lg:max-w-sm"
+            />
+
+            <div className="flex flex-wrap gap-4">
+              <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-ink/70">
+                Danh mục
+                <select
+                  value={currentCategoryValue}
+                  onChange={(event) => handleCategoryChange(event.target.value)}
+                  className={selectClass}
+                >
+                  <option value="all">Tất cả sản phẩm</option>
+                  {!isAll && !flatCategories.some((c) => c.slug === categorySlug) && (
+                    <option value={categorySlug}>{category?.name ?? 'Danh mục hiện tại'}</option>
+                  )}
+                  {flatCategories.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {`${'— '.repeat(c.depth)}${c.name}`}
                     </option>
                   ))}
                 </select>
               </label>
+
+              {woodOptions.length > 0 && (
+                <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-ink/70">
+                  Chất liệu gỗ
+                  <select value={woodType} onChange={(event) => setWoodType(event.target.value)} className={selectClass}>
+                    <option value="">Tất cả</option>
+                    {woodOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-ink/70">
+                Khoảng giá
+                <select value={priceKey} onChange={(event) => setPriceKey(event.target.value)} className={selectClass}>
+                  {PRICE_RANGES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-ink/70">
+                Sắp xếp
+                <select value={sort} onChange={(event) => setSort(event.target.value)} className={selectClass}>
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {/* Result count + active filter chips */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-sm text-ink/70">
+              {productsQuery.isLoading
+                ? 'Đang tải...'
+                : `${products.length}${productsQuery.hasNextPage ? '+' : ''} sản phẩm`}
+            </span>
+            {search && <FilterChip label={`“${search}”`} onRemove={clearSearch} />}
+            {woodType && <FilterChip label={woodType} onRemove={() => setWoodType('')} />}
+            {priceKey && <FilterChip label={priceRange.label} onRemove={() => setPriceKey('')} />}
+            {sort && <FilterChip label={sortLabel} onRemove={() => setSort('')} />}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="ml-1 text-xs font-medium text-ink underline decoration-unbuilt underline-offset-4 transition-colors hover:text-ink/60"
+              >
+                Xóa tất cả
+              </button>
             )}
-
-            <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Khoảng giá
-              <select value={priceKey} onChange={(event) => setPriceKey(event.target.value)} className={selectClass}>
-                {PRICE_RANGES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Sắp xếp
-              <select value={sort} onChange={(event) => setSort(event.target.value)} className={selectClass}>
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
           </div>
         </div>
 
-        {/* Result count + active filter chips */}
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-sm text-muted-foreground">
-            {productsQuery.isLoading
-              ? 'Đang tải...'
-              : `${products.length}${productsQuery.hasNextPage ? '+' : ''} sản phẩm`}
-          </span>
-          {search && <FilterChip label={`“${search}”`} onRemove={clearSearch} />}
-          {woodType && <FilterChip label={woodType} onRemove={() => setWoodType('')} />}
-          {priceKey && <FilterChip label={priceRange.label} onRemove={() => setPriceKey('')} />}
-          {sort && <FilterChip label={sortLabel} onRemove={() => setSort('')} />}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="ml-1 text-xs font-medium text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent"
+        {productsQuery.isLoading ? (
+          <div className="mt-20 flex justify-center">
+            <Spinner />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="mt-16 rounded-card border border-unbuilt bg-canvas p-12 text-center">
+            <PackageSearch size={36} className="mx-auto text-unbuilt" />
+            <p className="mt-4 text-ink/70">
+              {hasActiveFilters
+                ? 'Không có sản phẩm nào khớp bộ lọc.'
+                : 'Chưa có sản phẩm nào trong danh mục này.'}
+            </p>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="mt-4 text-sm text-ink underline decoration-unbuilt underline-offset-4 transition-colors hover:text-ink/60"
+              >
+                Xóa bộ lọc
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 lg:grid-cols-4">
+            {products.map((product, index) => (
+              <Reveal key={product.id} delay={(index % 4) * 70}>
+                <ProductCard product={product} />
+              </Reveal>
+            ))}
+          </div>
+        )}
+
+        {productsQuery.hasNextPage && (
+          <div className="mt-16 flex justify-center">
+            <Button
+              variant="secondary"
+              onClick={() => productsQuery.fetchNextPage()}
+              disabled={productsQuery.isFetchingNextPage}
             >
-              Xóa tất cả
-            </button>
-          )}
-        </div>
+              {productsQuery.isFetchingNextPage ? 'Đang tải...' : 'Tải thêm'}
+            </Button>
+          </div>
+        )}
       </div>
-
-      {productsQuery.isLoading ? (
-        <div className="mt-20 flex justify-center">
-          <Spinner />
-        </div>
-      ) : products.length === 0 ? (
-        <div className="mt-16 rounded-card border border-border bg-surface p-12 text-center">
-          <PackageSearch size={36} className="mx-auto text-border-strong" />
-          <p className="mt-4 text-muted-foreground">
-            {hasActiveFilters
-              ? 'Không có sản phẩm nào khớp bộ lọc.'
-              : 'Chưa có sản phẩm nào trong danh mục này.'}
-          </p>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="mt-4 text-sm text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent"
-            >
-              Xóa bộ lọc
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((product, index) => (
-            <Reveal key={product.id} delay={(index % 4) * 70}>
-              <ProductCard product={product} />
-            </Reveal>
-          ))}
-        </div>
-      )}
-
-      {productsQuery.hasNextPage && (
-        <div className="mt-16 flex justify-center">
-          <Button
-            variant="secondary"
-            onClick={() => productsQuery.fetchNextPage()}
-            disabled={productsQuery.isFetchingNextPage}
-          >
-            {productsQuery.isFetchingNextPage ? 'Đang tải...' : 'Tải thêm'}
-          </Button>
-        </div>
-      )}
     </div>
   )
 }

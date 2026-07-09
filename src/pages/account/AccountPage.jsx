@@ -51,6 +51,7 @@ export function AccountPage() {
   const initial = (user?.name?.trim()?.[0] ?? '?').toUpperCase()
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -191,6 +192,7 @@ export function AccountPage() {
           )}
         </>
       )}
+    </div>
     </div>
   )
 }

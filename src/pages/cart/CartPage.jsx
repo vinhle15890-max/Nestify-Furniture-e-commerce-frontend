@@ -30,7 +30,8 @@ export function CartPage() {
 
   if (!token) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-20 lg:px-10">
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-2xl">
         <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Giỏ hàng</h1>
         <div className="mt-8 rounded-card border border-border bg-surface p-10 text-center">
           <ShoppingBag size={32} className="mx-auto text-border-strong" />
@@ -43,13 +44,16 @@ export function CartPage() {
           </p>
         </div>
       </div>
+      </div>
     )
   }
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
@@ -95,6 +99,7 @@ export function CartPage() {
   }
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Giỏ hàng</h1>
 
@@ -147,6 +152,14 @@ export function CartPage() {
                         )}
                         <p className="text-sm text-muted-foreground">{item.variant?.name} · {item.variant?.sku}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{formatPrice(item.unit_price_snapshot)}</p>
+                        {/* Reaffirmation, not persuasion: `imagined` inherited from the Planner,
+                            one step before `confirmed` at Checkout. Only when the item genuinely
+                            came from a saved room — no fabricated callback otherwise. */}
+                        {item.room?.name && (
+                          <p className="mt-1.5 text-sm text-imagined">
+                            Đã xác nhận vừa với phòng “{item.room.name}” bạn đã tạo.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -240,7 +253,7 @@ export function CartPage() {
                 <>
                   <div className="flex items-center justify-between text-muted-foreground">
                     <span>Giảm giá</span>
-                    <span className="text-secondary">-{formatPrice(voucherResult.discount_amount)}</span>
+                    <span className="text-ink">-{formatPrice(voucherResult.discount_amount)}</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-border pt-2.5 text-base font-medium text-foreground">
                     <span>Thành tiền</span>
@@ -265,6 +278,7 @@ export function CartPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   )
 }

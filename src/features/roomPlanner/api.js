@@ -11,3 +11,7 @@ export function createScene(payload) {
 export function updateScene(id, payload) {
   return apiClient.patch(`/room-scenes/${id}`, payload)
 }
+
+export function addSceneToCart(id) {
+  return apiClient.post(`/room-scenes/${id}/add-to-cart`)
+}

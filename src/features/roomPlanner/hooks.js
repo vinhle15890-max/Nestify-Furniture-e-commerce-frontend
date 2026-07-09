@@ -28,3 +28,13 @@ export function useUpdateScene() {
     },
   })
 }
+
+export function useAddSceneToCart() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => roomPlannerApi.addSceneToCart(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] })
+    },
+  })
+}

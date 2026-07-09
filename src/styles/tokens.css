@@ -1,24 +1,38 @@
 @theme {
-  /* ── Colors — Warm Luxury Editorial ──────────────────────────────
-     Light & airy. Dark used sparingly (ink for primary actions only).
-     Brass is decorative/large-display + hover; never small body text
-     on light (fails contrast). Olive = secondary. */
-  --color-background: #F7F4EE;        /* primary cream */
-  --color-surface: #FAF8F3;           /* cards / raised surfaces */
-  --color-surface-alt: #F1ECE1;       /* alternating section bands */
-  --color-foreground: #1F1F1D;        /* primary ink text */
-  --color-muted-foreground: #5C584F;  /* secondary text (AA on cream) */
-  --color-border: rgba(31, 31, 29, 0.08);
-  --color-border-strong: rgba(31, 31, 29, 0.16);
+  /* ── Colors — "The Becoming Room" DNA is now the DEFAULT palette ──────────
+     (docs/nestify/03_Design_DNA.md). The storefront and Room Planner consume
+     these `:root` defaults directly — no per-page wrapper needed. The legacy
+     "Warm Luxury Editorial" palette survives ONLY for the admin back-office,
+     restored via `[data-theme='legacy']` (globals.css), which AdminLayout
+     stamps on <body> (so admin dialogs/portals inherit it too) + on its shell
+     root. Semantic tokens below mirror the remaps the old becoming scope did. */
+  --color-background: #F2F0EB;        /* canvas */
+  --color-surface: #F2F0EB;           /* canvas (Becoming has no separate raised surface) */
+  --color-surface-alt: #C9C4B8;       /* unbuilt */
+  --color-foreground: #26262B;        /* ink */
+  --color-muted-foreground: color-mix(in oklab, #26262B 70%, transparent); /* ink/70 — AA on canvas */
+  --color-border: #C9C4B8;            /* unbuilt */
+  --color-border-strong: #C9C4B8;     /* unbuilt */
 
-  --color-primary: #1F1F1D;           /* ink — primary buttons/actions */
-  --color-primary-hover: #34322E;
-  --color-accent: #B08D57;            /* brushed brass — accents/hover */
-  --color-accent-hover: #9A7A4A;
-  --color-secondary: #6D7860;         /* olive */
-  --color-secondary-hover: #5C6651;
-  --color-destructive: #B4402C;
-  --color-ring: #B08D57;
+  --color-primary: #26262B;           /* ink — primary buttons/actions */
+  --color-primary-hover: #26262B;
+  --color-accent: #26262B;            /* ink (brass has no place in Becoming) */
+  --color-accent-hover: #26262B;
+  --color-secondary: #26262B;         /* ink (olive folded to ink) */
+  --color-secondary-hover: #26262B;
+  --color-destructive: #B4402C;       /* unchanged across both palettes */
+  --color-ring: #26262B;              /* ink focus ring */
+
+  /* Raw Becoming palette — the fixed targets, never remapped. `imagined` (peak
+     "Mentally Real" CTA, e.g. Planner "Lưu") and `confirmed` (Committed-state
+     moments only — Checkout confirm + order-success) keep their restricted
+     roles regardless of default/legacy scope. */
+  --color-canvas: #F2F0EB;
+  --color-ink: #26262B;
+  --color-unbuilt: #C9C4B8;    /* outline / empty / not-yet-decided */
+  --color-emerging: #8A7C68;   /* being considered, not yet certain */
+  --color-imagined: #B5754A;   /* clearly imagined — warmest; restricted CTA */
+  --color-confirmed: #3D5A45;  /* Committed state (State 4) only */
 
   /* ── Typography ── */
   --font-display: "Fraunces Variable", "Fraunces", serif;

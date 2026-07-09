@@ -22,8 +22,10 @@ export function WishlistPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-4xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-4xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
@@ -46,6 +48,7 @@ export function WishlistPage() {
   }
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm yêu thích</h1>
 
@@ -124,6 +127,7 @@ export function WishlistPage() {
           ))}
         </ul>
       )}
+    </div>
     </div>
   )
 }

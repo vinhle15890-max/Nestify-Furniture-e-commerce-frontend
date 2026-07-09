@@ -10,6 +10,7 @@ import { Spinner } from '../components/Spinner'
 const named = (loader, name) => lazy(() => loader().then((module) => ({ default: module[name] })))
 
 const HomePage = named(() => import('../pages/home/HomePage'), 'HomePage')
+const AboutPage = named(() => import('../pages/about/AboutPage'), 'AboutPage')
 const CategoryPage = named(() => import('../pages/catalog/CategoryPage'), 'CategoryPage')
 const ProductPage = named(() => import('../pages/product/ProductPage'), 'ProductPage')
 const CartPage = named(() => import('../pages/cart/CartPage'), 'CartPage')
@@ -32,6 +33,7 @@ const AdminProductsPage = named(() => import('../pages/admin/products/AdminProdu
 const AdminProductCreatePage = named(() => import('../pages/admin/products/AdminProductCreatePage'), 'AdminProductCreatePage')
 const AdminProductEditPage = named(() => import('../pages/admin/products/AdminProductEditPage'), 'AdminProductEditPage')
 const AdminSeoReviewPage = named(() => import('../pages/admin/products/AdminSeoReviewPage'), 'AdminSeoReviewPage')
+const AdminMediaLibraryPage = named(() => import('../pages/admin/media/AdminMediaLibraryPage'), 'AdminMediaLibraryPage')
 const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPage'), 'AdminOrdersPage')
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
 const AdminReviewsPage = named(() => import('../pages/admin/reviews/AdminReviewsPage'), 'AdminReviewsPage')
@@ -56,6 +58,7 @@ export const routes = [
     element: <Layout />,
     children: [
       { index: true, element: lazyPage(<HomePage />) },
+      { path: 'about', element: lazyPage(<AboutPage />) },
       { path: 'c/:categorySlug', element: lazyPage(<CategoryPage />) },
       { path: 'p/:productSlug', element: lazyPage(<ProductPage />) },
       { path: 'cart', element: lazyPage(<CartPage />) },
@@ -101,6 +104,7 @@ export const routes = [
           { path: 'products/new', element: lazyPage(<AdminProductCreatePage />) },
           { path: 'products/seo', element: lazyPage(<AdminSeoReviewPage />) },
           { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
+          { path: 'media', element: lazyPage(<AdminMediaLibraryPage />) },
           { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
           { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
           { path: 'reviews', element: lazyPage(<AdminReviewsPage />) },

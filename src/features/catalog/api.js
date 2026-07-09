@@ -30,8 +30,11 @@ export function getBestSellers({ limit } = {}) {
   return apiClient.get('/products/best-sellers', { params })
 }
 
-export function getProduct(slug) {
-  return apiClient.get(`/products/${slug}`)
+// `config` lets a caller pass a request-scoped axios config (e.g. a per-call
+// `timeout`) WITHOUT mutating the shared apiClient instance. Default `{}` keeps
+// every existing caller (ProductPage) unchanged.
+export function getProduct(slug, config = {}) {
+  return apiClient.get(`/products/${slug}`, config)
 }
 
 export function getProductReviews(slug, { cursor, limit } = {}) {

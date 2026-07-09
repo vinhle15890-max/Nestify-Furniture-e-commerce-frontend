@@ -69,6 +69,38 @@ describe('CartPage', () => {
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 
+  it('shows the imagined room callback only for room-sourced items', async () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
+    cartApi.getCart.mockResolvedValue({
+      data: {
+        id: 1,
+        items: [
+          {
+            id: 10,
+            variant: { id: 1, sku: 'SOFA-NAU', name: 'Nâu', available_stock: 5, is_active: true },
+            room: { id: 7, name: 'Phòng khách' },
+            quantity: 1,
+            unit_price_snapshot: 5000000,
+            subtotal: 5000000,
+          },
+          {
+            id: 11,
+            variant: { id: 2, sku: 'BAN-GO', name: 'Gỗ', available_stock: 5, is_active: true },
+            quantity: 1,
+            unit_price_snapshot: 2000000,
+            subtotal: 2000000,
+          },
+        ],
+        total: 7000000,
+      },
+    })
+    renderPage()
+
+    expect(await screen.findByText(/Đã xác nhận vừa với phòng “Phòng khách” bạn đã tạo/)).toBeInTheDocument()
+    // The room-less item must not fabricate a callback (Bible: no fake confirmation).
+    expect(screen.getAllByText(/Đã xác nhận vừa với phòng/)).toHaveLength(1)
+  })
+
   it('increments quantity and removes an item', async () => {
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
     cartApi.updateItem.mockResolvedValue(sampleCart)

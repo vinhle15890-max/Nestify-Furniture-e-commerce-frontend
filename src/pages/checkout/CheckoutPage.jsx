@@ -21,12 +21,14 @@ import { cartHasStockShortfall } from '../../lib/stock'
 
 function CheckoutNotice({ children }) {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-20 lg:px-10">
+    <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+    <div className="mx-auto max-w-2xl">
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
       <div className="mt-8 rounded-card border border-border bg-surface p-10 text-center">
         <ShoppingBag size={32} className="mx-auto text-border-strong" />
         <p className="mt-4 text-muted-foreground">{children}</p>
       </div>
+    </div>
     </div>
   )
 }
@@ -70,8 +72,10 @@ export function CheckoutPage() {
 
   if (cartLoading || addressesLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
@@ -97,7 +101,8 @@ export function CheckoutPage() {
 
   if (addresses.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-20 lg:px-10">
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-2xl">
         <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
         <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
         <div className="mt-8 rounded-card border border-border bg-surface p-10 text-center">
@@ -108,6 +113,7 @@ export function CheckoutPage() {
           <Button onClick={openCreateAddress} className="mt-6">Thêm địa chỉ</Button>
         </div>
         <AddressFormModal open={addressModalOpen} onOpenChange={setAddressModalOpen} address={editingAddress} />
+      </div>
       </div>
     )
   }
@@ -193,6 +199,7 @@ export function CheckoutPage() {
   const isSubmitting = createOrder.isPending || createPaymentSession.isPending
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
       <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
@@ -343,7 +350,7 @@ export function CheckoutPage() {
               <>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span>Giảm giá</span>
-                  <span className="text-secondary">-{formatPrice(voucherResult.discount_amount)}</span>
+                  <span className="text-ink">-{formatPrice(voucherResult.discount_amount)}</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-2.5 text-base font-medium text-foreground">
                   <span>Thành tiền</span>
@@ -365,13 +372,16 @@ export function CheckoutPage() {
 
           {orderError && <p role="alert" className="mt-3 text-sm text-destructive">{orderError}</p>}
 
-          <Button type="submit" disabled={isSubmitting || stockBlocked} className="mt-6 w-full py-3.5">
+          {/* State 4 "Committed": the one and only `confirmed` #3D5A45 action
+              site-wide. Not `bg-primary`/ink — this is the moment of decision. */}
+          <Button type="submit" variant="confirmed" disabled={isSubmitting || stockBlocked} className="mt-6 w-full py-3.5">
             {isSubmitting ? 'Đang xử lý...' : 'Đặt hàng'}
           </Button>
         </div>
       </form>
 
       <AddressFormModal open={addressModalOpen} onOpenChange={setAddressModalOpen} address={editingAddress} />
+    </div>
     </div>
   )
 }

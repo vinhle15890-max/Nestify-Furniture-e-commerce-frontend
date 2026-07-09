@@ -14,7 +14,9 @@ export function PlaceholderBox() {
   return (
     <mesh>
       <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#B08D57" transparent opacity={0.6} />
+      {/* `emerging` #8A7C68 — a being-considered placeholder while the .glb loads
+          (or on load failure). Never brass: DNA §2 removed that hue. */}
+      <meshStandardMaterial color="#8A7C68" transparent opacity={0.6} />
     </mesh>
   )
 }

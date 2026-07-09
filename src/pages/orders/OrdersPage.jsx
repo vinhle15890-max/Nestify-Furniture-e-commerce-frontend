@@ -12,8 +12,10 @@ export function OrdersPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-4xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-4xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
@@ -21,6 +23,7 @@ export function OrdersPage() {
   const orders = data?.data ?? []
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng của tôi</h1>
 
@@ -81,6 +84,7 @@ export function OrdersPage() {
           })}
         </ul>
       )}
+    </div>
     </div>
   )
 }

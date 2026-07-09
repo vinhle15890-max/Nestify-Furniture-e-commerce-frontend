@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Link, Outlet, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
   LayoutDashboard,
   FolderTree,
   Package,
+  Images,
   Receipt,
   Ticket,
   Star,
@@ -29,6 +30,7 @@ const navGroups = [
       { to: '/admin/categories', label: 'Danh mục', icon: FolderTree },
       { to: '/admin/products', label: 'Sản phẩm', icon: Package, end: true },
       { to: '/admin/products/seo', label: 'Duyệt SEO', icon: Sparkles },
+      { to: '/admin/media', label: 'Thư viện ảnh', icon: Images },
     ],
   },
   {
@@ -177,8 +179,18 @@ export function AdminLayout() {
   const title = activeTitle(pathname)
   const handleLogout = () => logout.mutate()
 
+  // Admin keeps the legacy palette. Becoming is the :root default now, so we
+  // opt <body> into `legacy` while an admin route is mounted — admin dialogs
+  // portal to <body>, so this single stamp themes the shell AND every admin
+  // portal at once, with no per-dialog stamping. The attribute on the shell
+  // root below prevents a first-paint flash before this effect runs.
+  useEffect(() => {
+    document.body.setAttribute('data-theme', 'legacy')
+    return () => document.body.removeAttribute('data-theme')
+  }, [])
+
   return (
-    <div className="flex min-h-dvh bg-background">
+    <div data-theme="legacy" className="flex min-h-dvh bg-background">
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <div className="px-5 py-5">

@@ -40,6 +40,21 @@ export function useProduct(slug) {
   })
 }
 
+// Deep-link (Room Planner) preload of a product. Same cache key as useProduct
+// (so a product already loaded from its detail page is reused instantly), but
+// with a request-scoped 10s timeout — the global axios instance has NO timeout
+// (`timeout: 0`), which would otherwise leave the planner hanging forever on a
+// stalled request. NOTE: that missing global timeout is a separate latent issue,
+// intentionally NOT fixed here to avoid an app-wide blast radius. Inherits the
+// QueryClient default `retry: 1`.
+export function useProductPreload(slug) {
+  return useQuery({
+    queryKey: ['products', slug],
+    queryFn: () => catalogApi.getProduct(slug, { timeout: 10000 }),
+    enabled: !!slug,
+  })
+}
+
 export function useProductReviews(slug) {
   return useCursorQuery({
     queryKey: ['products', slug, 'reviews'],

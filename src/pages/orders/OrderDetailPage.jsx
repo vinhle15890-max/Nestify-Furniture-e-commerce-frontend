@@ -8,7 +8,7 @@ import { redirectToExternal } from '../../lib/navigation'
 import { BackLink } from '../../components/BackLink'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
-import { Modal } from '../../components/Modal'
+import { BecomingModal } from '../../components/BecomingModal'
 import { Spinner } from '../../components/Spinner'
 import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice, formatDate } from '../../lib/format'
@@ -32,8 +32,10 @@ export function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-3xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-3xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
@@ -42,7 +44,8 @@ export function OrderDetailPage() {
 
   if (isError || !order) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-20 lg:px-10">
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-3xl">
         <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng</h1>
         <div className="mt-8 rounded-card border border-border bg-surface p-8 text-center">
           <p className="text-muted-foreground">
@@ -52,6 +55,7 @@ export function OrderDetailPage() {
             </Link>
           </p>
         </div>
+      </div>
       </div>
     )
   }
@@ -88,6 +92,7 @@ export function OrderDetailPage() {
   }
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-3xl px-6 py-16 md:py-20 lg:px-10">
       <BackLink to="/orders">Đơn hàng của tôi</BackLink>
 
@@ -200,7 +205,7 @@ export function OrderDetailPage() {
         </div>
       )}
 
-      <Modal
+      <BecomingModal
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         title="Hủy đơn hàng"
@@ -230,7 +235,8 @@ export function OrderDetailPage() {
             {cancelOrder.isPending ? 'Đang hủy...' : 'Xác nhận hủy'}
           </Button>
         </div>
-      </Modal>
+      </BecomingModal>
+    </div>
     </div>
   )
 }

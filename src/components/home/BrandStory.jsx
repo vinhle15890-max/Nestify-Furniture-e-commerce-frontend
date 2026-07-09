@@ -23,7 +23,7 @@ export function BrandStory() {
           </h2>
           <div className="mt-6 space-y-4">
             {brandStory.paragraphs.map((paragraph) => (
-              <p key={paragraph} className="max-w-md text-lg leading-relaxed text-muted-foreground">
+              <p key={paragraph} className="max-w-md text-lg leading-relaxed text-foreground/80">
                 {paragraph}
               </p>
             ))}

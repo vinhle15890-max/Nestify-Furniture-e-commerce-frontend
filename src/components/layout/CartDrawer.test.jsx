@@ -66,4 +66,36 @@ describe('CartDrawer', () => {
 
     expect(await screen.findByText('Giỏ hàng trống.')).toBeInTheDocument()
   })
+
+  it('shows the room callback only for room-sourced items', async () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
+    cartApi.getCart.mockResolvedValue({
+      data: {
+        id: 1,
+        items: [
+          {
+            id: 10,
+            variant: { id: 1, sku: 'SOFA-NAU', name: 'Nâu' },
+            room: { id: 7, name: 'Phòng khách' },
+            quantity: 1,
+            unit_price_snapshot: 5000000,
+            subtotal: 5000000,
+          },
+          {
+            id: 11,
+            variant: { id: 2, sku: 'BAN-GO', name: 'Gỗ' },
+            quantity: 1,
+            unit_price_snapshot: 2000000,
+            subtotal: 2000000,
+          },
+        ],
+        total: 7000000,
+      },
+    })
+    renderDrawer()
+
+    expect(await screen.findByText(/Đã xác nhận vừa với phòng “Phòng khách”/)).toBeInTheDocument()
+    // Exactly one callback — the room-less item must not fabricate one.
+    expect(screen.getAllByText(/Đã xác nhận vừa với phòng/)).toHaveLength(1)
+  })
 })

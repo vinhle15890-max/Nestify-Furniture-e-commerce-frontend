@@ -21,6 +21,10 @@ function renderPage() {
 describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // FeaturedCategories pulls real categories; give every case a default.
+    catalogApi.getCategories.mockResolvedValue({
+      data: [{ id: 1, name: 'Phòng khách', slug: 'phong-khach', image_url: null }],
+    })
   })
 
   it('renders the hero headline and key editorial sections', async () => {
@@ -42,9 +46,13 @@ describe('HomePage', () => {
     expect(
       screen.getByRole('heading', { name: 'Không gian sống mang hơi thở của bạn.', level: 1 }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Sản phẩm bán chạy' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Bắt đầu với những thiết kế tiêu biểu' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Khám phá theo không gian' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Xem Lookbook' })).toBeInTheDocument()
+    // Threshold rule: the Hero holds the open question with no CTA — the Entry
+    // Event is scrolling, not a click. The old "Xem Lookbook" CTA is gone.
+    expect(screen.queryByRole('link', { name: 'Xem Lookbook' })).not.toBeInTheDocument()
     expect(await screen.findByText('Ghế sofa da')).toBeInTheDocument()
   })
 

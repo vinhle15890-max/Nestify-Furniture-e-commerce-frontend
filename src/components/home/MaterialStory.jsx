@@ -24,7 +24,7 @@ export function MaterialStory() {
                 />
               </div>
               <h3 className="mt-5 font-display text-xl text-foreground">{material.name}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{material.caption}</p>
+              <p className="mt-1 text-sm text-foreground/80">{material.caption}</p>
             </Reveal>
           ))}
         </div>

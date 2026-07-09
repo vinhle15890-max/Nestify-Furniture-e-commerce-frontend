@@ -52,6 +52,7 @@ export function AddressesPage() {
   }
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-3xl px-6 py-16 md:py-20 lg:px-10">
       <BackLink to="/account" className="mb-4">Quay lại tài khoản</BackLink>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -110,6 +111,7 @@ export function AddressesPage() {
       </div>
 
       <AddressFormModal open={modalOpen} onOpenChange={setModalOpen} address={editingAddress} />
+    </div>
     </div>
   )
 }

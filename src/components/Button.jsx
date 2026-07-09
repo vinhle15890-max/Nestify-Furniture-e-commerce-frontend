@@ -3,6 +3,15 @@ const variantClasses = {
   secondary: 'border border-foreground text-foreground hover:bg-surface',
   ghost: 'text-foreground hover:bg-surface',
   destructive: 'bg-destructive text-surface hover:opacity-90',
+  // State 4 "Committed" (Component Bible): the single final Checkout confirm.
+  // `confirmed` #3D5A45 must appear in EXACTLY one place site-wide — the
+  // "Đặt hàng" button. Do not reuse this variant anywhere else.
+  confirmed: 'bg-confirmed text-surface hover:bg-confirmed/90',
+  // State 3 "Mentally Real" at its peak (Component Bible): the Room Planner
+  // "Lưu phòng" CTA is the one place `imagined` #B5754A is a valid button
+  // colour. `text-ink` gives the best available contrast on this mid-tone
+  // (~4:1). Do not reuse this variant elsewhere.
+  imagined: 'bg-imagined text-ink hover:bg-imagined/90',
 }
 
 export function Button({ variant = 'primary', className = '', children, ...props }) {

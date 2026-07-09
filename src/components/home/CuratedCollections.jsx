@@ -6,7 +6,7 @@ import { collections } from '../../data/home'
 
 export function CuratedCollections() {
   return (
-    <section className="bg-surface-alt">
+    <section>
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
         <SectionHeading
           eyebrow="Bộ sưu tập tuyển chọn"
@@ -38,7 +38,7 @@ export function CuratedCollections() {
                 <p className="mt-5 max-w-md text-lg leading-relaxed text-muted-foreground">{collection.body}</p>
                 <Link
                   to={collection.to}
-                  className="group mt-7 inline-flex items-center gap-2 text-sm font-medium tracking-wide text-foreground transition-colors duration-200 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-alt rounded-control"
+                  className="group mt-7 inline-flex items-center gap-2 text-sm font-medium tracking-wide text-ink transition-colors duration-200 hover:text-ink/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas rounded-control"
                 >
                   Khám phá bộ sưu tập
                   <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />

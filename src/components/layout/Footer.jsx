@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Instagram, Facebook, Youtube } from 'lucide-react'
+import { Newsletter } from '../home/Newsletter'
 
 const focusRing =
   'rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
@@ -16,11 +17,7 @@ const columns = [
   },
   {
     title: 'Về Nestify',
-    links: [
-      { label: 'Câu chuyện thương hiệu', to: '/c/all' },
-      { label: 'Chất liệu', to: '/#lookbook' },
-      { label: 'Lookbook', to: '/#lookbook' },
-    ],
+    links: [{ label: 'Câu chuyện thương hiệu', to: '/about' }],
   },
   {
     title: 'Hỗ trợ',
@@ -41,6 +38,7 @@ const socials = [
 export function Footer() {
   return (
     <footer className="border-t border-border bg-surface">
+      <Newsletter />
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
           <div>

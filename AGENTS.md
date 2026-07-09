@@ -1,7 +1,47 @@
 # Nestify Frontend — AI Agent Guide
 
+> **Workspace hub:** repo này là 1 nửa của `Do-An-Tot-Nghiep/`. Bản đồ context cross-repo (BE+FE) +
+> bộ subagent dùng chung nằm ở `../AGENTS.md`. Đụng cả 2 repo → điều phối từ hub.
+
 Vite + React 18 SPA, **plain JavaScript (JSX, no TypeScript)**. Customer storefront + admin
 back-office for a furniture e-commerce platform, consuming a separate Laravel API over HTTP.
+
+## Design DNA — read FIRST for any storefront UI work
+
+Nestify's brand + design system lives in `docs/nestify/` (source of truth, read in order):
+`01_Brand_Constitution.md` → `02_Story_Bible.md` → `03_Design_DNA.md` → `04_Component_Bible.md`
+(`00_Brand_Context.md`, `05_Brand_Manifesto.md` are supporting context).
+
+This DNA — **"The Becoming Room"** — is the current direction and **supersedes the older
+"Organic / Warm Luxury Editorial" system** (in `2026-06-13-fe-nestify-design.md`) for any new or
+redesigned storefront UI. Note: `src/styles/tokens.css` still holds the OLD cream+brass palette —
+migrating it to the new tokens is a **pending decision**. Do not assume the new tokens exist in CSS
+yet; confirm before editing `tokens.css`.
+
+### Hard guardrails — violating any of these = stop and re-confirm
+- No cream `#F4F1EA`, no terracotta `#D97757`, no blueprint/CAD tones as primary colors (they read
+  as AI-generated defaults — Design DNA §0).
+- `imagined` `#B5754A` is **not** a site-wide default CTA color. `confirmed` `#3D5A45` marks
+  Committed-state moments only (State 4 in Component Bible). It must never appear before Committed —
+  not in State 1–3, not on Cart's Transactional Commitment amplification. It may appear at every
+  genuine Committed-state moment: the Checkout confirm button, and any subsequent order-success
+  confirmation (e.g. CheckoutReturnPage). It is not restricted to a single DOM location — it is
+  restricted to a single psychological state.
+- Never use hover to trigger a purchase action (Quick Add / Buy) anywhere in the "Being Explored" state.
+- Any Room Planner UI must honor the Capability Boundaries (no-WebGL, small screen) — never assume the
+  device supports 3D.
+- No false-urgency copy ("chỉ còn X sản phẩm", fake countdowns). Voice: a warm guide, not a
+  salesperson (Extraversion 30).
+
+### Always remember
+Nestify doesn't sell the product first — it sells *seeing-it-first* (clarity); confidence and
+ownership are consequences, never sold directly. The Enemy is **fear of irreversible decisions**,
+not competitors.
+
+### Skills
+- Creating/editing storefront UI → use the **`nestify-ui`** skill (`/nestify-ui`).
+- Checking UI against the DNA → use the **`nestify-review`** skill (`/nestify-review`) before calling
+  a UI task done.
 
 ## Read before starting any feature work
 

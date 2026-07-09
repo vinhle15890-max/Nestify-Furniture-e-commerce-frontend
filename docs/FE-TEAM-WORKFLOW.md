@@ -227,7 +227,8 @@ Laravel API (api.nestify.asia)
 **Actor:** Staff (role ≠ customer). **Entry:** `/admin/*` sau `AdminRoute`. **Feature:** `features/admin/*`, `pages/admin/*`.
 
 - **Catalog:** products (CRUD), **variants** (modal) + **biến thể theo tùy chọn** (`VariantOptionsPanel` định nghĩa option +
-  `VariantMatrixGenerator` sinh ma trận qua endpoint bulk), media upload + **reorder** payload `{ids:[...]}`.
+  `VariantMatrixGenerator` sinh ma trận qua endpoint bulk), ảnh SP chọn từ **Thư viện ảnh** (picker) + **reorder** payload `{ids:[...]}` + gắn/**gỡ** theo biến thể.
+- **Thư viện ảnh (Media Library):** `/admin/media` + `features/admin/media/` — ảnh dùng lại được (upload 1 lần, dùng nhiều nơi); `MediaLibraryModal` dùng chung cho form SP + form danh mục; xoá bị chặn khi còn dùng (`409`). Chi tiết code-path: BE `14-workflows.md` §10d.
 - **Orders:** list + đổi trạng thái (**state machine**, chỉ bước hợp lệ) + **refund đồng bộ**.
 - **Voucher** CRUD; **Review moderation** approve/reject; **Users** (read-only + gán role); **Audit logs**; **Dashboard** thống kê.
 

@@ -206,7 +206,8 @@ orders pointing the user to the product page.
 - [x] `/admin/categories` — list + create/update/delete (small dataset, plain list)
 - [x] `/admin/products`, `/admin/products/:id` — offset-paginated list, create/edit form; **edit hydrates from list-cache** (no working `GET /admin/products/{id}`)
 - [x] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
-- [x] Media: multipart upload, reorder, delete
+- [x] Media: pick from the **Media Library** picker + reorder + per-image variant tag + **detach** ("Gỡ") — direct product upload now happens inside the picker's upload tab
+- [x] **Media Library** (`/admin/media`, `features/admin/media/`) — reusable image assets (WordPress-style): browse/search + offset pagination, upload-once-reuse, per-asset `usage_count`, hard-delete blocked while in use (`409 MEDIA_IN_USE`). Shared `MediaLibraryModal` picker reused by product edit (multi-select, attach) + category form (single-select, `media_asset_id`). BE splits `media_assets` from the `product_media` junction. Refs: BE `14-workflows.md` §10d, FE spec `docs/superpowers/specs/2026-07-08-media-library-design.md`.
 - [x] `/admin/orders`, `/admin/orders/:id` — offset list + detail
 - [x] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
 - [x] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
