@@ -1,19 +1,8 @@
-import { Component, Suspense, useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { TransformControls } from '@react-three/drei'
-import { FurnitureModel, PlaceholderBox } from './FurnitureModel'
+import { FurnitureModel, PlaceholderBox, ModelErrorBoundary } from './FurnitureModel'
 
-// Renders a placeholder if its child throws (e.g. a broken/missing .glb).
-class ModelErrorBoundary extends Component {
-  state = { failed: false }
-  static getDerivedStateFromError() {
-    return { failed: true }
-  }
-  render() {
-    return this.state.failed ? <PlaceholderBox /> : this.props.children
-  }
-}
-
-export function PlacedItem({ item, selected, gizmoMode, onSelect, onTransform, onDragChange }) {
+export function PlacedItem({ item, selected, gizmoMode, snap, onSelect, onTransform, onDragChange }) {
   const groupRef = useRef()
   const { position, rotation, scale } = item
 
@@ -52,6 +41,9 @@ export function PlacedItem({ item, selected, gizmoMode, onSelect, onTransform, o
     <TransformControls
       object={groupRef}
       mode={gizmoMode}
+      translationSnap={snap ? 0.25 : null}
+      rotationSnap={snap ? Math.PI / 12 : null}
+      scaleSnap={snap ? 0.1 : null}
       onMouseUp={commit}
       onDraggingChanged={(e) => onDragChange(Boolean(e?.value))}
     >

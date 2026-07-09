@@ -164,7 +164,7 @@ export function CheckoutPage() {
         const available = error.details?.available ?? 0
         setOrderError(
           name
-            ? `"${name}" chỉ còn ${available} sản phẩm trong kho. Vui lòng quay lại giỏ hàng để điều chỉnh.`
+            ? `Kho chỉ đủ ${available} sản phẩm cho "${name}". Vui lòng quay lại giỏ hàng để điều chỉnh.`
             : error.message,
         )
       } else {

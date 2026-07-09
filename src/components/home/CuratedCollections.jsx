@@ -6,7 +6,7 @@ import { collections } from '../../data/home'
 
 export function CuratedCollections() {
   return (
-    <section>
+    <section className="border-y border-border bg-unbuilt/15">
       <div className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
         <SectionHeading
           eyebrow="Bộ sưu tập tuyển chọn"

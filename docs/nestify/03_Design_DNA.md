@@ -34,6 +34,8 @@ Ba luật này là bất biến, áp cho toàn bộ sản phẩm — không ch�
 
 1. **Visualization gates `imagined`.** `imagined` chỉ được xuất hiện *sau* một hành động visualize do người dùng chủ động kích hoạt. Trên Home hero, visualize đó giới hạn ở đúng 1 món đồ người dùng đặt; bản thân căn phòng vẫn ở trạng thái `unbuilt`. (Thay cho ghi chú cũ "Home chưa có màu imagined" — nay nói chính xác *khi nào* imagined được phép xuất hiện.)
 
+   **Ngoại lệ — depiction biên tập (cập nhật 2026-07-09).** Luật "visualization gates" ở trên chi phối *trạng thái phòng sống của chính người dùng* và *màu CTA*. Nó KHÔNG cấm dùng `imagined` như **hình minh hoạ tĩnh, phi-tương-tác** để *vẽ khái niệm* chương Future Home ở các surface giải thích/marketing (ví dụ section "Từ căn phòng trống đến của bạn" trên Home). Ràng buộc của ngoại lệ: (a) chỉ là minh hoạ, không phải phòng thật của người dùng; (b) không bao giờ là màu của nút/CTA/tương tác; (c) kiềm chế (fill nhạt), và (d) chỉ ở đúng mức "Future Home" của thang becoming. Nếu vi phạm bất kỳ điều nào trong (a)–(d), quay về luật gốc.
+
 2. **The interaction teaches before it demonstrates.** Hero là *Lesson 0*, Room Planner là *Lesson 1*: làm cử chỉ một lần là đã học xong mô hình tư duy của Planner, nên Planner không cần tooltip / coach-mark / video intro. Một tương tác có mặt là để **dạy cách ra quyết định**, không phải để khoe.
 
 3. **The brand is understood through interaction, not explanation.** Nestify tránh intro video, tooltip, coach-mark, intro modal. Ý nghĩa sản phẩm truyền qua việc *làm*, không phải việc *được kể*. Hệ quả: *nếu một tương tác cần tooltip mới hiểu được, thì tương tác đó chưa đủ tốt* — sửa tương tác, đừng thêm nhãn.

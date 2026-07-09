@@ -4,11 +4,14 @@ import { RoomCanvas } from './scene/RoomCanvas'
 import { RoomSetupDialog } from './RoomSetupDialog'
 import { CatalogTray } from './CatalogTray'
 import { PlannerToolbar } from './PlannerToolbar'
+import { ShareSceneDialog } from './ShareSceneDialog'
 import { SelectedItemPanel } from './SelectedItemPanel'
+import { RoomSummary } from './RoomSummary'
+import { useEditorShortcuts } from './useEditorShortcuts'
 import { SmallScreenNotice } from './SmallScreenNotice'
 import { Spinner } from '../../components/Spinner'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
-import { useScene, useCreateScene, useUpdateScene, useAddSceneToCart } from '../../features/roomPlanner/hooks'
+import { useScene, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene } from '../../features/roomPlanner/hooks'
 import { useProductPreload } from '../../features/catalog/hooks'
 import { editorStateToPayload } from '../../features/roomPlanner/mappers'
 import { useToastStore } from '../../store/toastStore'
@@ -24,9 +27,14 @@ export function RoomPlannerPage() {
   const createScene = useCreateScene()
   const updateScene = useUpdateScene()
   const addSceneToCart = useAddSceneToCart()
+  const shareScene = useShareScene()
 
   const store = useEditorStore()
   const [setupOpen, setSetupOpen] = useState(!id)
+  const [shareToken, setShareToken] = useState(null)
+
+  // Keyboard editing (delete / undo / redo / duplicate / gizmo modes / deselect).
+  useEditorShortcuts()
 
   // ── Deep-link preload: /room-planner?product=<slug>&variant=<id> ──────────
   // URL query params are the SINGLE source of truth for the pending preload —
@@ -210,6 +218,40 @@ export function RoomPlannerPage() {
     }
   }
 
+  // "Đặt cả phòng": express path into the existing checkout. Reuses the same
+  // save + add-to-cart handoff as "Thêm vào giỏ", but lands on /checkout instead
+  // of /cart — the checkout then owns address/payment/voucher/confirm.
+  const handleOrder = async () => {
+    try {
+      const sceneId = await ensureSaved()
+      const response = await addSceneToCart.mutateAsync(sceneId)
+      const skipped = response?.meta?.skipped ?? []
+      if (skipped.length > 0) {
+        addToast({
+          title: 'Đã thêm phòng vào giỏ.',
+          description: `Một số món hiện hết hàng, chưa thêm được: ${skipped.join(', ')}.`,
+          variant: 'default',
+        })
+      }
+      navigate('/checkout')
+    } catch (error) {
+      addToast({ title: 'Không thể đặt phòng.', description: error?.message, variant: 'error' })
+    }
+  }
+
+  // Share needs a saved scene (the public link resolves a persisted scene id),
+  // so persist first, then make it public and surface the copy dialog. `share`
+  // is idempotent server-side, so re-sharing returns the same token.
+  const handleShare = async () => {
+    try {
+      const sceneId = await ensureSaved()
+      const response = await shareScene.mutateAsync(sceneId)
+      setShareToken(response.data.share_token)
+    } catch (error) {
+      addToast({ title: 'Tạo link chia sẻ thất bại.', description: error?.message, variant: 'error' })
+    }
+  }
+
   const handleExit = () => {
     if (store.dirty && !window.confirm('Bạn có thay đổi chưa lưu. Thoát?')) return
     navigate('/')
@@ -247,13 +289,24 @@ export function RoomPlannerPage() {
           dirty={store.dirty}
           onAddToCart={handleAddToCart}
           addingToCart={addSceneToCart.isPending}
+          onOrder={handleOrder}
+          ordering={addSceneToCart.isPending || createScene.isPending || updateScene.isPending}
+          onShare={handleShare}
+          sharing={shareScene.isPending || createScene.isPending || updateScene.isPending}
+          onUndo={store.undo}
+          onRedo={store.redo}
+          canUndo={store.past.length > 0}
+          canRedo={store.future.length > 0}
+          snap={store.snap}
+          onToggleSnap={store.toggleSnap}
           itemCount={store.items.length}
           onExit={handleExit}
         />
         <div className="flex min-h-0 flex-1">
           <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-hidden border-r border-border bg-surface-alt/40 p-4">
             <CatalogTray onAdd={store.addVariant} />
-            <SelectedItemPanel item={selectedItem} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} />
+            <SelectedItemPanel item={selectedItem} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
+            <RoomSummary items={store.items} />
           </aside>
           <main className="relative min-w-0 flex-1 bg-surface">
             {store.status === 'ready' && <RoomCanvas />}
@@ -266,6 +319,12 @@ export function RoomPlannerPage() {
         onOpenChange={handleSetupOpenChange}
         initialRoom={DEFAULT_ROOM}
         onSubmit={handleCreateRoom}
+      />
+
+      <ShareSceneDialog
+        open={shareToken !== null}
+        onOpenChange={(open) => { if (!open) setShareToken(null) }}
+        token={shareToken}
       />
     </div>
   )

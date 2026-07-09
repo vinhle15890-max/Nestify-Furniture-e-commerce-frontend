@@ -7,6 +7,7 @@ import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
 import { ProductThumb } from '../../components/ProductThumb'
+import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice } from '../../lib/format'
 import { stockShortfall, cartHasStockShortfall } from '../../lib/stock'
 
@@ -102,11 +103,19 @@ export function CartPage() {
     <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Giỏ hàng</h1>
+      {items.length > 0 && (
+        <p className="mt-2 text-muted-foreground">Những gì sắp thuộc về không gian của bạn.</p>
+      )}
 
       {items.length === 0 ? (
-        <div className="mt-8 rounded-card border border-border bg-surface p-12 text-center">
-          <ShoppingBag size={36} className="mx-auto text-border-strong" />
-          <p className="mt-4 text-lg text-foreground">Giỏ hàng trống.</p>
+        <div className="mt-8 flex flex-col items-center rounded-card border border-border bg-surface px-6 py-14 text-center">
+          <div className="pointer-events-none w-full max-w-[300px]">
+            <BecomingRoomArt level={1} />
+          </div>
+          <p className="mt-6 max-w-sm text-lg text-foreground">Giỏ hàng của bạn còn trống.</p>
+          <p className="mt-2 max-w-sm text-muted-foreground">
+            Hãy tìm những món đầu tiên cho căn phòng của bạn.
+          </p>
           <Link
             to="/c/all"
             className="mt-6 inline-flex items-center rounded-control bg-primary px-7 py-3.5 text-sm font-medium text-surface transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -211,7 +220,7 @@ export function CartPage() {
 
                   {stockErrors[item.id] !== undefined && (
                     <p role="alert" className="mt-2 text-sm text-destructive">
-                      Chỉ còn {stockErrors[item.id]} sản phẩm trong kho
+                      Kho chỉ đủ {stockErrors[item.id]} sản phẩm cho lựa chọn này
                     </p>
                   )}
 
@@ -219,7 +228,7 @@ export function CartPage() {
                     <p role="alert" className="mt-2 text-sm text-destructive">
                       {shortfall.kind === 'out'
                         ? 'Sản phẩm đã hết hàng — vui lòng xóa khỏi giỏ.'
-                        : `Chỉ còn ${shortfall.available} sản phẩm trong kho — vui lòng giảm số lượng.`}
+                        : `Kho chỉ đủ ${shortfall.available} sản phẩm cho lựa chọn này — vui lòng giảm số lượng.`}
                     </p>
                   )}
                 </li>

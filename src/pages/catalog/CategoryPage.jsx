@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { PackageSearch, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/Button'
+import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { Spinner } from '../../components/Spinner'
 import { Reveal } from '../../components/Reveal'
 import { SearchInput } from '../../components/SearchInput'
@@ -143,7 +144,17 @@ export function CategoryPage() {
 
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label
   const currentCategoryValue = isAll ? 'all' : categorySlug
-  const handleCategoryChange = (value) => navigate(value === 'all' ? '/all' : `/c/${value}`)
+  const handleCategoryChange = (value) => navigate(value === 'all' ? '/c/all' : `/c/${value}`)
+
+  // Header intro: prefer the real category description; otherwise a warm Discover
+  // ("Being Explored") default so the header never sits bare (Ch2 voice).
+  const introText =
+    category?.description ||
+    (isAll
+      ? 'Toàn bộ bộ sưu tập — mỗi món là một khả năng cho căn phòng của bạn.'
+      : category?.name
+        ? `Khám phá ${category.name} — chọn một điểm bắt đầu để hình dung không gian của bạn.`
+        : null)
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
@@ -156,8 +167,8 @@ export function CategoryPage() {
           <h1 className="mt-4 font-display text-[clamp(2rem,4vw,3.2rem)] leading-tight text-ink">
             {isAll ? 'Tất cả sản phẩm' : (category?.name ?? 'Danh mục')}
           </h1>
-          {category?.description && (
-            <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink/70">{category.description}</p>
+          {introText && (
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink/70">{introText}</p>
           )}
         </Reveal>
 
@@ -271,14 +282,16 @@ export function CategoryPage() {
             <Spinner />
           </div>
         ) : products.length === 0 ? (
-          <div className="mt-16 rounded-card border border-unbuilt bg-canvas p-12 text-center">
-            <PackageSearch size={36} className="mx-auto text-unbuilt" />
-            <p className="mt-4 text-ink/70">
+          <div className="mt-16 flex flex-col items-center rounded-card border border-unbuilt bg-canvas px-6 py-14 text-center">
+            <div className="pointer-events-none w-full max-w-[300px]">
+              <BecomingRoomArt level={1} />
+            </div>
+            <p className="mt-6 max-w-sm text-ink/70">
               {hasActiveFilters
-                ? 'Không có sản phẩm nào khớp bộ lọc.'
-                : 'Chưa có sản phẩm nào trong danh mục này.'}
+                ? 'Chưa có món nào khớp bộ lọc — thử nới lỏng để thấy nhiều khả năng hơn.'
+                : 'Căn phòng này còn đang chờ được lấp.'}
             </p>
-            {hasActiveFilters && (
+            {hasActiveFilters ? (
               <button
                 type="button"
                 onClick={clearAll}
@@ -286,6 +299,13 @@ export function CategoryPage() {
               >
                 Xóa bộ lọc
               </button>
+            ) : (
+              <Link
+                to="/c/all"
+                className="mt-4 text-sm text-ink underline decoration-unbuilt underline-offset-4 transition-colors hover:text-ink/60"
+              >
+                Khám phá toàn bộ sản phẩm →
+              </Link>
             )}
           </div>
         ) : (

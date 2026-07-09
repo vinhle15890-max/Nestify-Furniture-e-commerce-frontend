@@ -110,6 +110,33 @@ describe('RoomPlannerPage', () => {
     expect(await screen.findByTestId('cart-page')).toBeInTheDocument()
   })
 
+  it('orders the whole room: saves, adds the scene to cart, and navigates to /checkout', async () => {
+    roomPlannerApi.createScene.mockResolvedValue({ data: { id: 55, name: 'Phòng của tôi' } })
+    roomPlannerApi.addSceneToCart.mockResolvedValue({ data: { id: 1, items: [] }, meta: { skipped: [] } })
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/room-planner']}>
+          <Routes>
+            <Route path="/room-planner" element={<RoomPlannerPage />} />
+            <Route path="/room-planner/:id" element={<RoomPlannerPage />} />
+            <Route path="/checkout" element={<div data-testid="checkout-page">checkout</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /Sofa.*Đỏ/s }))
+    await userEvent.click(screen.getByRole('button', { name: /đặt cả phòng/i }))
+
+    // Unsaved room is persisted first, then its saved id drives the cart handoff, then checkout.
+    await waitFor(() => expect(roomPlannerApi.createScene).toHaveBeenCalled())
+    await waitFor(() => expect(roomPlannerApi.addSceneToCart).toHaveBeenCalledWith(55))
+    expect(await screen.findByTestId('checkout-page')).toBeInTheDocument()
+  })
+
   it('loads an existing scene by id without the setup dialog', async () => {
     roomPlannerApi.getScene.mockResolvedValue({
       data: { id: 9, name: 'Phòng cũ', width: '4', depth: '5', height: '2.8', items: [] },

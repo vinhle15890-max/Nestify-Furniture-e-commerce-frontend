@@ -171,7 +171,7 @@ describe('CheckoutPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
 
-    expect(await screen.findByText(/"Nâu" chỉ còn 1 sản phẩm trong kho/)).toBeInTheDocument()
+    expect(await screen.findByText(/Kho chỉ đủ 1 sản phẩm cho "Nâu"/)).toBeInTheDocument()
     expect(checkoutApi.createPaymentSession).not.toHaveBeenCalled()
   })
 

@@ -13,7 +13,11 @@ export function BestSellers() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <SectionHeading eyebrow="Khám phá" title="Bắt đầu với những thiết kế tiêu biểu" />
+        <SectionHeading
+          eyebrow="Khám phá"
+          title="Bắt đầu với những thiết kế tiêu biểu"
+          intro="Không phải để chạy theo số đông — chỉ vài điểm khởi đầu để bạn bắt đầu hình dung."
+        />
         <Reveal
           as={Link}
           to="/c/all"

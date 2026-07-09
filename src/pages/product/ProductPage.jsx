@@ -18,6 +18,7 @@ import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
 import { ProductOptions } from './ProductOptions'
 import { PlannerPreview } from './PlannerPreview'
+import { ProductRoomCue } from './ProductRoomCue'
 import { resolveVariant } from '../../lib/variantOptions'
 import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
@@ -535,11 +536,13 @@ export function ProductPage() {
 
           {stockError !== null && (
             <p role="alert" className="mt-3 text-sm text-destructive">
-              Chỉ còn {stockError} sản phẩm trong kho
+              Kho chỉ đủ {stockError} sản phẩm cho lựa chọn này
             </p>
           )}
         </div>
       </div>
+
+      <ProductRoomCue productName={product.name} onPreview={() => setPreviewOpen(true)} />
 
       {sanitizedDescription && (
         <section className="mt-16 border-t border-border pt-12">
@@ -616,7 +619,9 @@ export function ProductPage() {
         )}
 
         {reviews.length === 0 ? (
-          <p className="mt-6 text-muted-foreground">Chưa có đánh giá nào.</p>
+          <p className="mt-6 text-muted-foreground">
+            Chưa có đánh giá nào — những cảm nhận đầu tiên sẽ xuất hiện ở đây.
+          </p>
         ) : (
           <ul className="mt-8 flex flex-col gap-5">
             {reviews.map((review) => (

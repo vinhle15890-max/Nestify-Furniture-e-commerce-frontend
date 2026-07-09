@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Package, Heart, ChevronRight, ShoppingBag } from 'lucide-react'
+import { MapPin, Package, Heart, ChevronRight, ShoppingBag, Box } from 'lucide-react'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
@@ -14,6 +14,7 @@ import { formatPrice, formatDate } from '../../lib/format'
 import { ProfileForm } from './ProfileForm'
 
 const navItems = [
+  { to: '/account/rooms', label: 'Phòng của tôi', icon: Box },
   { to: '/account/addresses', label: 'Sổ địa chỉ', icon: MapPin },
   { to: '/orders', label: 'Đơn hàng của tôi', icon: Package },
   { to: '/wishlist', label: 'Sản phẩm yêu thích', icon: Heart },

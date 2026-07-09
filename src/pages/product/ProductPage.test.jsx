@@ -286,7 +286,7 @@ describe('ProductPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
 
-    expect(await screen.findByText('Chỉ còn 2 sản phẩm trong kho')).toBeInTheDocument()
+    expect(await screen.findByText('Kho chỉ đủ 2 sản phẩm cho lựa chọn này')).toBeInTheDocument()
     expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(2)
   })
 

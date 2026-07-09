@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { useReconcilePayment } from '../../features/checkout/hooks'
 import { Spinner } from '../../components/Spinner'
+import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_POLL_ATTEMPTS = 10
@@ -92,10 +93,18 @@ export function CheckoutReturnPage() {
           </>
         ) : succeeded ? (
           <>
+            {/* Ownership / Future Home payoff — the room the shopper imagined is
+                now on its way to being real. The warm end of the becoming arc. */}
+            <div className="pointer-events-none mx-auto -mt-2 mb-3 w-full max-w-[260px]">
+              <BecomingRoomArt level={3} />
+            </div>
             {/* The single `confirmed` (#3D5A45) in the whole system — the one moment
                 a purchase is truly complete (State 4 Committed, Component Bible). */}
             <CheckCircle2 size={40} className="mx-auto text-confirmed" />
             <p className="mt-4 font-display text-lg text-foreground">Thanh toán thành công!</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Căn phòng bạn hình dung giờ đã trên đường thành hiện thực.
+            </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Đơn hàng của bạn đang được xử lý.{' '}
               <Link to={`/orders/${orderId}`} className={linkClass}>

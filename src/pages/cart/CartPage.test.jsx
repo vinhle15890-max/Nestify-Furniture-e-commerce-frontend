@@ -127,7 +127,7 @@ describe('CartPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Tăng số lượng' }))
 
-    expect(await screen.findByText('Chỉ còn 1 sản phẩm trong kho')).toBeInTheDocument()
+    expect(await screen.findByText('Kho chỉ đủ 1 sản phẩm cho lựa chọn này')).toBeInTheDocument()
     expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(1)
   })
 
@@ -152,7 +152,7 @@ describe('CartPage', () => {
 
     await screen.findByText('Nâu')
 
-    expect(screen.getByText(/Chỉ còn 1 sản phẩm trong kho — vui lòng giảm số lượng/)).toBeInTheDocument()
+    expect(screen.getByText(/Kho chỉ đủ 1 sản phẩm cho lựa chọn này — vui lòng giảm số lượng/)).toBeInTheDocument()
     // The checkout affordance becomes a disabled button, not a link to /checkout.
     expect(screen.getByRole('button', { name: 'Tiến hành thanh toán' })).toBeDisabled()
     expect(screen.queryByRole('link', { name: 'Tiến hành thanh toán' })).not.toBeInTheDocument()

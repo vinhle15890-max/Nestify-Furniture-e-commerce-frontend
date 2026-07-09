@@ -79,6 +79,68 @@ describe('roomPlanner/editorStore', () => {
     expect(useEditorStore.getState().dirty).toBe(false)
   })
 
+  it('undo/redo step through add and transform', () => {
+    const store = () => useEditorStore.getState()
+    store().initNew({ width: 4, depth: 4, height: 2.8 })
+    store().addVariant(variant)
+    const id = store().items[0].localId
+    store().updateTransform(id, { position: { x: 1, y: 0, z: 1 } })
+    expect(store().items[0].position).toEqual({ x: 1, y: 0, z: 1 })
+
+    store().undo() // undo the transform
+    expect(store().items[0].position).toEqual({ x: 0, y: 0, z: 0 })
+    store().undo() // undo the add
+    expect(store().items).toHaveLength(0)
+
+    store().redo() // redo the add
+    expect(store().items).toHaveLength(1)
+    store().redo() // redo the transform
+    expect(store().items[0].position).toEqual({ x: 1, y: 0, z: 1 })
+  })
+
+  it('undo/redo are no-ops at the ends of history', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    expect(() => { useEditorStore.getState().undo(); useEditorStore.getState().redo() }).not.toThrow()
+    expect(useEditorStore.getState().items).toHaveLength(0)
+  })
+
+  it('duplicateSelected clones with an offset, clamps, and selects the clone', () => {
+    const store = () => useEditorStore.getState()
+    store().initNew({ width: 4, depth: 4, height: 2.8 })
+    store().addVariant(variant) // at origin
+    store().duplicateSelected()
+    const s = store()
+    expect(s.items).toHaveLength(2)
+    expect(s.items[1].position).toEqual({ x: 0.3, y: 0, z: 0.3 })
+    expect(s.selectedId).toBe(s.items[1].localId)
+    expect(s.items[1].variant.id).toBe(variant.id)
+  })
+
+  it('duplicateSelected is a no-op when nothing is selected', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().selectItem(null)
+    useEditorStore.getState().duplicateSelected()
+    expect(useEditorStore.getState().items).toHaveLength(0)
+  })
+
+  it('loadScene and reset clear undo history', () => {
+    const store = () => useEditorStore.getState()
+    store().initNew({ width: 4, depth: 4, height: 2.8 })
+    store().addVariant(variant)
+    expect(store().past.length).toBeGreaterThan(0)
+    store().loadScene({ id: 1, name: 'P', width: '3', depth: '3', height: '2.5', items: [] })
+    expect(store().past).toEqual([])
+    expect(store().future).toEqual([])
+  })
+
+  it('toggleSnap flips the snap flag without touching history', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    expect(useEditorStore.getState().snap).toBe(false)
+    useEditorStore.getState().toggleSnap()
+    expect(useEditorStore.getState().snap).toBe(true)
+    expect(useEditorStore.getState().past).toEqual([])
+  })
+
   it('loadScene hydrates from a BE resource', () => {
     useEditorStore.getState().loadScene({
       id: 9, name: 'P', width: '3', depth: '3', height: '2.5',

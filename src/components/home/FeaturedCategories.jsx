@@ -158,7 +158,11 @@ export function FeaturedCategories() {
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
-      <SectionHeading eyebrow="Danh mục" title="Khám phá theo không gian" />
+      <SectionHeading
+        eyebrow="Danh mục"
+        title="Khám phá theo không gian"
+        intro="Bắt đầu từ nơi bạn sống — chọn một không gian để hình dung."
+      />
       {isLoading ? (
         <CategorySkeleton />
       ) : items.length > 4 ? (

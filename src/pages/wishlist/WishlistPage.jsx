@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import {
   useWishlist,
   useUpdateWishlistItem,
@@ -10,6 +10,7 @@ import {
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 import { ProductThumb } from '../../components/ProductThumb'
+import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice } from '../../lib/format'
 
 export function WishlistPage() {
@@ -53,14 +54,19 @@ export function WishlistPage() {
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm yêu thích</h1>
 
       {items.length === 0 ? (
-        <div className="mt-10 rounded-card border border-border bg-surface p-12 text-center">
-          <Heart size={36} className="mx-auto text-border-strong" />
-          <p className="mt-4 text-muted-foreground">
-            Danh sách yêu thích trống.{' '}
-            <Link to="/c/all" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
-              Tiếp tục mua sắm
-            </Link>
+        <div className="mt-10 flex flex-col items-center rounded-card border border-border bg-surface px-6 py-14 text-center">
+          <div className="pointer-events-none w-full max-w-[300px]">
+            <BecomingRoomArt level={1} />
+          </div>
+          <p className="mt-6 max-w-sm text-muted-foreground">
+            Chưa có món nào được lưu — những điều bạn yêu thích sẽ tụ về đây.
           </p>
+          <Link
+            to="/c/all"
+            className="mt-4 text-sm text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent"
+          >
+            Tiếp tục mua sắm
+          </Link>
         </div>
       ) : (
         <ul className="mt-10 flex flex-col divide-y divide-border">

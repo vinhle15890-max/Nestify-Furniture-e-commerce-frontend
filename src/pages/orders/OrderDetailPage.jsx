@@ -11,6 +11,7 @@ import { Button } from '../../components/Button'
 import { BecomingModal } from '../../components/BecomingModal'
 import { Spinner } from '../../components/Spinner'
 import { ProductThumb } from '../../components/ProductThumb'
+import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 
@@ -108,6 +109,20 @@ export function OrderDetailPage() {
           <> · {order.payment_method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán online (PayOS)'}</>
         )}
       </p>
+
+      {/* Ownership amplification (Ch5) — a confirmed order is the room becoming
+          real. Shown only once the order is genuinely placed, not while pending
+          payment or after cancellation. */}
+      {!isPendingPayment && order.status !== 'cancelled' && (
+        <div className="mt-6 flex items-center gap-4 rounded-card border border-border bg-unbuilt/15 p-4">
+          <div className="pointer-events-none w-24 shrink-0">
+            <BecomingRoomArt level={3} />
+          </div>
+          <p className="text-sm text-foreground">
+            Những món này đang trên đường thuộc về không gian bạn đã hình dung.
+          </p>
+        </div>
+      )}
 
       <div className={`mt-8 flex flex-col gap-2 ${sectionClass}`}>
         <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>

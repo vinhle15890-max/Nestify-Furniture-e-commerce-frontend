@@ -1,5 +1,47 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useOffsetQuery } from '../../lib/pagination'
 import * as roomPlannerApi from './api'
+
+export function useScenes(page) {
+  return useOffsetQuery({
+    queryKey: ['roomScenes'],
+    queryFn: (p) => roomPlannerApi.listScenes(p),
+    page,
+  })
+}
+
+export function useDeleteScene() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => roomPlannerApi.deleteScene(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roomScenes'] }),
+  })
+}
+
+export function useRenameScene() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, name }) => roomPlannerApi.updateScene(id, { name }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roomScenes'] }),
+  })
+}
+
+export function useShareScene() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => roomPlannerApi.shareScene(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roomScenes'] }),
+  })
+}
+
+export function useSharedScene(token) {
+  return useQuery({
+    queryKey: ['sharedScene', token],
+    queryFn: () => roomPlannerApi.getSharedScene(token),
+    enabled: !!token,
+    retry: false,
+  })
+}
 
 export function useScene(id) {
   return useQuery({

@@ -22,6 +22,7 @@ const ResetPasswordPage = named(() => import('../pages/auth/ResetPasswordPage'),
 const VerifyEmailPage = named(() => import('../pages/auth/VerifyEmailPage'), 'VerifyEmailPage')
 const AccountPage = named(() => import('../pages/account/AccountPage'), 'AccountPage')
 const AddressesPage = named(() => import('../pages/account/AddressesPage'), 'AddressesPage')
+const MyRoomsPage = named(() => import('../pages/account/MyRoomsPage'), 'MyRoomsPage')
 const CheckoutPage = named(() => import('../pages/checkout/CheckoutPage'), 'CheckoutPage')
 const CheckoutReturnPage = named(() => import('../pages/checkout/CheckoutReturnPage'), 'CheckoutReturnPage')
 const OrdersPage = named(() => import('../pages/orders/OrdersPage'), 'OrdersPage')
@@ -42,6 +43,7 @@ const AdminEmployeesPage = named(() => import('../pages/admin/users/AdminEmploye
 const AdminCustomersPage = named(() => import('../pages/admin/users/AdminCustomersPage'), 'AdminCustomersPage')
 const AdminAuditLogsPage = named(() => import('../pages/admin/auditLogs/AdminAuditLogsPage'), 'AdminAuditLogsPage')
 const RoomPlannerPage = named(() => import('../pages/roomPlanner/RoomPlannerPage'), 'RoomPlannerPage')
+const SharedRoomPage = named(() => import('../pages/roomPlanner/SharedRoomPage'), 'SharedRoomPage')
 const NotFoundPage = named(() => import('../pages/NotFoundPage'), 'NotFoundPage')
 
 const pageFallback = (
@@ -72,6 +74,7 @@ export const routes = [
         children: [
           { path: 'account', element: lazyPage(<AccountPage />) },
           { path: 'account/addresses', element: lazyPage(<AddressesPage />) },
+          { path: 'account/rooms', element: lazyPage(<MyRoomsPage />) },
           { path: 'wishlist', element: lazyPage(<WishlistPage />) },
           { path: 'checkout', element: lazyPage(<CheckoutPage />) },
           { path: 'checkout/return', element: lazyPage(<CheckoutReturnPage />) },
@@ -89,6 +92,11 @@ export const routes = [
       { path: '/room-planner', element: lazyPage(<RoomPlannerPage />) },
       { path: '/room-planner/:id', element: lazyPage(<RoomPlannerPage />) },
     ],
+  },
+  {
+    // Public read-only shared scene — no auth, no storefront chrome.
+    path: '/room-planner/shared/:token',
+    element: lazyPage(<SharedRoomPage />),
   },
   {
     // Admin is a standalone back-office shell (no storefront Header/Footer).

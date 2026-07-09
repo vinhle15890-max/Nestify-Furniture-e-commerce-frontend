@@ -109,7 +109,7 @@ describe('App routes', () => {
 
   it('renders the not-found page for an unknown route', async () => {
     renderAt('/does-not-exist')
-    expect(await screen.findByRole('heading', { name: 'Không tìm thấy trang' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Căn phòng này chưa được dựng.' })).toBeInTheDocument()
   })
 
   it('redirects /account to /login when not authenticated', async () => {
