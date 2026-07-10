@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom'
 import { ShieldAlert } from 'lucide-react'
-import { useAuthStore } from '../../store/authStore'
+import { useEffectiveUser } from '../../store/previewStore'
 import { visibleGroups, PERMISSION_LABELS } from './adminNav'
 
 // Shown when a staffer deep-links into an admin section they lack permission for.
 // We do NOT redirect (keeps the URL/context) — we explain and offer the sections
-// they can actually reach.
+// they can actually reach. Effective user so this reflects a previewed role's own
+// reachable sections during "Xem với vai trò", not the real admin's.
 export function PermissionDenied({ missing }) {
-  const user = useAuthStore((state) => state.user)
+  const user = useEffectiveUser()
   const slugs = Array.isArray(missing) ? missing : [missing].filter(Boolean)
   const labels = slugs.map((slug) => PERMISSION_LABELS[slug] ?? slug)
   const groups = visibleGroups(user)

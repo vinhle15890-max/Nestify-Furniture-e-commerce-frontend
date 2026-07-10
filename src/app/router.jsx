@@ -42,6 +42,7 @@ const AdminReviewsPage = named(() => import('../pages/admin/reviews/AdminReviews
 const AdminVouchersPage = named(() => import('../pages/admin/vouchers/AdminVouchersPage'), 'AdminVouchersPage')
 const AdminEmployeesPage = named(() => import('../pages/admin/users/AdminEmployeesPage'), 'AdminEmployeesPage')
 const AdminCustomersPage = named(() => import('../pages/admin/users/AdminCustomersPage'), 'AdminCustomersPage')
+const AdminRolesPage = named(() => import('../pages/admin/roles/AdminRolesPage'), 'AdminRolesPage')
 const AdminAuditLogsPage = named(() => import('../pages/admin/auditLogs/AdminAuditLogsPage'), 'AdminAuditLogsPage')
 const RoomPlannerPage = named(() => import('../pages/roomPlanner/RoomPlannerPage'), 'RoomPlannerPage')
 const SharedRoomPage = named(() => import('../pages/roomPlanner/SharedRoomPage'), 'SharedRoomPage')
@@ -145,6 +146,7 @@ export const routes = [
             children: [
               { path: 'employees', element: lazyPage(<AdminEmployeesPage />) },
               { path: 'customers', element: lazyPage(<AdminCustomersPage />) },
+              { path: 'roles', element: lazyPage(<AdminRolesPage />) },
               { path: 'users', element: <Navigate to="/admin/employees" replace /> },
             ],
           },

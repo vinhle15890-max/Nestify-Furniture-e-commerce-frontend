@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Link, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Store, Menu, X, ChevronsUpDown, LogOut } from 'lucide-react'
+import { Store, Menu, X, ChevronsUpDown, LogOut, Eye } from 'lucide-react'
 import { useLogout, useMe } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
+import { usePreviewStore, useEffectiveUser } from '../../store/previewStore'
 import { navGroups, visibleGroups } from './adminNav'
 
 const allItems = navGroups.flatMap((group) => group.items)
@@ -125,16 +126,44 @@ function UserMenu({ user, onLogout }) {
   )
 }
 
+function PreviewBanner({ role, onExit }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-accent/10 px-4 py-2 text-sm text-foreground lg:px-8">
+      <span className="flex items-center gap-2">
+        <Eye size={16} className="shrink-0 text-accent" aria-hidden="true" />
+        Đang xem thử giao diện như vai trò <strong className="font-medium">{role.display_name}</strong> — quyền thao tác
+        thật vẫn theo tài khoản của bạn.
+      </span>
+      <button
+        type="button"
+        onClick={onExit}
+        className="flex shrink-0 items-center gap-1.5 rounded-control border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-alt"
+      >
+        <X size={14} aria-hidden="true" /> Thoát xem thử
+      </button>
+    </div>
+  )
+}
+
 export function AdminLayout() {
   const logout = useLogout()
   const user = useAuthStore((state) => state.user)
   const setUser = useAuthStore((state) => state.setUser)
+  const effectiveUser = useEffectiveUser()
+  const previewRole = usePreviewStore((state) => state.previewRole)
+  const clearPreview = usePreviewStore((state) => state.clearPreview)
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const title = activeTitle(pathname)
   const handleLogout = () => logout.mutate()
-  const groups = visibleGroups(user)
+  const groups = visibleGroups(effectiveUser)
+
+  function handleExitPreview() {
+    clearPreview()
+    navigate('/admin')
+  }
 
   // Legacy persisted sessions may predate `user.permissions`. Sync `/auth/me`
   // on entering the admin area so the sidebar/route guards reflect current
@@ -189,6 +218,8 @@ export function AdminLayout() {
       </Dialog.Root>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {previewRole && <PreviewBanner role={previewRole} onExit={handleExitPreview} />}
+
         {/* Sticky top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-md lg:px-8">
           <button

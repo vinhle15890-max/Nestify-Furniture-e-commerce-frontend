@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AdminHome } from './AdminHome'
 import { useAuthStore } from '../../store/authStore'
+import { usePreviewStore } from '../../store/previewStore'
 
 vi.mock('./AdminDashboardPage', () => ({ AdminDashboardPage: () => <div>Bảng tổng quan</div> }))
 
@@ -19,7 +20,10 @@ function renderHome(user) {
 }
 
 describe('AdminHome', () => {
-  beforeEach(() => useAuthStore.setState({ token: null, user: null }))
+  beforeEach(() => {
+    useAuthStore.setState({ token: null, user: null })
+    usePreviewStore.setState({ previewRole: null })
+  })
 
   it('có view_dashboard → hiện bảng tổng quan', () => {
     renderHome({ permissions: ['view_dashboard'] })
@@ -34,5 +38,12 @@ describe('AdminHome', () => {
   it('không có quyền nào → trang 403', () => {
     renderHome({ permissions: [] })
     expect(screen.getByText('Bạn không có quyền truy cập')).toBeInTheDocument()
+  })
+
+  it('đang xem thử vai trò → index dùng permissions của role preview', () => {
+    usePreviewStore.setState({ previewRole: { name: 'order_staff', display_name: 'Nhân viên đơn', permissions: ['manage_orders'] } })
+    // User thật có view_dashboard nhưng role preview thì không, chỉ có manage_orders.
+    renderHome({ permissions: ['view_dashboard'] })
+    expect(screen.getByText('Trang đơn hàng')).toBeInTheDocument()
   })
 })

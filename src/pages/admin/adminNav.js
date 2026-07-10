@@ -10,6 +10,7 @@ import {
   Users2,
   ScrollText,
   Sparkles,
+  KeyRound,
 } from 'lucide-react'
 import { can, canAny } from '../../lib/roles'
 
@@ -40,6 +41,7 @@ export const navGroups = [
     items: [
       { to: '/admin/employees', label: 'Nhân viên', icon: ShieldCheck, permission: 'manage_users' },
       { to: '/admin/customers', label: 'Khách hàng', icon: Users2, permission: 'manage_users' },
+      { to: '/admin/roles', label: 'Vai trò', icon: KeyRound, permission: 'manage_users' },
     ],
   },
   { title: 'Hệ thống', items: [{ to: '/admin/audit-logs', label: 'Nhật ký', icon: ScrollText, permission: 'view_audit' }] },
