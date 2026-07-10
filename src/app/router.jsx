@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { AdminRoute } from '../routes/AdminRoute'
+import { RequirePermission } from '../routes/RequirePermission'
 import { Spinner } from '../components/Spinner'
 
 // Route-level code splitting: pages load on demand so the initial bundle stays small
@@ -28,7 +29,7 @@ const CheckoutReturnPage = named(() => import('../pages/checkout/CheckoutReturnP
 const OrdersPage = named(() => import('../pages/orders/OrdersPage'), 'OrdersPage')
 const OrderDetailPage = named(() => import('../pages/orders/OrderDetailPage'), 'OrderDetailPage')
 const AdminLayout = named(() => import('../pages/admin/AdminLayout'), 'AdminLayout')
-const AdminDashboardPage = named(() => import('../pages/admin/AdminDashboardPage'), 'AdminDashboardPage')
+const AdminHome = named(() => import('../pages/admin/AdminHome'), 'AdminHome')
 const AdminCategoriesPage = named(() => import('../pages/admin/categories/AdminCategoriesPage'), 'AdminCategoriesPage')
 const AdminProductsPage = named(() => import('../pages/admin/products/AdminProductsPage'), 'AdminProductsPage')
 const AdminProductCreatePage = named(() => import('../pages/admin/products/AdminProductCreatePage'), 'AdminProductCreatePage')
@@ -106,21 +107,51 @@ export const routes = [
       {
         element: lazyPage(<AdminLayout />),
         children: [
-          { index: true, element: lazyPage(<AdminDashboardPage />) },
-          { path: 'categories', element: lazyPage(<AdminCategoriesPage />) },
-          { path: 'products', element: lazyPage(<AdminProductsPage />) },
-          { path: 'products/new', element: lazyPage(<AdminProductCreatePage />) },
-          { path: 'products/seo', element: lazyPage(<AdminSeoReviewPage />) },
-          { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
-          { path: 'media', element: lazyPage(<AdminMediaLibraryPage />) },
-          { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
-          { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
-          { path: 'reviews', element: lazyPage(<AdminReviewsPage />) },
-          { path: 'vouchers', element: lazyPage(<AdminVouchersPage />) },
-          { path: 'employees', element: lazyPage(<AdminEmployeesPage />) },
-          { path: 'customers', element: lazyPage(<AdminCustomersPage />) },
-          { path: 'users', element: <Navigate to="/admin/employees" replace /> },
-          { path: 'audit-logs', element: lazyPage(<AdminAuditLogsPage />) },
+          { index: true, element: lazyPage(<AdminHome />) },
+          {
+            element: <RequirePermission slug="manage_categories" />,
+            children: [{ path: 'categories', element: lazyPage(<AdminCategoriesPage />) }],
+          },
+          {
+            element: <RequirePermission slug="manage_products" />,
+            children: [
+              { path: 'products', element: lazyPage(<AdminProductsPage />) },
+              { path: 'products/new', element: lazyPage(<AdminProductCreatePage />) },
+              { path: 'products/seo', element: lazyPage(<AdminSeoReviewPage />) },
+              { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
+            ],
+          },
+          {
+            element: <RequirePermission slug="manage_products" />,
+            children: [{ path: 'media', element: lazyPage(<AdminMediaLibraryPage />) }],
+          },
+          {
+            element: <RequirePermission slug="manage_orders" />,
+            children: [
+              { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
+              { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
+            ],
+          },
+          {
+            element: <RequirePermission slug="manage_vouchers" />,
+            children: [{ path: 'vouchers', element: lazyPage(<AdminVouchersPage />) }],
+          },
+          {
+            element: <RequirePermission slug="moderate_reviews" />,
+            children: [{ path: 'reviews', element: lazyPage(<AdminReviewsPage />) }],
+          },
+          {
+            element: <RequirePermission slug="manage_users" />,
+            children: [
+              { path: 'employees', element: lazyPage(<AdminEmployeesPage />) },
+              { path: 'customers', element: lazyPage(<AdminCustomersPage />) },
+              { path: 'users', element: <Navigate to="/admin/employees" replace /> },
+            ],
+          },
+          {
+            element: <RequirePermission slug="view_audit" />,
+            children: [{ path: 'audit-logs', element: lazyPage(<AdminAuditLogsPage />) }],
+          },
         ],
       },
     ],

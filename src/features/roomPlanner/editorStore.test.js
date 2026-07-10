@@ -11,7 +11,7 @@ describe('roomPlanner/editorStore', () => {
   it('initNew sets the room and becomes ready', () => {
     useEditorStore.getState().initNew({ width: 4, depth: 5, height: 2.8 })
     const s = useEditorStore.getState()
-    expect(s.room).toEqual({ width: 4, depth: 5, height: 2.8 })
+    expect(s.room).toEqual({ width: 4, depth: 5, height: 2.8, walls: { back: true, left: true, right: true } })
     expect(s.status).toBe('ready')
     expect(s.dirty).toBe(false)
   })
@@ -242,5 +242,73 @@ describe('roomPlanner/editorStore', () => {
     expect(s.items).toHaveLength(1)
     expect(s.dirty).toBe(false)
     expect(s.status).toBe('ready')
+  })
+})
+
+describe('vỏ phòng: resizeRoom / toggleWall / editMode', () => {
+  const baseRoom = { width: 4, depth: 5, height: 3, walls: { back: true, left: true, right: true } }
+
+  it('resizeRoom kẹp width/depth [2,30] và height [2,5]', () => {
+    useEditorStore.getState().initNew(baseRoom)
+    useEditorStore.getState().resizeRoom({ width: 100, depth: 0.5, height: 99 })
+    const r = useEditorStore.getState().room
+    expect(r.width).toBe(30)
+    expect(r.depth).toBe(2)
+    expect(r.height).toBe(5)
+    expect(useEditorStore.getState().dirty).toBe(true)
+  })
+
+  it('resizeRoom re-clamp item ra ngoài khi thu nhỏ phòng', () => {
+    useEditorStore.getState().initNew({ ...baseRoom, width: 20, depth: 20 })
+    useEditorStore.getState().addVariant({ id: 1, sku: 'A' })
+    const id = useEditorStore.getState().selectedId
+    // đẩy item ra mép phòng lớn
+    useEditorStore.getState().updateTransform(id, { position: { x: 9, y: 0, z: 0 } })
+    // thu nhỏ phòng → item phải bị kéo vào trong nửa-rộng mới (2/2 - halfExtent)
+    useEditorStore.getState().resizeRoom({ width: 4, depth: 4 })
+    const item = useEditorStore.getState().items[0]
+    expect(Math.abs(item.position.x)).toBeLessThanOrEqual(2) // trong nửa rộng 4/2
+  })
+
+  it('toggleWall lật đúng side + dirty', () => {
+    useEditorStore.getState().initNew(baseRoom)
+    useEditorStore.getState().toggleWall('left')
+    expect(useEditorStore.getState().room.walls.left).toBe(false)
+    expect(useEditorStore.getState().dirty).toBe(true)
+    useEditorStore.getState().toggleWall('left')
+    expect(useEditorStore.getState().room.walls.left).toBe(true)
+  })
+
+  it('setEditMode đổi mode, KHÔNG set dirty', () => {
+    useEditorStore.getState().initNew(baseRoom)
+    useEditorStore.getState().setEditMode('room')
+    expect(useEditorStore.getState().editMode).toBe('room')
+    expect(useEditorStore.getState().dirty).toBe(false)
+  })
+
+  it('resizeRoom KHÔNG đẩy history — undo sau đó là no-op, room giữ nguyên kích thước mới', () => {
+    useEditorStore.getState().initNew(baseRoom)
+    const pastBefore = useEditorStore.getState().past.length
+    useEditorStore.getState().resizeRoom({ width: 8 })
+    expect(useEditorStore.getState().past.length).toBe(pastBefore) // no phantom snapshot
+    useEditorStore.getState().undo() // no-op: no history was pushed by resizeRoom
+    expect(useEditorStore.getState().room.width).toBe(8) // resize is NOT undoable
+  })
+
+  it('toggleWall KHÔNG đẩy history và KHÔNG xoá redo future đang có', () => {
+    const store = () => useEditorStore.getState()
+    store().initNew(baseRoom)
+    store().addVariant({ id: 1, sku: 'A' })
+    const id = store().selectedId
+    store().updateTransform(id, { position: { x: 1, y: 0, z: 0 } })
+    store().undo() // creates a redo future
+    expect(store().future.length).toBeGreaterThan(0)
+    const pastBefore = store().past.length
+
+    store().toggleWall('left')
+
+    expect(store().past.length).toBe(pastBefore) // no phantom snapshot
+    expect(store().future.length).toBeGreaterThan(0) // redo history preserved, not cleared
+    expect(store().room.walls.left).toBe(false)
   })
 })

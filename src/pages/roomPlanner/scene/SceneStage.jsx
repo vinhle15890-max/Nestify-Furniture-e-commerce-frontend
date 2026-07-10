@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { useEffect, useState } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { MonitorOff, MonitorX } from 'lucide-react'
 import { Room } from './Room'
@@ -39,13 +39,39 @@ function WebGLUnsupportedFallback({ room }) {
   )
 }
 
+// Repositions the camera when entering/leaving top-down "Chỉnh phòng" mode.
+// <Canvas camera={...}> only applies at MOUNT, so switching modes after mount
+// needs an imperative nudge here via useThree. Renders nothing itself.
+function CameraRig({ topDown, room, camDistance }) {
+  const { camera } = useThree()
+
+  useEffect(() => {
+    if (topDown) {
+      const overheadY = Math.max(room.width, room.depth) * 1.4 + room.height
+      camera.position.set(0, overheadY, 0.001) // tiny Z offset avoids the lookAt gimbal singularity
+      camera.lookAt(0, 0, 0)
+    } else {
+      camera.position.set(camDistance, camDistance, camDistance)
+      camera.lookAt(0, room.height / 4, 0)
+    }
+    camera.updateProjectionMatrix()
+  }, [topDown, room.width, room.depth, room.height, camDistance, camera])
+
+  return null
+}
+
 // Shared presentational stage for the room: the WebGL-support gate + <Canvas> +
 // lights + <Room> + <OrbitControls> + runtime context-loss handling. The editor
 // (RoomCanvas) and the read-only viewer (SharedSceneCanvas) both compose it,
 // passing their own scene content (gizmo-editable items, or static models) as
 // `children`. Deciding support BEFORE mounting <Canvas> means react-three-fiber
 // never attempts (and crashes on) context creation when WebGL is unavailable.
-export function SceneStage({ room, orbitEnabled = true, onRendererReady, children }) {
+//
+// `topDown` drives the "Chỉnh phòng" (edit room) mode: camera looks straight
+// down and orbit-rotation is locked, so the caller (RoomCanvas) can also make
+// furniture non-interactive and show the room-edit overlay. Defaults to false
+// so SharedSceneCanvas (which never passes it) keeps its normal perspective view.
+export function SceneStage({ room, orbitEnabled = true, topDown = false, onRendererReady, children }) {
   const webglSupported = useWebGLSupport()
   const [contextLost, setContextLost] = useState(false)
 
@@ -71,11 +97,18 @@ export function SceneStage({ room, orbitEnabled = true, onRendererReady, childre
   return (
     <div className="relative h-full w-full">
       <Canvas gl={{ preserveDrawingBuffer: true }} onCreated={handleCreated} shadows camera={{ position: [camDistance, camDistance, camDistance], fov: 45 }}>
+        <CameraRig topDown={topDown} room={room} camDistance={camDistance} />
         <hemisphereLight intensity={0.9} groundColor="#C9C4B8" /> {/* unbuilt — Becoming ground bounce */}
         <directionalLight position={[5, 8, 5]} intensity={1.1} castShadow />
-        <Room width={room.width} depth={room.depth} height={room.height} />
+        <Room width={room.width} depth={room.depth} height={room.height} walls={room.walls} />
         {children}
-        <OrbitControls makeDefault enabled={orbitEnabled} target={[0, room.height / 4, 0]} />
+        <OrbitControls
+          makeDefault
+          enabled={orbitEnabled}
+          enableRotate={!topDown}
+          target={topDown ? [0, 0, 0] : [0, room.height / 4, 0]}
+          {...(topDown ? { minPolarAngle: 0, maxPolarAngle: 0.0001 } : {})}
+        />
       </Canvas>
       {contextLost && <ContextLostOverlay />}
     </div>

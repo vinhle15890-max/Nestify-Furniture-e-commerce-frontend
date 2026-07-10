@@ -22,6 +22,11 @@ export function sceneToEditorState(resource) {
       width: num(r.width),
       depth: num(r.depth),
       height: num(r.height),
+      walls: {
+        back:  r.wall_back  ?? true,
+        left:  r.wall_left  ?? true,
+        right: r.wall_right ?? true,
+      },
     },
     items: (r.items ?? []).map((item) => ({
       localId: makeLocalId(),
@@ -52,6 +57,9 @@ export function editorStateToPayload(state) {
     width: state.room.width,
     depth: state.room.depth,
     height: state.room.height,
+    wall_back:  state.room.walls?.back  ?? true,
+    wall_left:  state.room.walls?.left  ?? true,
+    wall_right: state.room.walls?.right ?? true,
     items: state.items.map((item) => ({
       variant_id: item.variant.id,
       position: { ...item.position },

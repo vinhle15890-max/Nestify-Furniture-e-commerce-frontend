@@ -1,4 +1,4 @@
-import { Move3d, RotateCw, Maximize, Save, ShoppingCart, ShoppingBag, Share2, Undo2, Redo2, Magnet, Frame, Ruler, X } from 'lucide-react'
+import { Move3d, RotateCw, Maximize, Save, ShoppingCart, ShoppingBag, Share2, Undo2, Redo2, Magnet, Frame, Ruler, Scan, X } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 
@@ -34,6 +34,7 @@ export function PlannerToolbar({
   onToggleScaleRef,
   itemCount,
   onExit,
+  onEnterRoomEdit,
 }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border bg-surface px-4 py-3">
@@ -129,6 +130,18 @@ export function PlannerToolbar({
             }`}
           >
             <Ruler size={15} aria-hidden="true" /> Tỉ lệ
+          </button>
+        </div>
+
+        {/* Chuyển sang chế độ chỉnh kích thước/tường phòng (nhìn từ trên). */}
+        <div className="flex items-center gap-1 rounded-control border border-border p-1">
+          <button
+            type="button"
+            onClick={onEnterRoomEdit}
+            title="Chỉnh kích thước phòng & tường (nhìn từ trên)"
+            className="flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-alt"
+          >
+            <Scan size={15} aria-hidden="true" /> Chỉnh phòng
           </button>
         </div>
       </div>

@@ -10,6 +10,8 @@ import { useUpdateOrderStatus, useRefundOrder } from '../../../features/admin/or
 import { ADMIN_ORDER_TRANSITIONS } from '../../../features/admin/orders/statusTransitions'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { useToastStore } from '../../../store/toastStore'
+import { useAuthStore } from '../../../store/authStore'
+import { can } from '../../../lib/roles'
 import { formatPrice, formatDate } from '../../../lib/format'
 
 function findOrderInCache(queryClient, orderId) {
@@ -31,6 +33,7 @@ export function AdminOrderDetailPage() {
   const updateOrderStatus = useUpdateOrderStatus()
   const refundOrder = useRefundOrder()
   const addToast = useToastStore((state) => state.addToast)
+  const user = useAuthStore((state) => state.user)
 
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
@@ -53,6 +56,7 @@ export function AdminOrderDetailPage() {
   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
   const transitions = ADMIN_ORDER_TRANSITIONS[order.status] ?? []
   const canRefund = order.status !== 'pending_payment'
+  const mayRefund = canRefund && can(user, 'refund')
 
   const handleTransition = async (nextStatus) => {
     try {
@@ -148,7 +152,7 @@ export function AdminOrderDetailPage() {
         </Card>
       )}
 
-      {canRefund && (
+      {mayRefund && (
         <Card className="flex flex-col gap-4">
           <h3 className="font-display text-xl text-foreground">Hoàn tiền</h3>
           <form onSubmit={handleRefund} className="flex flex-col gap-4">

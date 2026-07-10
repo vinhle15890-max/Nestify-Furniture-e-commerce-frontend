@@ -9,3 +9,15 @@ export function isStaff(user) {
   if (!Array.isArray(roles)) return false
   return roles.some((role) => role !== 'customer')
 }
+
+// Permission-level checks against the flat `permissions` array the backend adds
+// to the user (union of the user's roles' permissions; super_admin gets all).
+// FE gating is UX only — the backend still enforces every action with a 403.
+export function can(user, slug) {
+  const permissions = user?.permissions
+  return Array.isArray(permissions) && permissions.includes(slug)
+}
+
+export function canAny(user, slugs) {
+  return slugs.some((slug) => can(user, slug))
+}

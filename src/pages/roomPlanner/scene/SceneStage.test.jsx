@@ -2,18 +2,40 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { SceneStage } from './SceneStage'
 
+// Camera stub shared by the useThree mock below — asserted against in the
+// topDown test. Declared via vi.hoisted so it's initialized before the
+// hoisted vi.mock factories run.
+const { mockCamera, orbitControlsSpy } = vi.hoisted(() => ({
+  mockCamera: {
+    position: { set: vi.fn() },
+    lookAt: vi.fn(),
+    updateProjectionMatrix: vi.fn(),
+  },
+  orbitControlsSpy: vi.fn(() => null),
+}))
+
 // Stub react-three-fiber's Canvas so the "supported" branch is observable in
 // jsdom without booting three.js. Renders a REAL <canvas> (marker testid) and
 // invokes onCreated with it, so the runtime context-loss listeners can be
-// attached and fired in a test. The mock ignores children, so <Room> /
-// <OrbitControls> / scene content never mount — no need to stub drei here.
+// attached and fired in a test. Children now DO render (as plain DOM nodes,
+// same pattern as ScaleReference.test.jsx / RoomEditOverlay.test.jsx) so the
+// CameraRig + OrbitControls wiring is observable — drei/useThree are stubbed
+// below so <Room>/<OrbitControls> mount without booting three.js.
 vi.mock('@react-three/fiber', () => ({
-  Canvas: ({ onCreated }) => (
+  Canvas: ({ onCreated, children }) => (
     <canvas
       data-testid="r3f-canvas"
       ref={(el) => { if (el && onCreated) onCreated({ gl: { domElement: el } }) }}
-    />
+    >
+      {children}
+    </canvas>
   ),
+  useThree: () => ({ camera: mockCamera }),
+}))
+
+vi.mock('@react-three/drei', () => ({
+  OrbitControls: (props) => orbitControlsSpy(props),
+  Grid: () => null,
 }))
 
 const realGetContext = HTMLCanvasElement.prototype.getContext
@@ -95,5 +117,30 @@ describe('SceneStage WebGL capability gate', () => {
     // Context restored → overlay clears.
     fireEvent(canvas, new Event('webglcontextrestored'))
     expect(screen.queryByText(/Mất kết nối đồ hoạ tạm thời/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('SceneStage top-down "Chỉnh phòng" mode', () => {
+  test('topDown false (default) → OrbitControls rotation enabled', () => {
+    const { ctx } = mockContext()
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx)
+
+    render(<SceneStage room={room} />)
+
+    const props = orbitControlsSpy.mock.calls.at(-1)[0]
+    expect(props.enableRotate).toBe(true)
+    expect(props.minPolarAngle).toBeUndefined()
+  })
+
+  test('topDown true → OrbitControls rotation locked + camera moved overhead', () => {
+    const { ctx } = mockContext()
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx)
+
+    render(<SceneStage room={room} topDown />)
+
+    const props = orbitControlsSpy.mock.calls.at(-1)[0]
+    expect(props.enableRotate).toBe(false)
+    expect(props.minPolarAngle).toBe(0)
+    expect(mockCamera.position.set).toHaveBeenCalledWith(0, expect.any(Number), 0.001)
   })
 })

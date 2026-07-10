@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { RoomCanvas } from './scene/RoomCanvas'
+import { RoomEditPanel } from './RoomEditPanel'
 import { RoomSetupDialog } from './RoomSetupDialog'
 import { CatalogTray } from './CatalogTray'
 import { PlannerToolbar } from './PlannerToolbar'
@@ -318,6 +319,7 @@ export function RoomPlannerPage() {
           onToggleScaleRef={store.toggleScaleRef}
           itemCount={store.items.length}
           onExit={handleExit}
+          onEnterRoomEdit={() => store.setEditMode('room')}
         />
         <div className="flex min-h-0 flex-1">
           <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-hidden border-r border-border bg-surface-alt/40 p-4">
@@ -328,7 +330,8 @@ export function RoomPlannerPage() {
           </aside>
           <main className="relative min-w-0 flex-1 bg-surface">
             {store.status === 'ready' && <RoomCanvas />}
-            {store.status === 'ready' && <ScaleLegend room={store.room} />}
+            {store.status === 'ready' && store.editMode === 'room' && <RoomEditPanel />}
+            {store.status === 'ready' && store.editMode === 'furnish' && <ScaleLegend room={store.room} />}
           </main>
         </div>
       </div>

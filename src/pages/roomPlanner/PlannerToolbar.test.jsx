@@ -12,6 +12,7 @@ const base = {
   wallSnap: false, onToggleWallSnap: vi.fn(),
   showScaleRef: false, onToggleScaleRef: vi.fn(),
   itemCount: 2, onExit: vi.fn(),
+  onEnterRoomEdit: vi.fn(),
 }
 
 describe('PlannerToolbar', () => {
@@ -91,5 +92,12 @@ describe('PlannerToolbar', () => {
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(btn)
     expect(onToggleScaleRef).toHaveBeenCalled()
+  })
+
+  it('calls onEnterRoomEdit when "Chỉnh phòng" is clicked', async () => {
+    const onEnterRoomEdit = vi.fn()
+    render(<PlannerToolbar {...base} onEnterRoomEdit={onEnterRoomEdit} />)
+    await userEvent.click(screen.getByRole('button', { name: /chỉnh phòng/i }))
+    expect(onEnterRoomEdit).toHaveBeenCalled()
   })
 })

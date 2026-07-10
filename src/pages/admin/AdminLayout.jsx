@@ -1,55 +1,10 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Link, Outlet, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
-import {
-  LayoutDashboard,
-  FolderTree,
-  Package,
-  Images,
-  Receipt,
-  Ticket,
-  Star,
-  ShieldCheck,
-  Users2,
-  ScrollText,
-  Sparkles,
-  Store,
-  Menu,
-  X,
-  ChevronsUpDown,
-  LogOut,
-} from 'lucide-react'
-import { useLogout } from '../../features/auth/hooks'
+import { Store, Menu, X, ChevronsUpDown, LogOut } from 'lucide-react'
+import { useLogout, useMe } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
-
-const navGroups = [
-  { items: [{ to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true }] },
-  {
-    title: 'Danh mục',
-    items: [
-      { to: '/admin/categories', label: 'Danh mục', icon: FolderTree },
-      { to: '/admin/products', label: 'Sản phẩm', icon: Package, end: true },
-      { to: '/admin/products/seo', label: 'Duyệt SEO', icon: Sparkles },
-      { to: '/admin/media', label: 'Thư viện ảnh', icon: Images },
-    ],
-  },
-  {
-    title: 'Bán hàng',
-    items: [
-      { to: '/admin/orders', label: 'Đơn hàng', icon: Receipt },
-      { to: '/admin/vouchers', label: 'Voucher', icon: Ticket },
-    ],
-  },
-  { title: 'Cộng đồng', items: [{ to: '/admin/reviews', label: 'Đánh giá', icon: Star }] },
-  {
-    title: 'Nhân sự',
-    items: [
-      { to: '/admin/employees', label: 'Nhân viên', icon: ShieldCheck },
-      { to: '/admin/customers', label: 'Khách hàng', icon: Users2 },
-    ],
-  },
-  { title: 'Hệ thống', items: [{ to: '/admin/audit-logs', label: 'Nhật ký', icon: ScrollText }] },
-]
+import { navGroups, visibleGroups } from './adminNav'
 
 const allItems = navGroups.flatMap((group) => group.items)
 
@@ -73,10 +28,10 @@ const navLinkClass = ({ isActive }) =>
       : 'border-transparent text-muted-foreground hover:bg-surface-alt/60 hover:text-foreground'
   }`
 
-function SidebarNav({ onNavigate }) {
+function SidebarNav({ groups, onNavigate }) {
   return (
     <nav className="flex-1 overflow-y-auto px-3 pb-4">
-      {navGroups.map((group, index) => (
+      {groups.map((group, index) => (
         <div key={group.title ?? index} className={index === 0 ? '' : 'mt-6'}>
           {group.title && (
             <p className="px-3 pb-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/60">
@@ -173,11 +128,21 @@ function UserMenu({ user, onLogout }) {
 export function AdminLayout() {
   const logout = useLogout()
   const user = useAuthStore((state) => state.user)
+  const setUser = useAuthStore((state) => state.setUser)
   const { pathname } = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const title = activeTitle(pathname)
   const handleLogout = () => logout.mutate()
+  const groups = visibleGroups(user)
+
+  // Legacy persisted sessions may predate `user.permissions`. Sync `/auth/me`
+  // on entering the admin area so the sidebar/route guards reflect current
+  // permissions instead of locking the user out with a stale/empty set.
+  const { data: meData } = useMe()
+  useEffect(() => {
+    if (meData?.data) setUser(meData.data)
+  }, [meData, setUser])
 
   // Admin keeps the legacy palette. Becoming is the :root default now, so we
   // opt <body> into `legacy` while an admin route is mounted — admin dialogs
@@ -196,7 +161,7 @@ export function AdminLayout() {
         <div className="px-5 py-5">
           <Brand />
         </div>
-        <SidebarNav />
+        <SidebarNav groups={groups} />
         <div className="border-t border-border p-3">
           <UserMenu user={user} onLogout={handleLogout} />
         </div>
@@ -215,7 +180,7 @@ export function AdminLayout() {
                 <X size={20} />
               </Dialog.Close>
             </div>
-            <SidebarNav onNavigate={() => setMobileOpen(false)} />
+            <SidebarNav groups={groups} onNavigate={() => setMobileOpen(false)} />
             <div className="border-t border-border p-3">
               <UserMenu user={user} onLogout={handleLogout} />
             </div>

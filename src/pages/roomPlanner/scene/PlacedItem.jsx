@@ -2,7 +2,10 @@ import { Suspense, useRef } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { FurnitureModel, PlaceholderBox, ModelErrorBoundary } from './FurnitureModel'
 
-export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect, onTransform, onDragChange, onMeasure }) {
+// `interactive = false` renders the model only — no click-to-select, no
+// TransformControls gizmo — used for the "Chỉnh phòng" (top-down room-edit)
+// mode where furniture is shown for reference but can't be manipulated.
+export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect, onTransform, onDragChange, onMeasure, interactive = true }) {
   const groupRef = useRef()
   const { position, rotation, scale } = item
 
@@ -22,10 +25,10 @@ export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect
       position={[position.x, position.y, position.z]}
       rotation={[rotation.x, rotation.y, rotation.z]}
       scale={[scale.x, scale.y, scale.z]}
-      onClick={(event) => {
+      onClick={interactive ? (event) => {
         event.stopPropagation()
         onSelect(item.localId)
-      }}
+      } : undefined}
     >
       <ModelErrorBoundary>
         <Suspense fallback={<PlaceholderBox />}>
@@ -46,7 +49,7 @@ export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect
     </group>
   )
 
-  if (!selected) return content
+  if (!interactive || !selected) return content
 
   return (
     <TransformControls

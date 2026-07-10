@@ -18,14 +18,21 @@ const snapshot = (items) => structuredClone(items)
 // Push the current items onto the undo stack (capped) and drop any redo future.
 const pushPast = (s) => ({ past: [...s.past, snapshot(s.items)].slice(-HISTORY_CAP), future: [] })
 
+const ROOM_MIN = 2
+const ROOM_MAX = 30
+const HEIGHT_MIN = 2
+const HEIGHT_MAX = 5
+const clampDim = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+
 const emptyState = {
   id: null,
   name: 'Phòng của tôi',
   description: '',
-  room: { width: 0, depth: 0, height: 0 },
+  room: { width: 0, depth: 0, height: 0, walls: { back: true, left: true, right: true } },
   items: [],
   selectedId: null,
   gizmoMode: 'translate',
+  editMode: 'furnish', // 'furnish' | 'room'
   dirty: false,
   status: 'idle', // 'idle' | 'ready'
   past: [],
@@ -41,7 +48,7 @@ export const useEditorStore = create((set) => ({
 
   reset: () => set({ ...emptyState }),
 
-  initNew: (room) => set({ ...emptyState, room, status: 'ready' }),
+  initNew: (room) => set({ ...emptyState, room: { ...room, walls: room.walls ?? { back: true, left: true, right: true } }, status: 'ready' }),
 
   loadScene: (resource) => set({ ...sceneToEditorState(resource), selectedId: null, gizmoMode: 'translate', dirty: false, status: 'ready', past: [], future: [] }),
 
@@ -49,6 +56,32 @@ export const useEditorStore = create((set) => ({
 
   // NOTE: does not re-clamp existing items; the next updateTransform re-clamps them to the new room.
   setRoom: (room) => set({ room, dirty: true }),
+
+  setEditMode: (editMode) => set({ editMode }),
+
+  // Kéo đổi kích thước vỏ phòng. Kẹp min/max, RE-CLAMP mọi item vào phòng mới
+  // (sửa bug cũ: setRoom không re-clamp → thu nhỏ phòng thì đồ lọt ra ngoài tường).
+  // Room-shell edits (resize + walls) intentionally sit OUTSIDE undo history
+  // (history is items-only) — do NOT add pushPast() back here.
+  resizeRoom: (patch) => set((s) => {
+    const room = {
+      ...s.room,
+      width:  'width'  in patch ? clampDim(patch.width,  ROOM_MIN, ROOM_MAX)   : s.room.width,
+      depth:  'depth'  in patch ? clampDim(patch.depth,  ROOM_MIN, ROOM_MAX)   : s.room.depth,
+      height: 'height' in patch ? clampDim(patch.height, HEIGHT_MIN, HEIGHT_MAX) : s.room.height,
+    }
+    const items = s.items.map((it) => {
+      const he = rotatedHalfExtents(it.footprint, it.scale, it.rotation.y)
+      return { ...it, position: clampRectToRoom(it.position, room, he) }
+    })
+    return { room, items, dirty: true }
+  }),
+
+  // Room-shell edit — intentionally NOT undoable (history is items-only); see note above resizeRoom.
+  toggleWall: (side) => set((s) => ({
+    room: { ...s.room, walls: { ...s.room.walls, [side]: !s.room.walls[side] } },
+    dirty: true,
+  })),
 
   addVariant: (variant) => set((s) => {
     const item = { localId: makeLocalId(), variant, footprint: { ...DEFAULT_FOOTPRINT }, ...structuredClone(IDENTITY) }

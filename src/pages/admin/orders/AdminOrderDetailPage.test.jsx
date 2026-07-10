@@ -6,6 +6,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AdminOrderDetailPage } from './AdminOrderDetailPage'
 import * as ordersApi from '../../../features/admin/orders/api'
 import { ApiError } from '../../../lib/errors'
+import { useAuthStore } from '../../../store/authStore'
 
 vi.mock('../../../features/admin/orders/api')
 
@@ -31,6 +32,7 @@ const baseOrder = {
 
 function renderPage(order = baseOrder) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  useAuthStore.setState({ token: 't', user: { permissions: ['refund'] } })
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[{ pathname: `/admin/orders/${order.id}`, state: { order } }]}>
@@ -121,6 +123,20 @@ describe('AdminOrderDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Hoàn tiền' }))
 
     expect(await screen.findByText('Số tiền hoàn vượt quá số tiền đã thanh toán.')).toBeInTheDocument()
+  })
+
+  it('ẩn nút Hoàn tiền khi user không có quyền refund', () => {
+    useAuthStore.setState({ token: 't', user: { permissions: [] } })
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={[{ pathname: '/admin/orders/101', state: { order: baseOrder } }]}>
+          <Routes>
+            <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.queryByRole('button', { name: 'Hoàn tiền' })).toBeNull()
   })
 
   it('shows a not-found message when no order data is available', async () => {
