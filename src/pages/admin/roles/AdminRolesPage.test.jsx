@@ -65,6 +65,8 @@ describe('AdminRolesPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Xoá' }))
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(2))
+    expect(screen.getByRole('dialog', { name: 'Xoá vai trò' })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Còn 3 nhân viên giữ vai trò này')
   })
 
   it('toggle sang Ma trận hiển thị lưới, toggle về Bảng quay lại danh sách', async () => {

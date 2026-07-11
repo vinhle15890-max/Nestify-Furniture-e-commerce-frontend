@@ -101,4 +101,14 @@ describe('AdminEmployeesPage', () => {
     const row = (await screen.findByText('Bao Le')).closest('tr')
     expect(within(row).getByText('Đã khóa')).toBeInTheDocument()
   })
+
+  it('keeps the employee table usable and exposes retry when the role filter fails', async () => {
+    usersApi.getRoles.mockRejectedValue(new Error('network'))
+    renderPage()
+
+    expect(await screen.findByText('Bao Le')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Bộ lọc vai trò chưa khả dụng')
+    expect(screen.getByRole('combobox', { name: 'Lọc theo vai trò' })).toBeDisabled()
+    expect(screen.getByRole('table', { name: 'Danh sách nhân viên' })).toBeInTheDocument()
+  })
 })

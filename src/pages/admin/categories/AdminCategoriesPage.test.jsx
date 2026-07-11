@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -150,18 +150,20 @@ describe('AdminCategoriesPage', () => {
   })
 
   it('deletes a category after confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     categoriesApi.deleteCategory.mockResolvedValue({})
     renderPage()
     await screen.findByText('Phòng ngủ')
 
     await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xóa danh mục' })
+    expect(within(dialog).getByText(/Phòng ngủ/)).toBeInTheDocument()
+    expect(categoriesApi.deleteCategory).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xóa danh mục' }))
 
     await waitFor(() => expect(categoriesApi.deleteCategory).toHaveBeenCalledWith(3))
   })
 
-  it('shows an error toast when deleting a category with active products', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
+  it('keeps the delete dialog open with a recoverable error when the category has active products', async () => {
     categoriesApi.deleteCategory.mockRejectedValue(
       new ApiError('HAS_ACTIVE_PRODUCTS', 'Danh mục đang có sản phẩm hoạt động.', null, 409),
     )
@@ -169,7 +171,61 @@ describe('AdminCategoriesPage', () => {
     await screen.findByText('Phòng ngủ')
 
     await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục' }))
 
-    expect(await screen.findByText('Danh mục đang có sản phẩm hoạt động.')).toBeInTheDocument()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Danh mục đang có sản phẩm hoạt động.')
+    expect(screen.getByRole('dialog', { name: 'Xóa danh mục' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xóa danh mục' })).toBeEnabled()
+  })
+
+  it('focuses the first field rejected by server validation and retains entered values', async () => {
+    categoriesApi.createCategory.mockRejectedValue(
+      new ApiError('VALIDATION_FAILED', 'Dữ liệu không hợp lệ.', { fields: { slug: ['Slug đã tồn tại.'] } }, 422),
+    )
+    renderPage()
+    await screen.findByText('Phòng khách')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+    await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Đèn mới')
+    await userEvent.type(screen.getByLabelText('Slug'), 'den')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+
+    expect(await screen.findByText('Slug đã tồn tại.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Slug')).toHaveFocus()
+    expect(screen.getByLabelText('Tên danh mục')).toHaveValue('Đèn mới')
+  })
+
+  it('blocks duplicate deletion and dismissal while the request is pending', async () => {
+    let resolveDelete
+    categoriesApi.deleteCategory.mockImplementation(() => new Promise((resolve) => { resolveDelete = resolve }))
+    renderPage()
+    await screen.findByText('Phòng ngủ')
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Đang xóa...' })
+    expect(pendingButton).toBeDisabled()
+    expect(categoriesApi.deleteCategory).toHaveBeenCalledTimes(1)
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.getByRole('dialog', { name: 'Xóa danh mục' })).toBeInTheDocument()
+
+    resolveDelete({})
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Xóa danh mục' })).toBeNull())
+  })
+
+  it('announces and focuses a safe form-level message on network failure', async () => {
+    categoriesApi.createCategory.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null))
+    renderPage()
+    await screen.findByText('Phòng khách')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+    await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Kệ sách')
+    await userEvent.type(screen.getByLabelText('Slug'), 'ke-sach')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Chưa thể lưu danh mục')
+    await waitFor(() => expect(alert).toHaveFocus())
+    expect(screen.getByLabelText('Tên danh mục')).toHaveValue('Kệ sách')
+    expect(screen.queryByText('Network Error')).toBeNull()
   })
 })

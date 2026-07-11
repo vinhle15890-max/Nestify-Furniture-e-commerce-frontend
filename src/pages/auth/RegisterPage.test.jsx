@@ -82,4 +82,39 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByText('Email đã được sử dụng.')).toBeInTheDocument()
   })
+
+  it('shows a friendly Vietnamese message (not raw axios text) on a network error and retains entered values', async () => {
+    authApi.register.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderRegisterPage()
+
+    await fillForm({ name: 'Bao Le', email: 'bao@example.com' })
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng ký' }))
+
+    expect(await screen.findByText('Đã có lỗi kết nối mạng. Vui lòng thử lại.')).toBeInTheDocument()
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Họ tên')).toHaveValue('Bao Le')
+    expect(screen.getByLabelText('Email')).toHaveValue('bao@example.com')
+  })
+
+  it('shows pending copy and blocks a duplicate submit while a registration is in flight', async () => {
+    let resolveRegistration
+    authApi.register.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRegistration = resolve
+      }),
+    )
+    renderRegisterPage()
+
+    await fillForm({})
+    const submitButton = screen.getByRole('button', { name: 'Đăng ký' })
+    await userEvent.click(submitButton)
+
+    expect(await screen.findByRole('button', { name: 'Đang đăng ký…' })).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Đang đăng ký…' }))
+    expect(authApi.register).toHaveBeenCalledTimes(1)
+
+    resolveRegistration({ data: { token: 'abc123', user: { id: 1, email: 'bao@example.com' } } })
+    await waitFor(() => expect(screen.getByText('Trang tài khoản')).toBeInTheDocument())
+  })
 })

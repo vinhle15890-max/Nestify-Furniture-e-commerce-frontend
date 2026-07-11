@@ -129,10 +129,10 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/checkout/`, `src/features/orders/`, `src/pages/checkout/`, `src/pages/orders/`
 
-- [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
+- [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, mirrored from `uiStore` to same-tab `sessionStorage`, regenerated only after the backend returns an order
 - [x] `features/checkout/api.js` — `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)` (addresses/voucher reused from existing `features/addresses` and `features/cart`)
 - [x] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **payment method picker** (`payos` online | `cod`), submit → create order → (PayOS: create payment session → redirect; COD: xác nhận ngay → trang đơn)
-- [x] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
+- [x] `/checkout/return` page — calls `POST /api/orders/{id}/payment/reconcile` every 3s (10 total/cycle), stops on success/failed/error/timeout and offers explicit retry
 - [x] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder` (retry payment reuses `useCreatePaymentSession` from `features/checkout/hooks.js`)
 - [x] `/orders` page — order history list
 - [x] `/orders/:id` page — status, items, **Cancel** (enabled only while `pending_payment`), **Retry payment** (enabled only while `pending_payment`; handle `409 ORDER_ALREADY_PAID` → refetch + show paid state)

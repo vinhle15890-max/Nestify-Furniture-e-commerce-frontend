@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -113,12 +113,15 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
   const createVoucher = useCreateVoucher()
   const updateVoucher = useUpdateVoucher()
   const addToast = useToastStore((state) => state.addToast)
+  const [submitError, setSubmitError] = useState(null)
+  const submitErrorRef = useRef(null)
 
   const {
     register,
     handleSubmit,
     control,
     setError,
+    setFocus,
     setValue,
     reset,
     formState: { errors, isSubmitting },
@@ -129,10 +132,16 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
   useEffect(() => {
     if (open) {
       reset(voucher ? toFormValues(voucher) : emptyValues)
+      setSubmitError(null)
     }
   }, [open, voucher, reset])
 
+  useEffect(() => {
+    if (submitError) submitErrorRef.current?.focus()
+  }, [submitError])
+
   const onSubmit = async (values) => {
+    setSubmitError(null)
     const payload = {
       code: values.code,
       type: values.type,
@@ -159,15 +168,38 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
       }
       onOpenChange(false)
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
-      addToast({ title: 'Có lỗi xảy ra.', description: error.message, variant: 'error' })
+      if (applyServerErrors(error, setError)) {
+        const fields = error.details.fields
+        const registeredFields = new Set([
+          'code', 'type', 'value', 'max_discount', 'min_order_value',
+          'max_usage_total', 'max_usage_per_user', 'starts_at', 'expires_at', 'status',
+        ])
+        const firstField = Object.keys(fields).find((field) => registeredFields.has(field))
+        if (firstField) {
+          setFocus(firstField)
+        } else {
+          const firstMessage = Object.values(fields).flat()[0]
+          setSubmitError(firstMessage ?? 'Dữ liệu voucher chưa hợp lệ. Vui lòng kiểm tra lại.')
+        }
+        return
+      }
+      setSubmitError(
+        error?.code === 'NETWORK_ERROR'
+          ? 'Chưa thể lưu voucher. Vui lòng kiểm tra kết nối và thử lại.'
+          : error?.message ?? 'Chưa thể lưu voucher. Vui lòng thử lại.',
+      )
     }
   }
+
+  const pending = isSubmitting || createVoucher.isPending || updateVoucher.isPending
 
   return (
     <Modal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (!next && pending) return
+        onOpenChange(next)
+      }}
       title={isEditing ? 'Sửa voucher' : 'Thêm voucher mới'}
       description={isEditing ? `Cập nhật điều kiện và thời hạn của voucher ${voucher.code}.` : 'Thiết lập mã, giá trị và điều kiện sử dụng voucher mới.'}
     >
@@ -192,11 +224,14 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
           <select
             id="type"
             {...register('type')}
-            className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-invalid={errors.type ? 'true' : undefined}
+            aria-describedby={errors.type ? 'type-error' : undefined}
+            className={`rounded-control border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${errors.type ? 'border-destructive' : 'border-border'}`}
           >
             <option value="fixed">Số tiền cố định</option>
             <option value="percentage">Phần trăm</option>
           </select>
+          {errors.type && <p id="type-error" role="alert" className="text-sm text-destructive">{errors.type.message}</p>}
         </div>
 
         <Input label="Giá trị" id="value" type="number" error={errors.value?.message} {...register('value')} />
@@ -258,15 +293,24 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
           <select
             id="status"
             {...register('status')}
-            className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-invalid={errors.status ? 'true' : undefined}
+            aria-describedby={errors.status ? 'status-error' : undefined}
+            className={`rounded-control border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${errors.status ? 'border-destructive' : 'border-border'}`}
           >
             <option value="active">Hoạt động</option>
             <option value="inactive">Tạm ngưng</option>
           </select>
+          {errors.status && <p id="status-error" role="alert" className="text-sm text-destructive">{errors.status.message}</p>}
         </div>
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isEditing ? 'Lưu thay đổi' : 'Thêm voucher mới'}
+        {submitError && (
+          <p ref={submitErrorRef} tabIndex={-1} role="alert" className="text-sm text-destructive">
+            {submitError}
+          </p>
+        )}
+
+        <Button type="submit" disabled={pending}>
+          {pending ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm voucher mới'}
         </Button>
       </form>
     </Modal>

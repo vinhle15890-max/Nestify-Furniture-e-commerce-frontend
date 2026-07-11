@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -9,6 +9,7 @@ import * as addressesApi from '../../features/addresses/api'
 import * as checkoutApi from '../../features/checkout/api'
 import * as navigation from '../../lib/navigation'
 import { useAuthStore } from '../../store/authStore'
+import { useUiStore } from '../../store/uiStore'
 import { ApiError } from '../../lib/errors'
 
 vi.mock('../../features/cart/api')
@@ -61,18 +62,22 @@ const sampleAddresses = {
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
         <CheckoutPage />
       </MemoryRouter>
     </QueryClientProvider>,
   )
+
+  return { ...view, queryClient }
 }
 
 describe('CheckoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
+    useUiStore.setState({ checkoutIdempotencyKey: null })
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
     cartApi.getCart.mockResolvedValue(sampleCart)
     addressesApi.getAddresses.mockResolvedValue(sampleAddresses)
@@ -136,6 +141,24 @@ describe('CheckoutPage', () => {
     expect(otherOption).not.toBeChecked()
   })
 
+  it('reselects a valid address when the selected address disappears after refresh', async () => {
+    const { queryClient } = renderPage()
+
+    await screen.findByText('Nâu')
+    await userEvent.click(screen.getByRole('radio', { name: /Bao Phụ/ }))
+    expect(screen.getByRole('radio', { name: /Bao Phụ/ })).toBeChecked()
+
+    addressesApi.getAddresses.mockResolvedValueOnce({ data: [sampleAddresses.data[0]] })
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ['addresses'] })
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByRole('radio', { name: /Bao Phụ/ })).not.toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: /Bao ·/ })).toBeChecked()
+    })
+  })
+
   it('shows a voucher preview in the order summary', async () => {
     cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })
     renderPage()
@@ -148,6 +171,56 @@ describe('CheckoutPage', () => {
     expect(cartApi.applyVoucher).toHaveBeenCalledWith('GIAM10')
     expect(await screen.findByText('9.000.000 ₫')).toBeInTheDocument()
     expect(screen.getByText('-1.000.000 ₫')).toBeInTheDocument()
+  })
+
+  it('clears an applied voucher preview as soon as the code is edited', async () => {
+    cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })
+    renderPage()
+
+    await screen.findByText('Nâu')
+    const voucherInput = screen.getByLabelText('Mã giảm giá')
+    await userEvent.type(voucherInput, 'GIAM10')
+    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+    expect(await screen.findByText('-1.000.000 ₫')).toBeInTheDocument()
+
+    await userEvent.type(voucherInput, 'X')
+
+    expect(screen.queryByText('-1.000.000 ₫')).not.toBeInTheDocument()
+    expect(screen.queryByText('9.000.000 ₫')).not.toBeInTheDocument()
+  })
+
+  it('links a safe voucher failure to the field and focuses it', async () => {
+    cartApi.applyVoucher.mockRejectedValue(
+      new ApiError('NETWORK_ERROR', 'Network Error', null, undefined),
+    )
+    renderPage()
+
+    await screen.findByText('Nâu')
+    const voucherInput = screen.getByLabelText('Mã giảm giá')
+    await userEvent.type(voucherInput, 'GIAM10')
+    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+
+    expect(await screen.findByText(/Chưa thể kiểm tra mã giảm giá/)).toBeInTheDocument()
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+    expect(voucherInput).toHaveAttribute('aria-invalid', 'true')
+    await waitFor(() => expect(voucherInput).toHaveFocus())
+  })
+
+  it('disables final submission while prerequisite data is stale after a background failure', async () => {
+    const { queryClient } = renderPage()
+    await screen.findByText('Nâu')
+
+    cartApi.getCart.mockRejectedValueOnce(
+      new ApiError('NETWORK_ERROR', 'Network Error', null, undefined),
+    )
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: ['cart'] })
+    })
+
+    expect(await screen.findByText(/Chưa cập nhật được thông tin thanh toán mới nhất/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Đặt hàng' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+    expect(checkoutApi.createOrder).not.toHaveBeenCalled()
   })
 
   it('creates an order, opens a payment session, and redirects on submit', async () => {
@@ -165,7 +238,7 @@ describe('CheckoutPage', () => {
       expect.objectContaining({ address_id: 1, source: 'cart' }),
       expect.any(String),
     )
-    expect(await screen.findByText('Nâu')).toBeInTheDocument()
+    expect(await screen.findByText(/Đơn hàng #99 đã được tạo/)).toBeInTheDocument()
     expect(checkoutApi.createPaymentSession).toHaveBeenCalledWith(99, expect.objectContaining({ gateway: 'payos' }))
     expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99')
   })
@@ -186,6 +259,82 @@ describe('CheckoutPage', () => {
     // COD is confirmed at placement — no online payment step.
     expect(checkoutApi.createPaymentSession).not.toHaveBeenCalled()
     expect(navigation.redirectToExternal).not.toHaveBeenCalled()
+  })
+
+  it('keeps the created order visible and retries only the PayOS session after session failure', async () => {
+    checkoutApi.createOrder.mockResolvedValue({ data: { id: 99, order_number: 'NES-260711-0099', status: 'pending_payment' } })
+    checkoutApi.createPaymentSession
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+      .mockResolvedValueOnce({
+        data: { payment_url: 'https://pay.example/session/99', gateway: 'payos', expires_at: '2026-07-11T12:00:00Z' },
+      })
+    renderPage()
+
+    await screen.findByText('Nâu')
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+
+    expect(await screen.findByText(/Đơn hàng NES-260711-0099 đã được tạo/)).toBeInTheDocument()
+    expect(screen.getByText(/chưa thể mở PayOS/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Xem chi tiết đơn hàng' })).toHaveAttribute('href', '/orders/99')
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử mở lại PayOS' }))
+
+    expect(checkoutApi.createOrder).toHaveBeenCalledTimes(1)
+    expect(checkoutApi.createPaymentSession).toHaveBeenCalledTimes(2)
+    expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99')
+  })
+
+  it('routes an idempotency payload conflict to the existing order instead of creating another', async () => {
+    checkoutApi.createOrder.mockRejectedValue(
+      new ApiError(
+        'DUPLICATE_IDEMPOTENCY_KEY',
+        'Khóa đã được dùng.',
+        { order_id: 88 },
+        409,
+      ),
+    )
+    renderPage()
+
+    await screen.findByText('Nâu')
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+
+    expect(await screen.findByText(/Yêu cầu trước đã tạo đơn hàng/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Mở đơn hàng #88' })).toHaveAttribute('href', '/orders/88')
+    expect(checkoutApi.createOrder).toHaveBeenCalledTimes(1)
+    expect(checkoutApi.createPaymentSession).not.toHaveBeenCalled()
+  })
+
+  it('shows and focuses a safe generic error instead of raw network text', async () => {
+    checkoutApi.createOrder.mockRejectedValue(
+      new ApiError('NETWORK_ERROR', 'Network Error', null, undefined),
+    )
+    renderPage()
+
+    await screen.findByText('Nâu')
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+
+    const alert = await screen.findByText(/Kết nối bị gián đoạn/)
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+    await waitFor(() => expect(alert).toHaveFocus())
+  })
+
+  it('announces an address validation failure and focuses the address group', async () => {
+    checkoutApi.createOrder.mockRejectedValue(
+      new ApiError(
+        'VALIDATION_FAILED',
+        'Dữ liệu không hợp lệ.',
+        { fields: { address_id: ['Địa chỉ không tồn tại.'] } },
+        422,
+      ),
+    )
+    renderPage()
+
+    await screen.findByText('Nâu')
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+
+    expect(await screen.findByText(/Địa chỉ giao hàng không còn hợp lệ/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('radio', { name: /Bao ·/ })).toHaveFocus())
   })
 
   it('shows a precise, item-named error on insufficient stock and does not create a payment session', async () => {

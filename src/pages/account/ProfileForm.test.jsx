@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ProfileForm } from './ProfileForm'
+import { ApiError } from '../../lib/errors'
 import * as authApi from '../../features/auth/api'
 
 vi.mock('../../features/auth/api')
@@ -46,5 +47,19 @@ describe('ProfileForm', () => {
 
     expect(await screen.findByText('Vui lòng nhập mật khẩu hiện tại.')).toBeInTheDocument()
     expect(authApi.updateProfile).not.toHaveBeenCalled()
+  })
+
+  it('shows a friendly Vietnamese message and retains the name on a network error', async () => {
+    authApi.updateProfile.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderForm()
+
+    const nameInput = screen.getByLabelText('Họ tên')
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Bao Updated')
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }))
+
+    expect(await screen.findByText('Đã có lỗi kết nối mạng. Vui lòng thử lại.')).toBeInTheDocument()
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+    expect(nameInput).toHaveValue('Bao Updated')
   })
 })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -7,7 +7,7 @@ import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { useRegister } from '../../features/auth/hooks'
-import { applyServerErrors } from '../../lib/formErrors'
+import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
 
 const schema = yup.object({
   name: yup.string().required('Vui lòng nhập họ tên.').max(255, 'Họ tên tối đa 255 ký tự.'),
@@ -26,6 +26,7 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const registerUser = useRegister()
   const [formError, setFormError] = useState(null)
+  const formRef = useRef(null)
 
   const {
     register,
@@ -43,8 +44,12 @@ export function RegisterPage() {
       await registerUser.mutateAsync(values)
       navigate('/account', { replace: true })
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
-      setFormError(error.message)
+      if (applyServerErrors(error, setError)) {
+        focusFirstError(formRef.current)
+        return
+      }
+      setFormError(formLevelMessage(error))
+      focusFirstError(formRef.current)
     }
   }
 
@@ -61,9 +66,9 @@ export function RegisterPage() {
         </p>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         {formError && (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" tabIndex="-1" className="text-sm text-destructive">
             {formError}
           </p>
         )}
@@ -93,7 +98,7 @@ export function RegisterPage() {
           {...register('password_confirmation')}
         />
         <Button type="submit" disabled={isSubmitting} className="mt-2 py-3.5">
-          Đăng ký
+          {isSubmitting ? 'Đang đăng ký…' : 'Đăng ký'}
         </Button>
       </form>
     </AuthLayout>

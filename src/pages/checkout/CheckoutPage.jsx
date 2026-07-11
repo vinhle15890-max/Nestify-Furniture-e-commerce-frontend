@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingBag, Plus, Pencil, CreditCard, Banknote, MapPin } from 'lucide-react'
@@ -20,6 +20,51 @@ import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
 import { cartHasStockShortfall } from '../../lib/stock'
 
+function fieldError(error, field) {
+  const messages = error?.details?.fields?.[field]
+  if (Array.isArray(messages)) return messages[0]
+  return typeof messages === 'string' ? messages : null
+}
+
+function voucherFailureMessage(error) {
+  if (error?.code === 'NETWORK_ERROR') {
+    return 'Chưa thể kiểm tra mã giảm giá do kết nối bị gián đoạn. Vui lòng thử lại.'
+  }
+  if (error?.code === 'VOUCHER_EXHAUSTED') {
+    return 'Mã giảm giá đã hết lượt sử dụng. Vui lòng chọn mã khác.'
+  }
+  if (error?.code === 'VOUCHER_NOT_APPLICABLE') {
+    return 'Mã giảm giá không áp dụng được cho giỏ hàng này.'
+  }
+
+  return fieldError(error, 'voucher_code')
+    ?? 'Chưa thể kiểm tra mã giảm giá. Vui lòng thử lại.'
+}
+
+function orderFailureMessage(error) {
+  if (error?.code === 'NETWORK_ERROR') {
+    return 'Kết nối bị gián đoạn. Chưa thể xác nhận đơn đã được tạo hay chưa. Hãy giữ nguyên thông tin và thử lại; hệ thống sẽ không tạo trùng đơn.'
+  }
+  if (error?.code === 'STAFF_CANNOT_PURCHASE') {
+    return 'Tài khoản này không thể đặt hàng. Vui lòng dùng tài khoản khách hàng.'
+  }
+
+  return 'Chưa thể hoàn tất đặt hàng. Vui lòng kiểm tra thông tin và thử lại.'
+}
+
+function paymentSessionFailureMessage(error) {
+  if (error?.code === 'ORDER_ALREADY_PAID') return null
+  if (error?.code === 'TOO_MANY_REQUESTS') {
+    return 'Đơn hàng đã được tạo nhưng PayOS đang giới hạn lượt thử. Vui lòng đợi một chút rồi mở lại.'
+  }
+
+  return 'Đơn hàng đã được tạo nhưng chưa thể mở PayOS. Bạn có thể thử lại an toàn mà không tạo đơn mới.'
+}
+
+function orderLabel(order) {
+  return order?.order_number || `#${order?.id}`
+}
+
 function CheckoutNotice({ children }) {
   return (
     <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
@@ -30,6 +75,69 @@ function CheckoutNotice({ children }) {
         <p className="mt-4 text-muted-foreground">{children}</p>
       </div>
     </div>
+    </div>
+  )
+}
+
+function PaymentSessionState({ order, error, isPending, onRetry }) {
+  return (
+    <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-2xl">
+        <BackLink to={`/orders/${order.id}`} className="mb-4">Quay lại đơn hàng</BackLink>
+        <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán đơn hàng</h1>
+        <div className="mt-8 rounded-card border border-border bg-surface p-8 text-center sm:p-10">
+          <CreditCard size={32} aria-hidden="true" className="mx-auto text-border-strong" />
+          <p className="mt-4 font-medium text-foreground">Đơn hàng {orderLabel(order)} đã được tạo.</p>
+          {error ? (
+            <div role="alert" className="mt-3">
+              <p className="text-sm leading-relaxed text-muted-foreground">{error}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Không bấm đặt hàng lại — bước này chỉ mở phiên thanh toán cho đơn hiện có.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Spinner />
+              <span>Đang mở PayOS...</span>
+            </div>
+          )}
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            {error && (
+              <Button type="button" onClick={onRetry} disabled={isPending}>
+                {isPending ? 'Đang mở lại...' : 'Thử mở lại PayOS'}
+              </Button>
+            )}
+            <Link
+              to={`/orders/${order.id}`}
+              className="inline-flex items-center justify-center rounded-control border border-foreground px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Xem chi tiết đơn hàng
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ExistingOrderState({ orderId }) {
+  return (
+    <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng đã tồn tại</h1>
+        <div role="alert" className="mt-8 rounded-card border border-border bg-surface p-8 text-center sm:p-10">
+          <ShoppingBag size={32} aria-hidden="true" className="mx-auto text-border-strong" />
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            Yêu cầu trước đã tạo đơn hàng. Để tránh thanh toán hoặc giữ hàng hai lần, hãy kiểm tra đơn hiện có trước khi thử một đơn mới.
+          </p>
+          <Link
+            to={`/orders/${orderId}`}
+            className="mt-6 inline-flex items-center justify-center rounded-control bg-primary px-4 py-2 text-sm font-medium text-surface transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            Mở đơn hàng #{orderId}
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }
@@ -54,7 +162,14 @@ export function CheckoutPage() {
   const [voucherCode, setVoucherCode] = useState('')
   const [voucherResult, setVoucherResult] = useState(null)
   const [voucherError, setVoucherError] = useState(null)
+  const [addressError, setAddressError] = useState(null)
   const [orderError, setOrderError] = useState(null)
+  const [placedOrder, setPlacedOrder] = useState(null)
+  const [paymentSessionError, setPaymentSessionError] = useState(null)
+  const [existingOrderId, setExistingOrderId] = useState(null)
+  const addressGroupRef = useRef(null)
+  const voucherInputRef = useRef(null)
+  const orderErrorRef = useRef(null)
 
   const addresses = addressesData?.data ?? []
   const cart = cartData?.data
@@ -67,11 +182,37 @@ export function CheckoutPage() {
 
   useEffect(() => {
     const addressList = addressesData?.data
-    if (addressId === null && addressList?.length > 0) {
+    if (!addressList?.length) {
+      if (addressId !== null) setAddressId(null)
+      return
+    }
+
+    const selectedAddressExists = addressList.some((address) => address.id === addressId)
+    if (!selectedAddressExists) {
       const defaultAddress = addressList.find((address) => address.is_default) ?? addressList[0]
       setAddressId(defaultAddress.id)
     }
   }, [addressesData, addressId])
+
+  useEffect(() => {
+    if (addressError) {
+      addressGroupRef.current?.querySelector('input[type="radio"]')?.focus()
+    }
+  }, [addressError])
+
+  useEffect(() => {
+    if (voucherError) voucherInputRef.current?.focus()
+  }, [voucherError])
+
+  useEffect(() => {
+    if (orderError) orderErrorRef.current?.focus()
+  }, [orderError])
+
+  const hasBackgroundError =
+    (cartQuery.isError && Boolean(cartData?.data))
+    || (addressesQuery.isError && Boolean(addressesData?.data))
+  const hasValidAddress = addresses.some((address) => address.id === addressId)
+  const isSubmitting = createOrder.isPending || createPaymentSession.isPending
 
   if (cartLoading || addressesLoading) {
     return (
@@ -113,6 +254,23 @@ export function CheckoutPage() {
         </div>
       </div>
     )
+  }
+
+  // Once an order exists, recovery must stay attached to that order even after
+  // the successful checkout transaction clears and refetches the cart.
+  if (placedOrder) {
+    return (
+      <PaymentSessionState
+        order={placedOrder}
+        error={paymentSessionError}
+        isPending={createPaymentSession.isPending}
+        onRetry={() => openPaymentSession(placedOrder)}
+      />
+    )
+  }
+
+  if (existingOrderId) {
+    return <ExistingOrderState orderId={existingOrderId} />
   }
 
   if (items.length === 0) {
@@ -158,18 +316,48 @@ export function CheckoutPage() {
   function handleApplyVoucher(event) {
     event.preventDefault()
     setVoucherError(null)
-    applyVoucher.mutate(voucherCode, {
+    const normalizedCode = voucherCode.trim()
+
+    applyVoucher.mutate(normalizedCode, {
       onSuccess: (response) => setVoucherResult(response.data),
       onError: (error) => {
         setVoucherResult(null)
-        setVoucherError(error.message)
+        setVoucherError(voucherFailureMessage(error))
       },
     })
   }
 
+  function handleVoucherCodeChange(event) {
+    setVoucherCode(event.target.value)
+    setVoucherResult(null)
+    setVoucherError(null)
+  }
+
+  async function openPaymentSession(order) {
+    setPaymentSessionError(null)
+
+    try {
+      const returnUrl = `${window.location.origin}/checkout/return?order_id=${order.id}`
+      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway: 'payos', returnUrl })
+      redirectToExternal(session.data.payment_url)
+    } catch (error) {
+      if (error.code === 'ORDER_ALREADY_PAID') {
+        navigate(`/orders/${order.id}`)
+        return
+      }
+
+      setPaymentSessionError(paymentSessionFailureMessage(error))
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
+
+    if (hasBackgroundError || !hasValidAddress || stockBlocked || isSubmitting) return
+
     setOrderError(null)
+    setAddressError(null)
+    setExistingOrderId(null)
 
     let order
     try {
@@ -192,10 +380,20 @@ export function CheckoutPage() {
         setOrderError(
           name
             ? `Kho chỉ đủ ${available} sản phẩm cho "${name}". Vui lòng quay lại giỏ hàng để điều chỉnh.`
-            : error.message,
+            : 'Số lượng trong kho vừa thay đổi. Vui lòng quay lại giỏ hàng để điều chỉnh.',
         )
+      } else if (error.code === 'DUPLICATE_IDEMPOTENCY_KEY' && error.details?.order_id) {
+        setExistingOrderId(error.details.order_id)
+      } else if (error.code === 'VALIDATION_FAILED' && fieldError(error, 'address_id')) {
+        setAddressError('Địa chỉ giao hàng không còn hợp lệ. Vui lòng chọn lại một địa chỉ.')
+      } else if (
+        ['VOUCHER_EXHAUSTED', 'VOUCHER_NOT_APPLICABLE'].includes(error.code)
+        || (error.code === 'VALIDATION_FAILED' && fieldError(error, 'voucher_code'))
+      ) {
+        setVoucherResult(null)
+        setVoucherError(voucherFailureMessage(error))
       } else {
-        setOrderError(error.message)
+        setOrderError(orderFailureMessage(error))
       }
       return
     }
@@ -214,19 +412,9 @@ export function CheckoutPage() {
       return
     }
 
-    try {
-      const returnUrl = `${window.location.origin}/checkout/return?order_id=${order.id}`
-      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway: 'payos', returnUrl })
-      redirectToExternal(session.data.payment_url)
-    } catch (error) {
-      addToast({ title: 'Không thể tạo phiên thanh toán.', description: error.message, variant: 'error' })
-    }
+    setPlacedOrder(order)
+    await openPaymentSession(order)
   }
-
-  const isSubmitting = createOrder.isPending || createPaymentSession.isPending
-  const hasBackgroundError =
-    (cartQuery.isError && Boolean(cartData?.data))
-    || (addressesQuery.isError && Boolean(addressesData?.data))
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
@@ -250,9 +438,13 @@ export function CheckoutPage() {
 
       <form onSubmit={handleSubmit} className="mt-10 grid gap-8 lg:grid-cols-3">
         <div className="flex flex-col gap-8 lg:col-span-2">
-          <section>
+          <section
+            ref={addressGroupRef}
+            aria-labelledby="checkout-address-heading"
+            aria-describedby={addressError ? 'checkout-address-error' : undefined}
+          >
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
+              <h2 id="checkout-address-heading" className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
               <button
                 type="button"
                 onClick={openCreateAddress}
@@ -278,7 +470,12 @@ export function CheckoutPage() {
                         name="address"
                         value={address.id}
                         checked={selected}
-                        onChange={() => setAddressId(address.id)}
+                        onChange={() => {
+                          setAddressId(address.id)
+                          setAddressError(null)
+                        }}
+                        aria-invalid={addressError ? 'true' : undefined}
+                        aria-describedby={addressError ? 'checkout-address-error' : undefined}
                         className="mt-1 accent-[var(--color-foreground)]"
                       />
                       <span>
@@ -306,6 +503,11 @@ export function CheckoutPage() {
                 )
               })}
             </div>
+            {addressError && (
+              <p id="checkout-address-error" role="alert" className="mt-3 text-sm text-destructive">
+                {addressError}
+              </p>
+            )}
           </section>
 
           <section>
@@ -368,20 +570,21 @@ export function CheckoutPage() {
 
           <div className="mt-5 flex flex-col gap-2.5 border-t border-border pt-5">
             <Input
+              ref={voucherInputRef}
               id="checkout-voucher-code"
               label="Mã giảm giá"
               value={voucherCode}
-              onChange={(event) => setVoucherCode(event.target.value)}
+              onChange={handleVoucherCodeChange}
+              error={voucherError}
             />
             <Button
               type="button"
               variant="secondary"
               onClick={handleApplyVoucher}
-              disabled={!voucherCode || applyVoucher.isPending}
+              disabled={!voucherCode.trim() || applyVoucher.isPending}
             >
               {applyVoucher.isPending ? 'Đang áp dụng...' : 'Áp dụng'}
             </Button>
-            {voucherError && <p role="alert" className="text-sm text-destructive">{voucherError}</p>}
           </div>
 
           <div className="mt-5 flex flex-col gap-2.5 border-t border-border pt-5 text-sm">
@@ -414,11 +617,25 @@ export function CheckoutPage() {
             </p>
           )}
 
-          {orderError && <p role="alert" className="mt-3 text-sm text-destructive">{orderError}</p>}
+          {orderError && (
+            <p
+              ref={orderErrorRef}
+              tabIndex={-1}
+              role="alert"
+              className="mt-3 rounded-control text-sm text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {orderError}
+            </p>
+          )}
 
           {/* State 4 "Committed": the one and only `confirmed` #3D5A45 action
               site-wide. Not `bg-primary`/ink — this is the moment of decision. */}
-          <Button type="submit" variant="confirmed" disabled={isSubmitting || stockBlocked} className="mt-6 w-full py-3.5">
+          <Button
+            type="submit"
+            variant="confirmed"
+            disabled={isSubmitting || stockBlocked || hasBackgroundError || !hasValidAddress}
+            className="mt-6 w-full py-3.5"
+          >
             {isSubmitting ? 'Đang xử lý...' : 'Đặt hàng'}
           </Button>
         </div>

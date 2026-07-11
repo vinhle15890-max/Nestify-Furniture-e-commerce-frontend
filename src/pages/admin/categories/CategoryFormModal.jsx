@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -62,11 +62,14 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
   // id (submitted as media_asset_id).
   const [image, setImage] = useState({ url: '', media_asset_id: null })
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+  const submitErrorRef = useRef(null)
 
   const {
     register,
     handleSubmit,
     setError,
+    setFocus,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema), defaultValues: emptyValues })
@@ -80,8 +83,13 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
     if (open) {
       reset(category ? toFormValues(category) : emptyValues)
       setImage({ url: category?.image_url ?? '', media_asset_id: category?.media_asset_id ?? null })
+      setSubmitError(null)
     }
   }, [open, category, reset])
+
+  useEffect(() => {
+    if (submitError) submitErrorRef.current?.focus()
+  }, [submitError])
 
   const handlePickImage = (assets) => {
     const asset = assets[0]
@@ -91,6 +99,7 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
   const handleRemoveImage = () => setImage({ url: '', media_asset_id: null })
 
   const onSubmit = async (values) => {
+    setSubmitError(null)
     const base = {
       name: values.name,
       slug: values.slug,
@@ -118,15 +127,34 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
       }
       onOpenChange(false)
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
-      addToast({ title: 'Có lỗi xảy ra.', description: error.message, variant: 'error' })
+      if (applyServerErrors(error, setError)) {
+        const fields = error.details.fields
+        const firstField = Object.keys(fields).find((field) => ['name', 'slug', 'parent_id'].includes(field))
+        if (firstField) {
+          setFocus(firstField)
+        } else {
+          const firstMessage = Object.values(fields).flat()[0]
+          setSubmitError(firstMessage ?? 'Dữ liệu danh mục chưa hợp lệ. Vui lòng kiểm tra lại.')
+        }
+        return
+      }
+      setSubmitError(
+        error?.code === 'NETWORK_ERROR'
+          ? 'Chưa thể lưu danh mục. Vui lòng kiểm tra kết nối và thử lại.'
+          : error?.message ?? 'Chưa thể lưu danh mục. Vui lòng thử lại.',
+      )
     }
   }
+
+  const pending = isSubmitting || createCategory.isPending || updateCategory.isPending
 
   return (
     <Modal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (!next && pending) return
+        onOpenChange(next)
+      }}
       title={isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}
       description={isEditing ? `Cập nhật tên, vị trí và ảnh của danh mục ${category.name}.` : 'Tạo một mục mới trong cây danh mục sản phẩm.'}
     >
@@ -141,7 +169,9 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
           <select
             id="parent_id"
             {...register('parent_id')}
-            className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-invalid={errors.parent_id ? 'true' : undefined}
+            aria-describedby={errors.parent_id ? 'parent_id-error' : undefined}
+            className={`rounded-control border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${errors.parent_id ? 'border-destructive' : 'border-border'}`}
           >
             <option value="">Không có</option>
             {parentOptions.map((option) => (
@@ -151,6 +181,7 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
               </option>
             ))}
           </select>
+          {errors.parent_id && <p id="parent_id-error" role="alert" className="text-sm text-destructive">{errors.parent_id.message}</p>}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -183,8 +214,14 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
           )}
         </div>
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isEditing ? 'Lưu thay đổi' : 'Thêm danh mục'}
+        {submitError && (
+          <p ref={submitErrorRef} tabIndex={-1} role="alert" className="text-sm text-destructive">
+            {submitError}
+          </p>
+        )}
+
+        <Button type="submit" disabled={pending}>
+          {pending ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm danh mục'}
         </Button>
       </form>
 

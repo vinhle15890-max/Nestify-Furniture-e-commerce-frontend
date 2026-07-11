@@ -6,6 +6,7 @@ import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
 import { LoadErrorState } from '../../../components/LoadErrorState'
+import { Modal } from '../../../components/Modal'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminVouchers, useDeleteVoucher } from '../../../features/admin/vouchers/hooks'
@@ -41,6 +42,8 @@ export function AdminVouchersPage() {
   const addToast = useToastStore((state) => state.addToast)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingVoucher, setEditingVoucher] = useState(null)
+  const [deletingVoucher, setDeletingVoucher] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   const vouchers = data?.data ?? []
   // VoucherController returns a plain resource collection → Laravel's default
@@ -58,14 +61,24 @@ export function AdminVouchersPage() {
     setModalOpen(true)
   }
 
-  const handleDelete = async (voucher) => {
-    if (!window.confirm(`Xóa voucher "${voucher.code}"?`)) return
+  const openDeleteModal = (voucher) => {
+    setDeletingVoucher(voucher)
+    setDeleteError(null)
+  }
 
+  const confirmDelete = async () => {
+    if (!deletingVoucher || deleteVoucher.isPending) return
+    setDeleteError(null)
     try {
-      await deleteVoucher.mutateAsync(voucher.id)
+      await deleteVoucher.mutateAsync(deletingVoucher.id)
       addToast({ title: 'Đã xóa voucher.', variant: 'success' })
+      setDeletingVoucher(null)
     } catch (error) {
-      addToast({ title: 'Không thể xóa voucher.', description: error.message, variant: 'error' })
+      setDeleteError(
+        error?.code === 'NETWORK_ERROR'
+          ? 'Chưa thể xóa voucher. Vui lòng kiểm tra kết nối và thử lại.'
+          : error?.message ?? 'Không thể xóa voucher. Vui lòng thử lại.',
+      )
     }
   }
 
@@ -135,7 +148,7 @@ export function AdminVouchersPage() {
                             type="button"
                             aria-label={`Xóa voucher ${voucher.code}`}
                             className="cursor-pointer text-destructive hover:opacity-80"
-                            onClick={() => handleDelete(voucher)}
+                            onClick={() => openDeleteModal(voucher)}
                           >
                             Xóa
                           </button>
@@ -155,6 +168,25 @@ export function AdminVouchersPage() {
       </div>
 
       <VoucherFormModal open={modalOpen} onOpenChange={setModalOpen} voucher={editingVoucher} />
+
+      <Modal
+        open={Boolean(deletingVoucher)}
+        onOpenChange={(next) => {
+          if (!next && !deleteVoucher.isPending) setDeletingVoucher(null)
+        }}
+        title="Xóa voucher"
+        description={deletingVoucher ? `Xóa voucher “${deletingVoucher.code}”? Hành động này không thể hoàn tác.` : undefined}
+      >
+        <div className="flex flex-col gap-4">
+          {deleteError && <p role="alert" className="text-sm text-destructive">{deleteError}</p>}
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setDeletingVoucher(null)} disabled={deleteVoucher.isPending}>Hủy</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteVoucher.isPending}>
+              {deleteVoucher.isPending ? 'Đang xóa...' : 'Xóa voucher'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

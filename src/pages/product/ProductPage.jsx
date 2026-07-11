@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
 import './ProductDescription.css'
@@ -13,6 +13,7 @@ import { useAddCartItem } from '../../features/cart/hooks'
 import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../features/wishlist/hooks'
 import { useOrders } from '../../features/orders/hooks'
 import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
+import { focusFirstError, formLevelMessage } from '../../lib/formErrors'
 import { useRecordProductView } from '../../features/personalization/hooks'
 import { RecentlyViewedStrip } from '../../components/personalization/RecentlyViewedStrip'
 import { useAuthStore } from '../../store/authStore'
@@ -240,7 +241,11 @@ export function ProductPage() {
   const [reviewBody, setReviewBody] = useState('')
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [reviewError, setReviewError] = useState(null)
+  const [reviewFieldErrors, setReviewFieldErrors] = useState({ rating: null, title: null, body: null })
   const [commentDrafts, setCommentDrafts] = useState({})
+  const [commentErrors, setCommentErrors] = useState({})
+  const [commentSubmittingId, setCommentSubmittingId] = useState(null)
+  const reviewFormRef = useRef(null)
 
   const variantIds = useMemo(() => new Set(variants.map((variant) => variant.id)), [variants])
   const verifiedOrder = useMemo(
@@ -254,6 +259,7 @@ export function ProductPage() {
   async function handleSubmitReview(event) {
     event.preventDefault()
     setReviewError(null)
+    setReviewFieldErrors({ rating: null, title: null, body: null })
     try {
       await createReview.mutateAsync({
         productId: product.id,
@@ -264,19 +270,37 @@ export function ProductPage() {
       })
       setReviewSubmitted(true)
     } catch (error) {
-      setReviewError(error.message)
+      if (error?.code === 'VALIDATION_FAILED' && error.details?.fields) {
+        const fields = Object.fromEntries(
+          Object.entries(error.details.fields).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]),
+        )
+        setReviewFieldErrors({ rating: null, title: null, body: null, ...fields })
+      } else {
+        setReviewError(formLevelMessage(error))
+      }
+      focusFirstError(reviewFormRef.current)
     }
   }
 
-  function handleSubmitComment(event, reviewId) {
+  async function handleSubmitComment(event, reviewId) {
     event.preventDefault()
     const body = (commentDrafts[reviewId] ?? '').trim()
     if (!body) return
-
-    createComment.mutate(
-      { reviewId, body },
-      { onSuccess: () => setCommentDrafts((prev) => ({ ...prev, [reviewId]: '' })) },
-    )
+    setCommentErrors((prev) => ({ ...prev, [reviewId]: {} }))
+    setCommentSubmittingId(reviewId)
+    try {
+      await createComment.mutateAsync({ reviewId, body })
+      setCommentDrafts((prev) => ({ ...prev, [reviewId]: '' }))
+    } catch (error) {
+      if (error?.code === 'VALIDATION_FAILED' && error.details?.fields) {
+        setCommentErrors((prev) => ({ ...prev, [reviewId]: { fields: error.details.fields } }))
+      } else {
+        setCommentErrors((prev) => ({ ...prev, [reviewId]: { message: formLevelMessage(error) } }))
+      }
+      focusFirstError(event.currentTarget)
+    } finally {
+      setCommentSubmittingId(null)
+    }
   }
 
   if (isLoading) {
@@ -571,31 +595,55 @@ export function ProductPage() {
 
         {token && verifiedOrder && !reviewSubmitted && (
           <form
+            ref={reviewFormRef}
             onSubmit={handleSubmitReview}
             className="mt-6 flex max-w-xl flex-col gap-4 rounded-card border border-border bg-surface p-6 shadow-soft"
           >
             <p className="font-medium text-foreground">Viết đánh giá của bạn</p>
 
-            <div className="flex gap-1 text-accent">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`Đánh giá ${value} sao`}
-                  aria-pressed={value <= reviewRating}
-                  onClick={() => setReviewRating(value)}
-                  className="transition-transform hover:scale-110"
-                >
-                  <Star size={24} fill={value <= reviewRating ? 'currentColor' : 'none'} />
-                </button>
-              ))}
+            <div className="flex flex-col gap-1.5">
+              <p id="review-rating-label" className="text-sm font-medium text-foreground">
+                Số sao
+              </p>
+              <div
+                className="flex gap-1 text-accent"
+                role="group"
+                aria-labelledby="review-rating-label"
+                aria-describedby={reviewFieldErrors.rating ? 'review-rating-error' : undefined}
+                aria-invalid={reviewFieldErrors.rating ? 'true' : undefined}
+              >
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={`Đánh giá ${value} sao`}
+                    aria-pressed={value <= reviewRating}
+                    onClick={() => {
+                      setReviewRating(value)
+                      if (reviewFieldErrors.rating) setReviewFieldErrors((prev) => ({ ...prev, rating: null }))
+                    }}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star size={24} fill={value <= reviewRating ? 'currentColor' : 'none'} />
+                  </button>
+                ))}
+              </div>
+              {reviewFieldErrors.rating && (
+                <p id="review-rating-error" role="alert" className="text-sm text-destructive">
+                  {reviewFieldErrors.rating}
+                </p>
+              )}
             </div>
 
             <Input
               id="review-title"
               label="Tiêu đề (không bắt buộc)"
               value={reviewTitle}
-              onChange={(event) => setReviewTitle(event.target.value)}
+              onChange={(event) => {
+                setReviewTitle(event.target.value)
+                if (reviewFieldErrors.title) setReviewFieldErrors((prev) => ({ ...prev, title: null }))
+              }}
+              error={reviewFieldErrors.title}
               maxLength={200}
             />
 
@@ -604,22 +652,32 @@ export function ProductPage() {
               <textarea
                 id="review-body"
                 value={reviewBody}
-                onChange={(event) => setReviewBody(event.target.value)}
+                onChange={(event) => {
+                  setReviewBody(event.target.value)
+                  if (reviewFieldErrors.body) setReviewFieldErrors((prev) => ({ ...prev, body: null }))
+                }}
                 maxLength={5000}
                 rows={4}
                 required
+                aria-invalid={reviewFieldErrors.body ? 'true' : undefined}
+                aria-describedby={reviewFieldErrors.body ? 'review-body-error' : undefined}
                 className="rounded-control border border-border-strong bg-surface px-4 py-3 text-base font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               />
             </label>
+            {reviewFieldErrors.body && (
+              <p id="review-body-error" role="alert" className="text-sm text-destructive">
+                {reviewFieldErrors.body}
+              </p>
+            )}
 
             {reviewError && (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" tabIndex="-1" className="text-sm text-destructive">
                 {reviewError}
               </p>
             )}
 
             <Button type="submit" disabled={reviewRating === 0 || !reviewBody.trim() || createReview.isPending}>
-              {createReview.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
+              {createReview.isPending ? 'Đang gửi…' : 'Gửi đánh giá'}
             </Button>
           </form>
         )}
@@ -672,21 +730,36 @@ export function ProductPage() {
                       <textarea
                         id={`comment-${review.id}`}
                         value={commentDrafts[review.id] ?? ''}
-                        onChange={(event) =>
+                        onChange={(event) => {
                           setCommentDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))
-                        }
+                          if (commentErrors[review.id]) setCommentErrors((prev) => ({ ...prev, [review.id]: {} }))
+                        }}
                         maxLength={2000}
                         rows={2}
+                        aria-invalid={commentErrors[review.id]?.fields?.body ? 'true' : undefined}
+                        aria-describedby={commentErrors[review.id]?.fields?.body ? `comment-${review.id}-error` : undefined}
                         className="mt-1.5 block w-full rounded-control border border-border-strong bg-surface px-4 py-2.5 text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                       />
                     </label>
+                    {commentErrors[review.id]?.fields?.body && (
+                      <p id={`comment-${review.id}-error`} role="alert" className="text-sm text-destructive">
+                        {Array.isArray(commentErrors[review.id].fields.body)
+                          ? commentErrors[review.id].fields.body[0]
+                          : commentErrors[review.id].fields.body}
+                      </p>
+                    )}
+                    {commentErrors[review.id]?.message && (
+                      <p role="alert" className="text-sm text-destructive">
+                        {commentErrors[review.id].message}
+                      </p>
+                    )}
                     <div>
                       <Button
                         type="submit"
                         variant="secondary"
-                        disabled={!commentDrafts[review.id]?.trim() || createComment.isPending}
+                        disabled={!commentDrafts[review.id]?.trim() || commentSubmittingId === review.id}
                       >
-                        Gửi bình luận
+                        {commentSubmittingId === review.id ? 'Đang gửi…' : 'Gửi bình luận'}
                       </Button>
                     </div>
                   </form>

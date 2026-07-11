@@ -2,6 +2,7 @@ import { Check } from 'lucide-react'
 import { Button } from '../../../components/Button'
 import { Badge } from '../../../components/Badge'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PERMISSION_LABELS } from '../adminNav'
 import { usePermissions } from '../../../features/admin/roles/hooks'
 
@@ -16,7 +17,7 @@ const thBase = 'text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-mut
 // catalogue. Editing still goes through RoleFormDialog via onEdit (SP2); this grid
 // never writes.
 export function RolePermissionMatrix({ roles, onEdit }) {
-  const { data: permData, isLoading } = usePermissions()
+  const { data: permData, isLoading, isError, isFetching, refetch } = usePermissions()
   const permissions = permData?.data ?? []
   const rows = roles.filter((role) => role.name !== 'customer')
 
@@ -24,8 +25,16 @@ export function RolePermissionMatrix({ roles, onEdit }) {
     return <Spinner label="Đang tải quyền..." />
   }
 
+  if (isError && !permData) {
+    return <LoadErrorState compact title="Chưa thể tải ma trận quyền" description="Danh sách vai trò vẫn được giữ nguyên. Hãy thử tải lại danh mục quyền." onRetry={refetch} isRetrying={isFetching} />
+  }
+
   return (
-    <div className="overflow-x-auto">
+    <div className="flex flex-col gap-4">
+      {isError && permData && (
+        <LoadErrorState compact background title="Ma trận quyền có thể chưa mới nhất" description="Dữ liệu hiện có vẫn được giữ nguyên. Hãy thử tải lại để xác minh." onRetry={refetch} isRetrying={isFetching} />
+      )}
+      <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <caption className="sr-only">Ma trận quyền theo vai trò</caption>
         <thead>
@@ -83,6 +92,7 @@ export function RolePermissionMatrix({ roles, onEdit }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

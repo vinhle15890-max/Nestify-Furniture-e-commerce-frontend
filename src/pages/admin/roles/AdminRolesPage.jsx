@@ -28,6 +28,7 @@ export function AdminRolesPage() {
 
   const [editing, setEditing] = useState(undefined) // undefined=đóng, null=tạo mới, role=sửa
   const [deleting, setDeleting] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
   const [view, setView] = useState('table') // 'table' | 'matrix'
 
   const roles = data?.data ?? []
@@ -39,20 +40,21 @@ export function AdminRolesPage() {
   }
 
   async function confirmDelete() {
+    if (!deleting || deleteRole.isPending) return
+    setDeleteError(null)
     try {
       await deleteRole.mutateAsync(deleting.id)
       addToast({ title: 'Đã xoá vai trò.', variant: 'success' })
       setDeleting(null)
     } catch (err) {
       const count = err?.details?.users_count
-      addToast({
-        title:
-          err?.code === 'ROLE_IN_USE' && count != null
-            ? `Còn ${count} nhân viên giữ vai trò này, hãy gỡ trước khi xoá.`
-            : err.message,
-        variant: 'error',
-      })
-      setDeleting(null)
+      setDeleteError(
+        err?.code === 'ROLE_IN_USE' && count != null
+          ? `Còn ${count} nhân viên giữ vai trò này, hãy gỡ trước khi xoá.`
+          : err?.code === 'NETWORK_ERROR'
+            ? 'Chưa thể xoá vai trò. Vui lòng kiểm tra kết nối và thử lại.'
+            : err?.message ?? 'Chưa thể xoá vai trò. Vui lòng thử lại.',
+      )
     }
   }
 
@@ -150,7 +152,10 @@ export function AdminRolesPage() {
                         {!role.locked && (
                           <Button
                             variant="ghost"
-                            onClick={() => setDeleting(role)}
+                            onClick={() => {
+                              setDeleting(role)
+                              setDeleteError(null)
+                            }}
                             aria-label={`Xoá vai trò ${role.display_name}`}
                             className="text-destructive"
                           >
@@ -175,17 +180,22 @@ export function AdminRolesPage() {
 
       <Modal
         open={Boolean(deleting)}
-        onOpenChange={(next) => !next && setDeleting(null)}
+        onOpenChange={(next) => {
+          if (!next && !deleteRole.isPending) setDeleting(null)
+        }}
         title="Xoá vai trò"
         description={deleting ? `Xoá vai trò "${deleting.display_name}"? Hành động không thể hoàn tác.` : undefined}
       >
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setDeleting(null)}>
-            Hủy
-          </Button>
-          <Button variant="destructive" onClick={confirmDelete} disabled={deleteRole.isPending}>
-            {deleteRole.isPending ? 'Đang xoá...' : 'Xoá'}
-          </Button>
+        <div className="flex flex-col gap-4">
+          {deleteError && <p role="alert" className="text-sm text-destructive">{deleteError}</p>}
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setDeleting(null)} disabled={deleteRole.isPending}>
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteRole.isPending}>
+              {deleteRole.isPending ? 'Đang xoá...' : 'Xoá'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { AddressesPage } from './AddressesPage'
+import { ApiError } from '../../lib/errors'
 import * as addressesApi from '../../features/addresses/api'
 
 vi.mock('../../features/addresses/api')
@@ -146,6 +147,73 @@ describe('AddressesPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đặt làm mặc định' }))
 
     await waitFor(() => expect(addressesApi.setDefaultAddress).toHaveBeenCalledWith(2))
+  })
+
+  it('keeps the address modal open with a friendly form-level message + retained values on a network error', async () => {
+    addressesApi.createAddress.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByText('Bao Le · 0900000000')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ mới' }))
+    await userEvent.type(screen.getByLabelText('Tên người nhận'), 'Tan Pham')
+    await userEvent.type(screen.getByLabelText('Số điện thoại'), '0922222222')
+    await userEvent.type(screen.getByLabelText('Số nhà, tên đường'), '789 Đường C')
+    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
+    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
+    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã/Thị trấn'), 'Phường Ba Đình')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Đã có lỗi kết nối mạng. Vui lòng thử lại.')
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Tên người nhận')).toHaveValue('Tan Pham')
+    expect(screen.getByLabelText('Số nhà, tên đường')).toHaveValue('789 Đường C')
+  })
+
+  it('maps a 422 validation error to the offending field within the modal', async () => {
+    addressesApi.createAddress.mockRejectedValue(
+      new ApiError('VALIDATION_FAILED', 'Dữ liệu không hợp lệ.', { fields: { phone: ['Số điện thoại không hợp lệ.'] } }, 422),
+    )
+    renderPage()
+    await screen.findByText('Bao Le · 0900000000')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ mới' }))
+    await userEvent.type(screen.getByLabelText('Tên người nhận'), 'Tan Pham')
+    await userEvent.type(screen.getByLabelText('Số điện thoại'), 'abc')
+    await userEvent.type(screen.getByLabelText('Số nhà, tên đường'), '789 Đường C')
+    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
+    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
+    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã/Thị trấn'), 'Phường Ba Đình')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
+
+    expect(await screen.findByText('Số điện thoại không hợp lệ.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Số điện thoại')).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('shows pending copy and blocks a duplicate submit while creating an address', async () => {
+    let resolveCreate
+    addressesApi.createAddress.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCreate = resolve
+      }),
+    )
+    renderPage()
+    await screen.findByText('Bao Le · 0900000000')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ mới' }))
+    await userEvent.type(screen.getByLabelText('Tên người nhận'), 'Tan Pham')
+    await userEvent.type(screen.getByLabelText('Số điện thoại'), '0922222222')
+    await userEvent.type(screen.getByLabelText('Số nhà, tên đường'), '789 Đường C')
+    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
+    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
+    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã/Thị trấn'), 'Phường Ba Đình')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Đang thêm…' })
+    expect(pendingButton).toBeDisabled()
+    await userEvent.click(pendingButton)
+    expect(addressesApi.createAddress).toHaveBeenCalledTimes(1)
+
+    resolveCreate({ data: { ...sampleAddresses[0], id: 3 } })
   })
 
   afterEach(() => {

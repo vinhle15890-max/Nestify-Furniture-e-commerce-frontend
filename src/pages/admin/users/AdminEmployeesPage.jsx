@@ -38,7 +38,12 @@ export function AdminEmployeesPage() {
     search,
     role: role || undefined,
   })
-  const { data: rolesData } = useRoles()
+  const {
+    data: rolesData,
+    isError: rolesError,
+    isFetching: rolesFetching,
+    refetch: refetchRoles,
+  } = useRoles()
 
   const roleOptions = (rolesData?.data ?? []).filter((r) => r.name !== 'customer')
   const meta = data?.meta?.pagination ?? { last_page: 1 }
@@ -78,6 +83,7 @@ export function AdminEmployeesPage() {
             value={role}
             onChange={(event) => resetToFirstPage(setRole)(event.target.value)}
             aria-label="Lọc theo vai trò"
+            disabled={rolesError && !rolesData}
             className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
           >
             <option value="">Tất cả vai trò</option>
@@ -101,6 +107,10 @@ export function AdminEmployeesPage() {
           </select>
         </div>
       </div>
+
+      {rolesError && (
+        <LoadErrorState className="mt-3" compact background title={rolesData ? 'Bộ lọc vai trò có thể chưa mới nhất' : 'Bộ lọc vai trò chưa khả dụng'} description="Danh sách nhân viên vẫn có thể sử dụng. Hãy thử tải lại danh sách vai trò." onRetry={refetchRoles} isRetrying={rolesFetching} />
+      )}
 
       {/* Table */}
       <Panel padded={false} className="mt-4">

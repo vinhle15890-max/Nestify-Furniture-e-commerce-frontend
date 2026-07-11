@@ -129,12 +129,13 @@ Laravel API (api.nestify.asia)
 
 - **Luồng:** chọn địa chỉ (mặc định trước) → voucher → **phương thức** `cod` | `payos` → tạo đơn (`useCreateOrder`) → nếu
   `payos`: tạo phiên thanh toán → **redirect** sang cổng PayOS; nếu `cod`: đơn `processing` ngay.
-- **Idempotency:** mỗi lần checkout gắn **Idempotency-Key** (`lib/idempotency.js`) → bấm 2 lần / mạng chập không tạo đơn trùng.
-- **Trang trả về `/checkout/return`:** poll trạng thái đơn; có lớp **reconcile** (đối chiếu) khi webhook PayOS đến trễ.
+- **Idempotency:** mỗi lần checkout gắn **Idempotency-Key** (`lib/idempotency.js`), giữ qua reload cùng tab bằng `sessionStorage`; BE persist key + fingerprint cùng transaction order → bấm 2 lần / mất response không lặp side-effect. Key chỉ rotate sau khi BE trả order.
+- **Sau khi order đã tạo:** Checkout chuyển sang state mở PayOS riêng. Lỗi session giữ nguyên order ID, có retry session + link chi tiết và tuyệt đối không gọi `createOrder` lần hai.
+- **Trang trả về `/checkout/return`:** gọi reconcile tối đa 10 lần/cycle; phân biệt `success|pending|failed`, dừng khi gateway/API lỗi và có retry rõ ràng. `503 GATEWAY_UNAVAILABLE` không bị hiển thị như pending giả.
 - **Gate staff:** staff vào `/checkout` → `CheckoutNotice` (không mua được).
 - **Lỗi:** `409 INSUFFICIENT_STOCK`, `409 ORDER_ALREADY_PAID`, `429 RATE_LIMITED` → thông báo & điều hướng phù hợp.
 
-> **Phản biện:** (1) **Idempotency-Key** là điểm chí mạng phía FE — chống double-submit. (2) Trang return poll + reconcile vì
+> **Phản biện:** (1) **Idempotency-Key** là điểm chí mạng xuyên FE/BE — FE giữ cùng key khi retry, BE mới là nơi enforce unique + replay. (2) Trang return poll + reconcile vì
 > webhook là nguồn sự thật nhưng có thể trễ → tránh kẹt "pending_payment" giả. (3) COD vs PayOS: COD xác nhận đơn ngay,
 > PayOS giữ chỗ kho tới khi trả tiền (khớp BE §4–§5).
 

@@ -51,4 +51,13 @@ describe('VerifyEmailPage', () => {
 
     expect(await screen.findByText('Liên kết không hợp lệ hoặc đã hết hạn.')).toBeInTheDocument()
   })
+
+  it('shows a friendly Vietnamese message (not raw axios text) on a network error', async () => {
+    authApi.verifyEmail.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+
+    renderPage('/verify-email?id=1&expires=1893456000&signature=abc')
+
+    expect(await screen.findByText('Đã có lỗi kết nối mạng. Vui lòng thử lại.')).toBeInTheDocument()
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+  })
 })

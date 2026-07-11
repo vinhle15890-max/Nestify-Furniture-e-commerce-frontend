@@ -19,7 +19,7 @@ const roles = [
 
 beforeEach(() => {
   vi.clearAllMocks()
-  rolesHooks.usePermissions.mockReturnValue({ data: { data: permissions }, isLoading: false })
+  rolesHooks.usePermissions.mockReturnValue({ data: { data: permissions }, isLoading: false, isError: false })
 })
 
 describe('RolePermissionMatrix', () => {
@@ -51,5 +51,16 @@ describe('RolePermissionMatrix', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Sửa vai trò Nhân viên đơn' }))
     expect(onEdit).toHaveBeenCalledWith(roles[1])
+  })
+
+  it('shows a retryable query failure instead of a permission-less matrix', async () => {
+    const refetch = vi.fn()
+    rolesHooks.usePermissions.mockReturnValue({ data: undefined, isLoading: false, isError: true, isFetching: false, refetch })
+    render(<RolePermissionMatrix roles={roles} onEdit={() => {}} />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể tải ma trận quyền')
+    expect(screen.queryByRole('table')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(refetch).toHaveBeenCalledTimes(1)
   })
 })

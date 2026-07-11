@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Lock, LockOpen } from 'lucide-react'
 import { Modal } from '../../../components/Modal'
 import { Button } from '../../../components/Button'
@@ -15,20 +15,28 @@ export function LockUserButton({ user, onSuccess }) {
   const updateStatus = useUpdateUserStatus()
   const addToast = useToastStore((state) => state.addToast)
   const [confirmOpen, setConfirmOpen] = useState(false)
-
-  if (currentUser && user.id === currentUser.id) return null
+  const [error, setError] = useState(null)
+  const errorRef = useRef(null)
 
   const isLocked = user.status === 'archived'
   const nextStatus = isLocked ? 'active' : 'archived'
 
+  useEffect(() => {
+    if (error) errorRef.current?.focus()
+  }, [error])
+
+  if (currentUser && user.id === currentUser.id) return null
+
   async function handleConfirm() {
+    if (updateStatus.isPending) return
+    setError(null)
     try {
       await updateStatus.mutateAsync({ id: user.id, status: nextStatus })
       addToast({ title: isLocked ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.', variant: 'success' })
       setConfirmOpen(false)
       onSuccess?.()
     } catch (err) {
-      addToast({ title: err.message, variant: 'error' })
+      setError(err?.code === 'NETWORK_ERROR' ? 'Chưa thể cập nhật tài khoản. Vui lòng kiểm tra kết nối và thử lại.' : err?.message ?? 'Chưa thể cập nhật tài khoản. Vui lòng thử lại.')
     }
   }
 
@@ -38,7 +46,10 @@ export function LockUserButton({ user, onSuccess }) {
         variant={isLocked ? 'secondary' : 'destructive'}
         className="px-3 py-1.5"
         aria-label={`${isLocked ? 'Mở khóa' : 'Khóa'} tài khoản ${user.name}`}
-        onClick={() => setConfirmOpen(true)}
+        onClick={() => {
+          setError(null)
+          setConfirmOpen(true)
+        }}
       >
         {isLocked ? <LockOpen size={14} aria-hidden="true" /> : <Lock size={14} aria-hidden="true" />}
         {isLocked ? 'Mở khóa' : 'Khóa'}
@@ -46,7 +57,10 @@ export function LockUserButton({ user, onSuccess }) {
 
       <Modal
         open={confirmOpen}
-        onOpenChange={setConfirmOpen}
+        onOpenChange={(next) => {
+          if (!next && updateStatus.isPending) return
+          setConfirmOpen(next)
+        }}
         title={isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
         description={`${user.name} · ${user.email}`}
       >
@@ -56,8 +70,9 @@ export function LockUserButton({ user, onSuccess }) {
               ? 'Tài khoản sẽ đăng nhập lại được bình thường.'
               : 'Người dùng sẽ bị đăng xuất ngay và không thể đăng nhập cho tới khi được mở khóa.'}
           </p>
+          {error && <p ref={errorRef} tabIndex={-1} role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+            <Button variant="secondary" onClick={() => setConfirmOpen(false)} disabled={updateStatus.isPending}>
               Hủy
             </Button>
             <Button

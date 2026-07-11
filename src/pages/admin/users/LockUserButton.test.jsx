@@ -59,4 +59,16 @@ describe('LockUserButton', () => {
     })
     expect(onSuccess).toHaveBeenCalledTimes(1)
   })
+
+  it('keeps the confirmation open with an inline error when status update fails', async () => {
+    mutateAsync.mockRejectedValueOnce(new Error('Không thể khóa tài khoản này.'))
+    render(<LockUserButton user={{ id: 2, name: 'A', email: 'a@x.vn', status: 'active' }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Khóa tài khoản A' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Xác nhận khóa' }))
+    })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Không thể khóa tài khoản này.')
+    expect(screen.getByRole('dialog', { name: 'Khóa tài khoản' })).toBeInTheDocument()
+  })
 })
