@@ -158,148 +158,256 @@ or business-rule change introduced by Wave 5A.
 ## Integration & release handoff (2026-07-11)
 
 Cross-wave verification of Waves 5A, 5B (Checkout/Payment reliability), and
-5C (Admin CRUD reliability). No code files were modified by this integration
-pass; the only edits in this section update this plan's Status/Execution/
-handoff. Wave 5B/5C execution histories in their own plans are left unchanged
-per the handoff rules.
+5C (Admin CRUD reliability). Wave 5B/5C execution histories in their own
+plans are left unchanged per the handoff rules; this handoff is the
+authoritative close-out. This section was corrected by a continuation pass
+that established a same-environment baseline for the four backend
+notification failures, made scoped Wave 5B Pint clean, and reconciled the
+Wave 5C test-file count.
 
 ### Verdict
 
-`PASS WITH RUNTIME CHECKS`.
+`PASS WITH VERIFIED BASELINE FAILURES`.
 
-All Wave 5A/5B/5C focused tests pass; the full FE suite is green; FE lint and
-production build pass; BE focused contract suite (order idempotency + payment
-recovery) passes; the BE full suite completes and reveals only 4 pre-existing
-notification-infrastructure failures unrelated to any of the three waves. No
-file from any wave was lost, overwritten, or regressed. Checkout idempotency,
-payment recovery, retry-without-recompute, reconciliation of
-success/pending/failed/unavailable, admin destructive-action confirmations,
-and the staff-cannot-purchase gate are all preserved.
+All current automated release gates pass except four backend
+`Notification::assertSentTo` tests that have been proven — by a
+same-Docker-image / same-env / same-DB-driver / same-queue isolated-worktree
+baseline run — to fail identically on the parent commit `17e11a1` and on the
+Wave 5B HEAD commit `4707947`. They are baseline debt, not Wave 5B
+regressions, and are listed explicitly below. Every remaining release gate
+(Wave 5A/5B/5C focused tests, full FE suite, FE lint, FE production build,
+BE focused 5B suite, scoped Wave 5B Pint `--test`, `git diff --check` for
+both repos) passes.
 
-### Test matrix
+### Backend baseline comparison (parent `17e11a1` vs HEAD `4707947`)
 
-| Command | Scope | Result | Notes |
-|---|---|---|---|
-| `npx vitest run <5A files>` | FE focused 5A helpers + auth/profile/address/product forms | 81 tests passed (10 files) | Includes formErrors, idempotency, all auth pages, Profile, Addresses, ProductPage |
-| `npx vitest run <5B files>` | FE focused 5B checkout + return + idempotency | 30 tests passed (3 files) | CheckoutPage, CheckoutReturnPage, idempotency |
-| `npx vitest run <5C files>` | FE focused 5C admin CRUD | 46 tests passed (8 files) | Categories, roles, role form/matrix, employees, lock, vouchers, AdminRoleDialogs |
-| `npx vitest run` | FE full suite | 131 files / 662 tests passed | No FE test failed |
-| `npm run lint` | FE ESLint | 0 errors, 2 warnings | Both warnings pre-existing `react-refresh/only-export-components` in Room Planner |
-| `npm run build` | FE production build | PASS | Existing large-chunk advisory on `summary-*.js` (Room Planner) — pre-existing |
-| `git diff --check` (FE) | FE whitespace conflicts | PASS (exit 0) | |
-| `php artisan test <5B BE files>` | BE focused 5B order idempotency + payment recovery | 45 tests / 134 assertions passed | CreateOrderTest, CreatePaymentSessionTest, PayOsGatewayCreateSessionTest, PaymentReconcileTest |
-| `php artisan test` | BE full suite | 575 passed, 4 failed, 1891 assertions | 4 failures all `Notification::assertSentTo` on ShouldQueue listeners (Restock, PayOS-success, PayOS-failed, Order-cancel-refund-staff). 3 of 4 exercise no 5B code path; 5B commit touches no `app/Notifications`, `app/Observers`, `app/Listeners` — definitively pre-existing on SQLite test env, missed by Wave 5B because the runner terminated before reaching these tests. |
-| `./vendor/bin/pint --test <5B BE files>` | BE scoped Pint on new/touched files | 12 style-drift issues, 0 errors | Cosmetic (single_space_around_construct, type_declaration_spaces, binary_operator_spaces, class_attributes_separation, new_with_parentheses, ordered_imports). No broad formatter run per rule. |
-| `git diff --check` (BE) | BE whitespace conflicts | PASS (exit 0) | |
+Method: isolated detached git worktrees per revision; identical Docker image
+(`docker/php/Dockerfile`); identical env (`APP_ENV=testing`,
+`DB_CONNECTION=sqlite` `:memory:`, `QUEUE_CONNECTION=sync`,
+`CACHE_STORE=array` per `phpunit.xml`); independent `composer install`
+(per-revision fresh `vendor/`); same command
+`vendor/bin/phpunit <files> --filter=<exact four>`. Volumes, containers,
+and worktrees were torn down with `docker compose down -v` and
+`git worktree remove --force` after each side.
 
-### Lint / build
+| Test | Parent `17e11a1` | HEAD `4707947` | Classification | Evidence |
+|---|---|---|---|---|
+| `TransactionalEmailTest::test_successful_payment_emails_order_confirmation_to_customer` | FAIL — `OrderConfirmedNotification was not sent` | FAIL — identical error | Verified baseline failure | `NotificationFake.php:89` assertion; identical stack to `tests/Feature/Notifications/TransactionalEmailTest.php:69` |
+| `TransactionalEmailTest::test_failed_payment_emails_failure_notice_to_customer` | FAIL — `PaymentFailedNotification was not sent` | FAIL — identical error | Verified baseline failure | `NotificationFake.php:89`; identical stack to `tests/Feature/Notifications/TransactionalEmailTest.php:85` |
+| `TransactionalEmailTest::test_restock_emails_wishlist_subscribers_only` | FAIL — `RestockNotification was not sent` | FAIL — identical error | Verified baseline failure | `NotificationFake.php:89`; identical stack to `tests/Feature/Notifications/TransactionalEmailTest.php:115`. Exercises zero 5B code paths (Eloquent observer + event + listener only). |
+| `CancelOrderTest::test_cancelling_a_paid_order_notifies_refund_staff` | FAIL — `OrderCancelledNotification was not sent` | FAIL — identical error | Verified baseline failure | `NotificationFake.php:89`; identical stack to `tests/Feature/Order/CancelOrderTest.php:165` |
 
-- FE ESLint: 0 errors. 2 pre-existing warnings (Room Planner `react-refresh/only-export-components`).
-- FE production build: passed; existing large-chunk advisory unchanged.
-- BE scoped Pint: 12 cosmetic style-drift findings on touched files, no errors.
-  No broad formatter was run.
+Because the four tests fail identically on both revisions under the same
+environment, they are classified as **verified baseline debt** and are NOT
+fixed by this integration task (per the rule "Do not fix verified baseline
+notification issues during this task"). The earlier handoff's claim that
+these were "pre-existing" was correct in conclusion but unsupported by a
+baseline run; that gap is now closed. No regression was introduced by
+Wave 5B and no root-cause investigation into SQLite/PostgreSQL semantics
+is needed to clear Wave 5B of the failures.
 
-### Files modified by this integration task
+### Authoritative Wave 5C test-file list
+
+Derived from `git show dd73a88 --stat` limited to admin test files, plus the
+plan's scope and a glob of every admin colocated test. Two views are both
+explicitly verified:
+
+- **Strict scope-by-diff (8 colocated test files modified by Wave 5C,
+  46 tests — all pass):**
+  1. `src/pages/admin/categories/AdminCategoriesPage.test.jsx` (9 tests)
+  2. `src/pages/admin/roles/AdminRolesPage.test.jsx` (7 tests)
+  3. `src/pages/admin/roles/RoleFormDialog.test.jsx` (4 tests)
+  4. `src/pages/admin/roles/RolePermissionMatrix.test.jsx` (4 tests)
+  5. `src/pages/admin/users/AdminEmployeesPage.test.jsx` (6 tests)
+  6. `src/pages/admin/users/LockUserButton.test.jsx` (6 tests)
+  7. `src/pages/admin/users/AdminRoleDialogs.test.jsx` (2 tests, new file)
+  8. `src/pages/admin/vouchers/AdminVouchersPage.test.jsx` (8 tests)
+
+- **Wider 5C-area view (10 files, 51 tests — all pass):** the eight above
+  plus `src/features/admin/roles/api.test.js` (4 tests) and
+  `src/features/admin/users/api.test.js` (1 test). These two feature-level
+  API tests pre-date Wave 5C and were not modified by it; they were
+  apparently included in the original execution record's "10 files /
+  50 tests" tally.
+
+Reconciliation: the original plan's "10 test files / 50 tests" was a
+**mis-count**, not a missing/renamed/merged file. The two feature-level
+`api.test.js` files account for the file-count gap (8 → 10), and the
+individual per-file test counts sum to 51 (46 colocated + 5 feature), not
+50. No test file was lost, renamed, or merged. The plan's "10 files /
+50 tests" line is left unchanged per the rule "Do not rewrite historical
+Wave 5B/5C execution records", and this handoff is the canonical
+authoritative record going forward.
+
+### Pint before/after summary
+
+- **Before**: `./vendor/bin/pint --test <15 Wave 5B PHP files>` →
+  12 style issues across 12 files (single_space_around_construct,
+  type_declaration_spaces, binary_operator_spaces,
+  class_attributes_separation, new_with_parentheses, ordered_imports,
+  concat_space, function_declaration, unary_operator_spaces). The two
+  new migrations and `DuplicateIdempotencyKeyException.php` were already
+  clean.
+- **Action**: `./vendor/bin/pint <12 in-scope files>` (only the 12
+  Wave-5B-modified files; no repo-wide formatter; no dependency change).
+  Diff inspected — every change is cosmetic (parens removed on
+  `new ExceptionClass`, single-space array `=>` instead of aligned-arsenic
+  spacing, import alphabetical reorder, function-body brace expansion). No
+  business-logic, API, or contract change.
+- **After**: `./vendor/bin/pint --test <15 Wave 5B PHP files>` →
+  PASS, 15 files, 0 issues.
+- **Regression check after Pint**: Wave 5B focused suite still
+  45 tests / 134 assertions PASS; full BE suite still
+  575 passed / 4 failed / 1891 assertions (the 4 are the verified
+  baseline debt above — same before and after Pint, so Pint introduced
+  no regression).
+
+### Files modified by this integration task (continuation)
 
 - `docs/superpowers/plans/2026-07-11-ui-ux-audit-wave-5a-form-reliability.md`
-  — updated Status from "Implementation in progress" to "Implementation
-  complete", added this Execution record and Integration & release handoff.
-- No source files were edited by the integration pass.
+  — Status updated to "Implementation complete"; Execution record added;
+  this handoff section rewritten to reflect the continuation's findings.
+- Backend source files reformatted by scoped Pint (cosmetic only, all from
+  commit `4707947` Wave 5B scope):
+  - `src/app/DTOs/OrderCreateDTO.php`
+  - `src/app/Http/Controllers/PaymentSessionController.php`
+  - `src/app/Http/Requests/Order/CreateOrderRequest.php`
+  - `src/app/Models/Order.php`
+  - `src/app/Services/OrderService.php`
+  - `src/app/Services/Payment/PayOsGateway.php`
+  - `src/app/Services/PaymentService.php`
+  - `src/bootstrap/app.php`
+  - `src/tests/Feature/Order/CreateOrderTest.php`
+  - `src/tests/Feature/Payment/CreatePaymentSessionTest.php`
+  - `src/tests/Feature/Payment/PayOsGatewayCreateSessionTest.php`
+  - `src/tests/Feature/Payment/PaymentReconcileTest.php`
+- No FE source file was modified by this continuation. No documentation
+  file other than this plan was modified.
 
-### Pre-existing warnings (out of Wave 5A/5B/5C scope)
+### Verification command table (continuation)
+
+| Command | Scope | Exit code | Result | Notes |
+|---|---|---|---|---|
+| `vendor/bin/phpunit <4 notif> --filter=<4>` on parent `17e11a1` worktree | BE baseline | 1 | 4 failed, 7 assertions | `Tests: 4, Assertions: 7, Failures: 4` |
+| `vendor/bin/phpunit <4 notif> --filter=<4>` on HEAD `4707947` worktree | BE comparison | 1 | 4 failed, 7 assertions | Identical errors → verified baseline debt |
+| `npx vitest run <8 colocated 5C files>` | FE Wave 5C focused | 0 | 8 files / 46 tests passed | Authoritative 5C count |
+| `npx vitest run <2 features 5C-adjacent files>` | FE 5C-area feature | 0 | 2 files / 5 tests passed | Non-diff-scoped; explains original "10 files" tally |
+| `./vendor/bin/pint --test <15 5B BE files>` (before) | BE scoped Pint | 1 | 12 issues, 15 files | Cosmetic drift on 12 files |
+| `./vendor/bin/pint <12 in-scope 5B BE files>` | BE scoped Pint fix | 0 | 12 files, 12 fixed | Cosmetic only; diff inspected |
+| `./vendor/bin/pint --test <15 5B BE files>` (after) | BE scoped Pint | 0 | 15 files PASS, 0 issues | |
+| `php artisan test <4 5B BE files>` (after Pint) | BE focused 5B | 0 | 45 tests / 134 assertions passed | No regression from Pint |
+| `php artisan test` (after Pint) | BE full suite | 1 | 575 passed, 4 failed, 1891 assertions | Same 4 baseline-debt failures; identical pre/post Pint |
+| `git diff --check` (BE, after Pint) | BE whitespace | 0 | PASS | |
+| `git diff --check` (FE, unchanged) | FE whitespace | 0 | PASS | |
+
+(Plus the gates from the earlier integration pass — Wave 5A/5B/5C focused
+suites, full FE suite, FE lint, FE production build — which all still hold
+and are not re-listed here because the FE workspace was not modified by
+this continuation; the only FE action in this continuation was rerunning
+the authoritative 5C focused suite, which still passed 8/46.)
+
+### Remaining verified baseline debt
+
+- **BE-BASELINE-1..4**: the four `Notification::assertSentTo` tests listed
+  in the baseline comparison table. Proven to fail identically on parent
+  and HEAD under the same Docker image, env, SQLite driver, and sync
+  queue. **Not fixed by this task** per the rule "Do not fix verified
+  baseline notification issues during this task." These are baseline
+  debt, not successful gates. Recommended operator follow-up (outside
+  this task's scope): investigate Notification-fake vs. queued-listener
+  wiring on the test env, or run the four tests under PostgreSQL per
+  `docs/07-testing.md` to confirm whether the SQLite test env is the
+  trigger. Do NOT clear these as release gates without that follow-up.
+
+### Other pre-existing warnings (out of Wave 5A/5B/5C scope)
 
 - **FE-1**: `ProductPage.jsx:205, 216, 223` — add-to-cart and wishlist
-  success/error toasts render `error.message` directly. On `NETWORK_ERROR`
-  that leaks the raw axios English string to a toast. Wave 5A removed this
-  hazard only from forms (per spec scope). Recommended follow-up: route
-  these toasts through `formLevelMessage` (or special-case `NETWORK_ERROR`).
+  toasts render `error.message` directly. On `NETWORK_ERROR` that leaks
+  the raw axios English string to a toast. Wave 5A removed this hazard
+  only from forms (per spec scope). Recommended follow-up: route these
+  toasts through `formLevelMessage` (or special-case `NETWORK_ERROR`).
 - **FE-2**: `ProductPage.jsx:491` — `"Còn {availableStock} sản phẩm"` real
   stock count, no `chỉ` urgency, no countdown. Borderline voice on a
-  brand with Extraversion 30 (design judgement, not a false-urgency
+  brand with Extraversion 30 (design judgement; not a false-urgency
   violation per Design DNA §0). Recorded for design review, not patched.
 - **FE-3**: `VerifyEmailPage.jsx:43-46` — no-params branch copy
-  "Liên kết xác thực không hợp lệ." lacks retry context; inconsistent with
-  the analogous `ResetPasswordPage.jsx:78-81` ("Vui lòng yêu cầu liên kết
-  mới."). Wave 5A spec explicitly defers the resend-verification CTA to
-  "Needs runtime verification"; classified as pre-existing out-of-scope.
-- **BE-1**: 4 `Notification::assertSentTo` failures in the BE full suite
-  on SQLite-test-env queued listeners (`TransactionalEmailTest` ×3,
-  `CancelOrderTest ×1 — cancelling a paid order notifies refund staff`).
-  Proof these are pre-existing and not 5B-induced: 5B's commit `4707947`
-  modifies none of `app/Notifications`, `app/Observers`, `app/Listeners`;
-  3 of 4 tests (notably `restock_emails_wishlist_subscribers_only`) use
-  only Eloquent + observer + event + listener — no order/payment code — so
-  cannot be affected by any 5B change. The non-notification counterparts
-  in `PayosWebhookTest` (9) and `CancelOrderTest` (10 others) all pass,
-  proving underlying business logic works. Likely root cause: queued
-  ShouldQueue listeners + `Notification::fake()` on the SQLite sync-queue
-  test config. Recommended follow-up: investigate notification listener
-  registration / Notification fake in the SQLite test environment, or run
-  the failing suite under PostgreSQL per docs/07-testing.md (the BE
-  AGENTS.md guardrail currently mandates Docker sqlite, which may be the
-  source of the divergence).
-- **BE-2**: 12 Pint style-drift issues on touched BE files (cosmetic). Not
-  formatted per rule "không formatter toàn repo". CI gate is `make lint`
-  (Pint clean); operator should run `./vendor/bin/pint` on the touched
-  files at commit time, OR keep this wave's Pint dirty exception explicit.
-- **BE/infra**: BE AGENTS.md says "Test chạy trong Docker sqlite" while
-  `docs/07-testing.md` says "Use real PostgreSQL, not SQLite." This
-  divergence predates Wave 5B and is the likely reason the 4 notification
-  failures slip through (they need queued-listener/Notification-fake
-  semantics that SQLite does not exercise the same way). Worth resolving
-  in a future housekeeping pass.
+  "Liên kết xác thực không hợp lệ." lacks retry context; inconsistent
+  with `ResetPasswordPage.jsx:78-81`. Wave 5A spec explicitly defers the
+  resend-verification CTA to "Needs runtime verification"; classified as
+  pre-existing out-of-scope.
+- **BE-3 (docs divergence)**: BE `AGENTS.md` says "Test chạy trong Docker
+  sqlite" while `docs/07-testing.md` says "Use real PostgreSQL, not
+  SQLite." This predates the waves and is a candidate follow-up, but is
+  **not cited as the cause** of the four baseline failures — the baseline
+  run proved the failures fail on the existing env regardless, so no
+  SQLite-vs-PostgreSQL inference is made here.
 
 ### Needs runtime verification
 
-These items cannot be settled by static analysis or the current SQLite test
-database and remain manual operator steps (per the wave specs):
+These items cannot be settled by static analysis or the test env and
+remain manual operator steps (per the wave specs):
 
 - **5A — verify-email**: screen-reader announcement timing of the new
   comment-form error; focus-order inside the Address modal after a server
   error (Radix focus trap stays authoritative — confirm programmatic
   focus does not fight it); narrow-screen behavior of verify-email.
-  Plus the deferred "resend verification" CTA on the invalid-link / no-params
-  branch — Needs runtime verification per 5A spec.
+  Plus the deferred "resend verification" CTA on the invalid-link /
+  no-params branch — Needs runtime verification per 5A spec.
 - **5B — checkout/payment**: Real PayOS duplicate-link / cancel behaviour;
   redirect handoff in a real browser; screen-reader announcement timing;
   focus after an address is removed in another tab; Safari private-mode
   session-storage; PostgreSQL concurrency under simultaneous duplicate
   order requests; PayOS session-creation-to-database-write edge case when
   the process dies after PayOS accepts but before the URL is persisted.
-- **5C — admin CRUD**: Escape / backdrop behavior while a destructive dialog
-  is pending; focus restoration across nested media dialogs; screen-reader
-  announcement timing on inline dialog errors; narrow-screen dialog
-  scrolling.
+- **5C — admin CRUD**: Escape / backdrop behavior while a destructive
+  dialog is pending; focus restoration across nested media dialogs;
+  screen-reader announcement timing on inline dialog errors; narrow-screen
+  dialog scrolling.
 
-### Migration / deployment handoff
+### Migration handoff
 
-Wave 5B requires two additive, nullable migrations that this integration
-pass did NOT run against any production database. The user runs all prod
-migrations; this agent does not.
+Wave 5B requires two additive, nullable migrations authored by commit
+`4707947`. **Production migrations have NOT been run** by this
+integration pass — not on the active worktree, not on the baseline
+worktrees, not on any persistent PostgreSQL volume. The only migrations
+applied during this task were applied to the disposable in-memory SQLite
+test DB inside `php artisan test` (RefreshDatabase), which never persists.
+The user runs all prod migrations; this agent does not.
 
 1. `src/database/migrations/2026_07_11_000001_add_idempotency_to_orders_table.php`
    — adds `orders.idempotency_key` (string, nullable, max 128) and
    `orders.idempotency_fingerprint` (string, nullable), with a unique
    index `orders_user_id_idempotency_key_unique` on `(user_id,
-   idempotency_key)`. Idempotent construction guards (`Schema::hasColumn`
-   / `Schema::hasIndex`), multi-NULL PostgreSQL semantics keep legacy
-   optional-key orders unchanged. `down()` drops the index + columns
-   if rolled back.
+   idempotency_key)`. Idempotent construction guards; multi-NULL
+   PostgreSQL semantics keep legacy optional-key orders unchanged;
+   `down()` drops the index + columns.
 2. `src/database/migrations/2026_07_11_000002_add_payment_session_recovery_to_orders_table.php`
    — adds `orders.payment_url` (text, nullable) and
    `orders.payment_session_expires_at` (timestampTz, nullable). Idempotent
-   construction guards; `down()` drops the columns if rolled back.
+   construction guards; `down()` drops the columns.
 
-**Production migrations have NOT been run.** After the user inspects them,
-the deploy command is `php artisan migrate` against the production
-environment.
+Deploy command after review: `php artisan migrate` against production.
 
 ### Final confirmations
 
-- No commit by this integration pass (the user committed working-tree
-  changes externally before this pass started; I ran only test/lint/build/
-  diff-check/Pint-`--test` commands).
-- No dependency added or upgraded (both `package.json` and `composer.json`
-  untouched).
-- No production migration run by the agent.
-- No source files modified by this integration pass — only this plan doc.
+- **No commit, no push** by this integration pass (or the continuation).
+  The commits `dd73a88` (FE) and `4707947` (BE) were authored by the user
+  externally before verification began; I only ran test / lint / build /
+  `pint --test` / `pint <12 files>` (scoped) / `git diff --check` /
+  `git worktree` commands. The 12 Pint-formatted backend files remain
+  uncommitted working-tree changes, ready for the user to review and
+  commit.
+- **No dependency change** — `composer.json`, `composer.lock`,
+  `package.json`, and `package-lock.json` are untouched. The two
+  isolated `composer install` runs during the baseline comparison were
+  against the same locked `composer.lock` (verified identical between
+  `17e11a1` and `4707947`) in throwaway worktrees; nothing was added or
+  upgraded.
+- **No production migration run** — see Migration handoff.
+- **All temporary infrastructure cleaned up**: both baseline worktrees
+  (`/tmp/opencode/baseline/wt-parent`, `/tmp/opencode/baseline/wt-head`),
+  the per-revision Docker containers / volumes / networks, the
+  no-ports compose override files, and the active-repo BE containers
+  used for the final Pint + test reruns were removed (`docker compose
+  down -v` and `git worktree remove --force`); verified
+  `git worktree list` returns only the active worktree.
