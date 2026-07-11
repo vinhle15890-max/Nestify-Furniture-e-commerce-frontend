@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
 import { useCart } from '../../features/cart/hooks'
 import { Spinner } from '../Spinner'
+import { LoadErrorState } from '../LoadErrorState'
 import { ProductThumb } from '../ProductThumb'
 import { formatPrice } from '../../lib/format'
 
@@ -12,7 +13,8 @@ export function CartDrawer() {
   const token = useAuthStore((state) => state.token)
   const isCartOpen = useUiStore((state) => state.isCartOpen)
   const closeCart = useUiStore((state) => state.closeCart)
-  const { data, isLoading } = useCart()
+  const cartQuery = useCart()
+  const { data, isLoading, isError, isFetching } = cartQuery
   const cart = data?.data
   const items = cart?.items ?? []
 
@@ -53,34 +55,57 @@ export function CartDrawer() {
               <div className="flex justify-center py-10">
                 <Spinner />
               </div>
-            ) : items.length === 0 ? (
-              <div className="flex flex-col items-center py-16 text-center">
-                <ShoppingBag size={32} className="text-border-strong" />
-                <p className="mt-4 text-sm text-muted-foreground">Giỏ hàng trống.</p>
-              </div>
+            ) : isError && !cart ? (
+              <LoadErrorState
+                title="Chưa thể tải giỏ hàng"
+                description="Có gián đoạn khi tải giỏ hàng. Các sản phẩm của bạn chưa bị thay đổi."
+                onRetry={() => cartQuery.refetch()}
+                isRetrying={isFetching}
+                compact
+              />
             ) : (
-              <ul className="flex flex-col divide-y divide-border">
-                {items.map((item) => (
-                  <li key={item.id} className="flex items-center gap-3 py-4 text-sm first:pt-0">
-                    <ProductThumb src={item.variant?.thumbnail} alt={item.variant?.product_name} size="h-14 w-14" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-foreground">
-                        {item.variant?.product_name ?? item.variant?.name}
-                      </p>
-                      <p className="truncate text-muted-foreground">
-                        {item.variant?.name} · x{item.quantity}
-                      </p>
-                      {/* imagined callback inherited from the Planner; only for room-sourced items. */}
-                      {item.room?.name && (
-                        <p className="mt-1 truncate text-imagined">
-                          Đã xác nhận vừa với phòng “{item.room.name}”.
-                        </p>
-                      )}
-                    </div>
-                    <p className="shrink-0 font-medium text-foreground">{formatPrice(item.subtotal)}</p>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {isError && cart && (
+                  <LoadErrorState
+                    title="Chưa cập nhật được giỏ hàng mới nhất"
+                    description="Đang hiển thị dữ liệu đã tải trước đó."
+                    onRetry={() => cartQuery.refetch()}
+                    isRetrying={isFetching}
+                    compact
+                    background
+                    className="mb-4"
+                  />
+                )}
+                {items.length === 0 ? (
+                  <div className="flex flex-col items-center py-16 text-center">
+                    <ShoppingBag size={32} className="text-border-strong" />
+                    <p className="mt-4 text-sm text-muted-foreground">Giỏ hàng trống.</p>
+                  </div>
+                ) : (
+                  <ul className="flex flex-col divide-y divide-border">
+                    {items.map((item) => (
+                      <li key={item.id} className="flex items-center gap-3 py-4 text-sm first:pt-0">
+                        <ProductThumb src={item.variant?.thumbnail} alt={item.variant?.product_name} size="h-14 w-14" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-foreground">
+                            {item.variant?.product_name ?? item.variant?.name}
+                          </p>
+                          <p className="truncate text-muted-foreground">
+                            {item.variant?.name} · x{item.quantity}
+                          </p>
+                          {/* imagined callback inherited from the Planner; only for room-sourced items. */}
+                          {item.room?.name && (
+                            <p className="mt-1 truncate text-imagined">
+                              Đã xác nhận vừa với phòng “{item.room.name}”.
+                            </p>
+                          )}
+                        </div>
+                        <p className="shrink-0 font-medium text-foreground">{formatPrice(item.subtotal)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
           </div>
 

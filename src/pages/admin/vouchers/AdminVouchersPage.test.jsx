@@ -72,6 +72,10 @@ describe('AdminVouchersPage', () => {
     expect(await screen.findByText('SALE10')).toBeInTheDocument()
     expect(screen.getByText('FREESHIP')).toBeInTheDocument()
     expect(screen.getByText('5/100')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Danh sách voucher' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sửa voucher SALE10' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xóa voucher FREESHIP' })).toBeInTheDocument()
   })
 
   it('shows max_discount only when type is percentage', async () => {
@@ -142,7 +146,7 @@ describe('AdminVouchersPage', () => {
 
     const rows = screen.getAllByRole('row')
     const saleRow = rows.find((row) => row.textContent.includes('SALE10'))
-    await userEvent.click(within(saleRow).getByRole('button', { name: 'Sửa' }))
+    await userEvent.click(within(saleRow).getByRole('button', { name: 'Sửa voucher SALE10' }))
 
     expect(screen.getByLabelText('Mã voucher')).toHaveValue('SALE10')
     expect(screen.getByLabelText('Giá trị')).toHaveValue(10)
@@ -165,7 +169,7 @@ describe('AdminVouchersPage', () => {
 
     const rows = screen.getAllByRole('row')
     const freeshipRow = rows.find((row) => row.textContent.includes('FREESHIP'))
-    await userEvent.click(within(freeshipRow).getByRole('button', { name: 'Xóa' }))
+    await userEvent.click(within(freeshipRow).getByRole('button', { name: 'Xóa voucher FREESHIP' }))
 
     await waitFor(() => expect(vouchersApi.deleteVoucher).toHaveBeenCalledWith(2))
   })

@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { Logo } from '../../components/Logo'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { SharedSceneCanvas } from './scene/SharedSceneCanvas'
 import { SharedRoomItems } from './SharedRoomItems'
 import { useSharedScene } from '../../features/roomPlanner/hooks'
@@ -11,7 +12,7 @@ import { sceneToEditorState } from '../../features/roomPlanner/mappers'
 // only), unlike the desktop-only editor.
 export function SharedRoomPage() {
   const { token } = useParams()
-  const { data, isLoading, isError } = useSharedScene(token)
+  const { data, error, isLoading, isError, isFetching, refetch } = useSharedScene(token)
 
   if (isLoading) {
     return (
@@ -21,7 +22,15 @@ export function SharedRoomPage() {
     )
   }
 
-  if (isError || !data?.data) {
+  if (isError && error?.status !== 404) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-canvas px-8">
+        <LoadErrorState className="w-full max-w-lg" title="Chưa thể tải phòng được chia sẻ" description="Liên kết vẫn được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
+      </div>
+    )
+  }
+
+  if (!data?.data) {
     return (
       <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-canvas px-8 text-center">
         <p className="text-foreground">Phòng chia sẻ không tồn tại hoặc đã gỡ.</p>

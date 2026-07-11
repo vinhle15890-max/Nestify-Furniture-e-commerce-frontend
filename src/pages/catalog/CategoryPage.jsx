@@ -5,6 +5,7 @@ import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/Button'
 import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { Reveal } from '../../components/Reveal'
 import { SearchInput } from '../../components/SearchInput'
 import { useCategory, useCategories, useInfiniteProducts } from '../../features/catalog/hooks'
@@ -105,6 +106,7 @@ export function CategoryPage() {
     () => productsQuery.data?.pages.flatMap((page) => page.data) ?? [],
     [productsQuery.data],
   )
+  const hasProductData = Boolean(productsQuery.data)
 
   // Reset attribute filters and derived option lists whenever the category changes.
   useEffect(() => {
@@ -171,6 +173,29 @@ export function CategoryPage() {
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink/70">{introText}</p>
           )}
         </Reveal>
+
+        {!isAll && categoryQuery.isError && !category && (
+          <LoadErrorState
+            title="Chưa thể tải thông tin danh mục"
+            description="Tên và mô tả danh mục chưa tải được. Bộ lọc hiện tại vẫn được giữ để bạn thử lại."
+            onRetry={() => categoryQuery.refetch()}
+            isRetrying={categoryQuery.isFetching}
+            compact
+            className="mt-6"
+          />
+        )}
+
+        {!isAll && categoryQuery.isError && category && (
+          <LoadErrorState
+            title="Chưa cập nhật được thông tin danh mục mới nhất"
+            description="Đang hiển thị thông tin danh mục đã tải trước đó."
+            onRetry={() => categoryQuery.refetch()}
+            isRetrying={categoryQuery.isFetching}
+            compact
+            background
+            className="mt-6"
+          />
+        )}
 
         {category?.children?.length > 0 && (
           <div className="mt-8 flex flex-wrap gap-2">
@@ -259,6 +284,8 @@ export function CategoryPage() {
             <span className="mr-1 text-sm text-ink/70">
               {productsQuery.isLoading
                 ? 'Đang tải...'
+                : productsQuery.isError && !hasProductData
+                  ? 'Chưa tải được sản phẩm'
                 : `${products.length}${productsQuery.hasNextPage ? '+' : ''} sản phẩm`}
             </span>
             {search && <FilterChip label={`“${search}”`} onRemove={clearSearch} />}
@@ -277,10 +304,30 @@ export function CategoryPage() {
           </div>
         </div>
 
+        {productsQuery.isError && hasProductData && (
+          <LoadErrorState
+            title="Chưa cập nhật được danh sách mới nhất"
+            description="Đang hiển thị các sản phẩm đã tải trước đó."
+            onRetry={() => productsQuery.refetch()}
+            isRetrying={productsQuery.isFetching}
+            compact
+            background
+            className="mt-10"
+          />
+        )}
+
         {productsQuery.isLoading ? (
           <div className="mt-20 flex justify-center">
             <Spinner />
           </div>
+        ) : productsQuery.isError && !hasProductData ? (
+          <LoadErrorState
+            title="Chưa thể tải sản phẩm"
+            description="Có gián đoạn khi tải các lựa chọn trong danh mục này. Bộ lọc hiện tại vẫn được giữ để bạn thử lại."
+            onRetry={() => productsQuery.refetch()}
+            isRetrying={productsQuery.isFetching}
+            className="mt-16"
+          />
         ) : products.length === 0 ? (
           <div className="mt-16 flex flex-col items-center rounded-card border border-unbuilt bg-canvas px-6 py-14 text-center">
             <div className="pointer-events-none w-full max-w-[300px]">

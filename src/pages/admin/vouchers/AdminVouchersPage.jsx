@@ -5,6 +5,7 @@ import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminVouchers, useDeleteVoucher } from '../../../features/admin/vouchers/hooks'
@@ -35,7 +36,7 @@ function formatDateRange(voucher) {
 
 export function AdminVouchersPage() {
   const [page, setPage] = useState(1)
-  const { data, isLoading } = useAdminVouchers(page)
+  const { data, isLoading, isError, isFetching, refetch } = useAdminVouchers(page)
   const deleteVoucher = useDeleteVoucher()
   const addToast = useToastStore((state) => state.addToast)
   const [modalOpen, setModalOpen] = useState(false)
@@ -80,6 +81,8 @@ export function AdminVouchersPage() {
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải voucher..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải voucher" description="Trang hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : vouchers.length === 0 ? (
           <Card>
             <EmptyState
@@ -91,6 +94,7 @@ export function AdminVouchersPage() {
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">Danh sách voucher</caption>
               <thead>
                 <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="px-4 py-3">Mã</th>
@@ -99,7 +103,7 @@ export function AdminVouchersPage() {
                   <th className="px-4 py-3">Sử dụng</th>
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3">Thời hạn</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3"><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -121,6 +125,7 @@ export function AdminVouchersPage() {
                         <div className="flex justify-end gap-4">
                           <button
                             type="button"
+                            aria-label={`Sửa voucher ${voucher.code}`}
                             className="cursor-pointer text-foreground transition-colors hover:text-accent"
                             onClick={() => openEditModal(voucher)}
                           >
@@ -128,6 +133,7 @@ export function AdminVouchersPage() {
                           </button>
                           <button
                             type="button"
+                            aria-label={`Xóa voucher ${voucher.code}`}
                             className="cursor-pointer text-destructive hover:opacity-80"
                             onClick={() => handleDelete(voucher)}
                           >

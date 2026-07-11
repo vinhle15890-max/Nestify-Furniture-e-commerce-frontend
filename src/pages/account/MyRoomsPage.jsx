@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Box, Pencil, Trash2, Plus, Share2 } from 'lucide-react'
 import { Badge } from '../../components/Badge'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { Input } from '../../components/Input'
 import { Pagination } from '../../components/Pagination'
 import { BecomingRoomArt } from '../../components/BecomingRoomArt'
@@ -103,7 +104,7 @@ function RoomCard({ scene }) {
 
 export function MyRoomsPage() {
   const [page, setPage] = useState(1)
-  const { data, isLoading, isError } = useScenes(page)
+  const { data, isLoading, isError, isFetching, refetch } = useScenes(page)
 
   const scenes = data?.data ?? []
   const lastPage = data?.meta?.pagination?.last_page ?? 1
@@ -128,8 +129,8 @@ export function MyRoomsPage() {
 
         {isLoading ? (
           <div className="mt-12"><Spinner label="Đang tải danh sách phòng..." /></div>
-        ) : isError ? (
-          <p className="mt-12 text-sm text-muted-foreground">Không tải được danh sách phòng.</p>
+        ) : isError && !data ? (
+          <LoadErrorState className="mt-12" title="Chưa thể tải danh sách phòng" description="Những căn phòng đã lưu vẫn được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : scenes.length === 0 ? (
           <div className="mt-12 flex flex-col items-center gap-5 text-center">
             <div className="w-full max-w-[360px]"><BecomingRoomArt level={1} /></div>

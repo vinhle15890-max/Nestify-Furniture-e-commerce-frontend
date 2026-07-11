@@ -37,6 +37,7 @@ export function LockUserButton({ user, onSuccess }) {
       <Button
         variant={isLocked ? 'secondary' : 'destructive'}
         className="px-3 py-1.5"
+        aria-label={`${isLocked ? 'Mở khóa' : 'Khóa'} tài khoản ${user.name}`}
         onClick={() => setConfirmOpen(true)}
       >
         {isLocked ? <LockOpen size={14} aria-hidden="true" /> : <Lock size={14} aria-hidden="true" />}

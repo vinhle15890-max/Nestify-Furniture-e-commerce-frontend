@@ -27,6 +27,7 @@ export function RolePermissionMatrix({ roles, onEdit }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
+        <caption className="sr-only">Ma trận quyền theo vai trò</caption>
         <thead>
           <tr className="border-b border-border">
             <th className={`sticky left-0 z-10 bg-surface px-4 py-3 text-left ${thBase}`}>Vai trò</th>

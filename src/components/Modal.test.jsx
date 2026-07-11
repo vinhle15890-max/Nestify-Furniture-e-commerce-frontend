@@ -30,7 +30,7 @@ describe('Modal', () => {
   it('calls onOpenChange(false) when the close button is clicked', async () => {
     const onOpenChange = vi.fn()
     render(
-      <Modal open title="Xác nhận" onOpenChange={onOpenChange}>
+      <Modal open title="Xác nhận" description="Kiểm tra nội dung trước khi tiếp tục." onOpenChange={onOpenChange}>
         <p>Nội dung modal</p>
       </Modal>,
     )

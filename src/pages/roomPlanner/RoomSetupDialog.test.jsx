@@ -7,6 +7,7 @@ describe('RoomSetupDialog', () => {
   it('submits positive dimensions', async () => {
     const onSubmit = vi.fn()
     render(<RoomSetupDialog open onOpenChange={() => {}} initialRoom={{ width: 4, depth: 5, height: 2.8 }} onSubmit={onSubmit} />)
+    expect(screen.getByText('Nhập kích thước để dựng căn phòng theo đúng tỷ lệ.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /tạo phòng/i }))
     expect(onSubmit).toHaveBeenCalledWith({ width: 4, depth: 5, height: 2.8 })
   })
@@ -16,6 +17,6 @@ describe('RoomSetupDialog', () => {
     render(<RoomSetupDialog open onOpenChange={() => {}} initialRoom={{ width: 0, depth: 5, height: 2.8 }} onSubmit={onSubmit} />)
     await userEvent.click(screen.getByRole('button', { name: /tạo phòng/i }))
     expect(onSubmit).not.toHaveBeenCalled()
-    expect(await screen.findByText(/lớn hơn 0/i)).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent(/lớn hơn 0/i)
   })
 })

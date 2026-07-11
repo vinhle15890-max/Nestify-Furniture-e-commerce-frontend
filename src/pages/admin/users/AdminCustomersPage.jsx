@@ -5,6 +5,7 @@ import { Badge } from '../../../components/Badge'
 import { SearchInput } from '../../../components/SearchInput'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { Panel } from '../../../components/admin/Panel'
 import { EmptyState } from '../../../components/admin/EmptyState'
@@ -22,7 +23,7 @@ export function AdminCustomersPage() {
   const [detailUser, setDetailUser] = useState(null)
   const [promoteUser, setPromoteUser] = useState(null)
 
-  const { data, isLoading, isFetching } = useAdminUsers({ page, type: 'customer', search })
+  const { data, isLoading, isError, isFetching, refetch } = useAdminUsers({ page, type: 'customer', search })
 
   const users = data?.data ?? []
   const meta = data?.meta?.pagination ?? { last_page: 1 }
@@ -59,6 +60,8 @@ export function AdminCustomersPage() {
           <div className="flex justify-center py-16">
             <Spinner label="Đang tải khách hàng..." />
           </div>
+        ) : isError && !data ? (
+          <LoadErrorState compact title="Chưa thể tải khách hàng" description="Tìm kiếm hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : users.length === 0 ? (
           <EmptyState
             illustration="chair"
@@ -69,6 +72,7 @@ export function AdminCustomersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
+              <caption className="sr-only">Danh sách khách hàng</caption>
               <thead>
                 <tr className="border-b border-border bg-surface-alt/40">
                   <th className={thClass}>Khách hàng</th>
@@ -97,7 +101,12 @@ export function AdminCustomersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="secondary" className="px-3 py-1.5" onClick={() => setDetailUser(user)}>
+                        <Button
+                          variant="secondary"
+                          className="px-3 py-1.5"
+                          aria-label={`Xem chi tiết khách hàng ${user.name}`}
+                          onClick={() => setDetailUser(user)}
+                        >
                           Chi tiết
                         </Button>
                         <LockUserButton user={user} />

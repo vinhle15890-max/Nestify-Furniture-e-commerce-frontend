@@ -124,7 +124,12 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
   }
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}
+      description={isEditing ? `Cập nhật tên, vị trí và ảnh của danh mục ${category.name}.` : 'Tạo một mục mới trong cây danh mục sản phẩm.'}
+    >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <Input label="Tên danh mục" id="name" error={errors.name?.message} {...register('name')} />
         <Input label="Slug" id="slug" error={errors.slug?.message} {...register('slug')} />

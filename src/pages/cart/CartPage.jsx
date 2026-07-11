@@ -6,6 +6,7 @@ import { useCart, useUpdateCartItem, useRemoveCartItem, useApplyVoucher } from '
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice } from '../../lib/format'
@@ -18,7 +19,8 @@ const stepperButton =
 
 export function CartPage() {
   const token = useAuthStore((state) => state.token)
-  const { data, isLoading } = useCart()
+  const cartQuery = useCart()
+  const { data, isLoading, isError, isFetching } = cartQuery
   const updateCartItem = useUpdateCartItem()
   const removeCartItem = useRemoveCartItem()
   const applyVoucher = useApplyVoucher()
@@ -54,6 +56,23 @@ export function CartPage() {
       <div className="min-h-screen bg-canvas text-ink">
         <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
           <Spinner />
+        </div>
+      </div>
+    )
+  }
+
+  if (isError && !data?.data) {
+    return (
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Giỏ hàng</h1>
+          <LoadErrorState
+            title="Chưa thể tải giỏ hàng"
+            description="Có gián đoạn khi tải giỏ hàng. Các sản phẩm của bạn chưa bị thay đổi."
+            onRetry={() => cartQuery.refetch()}
+            isRetrying={isFetching}
+            className="mt-8"
+          />
         </div>
       </div>
     )
@@ -103,6 +122,17 @@ export function CartPage() {
     <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Giỏ hàng</h1>
+      {isError && data?.data && (
+        <LoadErrorState
+          title="Chưa cập nhật được giỏ hàng mới nhất"
+          description="Bạn vẫn có thể xem dữ liệu đã tải trước đó hoặc thử cập nhật lại."
+          onRetry={() => cartQuery.refetch()}
+          isRetrying={isFetching}
+          compact
+          background
+          className="mt-6"
+        />
+      )}
       {items.length > 0 && (
         <p className="mt-2 text-muted-foreground">Những gì sắp thuộc về không gian của bạn.</p>
       )}

@@ -4,6 +4,7 @@ import { BackLink } from '../../components/BackLink'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { useAddresses, useDeleteAddress, useSetDefaultAddress } from '../../features/addresses/hooks'
 import { useToastStore } from '../../store/toastStore'
 import { AddressFormModal } from './AddressFormModal'
@@ -12,7 +13,8 @@ const actionButton =
   'inline-flex cursor-pointer items-center gap-1.5 rounded-control text-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
 
 export function AddressesPage() {
-  const { data, isLoading } = useAddresses()
+  const addressesQuery = useAddresses()
+  const { data, isLoading, isError, isFetching } = addressesQuery
   const deleteAddress = useDeleteAddress()
   const setDefaultAddress = useSetDefaultAddress()
   const addToast = useToastStore((state) => state.addToast)
@@ -61,8 +63,25 @@ export function AddressesPage() {
       </div>
 
       <div className="mt-10 flex flex-col gap-4">
+        {isError && data?.data && (
+          <LoadErrorState
+            title="Chưa cập nhật được sổ địa chỉ mới nhất"
+            description="Đang hiển thị các địa chỉ đã tải trước đó."
+            onRetry={() => addressesQuery.refetch()}
+            isRetrying={isFetching}
+            compact
+            background
+          />
+        )}
         {isLoading ? (
           <Spinner label="Đang tải địa chỉ..." />
+        ) : isError && !data?.data ? (
+          <LoadErrorState
+            title="Chưa thể tải sổ địa chỉ"
+            description="Các địa chỉ đã lưu chưa tải được. Hãy thử lại trước khi thêm hoặc chỉnh sửa."
+            onRetry={() => addressesQuery.refetch()}
+            isRetrying={isFetching}
+          />
         ) : addresses.length === 0 ? (
           <div className="rounded-card border border-border bg-surface p-12 text-center">
             <MapPin size={36} className="mx-auto text-border-strong" />

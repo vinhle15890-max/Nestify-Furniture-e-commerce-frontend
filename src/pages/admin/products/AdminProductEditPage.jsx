@@ -453,6 +453,7 @@ function ProductEditor({ initialProduct }) {
                 <>
                   <div className="max-h-[30rem] overflow-auto">
                     <table className="w-full text-left text-sm">
+                      <caption className="sr-only">Danh sách biến thể sản phẩm</caption>
                       <thead>
                         <tr className="border-b border-border bg-surface-alt/60 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                           <th className="sticky top-0 bg-surface-alt px-5 py-3">SKU</th>

@@ -3,6 +3,7 @@ import { FolderTree } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminCategories, useDeleteCategory } from '../../../features/admin/categories/hooks'
@@ -23,10 +24,20 @@ function CategoryRow({ category, depth, onEdit, onDelete }) {
           </div>
         </div>
         <div className="flex gap-4">
-          <button type="button" className="cursor-pointer text-foreground transition-colors hover:text-accent" onClick={() => onEdit(category)}>
+          <button
+            type="button"
+            aria-label={`Sửa danh mục ${category.name}`}
+            className="cursor-pointer text-foreground transition-colors hover:text-accent"
+            onClick={() => onEdit(category)}
+          >
             Sửa
           </button>
-          <button type="button" className="cursor-pointer text-destructive hover:opacity-80" onClick={() => onDelete(category)}>
+          <button
+            type="button"
+            aria-label={`Xóa danh mục ${category.name}`}
+            className="cursor-pointer text-destructive hover:opacity-80"
+            onClick={() => onDelete(category)}
+          >
             Xóa
           </button>
         </div>
@@ -39,7 +50,7 @@ function CategoryRow({ category, depth, onEdit, onDelete }) {
 }
 
 export function AdminCategoriesPage() {
-  const { data, isLoading } = useAdminCategories()
+  const { data, isLoading, isError, isFetching, refetch } = useAdminCategories()
   const deleteCategory = useDeleteCategory()
   const addToast = useToastStore((state) => state.addToast)
   const [modalOpen, setModalOpen] = useState(false)
@@ -80,6 +91,8 @@ export function AdminCategoriesPage() {
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải danh mục..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải danh mục" description="Hãy thử tải lại danh sách danh mục." onRetry={refetch} isRetrying={isFetching} />
         ) : categories.length === 0 ? (
           <Card>
             <EmptyState

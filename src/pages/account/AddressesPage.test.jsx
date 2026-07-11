@@ -58,6 +58,20 @@ describe('AddressesPage', () => {
     expect(screen.getByText('Mặc định')).toBeInTheDocument()
   })
 
+  it('shows a retryable failure instead of claiming there are no addresses', async () => {
+    addressesApi.getAddresses
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ data: sampleAddresses })
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể tải sổ địa chỉ')
+    expect(screen.queryByText('Bạn chưa có địa chỉ nào.')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByText('Bao Le · 0900000000')).toBeInTheDocument()
+    expect(addressesApi.getAddresses).toHaveBeenCalledTimes(2)
+  })
+
   it('creates a new address from the modal form', async () => {
     addressesApi.createAddress.mockResolvedValue({ data: { ...sampleAddresses[0], id: 3 } })
     renderPage()

@@ -157,7 +157,12 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
   }
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa biến thể' : 'Thêm biến thể mới'}>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? 'Sửa biến thể' : 'Thêm biến thể mới'}
+      description={isEditing ? 'Cập nhật thông tin bán hàng và tồn kho của biến thể này.' : 'Thiết lập lựa chọn, giá bán và tồn kho cho biến thể mới.'}
+    >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         {!isEditing && (
           <div className="flex flex-col gap-1">

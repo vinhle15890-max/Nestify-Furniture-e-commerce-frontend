@@ -66,7 +66,7 @@ export function RoleFormDialog({ role, open, onOpenChange }) {
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? (locked ? 'Chi tiết vai trò' : 'Sửa vai trò') : 'Tạo vai trò'}
-      description={isEdit ? role.name : undefined}
+      description={isEdit ? role.name : 'Đặt tên và chọn các quyền cho vai trò mới.'}
     >
       {isLoading ? (
         <Spinner label="Đang tải quyền..." />

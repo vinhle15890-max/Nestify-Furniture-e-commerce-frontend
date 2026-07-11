@@ -86,6 +86,33 @@ describe('CheckoutPage', () => {
     expect(screen.getByRole('link', { name: 'Quay lại giỏ hàng' })).toBeInTheDocument()
   })
 
+  it('blocks checkout and retries when cart prerequisites fail to load', async () => {
+    cartApi.getCart
+      .mockRejectedValueOnce(new ApiError('SERVER_ERROR', 'Máy chủ chưa phản hồi.', {}, 500))
+      .mockResolvedValueOnce(sampleCart)
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể chuẩn bị thanh toán')
+    expect(screen.queryByText(/Giỏ hàng của bạn đang trống/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Đặt hàng' })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByRole('button', { name: 'Đặt hàng' })).toBeInTheDocument()
+    expect(checkoutApi.createOrder).not.toHaveBeenCalled()
+    expect(cartApi.getCart).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not mistake an address request failure for an empty address book', async () => {
+    addressesApi.getAddresses.mockRejectedValueOnce(
+      new ApiError('SERVER_ERROR', 'Máy chủ chưa phản hồi.', {}, 500),
+    )
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể chuẩn bị thanh toán')
+    expect(screen.queryByText(/Bạn chưa có địa chỉ giao hàng/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Đặt hàng' })).not.toBeInTheDocument()
+  })
+
   it('lets the user add an address inline (without leaving checkout) when they have none', async () => {
     addressesApi.getAddresses.mockResolvedValue({ data: [] })
     renderPage()

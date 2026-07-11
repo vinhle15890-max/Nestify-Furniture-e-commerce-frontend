@@ -6,6 +6,7 @@ import { Heart, Star, Box, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
@@ -61,7 +62,7 @@ function appendMeta(attr, key, content) {
 
 export function ProductPage() {
   const { productSlug } = useParams()
-  const { data, isLoading, isError } = useProduct(productSlug)
+  const { data, error, isLoading, isError, isFetching, refetch } = useProduct(productSlug)
   const product = data?.data
   const { data: categoriesData } = useCategories()
   const token = useAuthStore((state) => state.token)
@@ -288,7 +289,18 @@ export function ProductPage() {
     )
   }
 
-  if (isError || !product) {
+  if (isError && error?.status !== 404) {
+    return (
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm</h1>
+          <LoadErrorState className="mt-8" title="Chưa thể tải sản phẩm" description="Thông tin sản phẩm chưa thể hiển thị. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
+        </div>
+      </div>
+    )
+  }
+
+  if (!product) {
     return (
       <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
       <div className="mx-auto max-w-3xl">

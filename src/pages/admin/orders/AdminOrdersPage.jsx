@@ -5,6 +5,7 @@ import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminOrders } from '../../../features/admin/orders/hooks'
@@ -14,7 +15,7 @@ import { formatPrice, formatDate } from '../../../lib/format'
 export function AdminOrdersPage() {
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState('')
-  const { data, isLoading } = useAdminOrders(page, status)
+  const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status)
 
   const orders = data?.data ?? []
   const meta = data?.meta ?? { last_page: 1 }
@@ -51,6 +52,8 @@ export function AdminOrdersPage() {
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải đơn hàng..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải đơn hàng" description="Bộ lọc hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : orders.length === 0 ? (
           <Card>
             <EmptyState
@@ -62,6 +65,7 @@ export function AdminOrdersPage() {
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">Danh sách đơn hàng</caption>
               <thead>
                 <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="px-4 py-3">Mã đơn</th>
@@ -69,7 +73,7 @@ export function AdminOrdersPage() {
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3">Tổng tiền</th>
                   <th className="px-4 py-3">Ngày tạo</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3"><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -88,7 +92,12 @@ export function AdminOrdersPage() {
                       <td className="px-4 py-3 text-foreground">{formatPrice(order.total)}</td>
                       <td className="px-4 py-3 text-foreground">{formatDate(order.created_at)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Link to={`/admin/orders/${order.id}`} state={{ order }} className="font-medium text-foreground transition-colors hover:text-accent">
+                        <Link
+                          to={`/admin/orders/${order.id}`}
+                          state={{ order }}
+                          aria-label={`Xem đơn hàng ${order.order_number ?? `#${order.id}`}`}
+                          className="font-medium text-foreground transition-colors hover:text-accent"
+                        >
                           Xem
                         </Link>
                       </td>

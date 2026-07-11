@@ -67,6 +67,21 @@ describe('CartDrawer', () => {
     expect(await screen.findByText('Giỏ hàng trống.')).toBeInTheDocument()
   })
 
+  it('shows a retryable load failure instead of an empty drawer', async () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
+    cartApi.getCart
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ data: { id: 1, items: [], total: 0 } })
+    renderDrawer()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể tải giỏ hàng')
+    expect(screen.queryByText('Giỏ hàng trống.')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByText('Giỏ hàng trống.')).toBeInTheDocument()
+    expect(cartApi.getCart).toHaveBeenCalledTimes(2)
+  })
+
   it('shows the room callback only for room-sourced items', async () => {
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
     cartApi.getCart.mockResolvedValue({

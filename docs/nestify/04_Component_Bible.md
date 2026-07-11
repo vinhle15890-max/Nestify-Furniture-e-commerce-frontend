@@ -169,8 +169,9 @@ Feedback: xác nhận hoàn tất rõ ràng, dứt khoát.
 | GLTF asset chưa tải xong (không có kiểm soát size/poly ở `model_3d_url`) | Intent A, State 3 — Failure Behavior: hiển thị khối hình học đúng kích thước trước, chi tiết vật liệu sau |
 | Model load lỗi (404, file hỏng) | Intent A, State 3 — Failure Behavior: giữ nguyên `PlaceholderBox` qua `ModelErrorBoundary` đã có |
 | Thiết bị không hỗ trợ WebGL (hiện chưa có detection quanh `<Canvas>`, đây là gap kỹ thuật thật cần vá) | Capability Boundary — "Môi trường không hỗ trợ 3D". Yêu cầu dev bổ sung detection trước khi mount Canvas |
-| Mobile dưới breakpoint `lg` (Planner không mount, hiện SmallScreenNotice) | Capability Boundary — "Màn hình nhỏ". Cần bổ sung cơ chế giữ ngữ cảnh (share link/save) mà code hiện tại (`SmallScreenNotice` tĩnh) chưa có |
+| Mobile dưới breakpoint `lg` | Capability Boundary — "Màn hình nhỏ". `RoomPlannerPage` dùng media-query gate trước khi mount setup/editor/query/shortcut; `SmallScreenNotice` giữ pathname + search + hash để sao chép sang desktop, có fallback sao chép thủ công và nói rõ thay đổi chưa lưu không nằm trong link |
 | Rời trang khi scene chưa lưu (chỉ có `beforeunload`, không có autosave/localStorage) | Intent C, State 3 — Failure Behavior: cảnh báo cụ thể, không dùng cảnh báo browser mặc định |
 | Vào Cart không qua Planner (mua trực tiếp) | Micro-transition Cart — Failure Behavior: không bịa callback giả |
+| Request đầu tiên của catalog/cart/checkout thất bại, chưa có dữ liệu dùng được | Không ánh xạ lỗi thành empty state. Giữ nguyên intent/filter, cho phép thử lại; riêng Checkout không render hành động `Đặt hàng` cho tới khi cart + address đã tải thành công |
 
 Capability Boundary và Failure Behavior là hai cơ chế khác nhau, không hoán đổi cho nhau: Capability Boundary chặn trước khi trải nghiệm bắt đầu (môi trường không đủ điều kiện), Failure Behavior xử lý khi trải nghiệm đã bắt đầu nhưng một phần không như ý muốn.

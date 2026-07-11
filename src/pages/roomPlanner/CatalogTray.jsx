@@ -5,6 +5,7 @@ import { toPlaceableItems } from '../../features/roomPlanner/placeable'
 import { SearchInput } from '../../components/SearchInput'
 import { EmptyState } from '../../components/admin/EmptyState'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { formatPrice } from '../../lib/format'
 
 export function CatalogTray({ onAdd }) {
@@ -22,6 +23,8 @@ export function CatalogTray({ onAdd }) {
       <SearchInput placeholder="Tìm nội thất 3D..." onDebouncedChange={setSearch} />
       {query.isLoading ? (
         <div className="flex justify-center py-10"><Spinner /></div>
+      ) : query.isError && !query.data ? (
+        <LoadErrorState compact title="Chưa thể tải nội thất 3D" description="Tìm kiếm hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : placeable.length === 0 ? (
         <EmptyState
           icon={Box}

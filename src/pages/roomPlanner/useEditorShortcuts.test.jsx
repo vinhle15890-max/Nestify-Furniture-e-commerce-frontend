@@ -5,8 +5,8 @@ import { useEditorStore } from '../../features/roomPlanner/editorStore'
 
 const variant = { id: 12, sku: 'S', name: 'Đỏ', model_3d_url: 'a.glb', price: 100 }
 
-function Harness() {
-  useEditorShortcuts()
+function Harness({ enabled = true }) {
+  useEditorShortcuts(enabled)
   return <input data-testid="field" aria-label="field" />
 }
 
@@ -51,6 +51,14 @@ describe('useEditorShortcuts', () => {
   it('ignores shortcuts while typing in a field', () => {
     const { getByTestId } = render(<Harness />)
     fireEvent.keyDown(getByTestId('field'), { key: 'Delete' })
+    expect(useEditorStore.getState().items).toHaveLength(1)
+  })
+
+  it('does not install active shortcuts when disabled', () => {
+    render(<Harness enabled={false} />)
+    fireEvent.keyDown(window, { key: 'Delete' })
+    fireEvent.keyDown(window, { key: 'd', ctrlKey: true })
+
     expect(useEditorStore.getState().items).toHaveLength(1)
   })
 })

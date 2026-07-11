@@ -54,6 +54,8 @@ describe('AdminEmployeesPage', () => {
     // Role badge (localized) shows inside the row, distinct from the filter dropdown.
     expect(within(row).getByText('Quản trị viên')).toBeInTheDocument()
     expect(usersApi.getUsers).toHaveBeenCalledWith(expect.objectContaining({ type: 'staff' }))
+    expect(screen.getByRole('table', { name: 'Danh sách nhân viên' })).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Phân quyền cho Bao Le' })).toBeInTheDocument()
   })
 
   it('assigns roles, hiding the customer role and keeping existing staff roles', async () => {
@@ -61,7 +63,7 @@ describe('AdminEmployeesPage', () => {
     renderPage()
 
     const row = (await screen.findByText('Bao Le')).closest('tr')
-    await user.click(within(row).getByRole('button', { name: 'Phân quyền' }))
+    await user.click(within(row).getByRole('button', { name: 'Phân quyền cho Bao Le' }))
 
     const dialog = await screen.findByRole('dialog')
     // customer is never an assignable option
@@ -87,7 +89,7 @@ describe('AdminEmployeesPage', () => {
   it('renders a lock action for a staff row', async () => {
     renderPage()
     const row = (await screen.findByText('Bao Le')).closest('tr')
-    expect(within(row).getByRole('button', { name: 'Khóa' })).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Khóa tài khoản Bao Le' })).toBeInTheDocument()
   })
 
   it('shows "Đã khóa" badge for an archived staff user', async () => {

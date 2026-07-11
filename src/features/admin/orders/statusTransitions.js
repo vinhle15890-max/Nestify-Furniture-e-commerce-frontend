@@ -2,7 +2,7 @@
 export const ADMIN_ORDER_TRANSITIONS = {
   pending_payment: ['cancelled'],
   paid: ['processing', 'cancelled'],
-  processing: ['shipped'],
+  processing: ['shipped', 'cancelled'],
   shipped: ['delivered'],
   delivered: [],
   cancelled: [],

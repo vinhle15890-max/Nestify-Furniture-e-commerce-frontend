@@ -377,7 +377,9 @@ token/quyền thật).
 - **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
   payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
 - **Hiệu ứng phụ:** lần lưu đầu chuyển hướng `/room-planner` → `/room-planner/:id` (replace). Có **`beforeunload`** + chặn lúc
-  "Thoát" khi còn `dirty` (cảnh báo mất thay đổi). Màn hình nhỏ (<lg) hiện `SmallScreenNotice` thay vì editor.
+  "Thoát" khi còn `dirty` (cảnh báo mất thay đổi). Màn hình nhỏ (<lg) được chặn bằng `matchMedia` trước khi setup,
+  scene/product preload, shortcut hay Canvas mount; `SmallScreenNotice` cho sao chép URL đầy đủ (scene/deep-link/UTM/hash)
+  để tiếp tục trên desktop, có fallback thủ công và không tuyên bố các thay đổi chưa lưu đã đồng bộ.
 - **Đã loại khỏi MVP (BE có sẵn, FE chưa nối):** danh sách scene, chia sẻ (`/share`), chuyển scene → đơn (`convert-to-order`).
 
 > **Phản biện:** (1) **three.js lazy-load** (chunk riêng ~960 kB) — không phình bundle khởi đầu, chỉ tải khi vào planner.

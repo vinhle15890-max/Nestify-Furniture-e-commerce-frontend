@@ -10,6 +10,7 @@ import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { BecomingModal } from '../../components/BecomingModal'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice, formatDate } from '../../lib/format'
@@ -23,7 +24,7 @@ const sectionClass = 'rounded-card border border-border bg-surface p-6'
 export function OrderDetailPage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
-  const { data, isLoading, isError } = useOrder(id)
+  const { data, error, isLoading, isError, isFetching, refetch } = useOrder(id)
   const cancelOrder = useCancelOrder()
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
@@ -43,7 +44,18 @@ export function OrderDetailPage() {
 
   const order = data?.data
 
-  if (isError || !order) {
+  if (isError && error?.status !== 404) {
+    return (
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng</h1>
+          <LoadErrorState className="mt-8" title="Chưa thể tải chi tiết đơn hàng" description="Trạng thái đơn hàng chưa thể xác minh. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
+        </div>
+      </div>
+    )
+  }
+
+  if (!order) {
     return (
       <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
       <div className="mx-auto max-w-3xl">

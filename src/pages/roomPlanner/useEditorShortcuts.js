@@ -6,8 +6,10 @@ const GIZMO_KEYS = { 1: 'translate', 2: 'rotate', 3: 'scale' }
 // Keyboard editing for the planner. Reads the store via getState() so the single
 // window listener never goes stale. No-ops while typing in a field or before the
 // room is ready.
-export function useEditorShortcuts() {
+export function useEditorShortcuts(enabled = true) {
   useEffect(() => {
+    if (!enabled) return undefined
+
     const handler = (e) => {
       const store = useEditorStore.getState()
       if (store.status !== 'ready') return
@@ -33,5 +35,5 @@ export function useEditorShortcuts() {
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [enabled])
 }

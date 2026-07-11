@@ -165,7 +165,12 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
   }
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa voucher' : 'Thêm voucher mới'}>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? 'Sửa voucher' : 'Thêm voucher mới'}
+      description={isEditing ? `Cập nhật điều kiện và thời hạn của voucher ${voucher.code}.` : 'Thiết lập mã, giá trị và điều kiện sử dụng voucher mới.'}
+    >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <div className="flex items-end gap-2">
           <div className="flex-1">

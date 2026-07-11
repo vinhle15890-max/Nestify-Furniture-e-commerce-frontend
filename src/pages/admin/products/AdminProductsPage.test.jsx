@@ -62,6 +62,9 @@ describe('AdminProductsPage', () => {
     expect(await screen.findByText('Ghế Sofa')).toBeInTheDocument()
     expect(screen.getByText('Phòng khách')).toBeInTheDocument()
     expect(screen.getByText('5.000.000 ₫')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Danh sách sản phẩm' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sửa sản phẩm Ghế Sofa' })).toBeInTheDocument()
   })
 
   it('requests the next page when pagination changes', async () => {

@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { useReconcilePayment } from '../../features/checkout/hooks'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 
 const POLL_INTERVAL_MS = 3000
@@ -24,7 +25,7 @@ export function CheckoutReturnPage() {
   // Each poll asks the backend to reconcile against the gateway (authoritative), rather
   // than passively waiting for the async webhook — so a delayed/missing webhook can't
   // strand a paid order on "chờ thanh toán". reconcile is idempotent, so repeating is safe.
-  const { data, isLoading } = useReconcilePayment(orderId, {
+  const { data, isLoading, isError, isFetching, refetch } = useReconcilePayment(orderId, {
     refetchInterval: (query) => {
       const status = query.state.data?.data?.status
       if (status && status !== 'pending_payment') return false
@@ -76,7 +77,9 @@ export function CheckoutReturnPage() {
         Xác nhận thanh toán
       </h1>
       <div className="mt-8 rounded-card border border-border bg-surface p-10 text-center">
-        {pending ? (
+        {isError && !data ? (
+          <LoadErrorState compact title="Chưa thể xác minh thanh toán" description="Chúng tôi chưa xác định kết quả thanh toán. Bạn có thể thử lại an toàn." onRetry={refetch} isRetrying={isFetching} />
+        ) : pending ? (
           <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
             <Spinner />
             <span>Đang xác nhận thanh toán...</span>

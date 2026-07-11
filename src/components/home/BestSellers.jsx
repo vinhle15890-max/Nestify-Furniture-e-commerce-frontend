@@ -4,6 +4,7 @@ import { SectionHeading } from './SectionHeading'
 import { Reveal } from '../Reveal'
 import { ProductCard } from '../ProductCard'
 import { Spinner } from '../Spinner'
+import { LoadErrorState } from '../LoadErrorState'
 import { useBestSellers } from '../../features/catalog/hooks'
 
 export function BestSellers() {
@@ -32,6 +33,8 @@ export function BestSellers() {
         <div className="mt-16 flex justify-center">
           <Spinner />
         </div>
+      ) : query.isError && !query.data ? (
+        <LoadErrorState className="mt-10" compact title="Chưa thể tải các thiết kế tiêu biểu" description="Bạn vẫn có thể xem toàn bộ sản phẩm hoặc thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : products.length === 0 ? (
         <p className="mt-10 text-muted-foreground">Chưa có sản phẩm.</p>
       ) : (

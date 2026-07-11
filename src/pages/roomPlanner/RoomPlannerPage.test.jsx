@@ -14,6 +14,32 @@ vi.mock('./scene/RoomCanvas', () => ({ RoomCanvas: () => <div data-testid="room-
 vi.mock('../../features/roomPlanner/api')
 vi.mock('../../features/catalog/api')
 
+function installMatchMedia(initialMatches) {
+  const listeners = new Set()
+  const mediaQuery = {
+    matches: initialMatches,
+    media: '(min-width: 64rem)',
+    addEventListener: vi.fn((type, listener) => {
+      if (type === 'change') listeners.add(listener)
+    }),
+    removeEventListener: vi.fn((type, listener) => {
+      if (type === 'change') listeners.delete(listener)
+    }),
+    emit(matches) {
+      this.matches = matches
+      listeners.forEach((listener) => listener({ matches, media: this.media }))
+    },
+  }
+
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: vi.fn(() => mediaQuery),
+  })
+
+  return mediaQuery
+}
+
 function renderPage(path = '/room-planner') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
@@ -58,6 +84,7 @@ const PRODUCT = { data: { slug: 'ghe-sofa', name: 'Ghế sofa', variants: [{ id:
 describe('RoomPlannerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    installMatchMedia(true)
     useEditorStore.getState().reset()
     catalogApi.getProducts.mockResolvedValue({
       data: [{ id: 1, name: 'Sofa', thumbnail: null, variants: [{ id: 11, sku: 'A', name: 'Đỏ', model_3d_url: 'a.glb', price: 100 }] }],
@@ -144,6 +171,104 @@ describe('RoomPlannerPage', () => {
     renderPage('/room-planner/9')
     expect(await screen.findByTestId('room-canvas')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /tạo phòng/i })).not.toBeInTheDocument()
+  })
+
+  describe('small-screen capability boundary', () => {
+    it('shows only the continuation notice for a new room', async () => {
+      installMatchMedia(false)
+      renderPage('/room-planner')
+
+      expect(await screen.findByRole('heading', { name: 'Tiếp tục thiết kế trên máy tính' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /tạo phòng/i })).not.toBeInTheDocument()
+      expect(screen.queryByTestId('room-canvas')).not.toBeInTheDocument()
+      expect(roomPlannerApi.createScene).not.toHaveBeenCalled()
+    })
+
+    it('does not fetch or mount an existing scene below the breakpoint', async () => {
+      installMatchMedia(false)
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      })
+      renderPage('/room-planner/9')
+
+      expect(await screen.findByRole('heading', { name: 'Tiếp tục thiết kế trên máy tính' })).toBeInTheDocument()
+      expect(roomPlannerApi.getScene).not.toHaveBeenCalled()
+      expect(screen.queryByTestId('room-canvas')).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Sao chép liên kết' }))
+      expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/room-planner/9`)
+    })
+
+    it('preserves the exact product deep-link in the copied desktop URL', async () => {
+      installMatchMedia(false)
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      })
+      renderDeepLink('/room-planner?product=ghe-sofa&variant=11&utm=spring#continue')
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Sao chép liên kết' }))
+
+      expect(catalogApi.getProduct).not.toHaveBeenCalled()
+      expect(writeText).toHaveBeenCalledWith(
+        `${window.location.origin}/room-planner?product=ghe-sofa&variant=11&utm=spring#continue`,
+      )
+      expect(screen.getByTestId('loc')).toHaveTextContent(
+        '/room-planner?product=ghe-sofa&variant=11&utm=spring',
+      )
+    })
+
+    it('keeps in-memory work when resizing across the boundary', async () => {
+      const mediaQuery = installMatchMedia(true)
+      renderPage('/room-planner')
+      await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
+
+      act(() => {
+        useEditorStore.getState().addVariant({ id: 77, name: 'Ghế đang thử' })
+        mediaQuery.emit(false)
+      })
+
+      expect(await screen.findByRole('heading', { name: 'Tiếp tục thiết kế trên máy tính' })).toBeInTheDocument()
+      expect(useEditorStore.getState().items).toHaveLength(1)
+
+      act(() => mediaQuery.emit(true))
+
+      expect(await screen.findByTestId('room-canvas')).toBeInTheDocument()
+      expect(useEditorStore.getState().items).toHaveLength(1)
+      expect(useEditorStore.getState().items[0].variant.id).toBe(77)
+    })
+
+    it('reuses dirty-exit protection from the mobile notice', async () => {
+      const mediaQuery = installMatchMedia(true)
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+      renderPage('/room-planner')
+      await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
+      act(() => {
+        useEditorStore.getState().addVariant({ id: 77, name: 'Ghế đang thử' })
+        mediaQuery.emit(false)
+      })
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Về cửa hàng' }))
+
+      expect(confirmSpy).toHaveBeenCalledOnce()
+      expect(useEditorStore.getState().items).toHaveLength(1)
+      confirmSpy.mockRestore()
+    })
+
+    it('fails closed when matchMedia is unavailable', async () => {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: undefined,
+      })
+      renderPage('/room-planner')
+
+      expect(await screen.findByRole('heading', { name: 'Tiếp tục thiết kế trên máy tính' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /tạo phòng/i })).not.toBeInTheDocument()
+      expect(screen.queryByTestId('room-canvas')).not.toBeInTheDocument()
+    })
   })
 
   // ── Deep-link preload ──────────────────────────────────────────────────

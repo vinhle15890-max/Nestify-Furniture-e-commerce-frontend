@@ -68,6 +68,8 @@ describe('AdminCategoriesPage', () => {
     expect(await screen.findByText('Phòng khách')).toBeInTheDocument()
     expect(screen.getByText('Sofa')).toBeInTheDocument()
     expect(screen.getByText('Phòng ngủ')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sửa danh mục Phòng khách' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xóa danh mục Sofa' })).toBeInTheDocument()
   })
 
   it('creates a new category via the modal', async () => {
@@ -76,6 +78,7 @@ describe('AdminCategoriesPage', () => {
     await screen.findByText('Phòng khách')
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+    expect(screen.getByText('Tạo một mục mới trong cây danh mục sản phẩm.')).toBeInTheDocument()
     await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Đèn')
     await userEvent.type(screen.getByLabelText('Slug'), 'den')
     await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
@@ -129,7 +132,7 @@ describe('AdminCategoriesPage', () => {
     renderPage()
     await screen.findByText('Phòng khách')
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'Sửa' })[0])
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa danh mục Phòng khách' }))
 
     const nameInput = await screen.findByLabelText('Tên danh mục')
     await waitFor(() => expect(nameInput).toHaveValue('Phòng khách'))
@@ -152,8 +155,7 @@ describe('AdminCategoriesPage', () => {
     renderPage()
     await screen.findByText('Phòng ngủ')
 
-    const deleteButtons = screen.getAllByRole('button', { name: 'Xóa' })
-    await userEvent.click(deleteButtons[deleteButtons.length - 1])
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
 
     await waitFor(() => expect(categoriesApi.deleteCategory).toHaveBeenCalledWith(3))
   })
@@ -166,8 +168,7 @@ describe('AdminCategoriesPage', () => {
     renderPage()
     await screen.findByText('Phòng ngủ')
 
-    const deleteButtons = screen.getAllByRole('button', { name: 'Xóa' })
-    await userEvent.click(deleteButtons[deleteButtons.length - 1])
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
 
     expect(await screen.findByText('Danh mục đang có sản phẩm hoạt động.')).toBeInTheDocument()
   })

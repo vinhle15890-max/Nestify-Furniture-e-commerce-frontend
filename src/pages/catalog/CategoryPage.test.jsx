@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { CategoryPage } from './CategoryPage'
 import * as catalogApi from '../../features/catalog/api'
+import { ApiError } from '../../lib/errors'
 
 vi.mock('../../features/catalog/api')
 
@@ -55,6 +56,40 @@ describe('CategoryPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Phòng khách' })).toBeInTheDocument()
     expect(await screen.findByText('Ghế sofa')).toBeInTheDocument()
+  })
+
+  it('shows a retryable product failure without claiming the result is empty', async () => {
+    catalogApi.getProducts
+      .mockRejectedValueOnce(new ApiError('SERVER_ERROR', 'Máy chủ chưa phản hồi.', {}, 500))
+      .mockResolvedValueOnce({
+        data: [product()],
+        meta: { pagination: { has_more: false, next_cursor: null, limit: 20 } },
+      })
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể tải sản phẩm')
+    expect(screen.queryByText(/Căn phòng này còn đang chờ được lấp/)).not.toBeInTheDocument()
+    expect(screen.queryByText('0 sản phẩm')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByText('Ghế sofa')).toBeInTheDocument()
+    expect(catalogApi.getProducts).toHaveBeenCalledTimes(2)
+  })
+
+  it('recovers category metadata independently of loaded products', async () => {
+    catalogApi.getCategory
+      .mockRejectedValueOnce(new ApiError('SERVER_ERROR', 'Máy chủ chưa phản hồi.', {}, 500))
+      .mockResolvedValueOnce({
+        data: { id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] },
+      })
+    renderPage()
+
+    expect(await screen.findByText('Ghế sofa')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể tải thông tin danh mục')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByRole('heading', { name: 'Phòng khách' })).toBeInTheDocument()
+    expect(catalogApi.getCategory).toHaveBeenCalledTimes(2)
   })
 
   it('refetches with the new sort param when the sort filter changes', async () => {

@@ -6,6 +6,7 @@ import { SearchInput } from '../../../components/SearchInput'
 import { Pagination } from '../../../components/Pagination'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { Button } from '../../../components/Button'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { MediaGrid } from '../../../features/admin/media/MediaGrid'
 import { MediaUploadDropzone } from '../../../features/admin/media/MediaUploadDropzone'
 import { useMediaLibrary, useDeleteMediaAsset } from '../../../features/admin/media/hooks'
@@ -19,7 +20,7 @@ export function AdminMediaLibraryPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState(null)
-  const { data, isLoading } = useMediaLibrary({ page, search })
+  const { data, isLoading, isError, isFetching, refetch } = useMediaLibrary({ page, search })
   const del = useDeleteMediaAsset()
   const addToast = useToastStore((s) => s.addToast)
 
@@ -65,7 +66,9 @@ export function AdminMediaLibraryPage() {
           )}
         </div>
         <div className="mt-4">
-          {isLoading ? null : items.length === 0
+          {isLoading ? null : isError && !data
+            ? <LoadErrorState compact title="Chưa thể tải thư viện ảnh" description="Tìm kiếm hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
+            : items.length === 0
             ? <EmptyState icon={Images} title="Chưa có ảnh nào." description="Tải ảnh đầu tiên lên bằng ô phía trên." />
             : <MediaGrid items={items} selectedIds={selectedId ? [selectedId] : []} onToggle={toggleSelect} />}
         </div>

@@ -12,6 +12,7 @@ import { BackLink } from '../../components/BackLink'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
@@ -34,8 +35,10 @@ function CheckoutNotice({ children }) {
 }
 
 export function CheckoutPage() {
-  const { data: cartData, isLoading: cartLoading } = useCart()
-  const { data: addressesData, isLoading: addressesLoading } = useAddresses()
+  const cartQuery = useCart()
+  const addressesQuery = useAddresses()
+  const { data: cartData, isLoading: cartLoading } = cartQuery
+  const { data: addressesData, isLoading: addressesLoading } = addressesQuery
   const applyVoucher = useApplyVoucher()
   const createOrder = useCreateOrder()
   const createPaymentSession = useCreatePaymentSession()
@@ -85,6 +88,30 @@ export function CheckoutPage() {
       <CheckoutNotice>
         Tài khoản quản trị không thể mua hàng. Vui lòng dùng tài khoản khách hàng.
       </CheckoutNotice>
+    )
+  }
+
+  const cartUnavailable = cartQuery.isError && !cartData?.data
+  const addressesUnavailable = addressesQuery.isError && !addressesData?.data
+
+  if (cartUnavailable || addressesUnavailable) {
+    return (
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+        <div className="mx-auto max-w-2xl">
+          <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
+          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
+          <LoadErrorState
+            title="Chưa thể chuẩn bị thanh toán"
+            description="Chưa tải đủ giỏ hàng và địa chỉ giao hàng. Chưa có đơn hàng hay phiên thanh toán nào được tạo."
+            onRetry={() => {
+              if (cartUnavailable) cartQuery.refetch()
+              if (addressesUnavailable) addressesQuery.refetch()
+            }}
+            isRetrying={cartQuery.isFetching || addressesQuery.isFetching}
+            className="mt-8"
+          />
+        </div>
+      </div>
     )
   }
 
@@ -197,12 +224,29 @@ export function CheckoutPage() {
   }
 
   const isSubmitting = createOrder.isPending || createPaymentSession.isPending
+  const hasBackgroundError =
+    (cartQuery.isError && Boolean(cartData?.data))
+    || (addressesQuery.isError && Boolean(addressesData?.data))
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
       <BackLink to="/cart" className="mb-4">Quay lại giỏ hàng</BackLink>
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Thanh toán</h1>
+      {hasBackgroundError && (
+        <LoadErrorState
+          title="Chưa cập nhật được thông tin thanh toán mới nhất"
+          description="Bạn đang xem dữ liệu đã tải trước đó. Hãy thử cập nhật lại trước khi đặt hàng."
+          onRetry={() => {
+            if (cartQuery.isError) cartQuery.refetch()
+            if (addressesQuery.isError) addressesQuery.refetch()
+          }}
+          isRetrying={cartQuery.isFetching || addressesQuery.isFetching}
+          compact
+          background
+          className="mt-6"
+        />
+      )}
 
       <form onSubmit={handleSubmit} className="mt-10 grid gap-8 lg:grid-cols-3">
         <div className="flex flex-col gap-8 lg:col-span-2">

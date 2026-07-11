@@ -6,6 +6,7 @@ import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminProducts } from '../../../features/admin/products/hooks'
@@ -21,7 +22,7 @@ const STATUS_LABELS = {
 export function AdminProductsPage() {
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(() => new Set())
-  const { data, isLoading } = useAdminProducts(page)
+  const { data, isLoading, isError, isFetching, refetch } = useAdminProducts(page)
   const bulk = useBulkGenerateSeo()
   const addToast = useToastStore((state) => state.addToast)
   const navigate = useNavigate()
@@ -87,6 +88,8 @@ export function AdminProductsPage() {
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải sản phẩm..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải sản phẩm" description="Trang hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : products.length === 0 ? (
           <Card>
             <EmptyState
@@ -98,6 +101,7 @@ export function AdminProductsPage() {
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">Danh sách sản phẩm</caption>
               <thead>
                 <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="px-4 py-3">
@@ -113,7 +117,7 @@ export function AdminProductsPage() {
                   <th className="px-4 py-3">Giá</th>
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3">Biến thể</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3"><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -140,7 +144,12 @@ export function AdminProductsPage() {
                       </td>
                       <td className="px-4 py-3 text-foreground">{product.variants?.length ?? 0}</td>
                       <td className="px-4 py-3 text-right">
-                        <Link to={`/admin/products/${product.id}`} state={{ product }} className="font-medium text-foreground transition-colors hover:text-accent">
+                        <Link
+                          to={`/admin/products/${product.id}`}
+                          state={{ product }}
+                          aria-label={`Sửa sản phẩm ${product.name}`}
+                          className="font-medium text-foreground transition-colors hover:text-accent"
+                        >
                           Sửa
                         </Link>
                       </td>

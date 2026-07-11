@@ -69,6 +69,21 @@ describe('CartPage', () => {
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 
+  it('shows a retryable load failure instead of an empty cart', async () => {
+    useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
+    cartApi.getCart
+      .mockRejectedValueOnce(new ApiError('SERVER_ERROR', 'Máy chủ chưa phản hồi.', {}, 500))
+      .mockResolvedValueOnce(sampleCart)
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể tải giỏ hàng')
+    expect(screen.queryByText('Giỏ hàng của bạn còn trống.')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByText('Nâu')).toBeInTheDocument()
+    expect(cartApi.getCart).toHaveBeenCalledTimes(2)
+  })
+
   it('shows the imagined room callback only for room-sourced items', async () => {
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao' } })
     cartApi.getCart.mockResolvedValue({

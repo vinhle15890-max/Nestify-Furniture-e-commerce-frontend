@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { RoomCanvas } from './scene/RoomCanvas'
 import { RoomEditPanel } from './RoomEditPanel'
 import { RoomSetupDialog } from './RoomSetupDialog'
@@ -19,15 +19,20 @@ import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
 import { useProductPreload } from '../../features/catalog/hooks'
 import { editorStateToPayload } from '../../features/roomPlanner/mappers'
 import { useToastStore } from '../../store/toastStore'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 
 const DEFAULT_ROOM = { width: 4, depth: 5, height: 2.8 }
+const PLANNER_DESKTOP_QUERY = '(min-width: 64rem)'
 
 export function RoomPlannerPage() {
   const { id } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const addToast = useToastStore((state) => state.addToast)
+  const isDesktop = useMediaQuery(PLANNER_DESKTOP_QUERY)
+  const continueUrl = `${window.location.origin}${location.pathname}${location.search}${location.hash}`
 
-  const sceneQuery = useScene(id)
+  const sceneQuery = useScene(isDesktop ? id : null)
   const createScene = useCreateScene()
   const updateScene = useUpdateScene()
   const addSceneToCart = useAddSceneToCart()
@@ -35,11 +40,11 @@ export function RoomPlannerPage() {
   const uploadPreview = useUploadScenePreview()
 
   const store = useEditorStore()
-  const [setupOpen, setSetupOpen] = useState(!id)
+  const [setupOpen, setSetupOpen] = useState(false)
   const [shareToken, setShareToken] = useState(null)
 
   // Keyboard editing (delete / undo / redo / duplicate / gizmo modes / deselect).
-  useEditorShortcuts()
+  useEditorShortcuts(isDesktop)
 
   // ── Deep-link preload: /room-planner?product=<slug>&variant=<id> ──────────
   // URL query params are the SINGLE source of truth for the pending preload —
@@ -52,7 +57,7 @@ export function RoomPlannerPage() {
   const numericVariantId = Number(variantId) // STEP 3 coercion (variant.id is a JSON number)
   const applied = useRef(false)
   // Request-scoped 10s timeout; disabled unless a full deep-link is present.
-  const productQuery = useProductPreload(hasDeepLink ? previewSlug : null)
+  const productQuery = useProductPreload(hasDeepLink && isDesktop ? previewSlug : null)
 
   // Targeted param removal — clears ONLY the two preload keys, preserving any
   // other query param (UTM, etc.). Never `setSearchParams({})` (wipes all).
@@ -66,10 +71,21 @@ export function RoomPlannerPage() {
   // Fresh store whenever the route target changes.
   useEffect(() => {
     store.reset()
-    setSetupOpen(!id)
+    setSetupOpen(false)
     return () => store.reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  // Capability changes only swap the shell. They must never reset in-memory
+  // work: a user who narrows then widens the same tab resumes where they left.
+  useEffect(() => {
+    if (!isDesktop) {
+      setSetupOpen(false)
+      setShareToken(null)
+      return
+    }
+    if (!id && store.status === 'idle') setSetupOpen(true)
+  }, [id, isDesktop, store.status])
 
   // Hydrate an existing scene once it loads.
   useEffect(() => {
@@ -273,6 +289,16 @@ export function RoomPlannerPage() {
 
   const selectedItem = store.items.find((item) => item.localId === store.selectedId) ?? null
 
+  if (!isDesktop) {
+    return (
+      <SmallScreenNotice
+        continueUrl={continueUrl}
+        hasUnsavedChanges={store.dirty}
+        onExit={handleExit}
+      />
+    )
+  }
+
   if (id && sceneQuery.isLoading) {
     return (
       <div className="flex h-dvh items-center justify-center bg-canvas">
@@ -291,8 +317,7 @@ export function RoomPlannerPage() {
 
   return (
     <div>
-      <SmallScreenNotice />
-      <div className="hidden h-dvh flex-col lg:flex">
+      <div className="flex h-dvh flex-col">
         <PlannerToolbar
           name={store.name}
           onNameChange={store.setName}

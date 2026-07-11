@@ -44,6 +44,14 @@ describe('AdminRolesPage', () => {
     expect(screen.getByText('Super Admin')).toBeInTheDocument()
     expect(screen.getByText('Nhân viên đơn')).toBeInTheDocument()
     expect(screen.getByText('Hệ thống')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Danh sách vai trò' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument()
+  })
+
+  it('mô tả mục đích khi tạo vai trò mới', async () => {
+    renderPage()
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo vai trò' }))
+    expect(screen.getByText('Đặt tên và chọn các quyền cho vai trò mới.')).toBeInTheDocument()
   })
 
   it('xoá role đang dùng → toast đọc users_count từ 409', async () => {

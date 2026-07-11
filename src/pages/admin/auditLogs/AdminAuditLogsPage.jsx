@@ -3,6 +3,7 @@ import { ScrollText } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminAuditLogs } from '../../../features/admin/auditLogs/hooks'
@@ -12,7 +13,7 @@ import { formatDate } from '../../../lib/format'
 export function AdminAuditLogsPage() {
   const [page, setPage] = useState(1)
   const [action, setAction] = useState('')
-  const { data, isLoading } = useAdminAuditLogs(page, action)
+  const { data, isLoading, isError, isFetching, refetch } = useAdminAuditLogs(page, action)
 
   const logs = data?.data ?? []
   const meta = data?.meta?.pagination ?? { last_page: 1 }
@@ -51,6 +52,8 @@ export function AdminAuditLogsPage() {
       <div className="mt-4">
         {isLoading ? (
           <Spinner label="Đang tải nhật ký..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải nhật ký" description="Bộ lọc hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : logs.length === 0 ? (
           <Card>
             <EmptyState
@@ -62,6 +65,7 @@ export function AdminAuditLogsPage() {
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">Danh sách nhật ký hệ thống</caption>
               <thead>
                 <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="px-4 py-3">Người dùng</th>
@@ -69,7 +73,7 @@ export function AdminAuditLogsPage() {
                   <th className="px-4 py-3">Đối tượng</th>
                   <th className="px-4 py-3">IP</th>
                   <th className="px-4 py-3">Thời gian</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3"><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -99,7 +103,12 @@ export function AdminAuditLogsPage() {
                       <td className="px-4 py-3 text-foreground">{formatDate(log.created_at)}</td>
                       <td className="px-4 py-3">
                         <details>
-                          <summary className="cursor-pointer text-foreground transition-colors hover:text-accent">Chi tiết</summary>
+                          <summary
+                            aria-label={`Xem chi tiết nhật ký ${labelForAction(log.action)} lúc ${formatDate(log.created_at)}`}
+                            className="cursor-pointer text-foreground transition-colors hover:text-accent"
+                          >
+                            Chi tiết
+                          </summary>
                           <pre className="mt-2 max-w-xs overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">
                             {JSON.stringify({ old_values: log.old_values, new_values: log.new_values }, null, 2)}
                           </pre>

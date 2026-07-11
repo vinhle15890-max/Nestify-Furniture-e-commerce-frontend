@@ -5,6 +5,7 @@ import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useToastStore } from '../../../store/toastStore'
@@ -104,7 +105,7 @@ export function AdminSeoReviewPage() {
   const [batchId, setBatchId] = useState(null)
   const addToast = useToastStore((state) => state.addToast)
 
-  const { data, isLoading } = useSeoDrafts({ status: tab, page })
+  const { data, isLoading, isError, isFetching, refetch } = useSeoDrafts({ status: tab, page })
   const bulk = useBulkGenerateSeo()
   const apply = useApplyDraft()
   const dismiss = useDismissDraft()
@@ -197,6 +198,8 @@ export function AdminSeoReviewPage() {
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải bản nháp..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải bản nháp SEO" description="Tab và trang hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : drafts.length === 0 ? (
           <Card>
             <EmptyState

@@ -4,6 +4,7 @@ import { KeyRound, Plus, Pencil, Trash2, Eye } from 'lucide-react'
 import { Button } from '../../../components/Button'
 import { Badge } from '../../../components/Badge'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { Modal } from '../../../components/Modal'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { Panel } from '../../../components/admin/Panel'
@@ -19,7 +20,7 @@ import { RolePermissionMatrix } from './RolePermissionMatrix'
 const thClass = 'px-4 py-3 text-left text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground'
 
 export function AdminRolesPage() {
-  const { data, isLoading } = useRoles()
+  const { data, isLoading, isError, isFetching, refetch } = useRoles()
   const deleteRole = useDeleteRole()
   const addToast = useToastStore((state) => state.addToast)
   const setPreviewRole = usePreviewStore((state) => state.setPreviewRole)
@@ -96,6 +97,8 @@ export function AdminRolesPage() {
       <Panel className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải vai trò..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải vai trò" description="Hãy thử tải lại danh sách phân quyền." onRetry={refetch} isRetrying={isFetching} />
         ) : roles.length === 0 ? (
           <EmptyState title="Chưa có vai trò" description="Tạo vai trò đầu tiên để phân quyền." />
         ) : view === 'matrix' ? (
@@ -103,12 +106,13 @@ export function AdminRolesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse">
+              <caption className="sr-only">Danh sách vai trò</caption>
               <thead>
                 <tr className="border-b border-border">
                   <th className={thClass}>Vai trò</th>
                   <th className={thClass}>Số quyền</th>
                   <th className={thClass}>Nhân viên</th>
-                  <th className={thClass}>&nbsp;</th>
+                  <th className={thClass}><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
               <tbody>
