@@ -18,6 +18,12 @@ Có hai loại đơn vị nội dung:
 
 *Bổ sung sau review "Hero-as-Threshold". Threshold không phải chapter thứ 7, không nằm trong bảng Transformation ở Constitution — nó là cổng đứng trước toàn bộ arc, do Story Bible sở hữu và định nghĩa toàn bộ ở đây.*
 
+**Authority.** Mục Threshold này là nguồn canonical duy nhất về vai trò
+narrative, disclosure, và interaction permission của Threshold. Design DNA và
+Visual Grammar được phép định nghĩa semantic và visual execution, nhưng không
+được biến Threshold thành lesson, Planner preview, hoặc chapter mới. Nếu dated
+Hero spec mâu thuẫn, áp dụng Decision Register D-001.
+
 Threshold cấu trúc-tương-đồng với Capability Boundary (Component Bible Part 2) — cùng họ cơ chế "cổng đứng trước một state/arc, không phải bản thân state/arc" — nhưng ngược cực: Capability Boundary là cổng chặn (block khi môi trường không đủ điều kiện), Threshold là cổng mời (tạo ra chính cái intent để người dùng tự nguyện bước qua). Không đặt tên cơ chế mới cho khái niệm này ở bất kỳ tài liệu nào khác trong hệ thống.
 
 Trách nhiệm duy nhất của Threshold: khiến một người lạ tự nguyện bước vào câu chuyện. Không transform, không dạy, không demonstrate, không resolve — những việc đó thuộc về chapter thật, xảy ra sau khi đã qua cổng.

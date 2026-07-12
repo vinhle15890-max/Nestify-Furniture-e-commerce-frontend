@@ -1,8 +1,15 @@
-# Hero "Becoming Room" interaction — design spec v1.1
+# [SUPERSEDED] Hero "Becoming Room" interaction — design spec v1.1
+
+> **Status: SUPERSEDED for Hero design and implementation by Decision Register
+> D-001 (2026-07-12).** The static Threshold defined in Story Bible is the
+> canonical Hero authority. This document is retained only as historical context
+> for the abandoned playable concept; it must not be used to restore Hero
+> interaction, Lesson 0, or Planner demonstration.
 
 **Date:** 2026-07-06
 **Surface:** Home hero (`src/components/home/Hero.jsx`)
-**DNA position:** Chapter 1 *Possibility* / State 1 *Not Yet Seen* (`docs/nestify/02_Story_Bible.md`, `04_Component_Bible.md`)
+**Historic position only:** formerly Chapter 1 Possibility / State 1 Not Yet
+Seen. It is not an active authority; see Decision Register D-001.
 
 ## Goal
 

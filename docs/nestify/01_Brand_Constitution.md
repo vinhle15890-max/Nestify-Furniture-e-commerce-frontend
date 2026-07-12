@@ -79,4 +79,9 @@ Confidence và ownership là kết quả cảm nhận được, không phải th
 
 ## 12. Manifesto (bản đầy đủ)
 
-Bản văn xuôi hoàn chỉnh, dùng cho mục đích truyền cảm hứng nội bộ/đối ngoại, nằm ở file riêng: `Nestify_Brand_Manifesto_v0.1.md`. Cần cập nhật theo 3 điểm đã chốt ở phiên bản này trước khi coi là final — bỏ nhắc cụ thể "3D", tách câu "không tạo cảm giác cấp bách giả" ra khỏi Manifesto (đã chuyển vào mục 9 Experience Principles ở tài liệu này), và đổi khung "confidence" thành "clarity" đúng theo mục 11.
+Bản văn xuôi hoàn chỉnh, dùng cho mục đích truyền cảm hứng nội bộ/đối ngoại,
+nằm ở 06_Brand_Manifesto.md. Manifesto là supporting expression, không phải
+nguồn rule authority. Cần cập nhật theo 3 điểm đã chốt ở phiên bản này trước
+khi coi là final — bỏ nhắc cụ thể "3D", tách câu "không tạo cảm giác cấp bách
+giả" ra khỏi Manifesto (đã chuyển vào mục 9 Experience Principles ở tài liệu
+này), và đổi khung "confidence" thành "clarity" đúng theo mục 11.

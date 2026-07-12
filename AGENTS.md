@@ -9,14 +9,19 @@ back-office for a furniture e-commerce platform, consuming a separate Laravel AP
 ## Design DNA — read FIRST for any storefront UI work
 
 Nestify's brand + design system lives in `docs/nestify/` (source of truth, read in order):
-`01_Brand_Constitution.md` → `02_Story_Bible.md` → `03_Design_DNA.md` → `04_Component_Bible.md`
-(`00_Brand_Context.md`, `05_Brand_Manifesto.md` are supporting context).
+`01_Brand_Constitution.md` → `02_Story_Bible.md` → `03_Design_DNA.md` →
+`04_Visual_Grammar.md` → `05_Component_Bible.md` → token implementation
+layer. Consult `07_Decision_Register.md` whenever a dated spec or page brief
+appears to conflict. `00_Brand_Context.md` and `06_Brand_Manifesto.md` are
+supporting context, not rule authorities.
 
-This DNA — **"The Becoming Room"** — is the current direction and **supersedes the older
-"Organic / Warm Luxury Editorial" system** (in `2026-06-13-fe-nestify-design.md`) for any new or
-redesigned storefront UI. Note: `src/styles/tokens.css` still holds the OLD cream+brass palette —
-migrating it to the new tokens is a **pending decision**. Do not assume the new tokens exist in CSS
-yet; confirm before editing `tokens.css`.
+This DNA — **"The Becoming Room"** — is the current direction and supersedes
+Organic / Warm Luxury Editorial for every storefront visual decision. In
+`2026-06-13-fe-nestify-design.md`, read technical architecture and API material
+only when relevant; Section F is historical visual context, never a storefront
+design authority. `src/styles/tokens.css` is the current token implementation:
+inspect it before editing, but do not assume the old cream+brass palette remains
+active.
 
 ### Hard guardrails — violating any of these = stop and re-confirm
 - No cream `#F4F1EA`, no terracotta `#D97757`, no blueprint/CAD tones as primary colors (they read
@@ -45,9 +50,10 @@ not competitors.
 
 ## Read before starting any feature work
 
-1. `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — full design spec: architecture,
-   project structure, routing/page map, design system ("Organic Editorial"), and the
-   FE/BE contract per domain (Section G).
+1. `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — architecture,
+   project structure, routing/page map, and FE/BE contract. Its Section F
+   Organic Editorial visual direction is superseded; do not use it for
+   storefront visual decisions.
 2. `docs/TASKS.md` — remaining work broken down by phase/module, with a checklist per module
    and a prompt template for AI-assisted work.
 3. `Nestify-Furniture-e-commerce-backend/docs/FE_AI_CONTEXT.md` (in the BE repo) — exact request/response shapes for

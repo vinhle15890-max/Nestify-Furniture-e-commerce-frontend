@@ -63,7 +63,8 @@ plugin and you want to generate a similar task-by-task plan for a new phase befo
 - **Lib** (`src/lib/`): `apiClient.js` (axios + interceptors), `errors.js` (`ApiError`/`normalizeError`), `pagination.js` (offset/cursor helpers), `queryClient.js`
 - **Store** (`src/store/`): `authStore` (token/user, persisted), `uiStore` (cart drawer, mobile nav), `toastStore`
 - **Routing** (`src/app/router.jsx`, `src/routes/`): `ProtectedRoute`, `AdminRoute`, route tree wired into `App.jsx`
-- **Design tokens**: `src/styles/tokens.css` (Organic Editorial palette, Tailwind v4 `@theme`)
+- **Design tokens**: `src/styles/tokens.css` (current Becoming Room semantic
+  implementation, Tailwind v4 `@theme`; legacy scope is admin-only)
 
 Placeholder pages exist for: Home, Login, Account, Admin dashboard, 404 — replace these in-place
 as each phase lands rather than creating duplicates.

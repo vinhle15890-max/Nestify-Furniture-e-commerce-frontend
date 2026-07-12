@@ -1,6 +1,11 @@
-# Nestify — Design DNA v0.1 (Part 1: Foundation)
+# Nestify — Design DNA v0.2
 
-*Kế thừa từ Brand Constitution (mục 10, Design Philosophy) và Story Bible (6 chapter). Mọi token trong tài liệu này phải derive được từ 2 nguồn đó — không thêm màu/font/rule nào không truy được về một quyết định đã chốt ở tầng trên.*
+*Kế thừa từ Brand Constitution (mục 10, Design Philosophy) và Story Bible.
+Tài liệu này sở hữu identity semantic: ý nghĩa màu, vai trò typography, và ý
+nghĩa narrative của signature motif. Visual execution — composition, line,
+depth, light, illustration, photography, rhythm, responsive hierarchy, và
+visual review — thuộc 04_Visual_Grammar.md. Component behavior thuộc
+05_Component_Bible.md.*
 
 ---
 
@@ -23,22 +28,41 @@ Vì Enemy là "fear of irreversible decisions" (Constitution mục 2), mọi aff
 Một minh họa/rendering căn phòng chuyển dần từ trạng thái outline trống (Chapter 1 — Possibility) sang phối cảnh đầy đủ, có đồ nội thất, ánh sáng (Chapter 4 — Future Home). Đây là motif thị giác duy nhất được phép lặp lại xuyên site, vì nó kể đúng câu chuyện của **không gian người dùng**, không phải năng lực của công cụ (đã loại bỏ hướng "fit-indicator kỹ thuật" ở phiên bản trước vì lệch với "main character is the user, not the planner").
 
 Biến thể theo trang, tất cả cùng 1 motif, khác mức độ hoàn thiện:
-- Home (Threshold, tiền-Chapter 1): phòng ở dạng outline `unbuilt`, một phối cảnh một-điểm-tụ **tĩnh**, được thắp bằng đúng 1 vệt ánh sáng `canvas` phẳng từ cửa sổ (atmosphere, không gradient/shadow). Chứa **đúng 1 dấu-hiệu-cư-ngụ** cực kỳ kiềm chế (ghế, outline `emerging`) — *presence, không phải demonstration*. Thứ bậc: **Light → Room → Chair**. Xem Story Bible §"Threshold (tiền-Chapter 1)" (đã cập nhật 2026-07-09 "Threshold-with-presence") và component `src/components/home/Hero.jsx`. **Lịch sử:** hướng "trải nghiệm chơi được" cũ (ghost → measure → materialize, spec `2026-07-06-hero-becoming-room-interaction-design.md`, component `BecomingRoom.jsx`) đã bị review "Hero-as-Threshold" thay thế — Threshold không transform/teach/demonstrate/resolve; những việc đó thuộc chapter thật.
-- Product Listing/Detail (Chapter 2 / Exploratory Commitment): outline + 1 silhouette đơn lẻ của món đồ đang xem, phần còn lại của phòng vẫn là outline.
-- Room Planner (Chapter 3–4): trạng thái động thật, không phải minh họa — đây là nơi "becoming" xảy ra thật, không mô phỏng.
-- Ownership/Purchase (Chapter 5–6, Cart): phối cảnh gần hoàn thiện, tông màu ấm nhất trong toàn bộ dải biến thể.
+- Home (Threshold, tiền-Chapter 1): spatial cue ở semantic state `unbuilt`;
+  không có user visualization hoặc `imagined`. Static habitation presence chỉ
+  hợp lệ theo Story Bible Threshold. Visual execution thuộc
+  04_Visual_Grammar.md.
+- Product Listing/Detail (Discover / Exploratory Commitment): nếu dùng spatial
+  cue, nó chỉ tham chiếu một product/context liên quan, không mô phỏng Planner
+  hoặc dùng generic furniture thay cho món đồ đang xem. Visual execution thuộc
+  04_Visual_Grammar.md.
+- Room Planner (Chapter 3–4): trạng thái động thật, không phải minh họa — đây
+  là nơi "becoming" xảy ra thật, không mô phỏng.
+- Ownership/Purchase (Chapter 5–6, Cart): chỉ sau spatial evidence thật mới
+  được dùng ngữ nghĩa Future Home / Ownership theo Story Bible và Component
+  Bible.
 
 ### Ba luật thiết kế (product-wide) sinh ra từ "The Becoming Room"
 
 Ba luật này là bất biến, áp cho toàn bộ sản phẩm — không chỉ hero:
 
-1. **Visualization gates `imagined`.** `imagined` chỉ được xuất hiện *sau* một hành động visualize do người dùng chủ động kích hoạt. Trên Home hero, visualize đó giới hạn ở đúng 1 món đồ người dùng đặt; bản thân căn phòng vẫn ở trạng thái `unbuilt`. (Thay cho ghi chú cũ "Home chưa có màu imagined" — nay nói chính xác *khi nào* imagined được phép xuất hiện.)
+1. **Visualization gates `imagined`.** `imagined` chỉ được xuất hiện sau
+   một hành động visualize do người dùng chủ động kích hoạt trong spatial scene
+   sống của họ. Home Hero là Threshold tĩnh: không có hành động visualize, không
+   có món đồ người dùng đặt, và không dùng `imagined` để giải quyết câu hỏi của
+   căn phòng.
 
    **Ngoại lệ — depiction biên tập (cập nhật 2026-07-09).** Luật "visualization gates" ở trên chi phối *trạng thái phòng sống của chính người dùng* và *màu CTA*. Nó KHÔNG cấm dùng `imagined` như **hình minh hoạ tĩnh, phi-tương-tác** để *vẽ khái niệm* chương Future Home ở các surface giải thích/marketing (ví dụ section "Từ căn phòng trống đến của bạn" trên Home). Ràng buộc của ngoại lệ: (a) chỉ là minh hoạ, không phải phòng thật của người dùng; (b) không bao giờ là màu của nút/CTA/tương tác; (c) kiềm chế (fill nhạt), và (d) chỉ ở đúng mức "Future Home" của thang becoming. Nếu vi phạm bất kỳ điều nào trong (a)–(d), quay về luật gốc.
 
-2. **The interaction teaches before it demonstrates.** Hero là *Lesson 0*, Room Planner là *Lesson 1*: làm cử chỉ một lần là đã học xong mô hình tư duy của Planner, nên Planner không cần tooltip / coach-mark / video intro. Một tương tác có mặt là để **dạy cách ra quyết định**, không phải để khoe.
+2. **Interaction belongs to its owning state.** Một interaction chỉ được dạy
+   mental model của state mà nó thuộc về. Threshold không có Lesson 0 và không
+   mô phỏng Planner; direct manipulation bắt đầu trong Room Planner, nơi
+   Experiment và Future Home xảy ra thật.
 
-3. **The brand is understood through interaction, not explanation.** Nestify tránh intro video, tooltip, coach-mark, intro modal. Ý nghĩa sản phẩm truyền qua việc *làm*, không phải việc *được kể*. Hệ quả: *nếu một tương tác cần tooltip mới hiểu được, thì tương tác đó chưa đủ tốt* — sửa tương tác, đừng thêm nhãn.
+3. **Do not simulate a future experience as explanation.** Một surface có thể
+   gợi một state bằng static editorial depiction, nhưng không được giả lập
+   capability của state đó để giải thích sản phẩm. Khi một capability cần được
+   hiểu, trải nghiệm thật ở state sở hữu nó phải làm công việc đó.
 
 ---
 
@@ -85,4 +109,12 @@ Spacing scale: hệ 8px (8/16/24/32/48/64/96), nhất quán toàn site. Không d
 
 ---
 
-*Hết Part 1. Part 2 sẽ gồm: Motion, Component Philosophy, Icon System, và tích hợp thị giác với Room Planner (bám theo constraint kỹ thuật thật đã xác nhận trước đó — Three.js/R3F, lazy-loaded chunk, asset weight không kiểm soát, thiếu WebGL fallback).*
+---
+
+## Scope boundary
+
+Design DNA không sở hữu visual composition hoặc art direction chi tiết. Đọc
+04_Visual_Grammar.md để quyết định một frame trông và được review như thế nào.
+Đọc 05_Component_Bible.md để quyết định component hành xử theo psychological
+state thế nào. Giá trị token triển khai nằm ở token implementation layer; không
+thêm bảng giá trị song song trong tài liệu này.
