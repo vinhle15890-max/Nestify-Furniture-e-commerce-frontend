@@ -114,9 +114,9 @@ describe('AdminProductCreatePage', () => {
     expect(screen.getByLabelText('Slug')).toHaveValue('den-ban-custom')
   })
 
-  it('locks the variants and images tabs until the product is saved', () => {
+  it('locks the variants and images tabs until the product is saved', async () => {
     renderPage()
-    expect(screen.getByRole('tab', { name: 'Biến thể' })).toBeDisabled()
+    expect(await screen.findByRole('tab', { name: 'Biến thể' })).toBeDisabled()
     expect(screen.getByRole('tab', { name: 'Hình ảnh' })).toBeDisabled()
   })
 })

@@ -1,17 +1,10 @@
 import { Grid } from '@react-three/drei'
+import { visibleWalls } from './roomHelpers'
 
 // Pure decision of which wall faces render, out of the wall toggle flags stored
 // on `room.walls` — kept as a standalone function because R3F meshes aren't
 // assertable via RTL DOM, so this is what Room.test.jsx exercises directly.
 // Fixed wall set: back/left/right only (no front — that's the viewing side).
-export function visibleWalls(walls) {
-  return {
-    back: walls?.back ?? true,
-    left: walls?.left ?? true,
-    right: walls?.right ?? true,
-  }
-}
-
 // Floor + faint walls + grid, sized from room dimensions (metres). Centred at origin.
 // Colours are the "Becoming Room" palette (WebGL can't read CSS tokens, so the hex
 // values mirror tokens.css): canvas floor/walls, `unbuilt` grid — the empty-outline

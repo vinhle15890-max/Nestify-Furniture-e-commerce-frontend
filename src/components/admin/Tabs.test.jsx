@@ -35,7 +35,7 @@ describe('admin Tabs', () => {
 
   it('moves selection with the arrow keys', async () => {
     render(<Sample />)
-    screen.getByRole('tab', { name: 'Tab A' }).focus()
+    await userEvent.click(screen.getByRole('tab', { name: 'Tab A' }))
     await userEvent.keyboard('{ArrowRight}')
     expect(screen.getByText('Panel B')).toBeVisible()
   })

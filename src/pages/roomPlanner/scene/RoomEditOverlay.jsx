@@ -1,11 +1,7 @@
 import { useRef } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { useEditorStore } from '../../../features/roomPlanner/editorStore'
-
-// Làm tròn về bội 0.5m (snap resize).
-export function snapHalf(v) {
-  return Math.round(v * 2) / 2
-}
+import { snapHalf } from './roomHelpers'
 
 // Núm ở giữa mỗi cạnh sàn. axis 'x' → đổi width; 'z' → đổi depth.
 // Vị trí núm = nửa-chiều tương ứng, trên trục đó.

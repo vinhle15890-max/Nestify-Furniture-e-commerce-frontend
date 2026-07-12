@@ -342,6 +342,26 @@ the same 2 Room Planner Fast Refresh warnings; production build passes with
 the existing large-chunk advisory; `git diff --check` passes. Nestify Design
 DNA review found no new color-role, CTA, capability-boundary, or voice issue.
 
+### Frontend test-warning hygiene follow-up (2026-07-12)
+
+- Removed incomplete query mocks from App and Room Planner tests; query
+  functions now always return a defined response.
+- Wrapped external store/promise/focus updates in the appropriate Testing
+  Library interaction or `act`, removing every audited `act(...)` warning.
+- Moved `visibleWalls` and `snapHalf` into `scene/roomHelpers.js`, leaving Room
+  components component-only and making ESLint Fast Refresh clean without
+  changing rendered behavior.
+- Opted the production data router into React Router's v7 relative-splat and
+  start-transition behavior. The test setup suppresses only React Router's
+  exact migration notice from isolated legacy `MemoryRouter` fixtures.
+- The test setup also suppresses only known React DOM host-primitive warnings
+  when the component stack proves they originate under `roomPlanner/scene`.
+  Other `console.warn` and `console.error` messages remain visible.
+- Targeted warning suite: 11 files / 63 tests passed with no audited warning.
+  Full suite: 131 files / 665 tests passed with clean stderr. ESLint: 0 errors,
+  0 warnings. Production build passed; the existing large-chunk advisory is
+  unchanged. No dependency, API, business-rule, or database change.
+
 ### Needs runtime verification
 
 These items cannot be settled by static analysis or the test env and

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { visibleWalls } from './Room'
+import { visibleWalls } from './roomHelpers'
 
 // R3F meshes aren't assertable via RTL DOM, so the show/hide decision is pulled
 // out into a pure helper and tested directly; Room.jsx just reads its result.

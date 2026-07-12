@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import { RoomEditOverlay, snapHalf } from './RoomEditOverlay'
+import { RoomEditOverlay } from './RoomEditOverlay'
+import { snapHalf } from './roomHelpers'
 import { useEditorStore } from '../../../features/roomPlanner/editorStore'
 
 // Mock TransformControls giống các test scene khác (passthrough children).

@@ -90,6 +90,9 @@ describe('RoomPlannerPage', () => {
       data: [{ id: 1, name: 'Sofa', thumbnail: null, variants: [{ id: 11, sku: 'A', name: 'Đỏ', model_3d_url: 'a.glb', price: 100 }] }],
       meta: { pagination: { has_more: false, next_cursor: null } },
     })
+    roomPlannerApi.getScene.mockResolvedValue({
+      data: { id: 55, name: 'Phòng của tôi', width: '4', depth: '5', height: '2.8', items: [] },
+    })
   })
 
   it('shows the setup dialog for a new room, then the canvas', async () => {

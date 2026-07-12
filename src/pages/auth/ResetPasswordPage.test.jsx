@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -101,6 +101,8 @@ describe('ResetPasswordPage', () => {
     await userEvent.click(pendingButton)
     expect(authApi.resetPassword).toHaveBeenCalledTimes(1)
 
-    resolveRequest({ data: { message: 'Đặt lại mật khẩu thành công.' } })
+    await act(async () => {
+      resolveRequest({ data: { message: 'Đặt lại mật khẩu thành công.' } })
+    })
   })
 })
