@@ -29,7 +29,7 @@ describe('VerifyEmailPage', () => {
   it('shows an error when the link has no parameters', () => {
     renderPage('/verify-email')
 
-    expect(screen.getByText('Liên kết xác thực không hợp lệ.')).toBeInTheDocument()
+    expect(screen.getByText(/Vui lòng yêu cầu liên kết xác thực mới từ tài khoản của bạn/)).toBeInTheDocument()
     expect(authApi.verifyEmail).not.toHaveBeenCalled()
   })
 

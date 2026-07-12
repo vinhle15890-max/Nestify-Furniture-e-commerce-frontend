@@ -42,7 +42,7 @@ export function VerifyEmailPage() {
     >
       {Object.keys(params).length === 0 ? (
         <p role="alert" tabIndex="-1" className="text-sm text-destructive">
-          Liên kết xác thực không hợp lệ.
+          Liên kết xác thực không hợp lệ. Vui lòng yêu cầu liên kết xác thực mới từ tài khoản của bạn.
         </p>
       ) : isLoading ? (
         <Spinner label="Đang xác thực..." />

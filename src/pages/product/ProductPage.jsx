@@ -202,7 +202,7 @@ export function ProductPage() {
             setStockError(available)
             setQuantity(Math.max(available, 1))
           } else {
-            addToast({ title: 'Không thể thêm vào giỏ hàng', description: error.message, variant: 'error' })
+            addToast({ title: 'Không thể thêm vào giỏ hàng', description: formLevelMessage(error), variant: 'error' })
           }
         },
       },
@@ -213,14 +213,14 @@ export function ProductPage() {
     if (isWishlisted) {
       removeWishlistItem.mutate(wishlistItem.id, {
         onSuccess: () => addToast({ title: 'Đã bỏ khỏi yêu thích', variant: 'success' }),
-        onError: (error) => addToast({ title: 'Không thể bỏ khỏi yêu thích', description: error.message, variant: 'error' }),
+        onError: (error) => addToast({ title: 'Không thể bỏ khỏi yêu thích', description: formLevelMessage(error), variant: 'error' }),
       })
     } else {
       addWishlistItem.mutate(
         { variant_id: selectedVariant.id },
         {
           onSuccess: () => addToast({ title: 'Đã thêm vào yêu thích', variant: 'success' }),
-          onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: error.message, variant: 'error' }),
+          onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: formLevelMessage(error), variant: 'error' }),
         },
       )
     }

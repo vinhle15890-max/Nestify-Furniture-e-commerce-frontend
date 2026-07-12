@@ -11,6 +11,7 @@ import * as ordersApi from '../../features/orders/api'
 import * as reviewsApi from '../../features/reviews/api'
 import * as personalizationHooks from '../../features/personalization/hooks'
 import { useAuthStore } from '../../store/authStore'
+import { useToastStore } from '../../store/toastStore'
 import { ApiError } from '../../lib/errors'
 
 vi.mock('../../features/catalog/api')
@@ -96,6 +97,7 @@ const reviewsResponse = {
 describe('ProductPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useToastStore.setState({ toasts: [] })
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao', roles: ['customer'] } })
     catalogApi.getProduct.mockResolvedValue(productResponse)
     catalogApi.getProductReviews.mockResolvedValue(reviewsResponse)
@@ -163,6 +165,22 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
 
     expect(cartApi.addItem).toHaveBeenCalledWith({ variant_id: 1, quantity: 1 })
+  })
+
+  it('uses safe Vietnamese copy when add-to-cart loses its network connection', async () => {
+    cartApi.addItem.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
+
+    await waitFor(() => {
+      expect(useToastStore.getState().toasts.at(-1)).toEqual(expect.objectContaining({
+        title: 'Không thể thêm vào giỏ hàng',
+        description: 'Đã có lỗi kết nối mạng. Vui lòng thử lại.',
+        variant: 'error',
+      }))
+    })
   })
 
   it('opens the Planner Preview from the primary "Xem trong không gian" CTA', async () => {
@@ -299,6 +317,20 @@ describe('ProductPage', () => {
     expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 1 })
   })
 
+  it('uses safe Vietnamese copy when adding to the wishlist loses its connection', async () => {
+    wishlistApi.addItem.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào yêu thích' }))
+
+    await waitFor(() => {
+      expect(useToastStore.getState().toasts.at(-1)?.description).toBe(
+        'Đã có lỗi kết nối mạng. Vui lòng thử lại.',
+      )
+    })
+  })
+
   it('reflects that the selected variant is already in the wishlist', async () => {
     wishlistApi.getWishlist.mockResolvedValue({ data: { items: [{ id: 77, variant: { id: 1 } }] } })
     renderPage()
@@ -319,6 +351,21 @@ describe('ProductPage', () => {
 
     expect(wishlistApi.removeItem).toHaveBeenCalledWith(77)
     expect(wishlistApi.addItem).not.toHaveBeenCalled()
+  })
+
+  it('uses safe Vietnamese copy when removing from the wishlist loses its connection', async () => {
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [{ id: 77, variant: { id: 1 } }] } })
+    wishlistApi.removeItem.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bỏ khỏi yêu thích' }))
+
+    await waitFor(() => {
+      expect(useToastStore.getState().toasts.at(-1)?.description).toBe(
+        'Đã có lỗi kết nối mạng. Vui lòng thử lại.',
+      )
+    })
   })
 
   it('does not show a review form without a delivered order containing this product', async () => {
