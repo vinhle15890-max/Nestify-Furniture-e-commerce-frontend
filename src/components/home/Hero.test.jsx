@@ -13,16 +13,18 @@ function renderHero() {
 }
 
 describe('Hero (Threshold)', () => {
-  it('renders the eyebrow, headline and value-proposition subtitle', () => {
+  it('renders the approved open proposition and value-proposition subtitle', () => {
     renderHero()
     expect(screen.getByRole('heading', { name: hero.title, level: 1 })).toBeInTheDocument()
-    expect(screen.getByText(hero.eyebrow)).toBeInTheDocument()
     expect(screen.getByText(hero.subtitle)).toBeInTheDocument()
   })
 
-  it('keeps the open question visible (invitation, not answered)', () => {
+  it('renders one static editorial spatial study with no interactive mechanic', () => {
     renderHero()
-    expect(screen.getByText(hero.question)).toBeInTheDocument()
+    const study = screen.getByTestId('entered-edge-study')
+    expect(study).toHaveAttribute('aria-hidden', 'true')
+    expect(study.querySelectorAll('button, a, input')).toHaveLength(0)
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
   it('offers one exploratory CTA that invites exploration, not the Planner', () => {

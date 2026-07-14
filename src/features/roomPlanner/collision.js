@@ -112,3 +112,17 @@ export function snapToWalls(position, room, halfExtents, threshold) {
     z: snapAxis(position.z, room.depth / 2, halfExtents.hz),
   }
 }
+
+// Projects a candidate transform onto the nearest valid floor transform. This
+// is shared by the live Three object and the persisted editor store so neither
+// can represent a different validity rule.
+export function projectTransform(item, patch, room, wallSnap = false) {
+  const rotation = patch.rotation ? { ...patch.rotation } : { ...item.rotation }
+  const scale = patch.scale ? { ...patch.scale } : { ...item.scale }
+  const candidate = patch.position ? { ...patch.position } : { ...item.position }
+  const halfExtents = rotatedHalfExtents(item.footprint, scale, rotation.y)
+  let position = clampRectToRoom({ ...candidate, y: 0 }, room, halfExtents)
+  if (wallSnap) position = snapToWalls(position, room, halfExtents, WALL_SNAP_THRESHOLD)
+  position.y = 0
+  return { position, rotation, scale }
+}

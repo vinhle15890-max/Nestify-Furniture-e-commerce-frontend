@@ -1,6 +1,5 @@
-import { Suspense } from 'react'
 import { SceneStage } from './SceneStage'
-import { FurnitureModel, PlaceholderBox, ModelErrorBoundary } from './FurnitureModel'
+import { FurnitureModelRuntime } from './FurnitureModel'
 
 // Read-only render of a saved scene: the same stage as the editor, but each item
 // is a static group — no TransformControls, no selection handler. Items are
@@ -15,11 +14,10 @@ export function SharedSceneCanvas({ room, items }) {
           rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
           scale={[item.scale.x, item.scale.y, item.scale.z]}
         >
-          <ModelErrorBoundary>
-            <Suspense fallback={<PlaceholderBox />}>
-              {item.variant.model_3d_url ? <FurnitureModel url={item.variant.model_3d_url} /> : <PlaceholderBox />}
-            </Suspense>
-          </ModelErrorBoundary>
+          <FurnitureModelRuntime
+            url={item.variant.model_3d_url}
+            onError={(error) => console.error('Shared Planner furniture model failed to render', error)}
+          />
         </group>
       ))}
     </SceneStage>

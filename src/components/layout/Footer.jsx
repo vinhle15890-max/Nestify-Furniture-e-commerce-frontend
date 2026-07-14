@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Instagram, Facebook, Youtube } from 'lucide-react'
 import { Newsletter } from '../home/Newsletter'
 
@@ -36,9 +36,12 @@ const socials = [
 ]
 
 export function Footer() {
+  const { pathname } = useLocation()
+  const isCheckoutCommitment = pathname === '/checkout' || pathname.startsWith('/checkout/')
+
   return (
     <footer className="border-t border-border bg-surface">
-      <Newsletter />
+      {!isCheckoutCommitment && <Newsletter />}
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
           <div>

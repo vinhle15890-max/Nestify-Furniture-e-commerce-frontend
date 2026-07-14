@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { sceneToEditorState } from './mappers'
 import { makeLocalId, clampToRoom } from './threeD'
-import { clampRectToRoom, rotatedHalfExtents, snapToWalls, WALL_SNAP_THRESHOLD } from './collision'
+import { clampRectToRoom, projectTransform, rotatedHalfExtents } from './collision'
 
 const IDENTITY = {
   position: { x: 0, y: 0, z: 0 },
@@ -125,7 +125,8 @@ export const useEditorStore = create((set) => ({
     const near = (a, b) => Math.abs(a - b) < 1e-4
     if (near(cur.x, size.x) && near(cur.y, size.y) && near(cur.z, size.z)) return {}
     const items = s.items.slice()
-    items[idx] = { ...items[idx], footprint: { x: size.x, y: size.y, z: size.z } }
+    const measured = { ...items[idx], footprint: { x: size.x, y: size.y, z: size.z } }
+    items[idx] = { ...measured, ...projectTransform(measured, {}, s.room, s.wallSnap) }
     return { items }
   }),
 
@@ -134,16 +135,7 @@ export const useEditorStore = create((set) => ({
     dirty: true,
     items: s.items.map((it) => {
       if (it.localId !== localId) return it
-      const next = { ...it }
-      if ('rotation' in patch) next.rotation = { ...patch.rotation }
-      if ('scale' in patch) next.scale = { ...patch.scale }
-      if ('position' in patch) {
-        const he = rotatedHalfExtents(next.footprint, next.scale, next.rotation.y)
-        let p = clampRectToRoom(patch.position, s.room, he)
-        if (s.wallSnap) p = snapToWalls(p, s.room, he, WALL_SNAP_THRESHOLD)
-        next.position = p
-      }
-      return next
+      return { ...it, ...projectTransform(it, patch, s.room, s.wallSnap) }
     }),
   })),
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rotatedHalfExtents, itemRect, overlaps, findOverlaps, clampRectToRoom, snapToWalls, WALL_SNAP_THRESHOLD } from './collision'
+import { rotatedHalfExtents, itemRect, overlaps, findOverlaps, clampRectToRoom, projectTransform, snapToWalls, WALL_SNAP_THRESHOLD } from './collision'
 
 const item = (over) => ({
   localId: 1,
@@ -65,6 +65,28 @@ describe('clampRectToRoom', () => {
   })
   it('món to hơn phòng trên trục x → x về giữa (0), z vẫn kẹp cạnh', () => {
     expect(clampRectToRoom({ x: 5, y: 0, z: 5 }, room, { hx: 3, hz: 1 })).toEqual({ x: 0, y: 0, z: 1 })
+  })
+})
+
+describe('projectTransform', () => {
+  const room = { width: 4, depth: 4, height: 3 }
+  it('projects onto y=0 and clamps using the default footprint', () => {
+    const projected = projectTransform(item({ footprint: { x: 1, y: 1, z: 1 } }), {
+      position: { x: 99, y: 8, z: -99 },
+    }, room, false)
+    expect(projected.position).toEqual({ x: 1.5, y: 0, z: -1.5 })
+  })
+  it('uses the rotated footprint and re-clamps a rotation-only candidate', () => {
+    const source = item({ position: { x: 1.4, y: 0, z: 0 }, footprint: { x: 1, y: 1, z: 3 } })
+    const projected = projectTransform(source, { rotation: { x: 0, y: Math.PI / 2, z: 0 } }, room, false)
+    expect(projected.position.x).toBeCloseTo(0.5)
+    expect(projected.position.y).toBe(0)
+  })
+  it('keeps wall snap valid after projection', () => {
+    const projected = projectTransform(item({ footprint: { x: 1, y: 1, z: 1 } }), {
+      position: { x: 1.2, y: 4, z: 0 },
+    }, room, true)
+    expect(projected.position).toEqual({ x: 1.5, y: 0, z: 0 })
   })
 })
 

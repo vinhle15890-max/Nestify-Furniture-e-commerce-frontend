@@ -1,17 +1,28 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import { PlacedItem } from './PlacedItem'
 
 // Mock R3F: <Canvas> children bỏ qua; primitive/mesh render như null.
 vi.mock('@react-three/fiber', () => ({ Canvas: ({ children }) => children }))
+let controlsProps
+vi.mock('@react-three/drei', () => ({
+  TransformControls: (props) => {
+    controlsProps = props
+    return props.children
+  },
+}))
 // FurnitureModel gọi onMeasure ngay khi mount (giả lập model đã đo xong).
 vi.mock('./FurnitureModel', () => ({
-  FurnitureModel: ({ onMeasure }) => {
+  MODEL_STATE: { NO_MODEL: 'NO_MODEL', LOADING: 'LOADING', READY: 'READY', LOAD_FAILED: 'LOAD_FAILED' },
+  FurnitureModelRuntime: ({ url, onMeasure, onStateChange }) => {
+    if (!url) {
+      onStateChange?.('NO_MODEL')
+      return <span data-model-state="NO_MODEL" />
+    }
     onMeasure?.({ x: 2, y: 1, z: 1.5 })
-    return null
+    onStateChange?.('READY')
+    return <span data-model-state="READY" />
   },
-  PlaceholderBox: () => null,
-  ModelErrorBoundary: ({ children }) => children,
 }))
 
 const baseItem = {
@@ -21,6 +32,17 @@ const baseItem = {
   rotation: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
   footprint: { x: 1, y: 1, z: 1 },
+}
+const baseProps = {
+  selected: false,
+  gizmoMode: 'translate',
+  snap: false,
+  wallSnap: false,
+  conflict: false,
+  onSelect: () => {},
+  onTransform: () => {},
+  onDragChange: () => {},
+  onMeasure: () => {},
 }
 
 describe('PlacedItem đo footprint', () => {
@@ -58,5 +80,48 @@ describe('PlacedItem đo footprint', () => {
       />,
     )
     expect(onMeasure).not.toHaveBeenCalled()
+  })
+
+  it('exposes missing and successful model states explicitly', () => {
+    const states = []
+    const { rerender, container } = render(
+      <PlacedItem {...baseProps} item={{ ...baseItem, variant: { model_3d_url: null } }} onModelStateChange={(state) => states.push(state)} />,
+    )
+    expect(container.querySelector('[data-model-state="NO_MODEL"]')).toBeInTheDocument()
+    rerender(<PlacedItem {...baseProps} item={baseItem} onModelStateChange={(state) => states.push(state)} />)
+    expect(container.querySelector('[data-model-state="READY"]')).toBeInTheDocument()
+    expect(states).toEqual(expect.arrayContaining(['NO_MODEL', 'READY']))
+  })
+})
+
+describe('PlacedItem live valid-position projection', () => {
+  it('disables the Y handle and projects every live object change before one final commit', () => {
+    const onTransform = vi.fn()
+    render(
+      <PlacedItem
+        item={baseItem}
+        room={{ width: 4, depth: 4, height: 3 }}
+        selected
+        gizmoMode="translate"
+        snap={false}
+        wallSnap={false}
+        conflict={false}
+        onSelect={() => {}}
+        onTransform={onTransform}
+        onDragChange={() => {}}
+        onMeasure={() => {}}
+      />,
+    )
+    expect(controlsProps.showY).toBe(false)
+    const node = controlsProps.object.current
+    node.position = { x: 50, y: 7, z: -50 }
+    node.rotation = { x: 0, y: 0, z: 0 }
+    node.scale = { x: 1, y: 1, z: 1 }
+    act(() => controlsProps.onObjectChange())
+    expect(node.position).toEqual({ x: 1.5, y: 0, z: -1.5 })
+    expect(onTransform).not.toHaveBeenCalled()
+    act(() => controlsProps.onMouseUp())
+    expect(onTransform).toHaveBeenCalledOnce()
+    expect(onTransform.mock.calls[0][1].position).toEqual({ x: 1.5, y: 0, z: -1.5 })
   })
 })

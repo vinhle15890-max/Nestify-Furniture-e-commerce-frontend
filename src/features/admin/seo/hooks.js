@@ -28,9 +28,16 @@ export function useApplyDraft() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (productId) => seoApi.applySeoDraft(productId),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // ⚠️ CRITICAL: productId is NUMBER from API response (product.id in database).
+      // Must match the type used in useAdminProduct(id) queryKey for React Query
+      // to match query cache keys. Both use ['admin', 'product', productId] where
+      // productId must be the same type (number) or cache invalidation won't work.
+      const productId = data.data.product_id
+      // Invalidate all caches that depend on this product
       queryClient.invalidateQueries({ queryKey: ['admin', 'seo-drafts'] })
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] })
     },
   })
 }

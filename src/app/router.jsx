@@ -46,6 +46,9 @@ const AdminRolesPage = named(() => import('../pages/admin/roles/AdminRolesPage')
 const AdminAuditLogsPage = named(() => import('../pages/admin/auditLogs/AdminAuditLogsPage'), 'AdminAuditLogsPage')
 const RoomPlannerPage = named(() => import('../pages/roomPlanner/RoomPlannerPage'), 'RoomPlannerPage')
 const SharedRoomPage = named(() => import('../pages/roomPlanner/SharedRoomPage'), 'SharedRoomPage')
+const R2ModelDiagnosticPage = import.meta.env.DEV
+  ? named(() => import('../pages/dev/R2ModelDiagnosticPage'), 'R2ModelDiagnosticPage')
+  : null
 const NotFoundPage = named(() => import('../pages/NotFoundPage'), 'NotFoundPage')
 
 const pageFallback = (
@@ -57,6 +60,7 @@ const pageFallback = (
 const lazyPage = (element) => <Suspense fallback={pageFallback}>{element}</Suspense>
 
 export const routes = [
+  ...(import.meta.env.DEV ? [{ path: '/__dev/r2-model', element: lazyPage(<R2ModelDiagnosticPage />) }] : []),
   {
     path: '/',
     element: <Layout />,

@@ -7,6 +7,8 @@ import { useEditorStore } from '../../../features/roomPlanner/editorStore'
 import { findOverlaps } from '../../../features/roomPlanner/collision'
 import { registerPlannerCanvas, unregisterPlannerCanvas } from '../../../features/roomPlanner/canvasCapture'
 
+const observeModelError = (error) => console.error('Planner furniture model failed to render', error)
+
 // Editor canvas: composes the shared SceneStage and adds the interactive layer —
 // the deselect plane and the gizmo-editable placed items, wired to the editor
 // store. Dragging an item disables orbit so the two gestures don't fight.
@@ -24,6 +26,7 @@ export function RoomCanvas() {
   const updateTransform = useEditorStore((s) => s.updateTransform)
   const reportFootprint = useEditorStore((s) => s.reportFootprint)
   const snap = useEditorStore((s) => s.snap)
+  const wallSnap = useEditorStore((s) => s.wallSnap)
   const showScaleRef = useEditorStore((s) => s.showScaleRef)
   const [orbitEnabled, setOrbitEnabled] = useState(true)
   const canvasElRef = useRef(null)
@@ -53,14 +56,17 @@ export function RoomCanvas() {
         <PlacedItem
           key={item.localId}
           item={item}
+          room={room}
           selected={!topDown && item.localId === selectedId}
           gizmoMode={gizmoMode}
           snap={snap}
+          wallSnap={wallSnap}
           conflict={conflictSet.has(item.localId)}
           onSelect={topDown ? undefined : selectItem}
           onTransform={updateTransform}
           onDragChange={(dragging) => setOrbitEnabled(!dragging)}
           onMeasure={(size) => reportFootprint(item.localId, size)}
+          onModelError={observeModelError}
           interactive={!topDown}
         />
       ))}

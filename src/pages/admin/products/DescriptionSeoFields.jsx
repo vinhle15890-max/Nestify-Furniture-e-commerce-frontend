@@ -72,6 +72,7 @@ export function DescriptionSeoFields({
   onCloseVariations,
   onRegenerate,
   onEditorError,
+  pendingDraftScore = null,
 }) {
   const metaTitleValue = watch('meta_title') ?? ''
   const metaDescriptionValue = watch('meta_description') ?? ''
@@ -92,6 +93,26 @@ export function DescriptionSeoFields({
 
   return (
     <Panel padded={false}>
+      {pendingDraftScore != null && (
+        <div className="border-b border-border bg-surface-alt/50 px-5 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                📌 Draft SEO chờ duyệt
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Có bản mô tả SEO từ AI chờ áp dụng (điểm {pendingDraftScore}/100).
+              </p>
+            </div>
+            <a
+              href="/admin/products/seo"
+              className="shrink-0 inline-flex items-center gap-1 rounded-control border border-foreground px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface"
+            >
+              Xem tại Duyệt SEO
+            </a>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div className="min-w-0">
           <h3 className="font-display text-lg text-foreground">Mô tả &amp; SEO</h3>

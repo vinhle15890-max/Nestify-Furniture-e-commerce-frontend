@@ -73,6 +73,22 @@ describe('Footer', () => {
     )
     expect(screen.getAllByText(/Nestify/).length).toBeGreaterThan(0)
   })
+
+  it('suppresses the promotional newsletter on Checkout commitment and recovery routes', () => {
+    const { rerender } = render(
+      <MemoryRouter initialEntries={['/checkout']}>
+        <Footer />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText('Tham gia Nestify Journal')).not.toBeInTheDocument()
+
+    rerender(
+      <MemoryRouter initialEntries={['/checkout/return']}>
+        <Footer />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText('Tham gia Nestify Journal')).not.toBeInTheDocument()
+  })
 })
 
 describe('Layout', () => {

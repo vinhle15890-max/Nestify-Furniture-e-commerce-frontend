@@ -1,11 +1,12 @@
-import { Suspense, useRef } from 'react'
+import { useRef } from 'react'
 import { TransformControls } from '@react-three/drei'
-import { FurnitureModel, PlaceholderBox, ModelErrorBoundary } from './FurnitureModel'
+import { FurnitureModelRuntime } from './FurnitureModel'
+import { projectTransform } from '../../../features/roomPlanner/collision'
 
 // `interactive = false` renders the model only — no click-to-select, no
 // TransformControls gizmo — used for the "Chỉnh phòng" (top-down room-edit)
 // mode where furniture is shown for reference but can't be manipulated.
-export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect, onTransform, onDragChange, onMeasure, interactive = true }) {
+export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, conflict, onSelect, onTransform, onDragChange, onMeasure, onModelError, onModelStateChange, interactive = true }) {
   const groupRef = useRef()
   const { position, rotation, scale } = item
 
@@ -19,6 +20,24 @@ export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect
     })
   }
 
+  const projectLive = () => {
+    const node = groupRef.current
+    if (!node || !room) return
+    const projected = projectTransform(item, {
+      position: { x: node.position.x, y: node.position.y, z: node.position.z },
+      rotation: { x: node.rotation.x, y: node.rotation.y, z: node.rotation.z },
+      scale: { x: node.scale.x, y: node.scale.y, z: node.scale.z },
+    }, room, wallSnap)
+    const assign = (target, value) => {
+      if (typeof target?.set === 'function') target.set(value.x, value.y, value.z)
+      else return { ...value }
+      return target
+    }
+    node.position = assign(node.position, projected.position)
+    node.rotation = assign(node.rotation, projected.rotation)
+    node.scale = assign(node.scale, projected.scale)
+  }
+
   const content = (
     <group
       ref={groupRef}
@@ -30,13 +49,7 @@ export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect
         onSelect(item.localId)
       } : undefined}
     >
-      <ModelErrorBoundary>
-        <Suspense fallback={<PlaceholderBox />}>
-          {item.variant.model_3d_url
-            ? <FurnitureModel url={item.variant.model_3d_url} onMeasure={onMeasure} />
-            : <PlaceholderBox />}
-        </Suspense>
-      </ModelErrorBoundary>
+      <FurnitureModelRuntime url={item.variant.model_3d_url} onMeasure={onMeasure} onError={onModelError} onStateChange={onModelStateChange} />
       {conflict && (
         // Quầng cảnh báo trên sàn RỘNG HƠN footprint (1.4×) để lộ viền quanh chân
         // món — mặt phẳng đúng bằng footprint sẽ bị chính model che khuất. `ink` mờ,
@@ -58,6 +71,8 @@ export function PlacedItem({ item, selected, gizmoMode, snap, conflict, onSelect
       translationSnap={snap ? 0.25 : null}
       rotationSnap={snap ? Math.PI / 12 : null}
       scaleSnap={snap ? 0.1 : null}
+      showY={gizmoMode !== 'translate'}
+      onObjectChange={projectLive}
       onMouseUp={commit}
       onDraggingChanged={(e) => onDragChange(Boolean(e?.value))}
     >

@@ -44,14 +44,14 @@ describe('HomePage', () => {
     renderPage()
 
     expect(
-      screen.getByRole('heading', { name: 'Không gian sống mang hơi thở của bạn.', level: 1 }),
+      screen.getByRole('heading', { name: 'Điều gì có thể bắt đầu ở đây?', level: 1 }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'Bắt đầu với những thiết kế tiêu biểu' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Khám phá theo không gian' })).toBeInTheDocument()
-    // Threshold rule: the Hero holds the open question with no CTA — the Entry
-    // Event is scrolling, not a click. The old "Xem Lookbook" CTA is gone.
+    // Threshold permits one exploratory route alongside scrolling. The old
+    // Lookbook-specific CTA remains absent.
     expect(screen.queryByRole('link', { name: 'Xem Lookbook' })).not.toBeInTheDocument()
     expect(await screen.findByText('Ghế sofa da')).toBeInTheDocument()
   })

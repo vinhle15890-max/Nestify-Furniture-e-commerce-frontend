@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -148,13 +148,13 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByText('Còn 5 sản phẩm')).toBeInTheDocument()
+    expect(screen.getByText('Có thể đặt hàng')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeEnabled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Xám' }))
 
     expect(screen.getByText('5.500.000 ₫')).toBeInTheDocument()
-    expect(screen.getByText('Hết hàng')).toBeInTheDocument()
+    expect(screen.getByText('Tạm hết hàng')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeDisabled()
   })
 
@@ -183,33 +183,27 @@ describe('ProductPage', () => {
     })
   })
 
-  it('opens the Planner Preview from the primary "Xem trong không gian" CTA', async () => {
+  it('hands the selected product and variant directly to the real Planner', async () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    // Primary CTA is the seeing-first action, not add-to-cart.
-    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
-
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText('Xem trong không gian')).toBeInTheDocument()
-    // A variant is selected by default → Continue is enabled (deep-link ready).
-    expect(within(dialog).getByRole('button', { name: /Tiếp tục trong Room Planner/ })).toBeEnabled()
-    // This product has 2 variants → honest "image may differ" disclaimer shows.
-    expect(within(dialog).getByText(/có thể khác với màu\/chất liệu/i)).toBeInTheDocument()
+    const handoff = screen.getByRole('link', { name: 'Thử trong Room Planner' })
+    expect(handoff).toHaveAttribute('href', '/room-planner?product=ghe-sofa-da&variant=1')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Thử trong Room Planner' })).toHaveLength(1)
   })
 
-  it('enables Continue for a single-variant product without any selection', async () => {
-    // One implicit variant, no option-selection UI → selectedVariant must
-    // default to variants[0] so Continue is never disabled forever.
+  it('keeps the real-Planner handoff available for a single implicit variant', async () => {
     catalogApi.getProduct.mockResolvedValue({
       data: { ...productResponse.data, variant_options: [], variants: [productResponse.data.variants[0]] },
     })
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByRole('button', { name: /Tiếp tục trong Room Planner/ })).toBeEnabled()
+    expect(screen.getByRole('link', { name: 'Thử trong Room Planner' })).toHaveAttribute(
+      'href',
+      '/room-planner?product=ghe-sofa-da&variant=1',
+    )
   })
 
   it('filters the gallery to the selected variant + shared media, hiding other variants', async () => {
@@ -236,7 +230,7 @@ describe('ProductPage', () => {
     expect(screen.getAllByRole('button', { name: /Xem ảnh/ })).toHaveLength(2)
   })
 
-  it('Preview uses the variant image and drops the disclaimer when the variant has one', async () => {
+  it('identifies media that is verified for the selected variant', async () => {
     catalogApi.getProduct.mockResolvedValue({
       data: {
         ...productResponse.data,
@@ -249,14 +243,12 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
-    const dialog = await screen.findByRole('dialog')
-    // Variant Nâu has its own image → Preview shows it, no fallback disclaimer.
-    expect(within(dialog).getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/nau.jpg')
-    expect(within(dialog).queryByText(/có thể khác với màu\/chất liệu/i)).not.toBeInTheDocument()
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/nau.jpg')
+    expect(screen.getByText('Ảnh theo phiên bản đã chọn')).toBeInTheDocument()
+    expect(screen.queryByText(/chưa xác minh riêng cho phiên bản/i)).not.toBeInTheDocument()
   })
 
-  it('Preview falls back to shared image and keeps the disclaimer when the variant has none', async () => {
+  it('identifies shared media without claiming variant fidelity', async () => {
     catalogApi.getProduct.mockResolvedValue({
       data: {
         ...productResponse.data,
@@ -268,22 +260,49 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    await userEvent.click(screen.getByRole('button', { name: 'Xem trong không gian' }))
-    const dialog = await screen.findByRole('dialog')
-    // Selected variant has no tagged image → fallback shared image + disclaimer stays.
-    expect(within(dialog).getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/shared.jpg')
-    expect(within(dialog).getByText(/có thể khác với màu\/chất liệu/i)).toBeInTheDocument()
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/shared.jpg')
+    expect(screen.getByText('Ảnh bối cảnh dùng chung')).toBeInTheDocument()
+    expect(screen.getByText(/chưa xác minh riêng cho phiên bản Nâu/i)).toBeInTheDocument()
   })
 
-  it('exposes the Planner Preview to guests (no login required to see it first)', async () => {
+  it('exposes the real-Planner handoff to guests while keeping purchase behind login', async () => {
     useAuthStore.setState({ token: null, user: null })
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByRole('button', { name: 'Xem trong không gian' })).toBeEnabled()
-    // Purchase path for guests is still the login link, not add-to-cart.
+    expect(screen.getByRole('link', { name: 'Thử trong Room Planner' })).toHaveAttribute(
+      'href',
+      '/room-planner?product=ghe-sofa-da&variant=1',
+    )
     expect(screen.queryByRole('button', { name: 'Thêm vào giỏ' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Đăng nhập để mua hàng' })).toBeInTheDocument()
+  })
+
+  it('shows unavailable verified evidence without estimating from product imagery', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByRole('heading', { name: 'Bằng chứng chưa có', level: 3 })).toBeInTheDocument()
+    expect(screen.getByText(/Kích thước W \/ D \/ H/)).toBeInTheDocument()
+    expect(screen.getByText(/vật liệu và hoàn thiện/i)).toBeInTheDocument()
+    expect(screen.getByText('Nestify không ước tính từ hình ảnh hoặc nội dung mô tả.')).toBeInTheDocument()
+    expect(screen.queryByText(/cm|mm|m²/)).not.toBeInTheDocument()
+  })
+
+  it('orders identity, media, evidence, Planner, and transaction for narrow reflow', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    const identity = screen.getByTestId('product-identity-field')
+    const mediaField = screen.getByTestId('product-truth-field')
+    const evidence = screen.getByTestId('measured-suitability-field')
+    const planner = screen.getByTestId('planner-handoff')
+    const transaction = screen.getByTestId('transaction-runway')
+
+    expect(identity.compareDocumentPosition(mediaField) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(mediaField.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(evidence.compareDocumentPosition(planner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(planner.compareDocumentPosition(transaction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('hides the add-to-cart button and shows a notice for staff users', async () => {
@@ -408,7 +427,7 @@ describe('ProductPage', () => {
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
     expect(await screen.findByText('Đồng ý!')).toBeInTheDocument()
-    expect(screen.getByText('Lan', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Lan')).toBeInTheDocument()
 
     await userEvent.type(screen.getByLabelText('Bình luận'), 'Cảm ơn')
     await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))

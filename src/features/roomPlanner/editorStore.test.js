@@ -32,7 +32,7 @@ describe('roomPlanner/editorStore', () => {
     const id = useEditorStore.getState().items[0].localId
     // footprint mặc định 1×1 → nửa 0.5 → tâm bị kẹp ở ±(2 - 0.5) = ±1.5
     useEditorStore.getState().updateTransform(id, { position: { x: 99, y: 0.5, z: -99 } })
-    expect(useEditorStore.getState().items[0].position).toEqual({ x: 1.5, y: 0.5, z: -1.5 })
+    expect(useEditorStore.getState().items[0].position).toEqual({ x: 1.5, y: 0, z: -1.5 })
   })
 
   it('addVariant khởi tạo footprint mặc định {1,1,1}', () => {
@@ -70,6 +70,31 @@ describe('roomPlanner/editorStore', () => {
     useEditorStore.getState().reportFootprint(id, { x: 2, y: 1, z: 1 }) // nửa 1m
     useEditorStore.getState().updateTransform(id, { position: { x: 10, y: 0, z: 0 } })
     expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1) // 2 - 1
+  })
+
+  it('rotation-only patch near a wall re-clamps with the rotated footprint', () => {
+    const g = () => useEditorStore.getState()
+    g().initNew({ width: 4, depth: 4, height: 2.8 })
+    g().addVariant(variant)
+    const id = g().selectedId
+    g().reportFootprint(id, { x: 1, y: 1, z: 3 })
+    g().updateTransform(id, { position: { x: 1.4, y: 0, z: 0 } })
+    g().updateTransform(id, { rotation: { x: 0, y: Math.PI / 2, z: 0 } })
+    expect(g().items[0].position.x).toBeCloseTo(0.5)
+    expect(g().items[0].position.y).toBe(0)
+  })
+
+  it('one committed gesture creates one history entry and undo restores the prior valid transform', () => {
+    const g = () => useEditorStore.getState()
+    g().initNew({ width: 4, depth: 4, height: 2.8 })
+    g().addVariant(variant)
+    const id = g().selectedId
+    const before = g().past.length
+    g().updateTransform(id, { position: { x: 99, y: 6, z: 0 } })
+    expect(g().past.length).toBe(before + 1)
+    expect(g().items[0].position).toEqual({ x: 1.5, y: 0, z: 0 })
+    g().undo()
+    expect(g().items[0].position).toEqual({ x: 0, y: 0, z: 0 })
   })
 
   it('toggleWallSnap / toggleScaleRef lật cờ', () => {

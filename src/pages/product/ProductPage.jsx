@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
 import './ProductDescription.css'
-import { Heart, Star, Box, ImageOff } from 'lucide-react'
+import { Heart, Star, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
@@ -19,8 +19,7 @@ import { RecentlyViewedStrip } from '../../components/personalization/RecentlyVi
 import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
 import { ProductOptions } from './ProductOptions'
-import { PlannerPreview } from './PlannerPreview'
-import { ProductRoomCue } from './ProductRoomCue'
+import { ProductEvidencePanel } from './ProductEvidencePanel'
 import { resolveVariant } from '../../lib/variantOptions'
 import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
@@ -91,7 +90,6 @@ export function ProductPage() {
   const [selectedVariantId, setSelectedVariantId] = useState(null)
   const [selectedOptions, setSelectedOptions] = useState({})
   const [quantity, setQuantity] = useState(1)
-  const [previewOpen, setPreviewOpen] = useState(false)
 
   useEffect(() => {
     if (!product) return
@@ -350,15 +348,6 @@ export function ProductPage() {
   )
   const activeMedia = visibleMedia[selectedMediaIndex]
 
-  // Planner Preview prefers the variant's OWN image when one exists (so "see it
-  // in a room" shows the right colour/finish), else a product-level (agnostic)
-  // image. `previewIsVariantSpecific` drives the honest-fallback disclaimer.
-  const variantImage = selectedVariant
-    ? media.find((item) => item.type === 'image' && item.variant_id === selectedVariant.id)
-    : undefined
-  const fallbackImage = media.find((item) => item.type === 'image' && item.variant_id == null)
-  const previewIsVariantSpecific = Boolean(variantImage)
-  const previewImage = variantImage?.url ?? fallbackImage?.url ?? null
   const sanitizedDescription = enhanceDescriptionHtml(product.description)
   const averageRating = reviews.length
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
@@ -382,35 +371,110 @@ export function ProductPage() {
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
       <Breadcrumb items={breadcrumbItems} />
 
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
-        <div>
-          <div className="group flex aspect-[4/5] items-center justify-center overflow-hidden rounded-card bg-surface-alt">
+      <section data-testid="product-identity-field" className="mt-6">
+        {product.category && (
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerging">
+            {product.category.name}
+          </p>
+        )}
+        <h1 className="mt-3 max-w-[72rem] font-display text-[clamp(2.15rem,4vw,3.2rem)] leading-[1.03] tracking-[-0.025em] text-ink">
+          {product.name}
+        </h1>
+
+        {averageRating && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-ink/60">
+            <span className="flex text-ink/70">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <Star key={value} size={15} fill={value <= Math.round(averageRating) ? 'currentColor' : 'none'} />
+              ))}
+            </span>
+            <span>
+              {averageRating} · {reviews.length} đánh giá
+            </span>
+          </div>
+        )}
+
+        <div className="mt-5 max-w-3xl">
+          {hasOptions ? (
+            <>
+              <ProductOptions
+                options={variantOptions}
+                variants={variants}
+                selected={selectedOptions}
+                onSelect={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))}
+              />
+              {!selectedVariant && (
+                <p className="mt-3 text-sm text-ink/65">Vui lòng chọn đầy đủ thuộc tính.</p>
+              )}
+            </>
+          ) : (
+            variants.length > 0 && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink/55">Phiên bản</p>
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  {variants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      aria-pressed={variant.id === selectedVariant?.id}
+                      className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${
+                        variant.id === selectedVariant?.id
+                          ? 'border-ink bg-ink text-canvas'
+                          : 'border-unbuilt text-ink hover:border-ink'
+                      }`}
+                    >
+                      {variant.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </section>
+
+      <div className="mt-7 grid items-start gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.9fr)] lg:gap-10 xl:gap-14">
+        <section data-testid="product-truth-field" aria-labelledby="product-media-role">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 text-xs">
+            <p id="product-media-role" className="font-medium uppercase tracking-[0.18em] text-ink/60">
+              {activeMedia?.variant_id === selectedVariant?.id && activeMedia?.variant_id != null
+                ? 'Ảnh sản phẩm theo phiên bản'
+                : 'Ảnh bối cảnh'}
+            </p>
+            <p className="text-ink/55">Không dùng để suy ra kích thước</p>
+          </div>
+
+          <div className="flex aspect-[5/4] items-center justify-center overflow-hidden bg-unbuilt/20 sm:aspect-auto sm:h-[22rem] lg:aspect-[4/3] lg:h-auto">
             {activeMedia ? (
               activeMedia.type === 'video' ? (
-                <video src={activeMedia.url} controls className="h-full w-full object-cover" />
+                <video src={activeMedia.url} controls className="h-full w-full object-contain" />
               ) : (
                 <img
                   src={activeMedia.url}
                   alt={product.name}
                   decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-[700ms] ease-out group-hover:scale-105"
+                  className="h-full w-full object-contain"
                 />
               )
             ) : (
-              <ImageOff size={36} className="text-border-strong" aria-hidden="true" />
+              <div className="flex flex-col items-center gap-3 text-ink/55">
+                <ImageOff size={32} aria-hidden="true" />
+                <p className="text-sm">Chưa có hình ảnh sản phẩm.</p>
+              </div>
             )}
           </div>
 
           {visibleMedia.length > 1 && (
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 flex max-w-full gap-3 overflow-x-auto pb-1">
               {visibleMedia.map((item, index) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setSelectedMediaIndex(index)}
                   aria-label={`Xem ${item.type === 'video' ? 'video' : 'ảnh'} ${index + 1}`}
-                  className={`h-20 w-20 overflow-hidden rounded-control border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                    index === selectedMediaIndex ? 'border-foreground' : 'border-transparent hover:border-border-strong'
+                  className={`h-16 w-20 shrink-0 overflow-hidden rounded-control border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:h-20 sm:w-24 ${
+                    index === selectedMediaIndex ? 'border-ink' : 'border-transparent hover:border-unbuilt'
                   }`}
                 >
                   {item.type === 'video' ? (
@@ -422,90 +486,33 @@ export function ProductPage() {
               ))}
             </div>
           )}
+        </section>
+
+        <ProductEvidencePanel
+          product={product}
+          selectedVariant={selectedVariant}
+          activeMedia={activeMedia}
+          outOfStock={outOfStock}
+        />
+      </div>
+
+      <section
+        data-testid="transaction-runway"
+        aria-labelledby="transaction-runway-title"
+        className="mt-12 grid gap-8 border-t-2 border-ink/15 pt-8 md:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] md:items-end lg:mt-16"
+      >
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-ink/55">Mua trực tiếp</p>
+          <h2 id="transaction-runway-title" className="sr-only">Mua trực tiếp</h2>
+          <p className="mt-3 text-[clamp(1.55rem,2.5vw,2rem)] font-medium text-ink">{formatPrice(price)}</p>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-ink/60">
+            Nếu bạn đã có đủ thông tin, lựa chọn mua vẫn luôn sẵn sàng ở đây.
+          </p>
         </div>
 
-        <div className="lg:py-4">
-          {product.category && (
-            <p className="eyebrow">{product.category.name}</p>
-          )}
-          <h1 className="mt-3 font-display text-[clamp(1.9rem,3.2vw,2.8rem)] leading-tight text-foreground">
-            {product.name}
-          </h1>
-
-          {averageRating && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="flex text-accent">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <Star key={value} size={15} fill={value <= Math.round(averageRating) ? 'currentColor' : 'none'} />
-                ))}
-              </span>
-              <span>
-                {averageRating} · {reviews.length} đánh giá
-              </span>
-            </div>
-          )}
-
-          <p className="mt-5 text-3xl font-medium text-foreground">{formatPrice(price)}</p>
-
-          <div className="mt-8 h-px w-full bg-border" />
-
-          {hasOptions ? (
-            <div className="mt-8">
-              <ProductOptions
-                options={variantOptions}
-                variants={variants}
-                selected={selectedOptions}
-                onSelect={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))}
-              />
-              {!selectedVariant && (
-                <p className="mt-3 text-sm text-muted-foreground">Vui lòng chọn đầy đủ thuộc tính.</p>
-              )}
-            </div>
-          ) : (
-            variants.length > 0 && (
-              <div className="mt-8">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Phiên bản</p>
-                <div className="mt-3 flex flex-wrap gap-2.5">
-                  {variants.map((variant) => (
-                    <button
-                      key={variant.id}
-                      type="button"
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      aria-pressed={variant.id === selectedVariant?.id}
-                      className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                        variant.id === selectedVariant?.id
-                          ? 'border-foreground bg-foreground text-surface'
-                          : 'border-border-strong text-foreground hover:border-foreground'
-                      }`}
-                    >
-                      {variant.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          )}
-
-          {selectedVariant && (
-            <p className={`mt-5 text-sm ${outOfStock ? 'text-destructive' : 'text-ink/70'}`}>
-              {outOfStock ? 'Hết hàng' : `Còn ${availableStock} sản phẩm`}
-            </p>
-          )}
-
-          {selectedVariant?.model_3d_url && (
-            <a
-              href={selectedVariant.model_3d_url}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1.5 text-sm text-foreground transition-colors hover:text-accent"
-            >
-              <Box size={16} />
-              Xem mô hình 3D
-            </a>
-          )}
-
-          <div className="mt-8 flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.14em] text-ink/55">
               Số lượng
               <input
                 type="number"
@@ -518,33 +525,21 @@ export function ProductPage() {
                   const max = Math.max(stockError ?? availableStock, 1)
                   setQuantity(Math.min(Math.max(next, 1), max))
                 }}
-                className="w-24 rounded-control border border-border-strong bg-surface px-4 py-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+                className="w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50"
               />
             </label>
 
-            {/* Exploratory Commitment (State 1→2): the primary act here is
-                SEEING it first, not buying. "Xem trong không gian" (primary,
-                ink — not confirmed/imagined) opens the Planner Preview and is
-                available to everyone, no login or variant selection required.
-                Purchase controls sit BELOW as the demoted secondary path. */}
-            <Button onClick={() => setPreviewOpen(true)} className="px-8 py-3.5">
-              Xem trong không gian
-            </Button>
-
             {token && staff ? (
-              <p className="rounded-control border border-border bg-unbuilt/40 px-5 py-3.5 text-sm text-muted-foreground">
+              <p className="border-l-2 border-unbuilt pl-4 text-sm leading-6 text-ink/65">
                 Tài khoản quản trị không thể mua hàng.
               </p>
             ) : token ? (
               <>
-                {/* Demoted to secondary (ink/unbuilt outline). Explicitly NOT the
-                    `confirmed` variant from the Checkout work — buying is not a
-                    Committed-state moment here. */}
                 <Button
                   variant="secondary"
                   onClick={handleAddToCart}
                   disabled={!selectedVariant || outOfStock || addCartItem.isPending}
-                  className="px-8 py-3.5"
+                  className="px-6 py-3"
                 >
                   Thêm vào giỏ
                 </Button>
@@ -555,7 +550,7 @@ export function ProductPage() {
                   aria-pressed={isWishlisted}
                   onClick={handleToggleWishlist}
                   disabled={!selectedVariant || addWishlistItem.isPending || removeWishlistItem.isPending}
-                  className="px-4 py-3.5"
+                  className="px-4 py-3"
                 >
                   <Heart size={18} className={isWishlisted ? 'fill-current text-accent' : ''} />
                 </Button>
@@ -563,7 +558,7 @@ export function ProductPage() {
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center rounded-control bg-primary px-8 py-3.5 text-sm font-medium text-surface transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex items-center rounded-control border border-ink px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink hover:text-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
                 Đăng nhập để mua hàng
               </Link>
@@ -576,9 +571,7 @@ export function ProductPage() {
             </p>
           )}
         </div>
-      </div>
-
-      <ProductRoomCue productName={product.name} onPreview={() => setPreviewOpen(true)} />
+      </section>
 
       {sanitizedDescription && (
         <section className="mt-16 border-t border-border pt-12">
@@ -785,18 +778,6 @@ export function ProductPage() {
       {isCustomer && <RecentlyViewedStrip excludeSlug={productSlug} />}
     </div>
 
-    <PlannerPreview
-      open={previewOpen}
-      onOpenChange={setPreviewOpen}
-      product={product}
-      image={previewImage}
-      slug={product.slug}
-      variantId={selectedVariant?.id}
-      // Only warn when we're showing a FALLBACK (agnostic) image that could
-      // differ from the selected variant. If the variant has its own tagged
-      // image, previewImage is variant-specific → no disclaimer needed.
-      showVariantNote={!previewIsVariantSpecific && (hasOptions || variants.length > 1)}
-    />
     </div>
   )
 }

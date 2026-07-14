@@ -1,16 +1,17 @@
-import { Component, useEffect, useMemo } from 'react'
+import { Component, Suspense, useEffect, useMemo } from 'react'
 import { Box3, Vector3 } from 'three'
-import { useGLTF } from '@react-three/drei'
+import { Html, useGLTF } from '@react-three/drei'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { baseOffset } from '../../../features/roomPlanner/threeD'
 
-// Loads a .glb and returns a fresh clone so repeated instances don't share nodes.
-// The clone is shifted so its base sits at local y=0 — a group at y=0 then rests
-// on the floor instead of sinking (models are authored around a centred origin).
-// Suspends while loading; an ErrorBoundary in PlacedItem renders the fallback box.
-// `onMeasure(size)` reports the model's real footprint (metres) up to the store so
-// overlap-detection and wall-clamp know how big the item actually is.
-export function FurnitureModel({ url, onMeasure }) {
+export const MODEL_STATE = Object.freeze({
+  NO_MODEL: 'NO_MODEL',
+  LOADING: 'LOADING',
+  READY: 'READY',
+  LOAD_FAILED: 'LOAD_FAILED',
+})
+
+export function FurnitureModel({ url, onMeasure, onReady }) {
   const { scene } = useGLTF(url)
   const measured = useMemo(() => {
     const clone = cloneSkinned(scene)
@@ -20,35 +21,60 @@ export function FurnitureModel({ url, onMeasure }) {
     return { clone, size: { x: size.x, y: size.y, z: size.z } }
   }, [scene])
 
-  // Push the real size once when the model is ready. reportFootprint no-ops when
-  // the size is unchanged, so re-firing (if onMeasure's identity changes) is safe.
   useEffect(() => {
     onMeasure?.(measured.size)
-  }, [measured, onMeasure])
+    onReady?.()
+  }, [measured, onMeasure, onReady])
 
   return <primitive object={measured.clone} />
 }
 
-export function PlaceholderBox() {
-  // `emerging` #8A7C68 — a being-considered placeholder while the .glb loads (or
-  // on load failure). Centred unit cube, lifted 0.5 so its base rests on the floor.
+const STATE_LABEL = {
+  [MODEL_STATE.NO_MODEL]: 'Chưa có mô hình 3D',
+  [MODEL_STATE.LOADING]: 'Đang tải mô hình',
+  [MODEL_STATE.LOAD_FAILED]: 'Đang dùng khối thay thế',
+}
+
+export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange }) {
+  useEffect(() => onStateChange?.(state), [onStateChange, state])
+  const loading = state === MODEL_STATE.LOADING
+  const failed = state === MODEL_STATE.LOAD_FAILED
   return (
-    <mesh position={[0, 0.5, 0]}>
-      <boxGeometry args={[1, 1, 1]} />
-      {/* Never brass: DNA §2 removed that hue. */}
-      <meshStandardMaterial color="#8A7C68" transparent opacity={0.6} />
-    </mesh>
+    <group name={`model-fallback-${state.toLowerCase()}`} userData={{ modelState: state }} data-model-state={state}>
+      <mesh position={[0, 0.5, 0]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color={failed ? '#6E6861' : '#8A7C68'} transparent opacity={loading ? 0.35 : 0.6} wireframe={loading} />
+      </mesh>
+      <Html center position={[0, 1.2, 0]}>
+        <span role="status" data-model-state={state} className="whitespace-nowrap rounded-control border border-border bg-surface/95 px-2 py-1 text-xs text-foreground shadow-sm">
+          {STATE_LABEL[state]}
+        </span>
+      </Html>
+    </group>
   )
 }
 
-// Renders a placeholder if its child throws (e.g. a broken/missing .glb). Shared
-// by the editor's PlacedItem and the read-only SharedSceneCanvas.
 export class ModelErrorBoundary extends Component {
   state = { failed: false }
-  static getDerivedStateFromError() {
-    return { failed: true }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(error) { this.props.onError?.(error) }
+  componentDidUpdate(previousProps) {
+    if (this.state.failed && previousProps.resetKey !== this.props.resetKey) this.setState({ failed: false })
   }
   render() {
-    return this.state.failed ? <PlaceholderBox /> : this.props.children
+    return this.state.failed
+      ? <PlaceholderBox state={MODEL_STATE.LOAD_FAILED} onStateChange={this.props.onStateChange} />
+      : this.props.children
   }
+}
+
+export function FurnitureModelRuntime({ url, onMeasure, onError, onStateChange }) {
+  if (!url) return <PlaceholderBox state={MODEL_STATE.NO_MODEL} onStateChange={onStateChange} />
+  return (
+    <ModelErrorBoundary resetKey={url} onError={onError} onStateChange={onStateChange}>
+      <Suspense fallback={<PlaceholderBox state={MODEL_STATE.LOADING} onStateChange={onStateChange} />}>
+        <FurnitureModel url={url} onMeasure={onMeasure} onReady={() => onStateChange?.(MODEL_STATE.READY)} />
+      </Suspense>
+    </ModelErrorBoundary>
+  )
 }

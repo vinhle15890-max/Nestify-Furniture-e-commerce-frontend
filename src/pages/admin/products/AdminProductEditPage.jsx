@@ -558,6 +558,7 @@ function ProductEditor({ initialProduct }) {
             onEditorError={(error) =>
               addToast({ title: 'Không thể chèn ảnh.', description: error.message, variant: 'error' })
             }
+            pendingDraftScore={product.pending_draft_score}
           />
         </TabPanel>
 
