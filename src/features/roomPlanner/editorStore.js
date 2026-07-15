@@ -43,7 +43,7 @@ const emptyState = {
   scaleRefPos: { x: 0, z: 0 },
 }
 
-export const useEditorStore = create((set) => ({
+export const useEditorStore = create((set, get) => ({
   ...emptyState,
 
   reset: () => set({ ...emptyState }),
@@ -118,17 +118,20 @@ export const useEditorStore = create((set) => ({
 
   // Ghi kích thước thật (đo từ GLB). KHÔNG vào undo history, KHÔNG set dirty —
   // đây là metadata dẫn xuất, không phải hành động người dùng. No-op nếu không đổi.
-  reportFootprint: (localId, size) => set((s) => {
+  reportFootprint: (localId, size) => {
+    const s = get()
     const idx = s.items.findIndex((it) => it.localId === localId)
-    if (idx === -1) return {}
+    if (idx === -1) return
     const cur = s.items[idx].footprint
     const near = (a, b) => Math.abs(a - b) < 1e-4
-    if (near(cur.x, size.x) && near(cur.y, size.y) && near(cur.z, size.z)) return {}
-    const items = s.items.slice()
-    const measured = { ...items[idx], footprint: { x: size.x, y: size.y, z: size.z } }
-    items[idx] = { ...measured, ...projectTransform(measured, {}, s.room, s.wallSnap) }
-    return { items }
-  }),
+    if (near(cur.x, size.x) && near(cur.y, size.y) && near(cur.z, size.z)) return
+    set((state) => {
+      const items = state.items.slice()
+      const measured = { ...items[idx], footprint: { x: size.x, y: size.y, z: size.z } }
+      items[idx] = { ...measured, ...projectTransform(measured, {}, state.room, state.wallSnap) }
+      return { items }
+    })
+  },
 
   updateTransform: (localId, patch) => set((s) => ({
     ...pushPast(s),

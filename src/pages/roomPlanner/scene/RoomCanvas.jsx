@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SceneStage } from './SceneStage'
 import { PlacedItem } from './PlacedItem'
 import { ScaleReference } from './ScaleReference'
@@ -8,6 +8,27 @@ import { findOverlaps } from '../../../features/roomPlanner/collision'
 import { registerPlannerCanvas, unregisterPlannerCanvas } from '../../../features/roomPlanner/canvasCapture'
 
 const observeModelError = (error) => console.error('Planner furniture model failed to render', error)
+
+function EditorPlacedItem({ item, setOrbitEnabled, ...props }) {
+  const reportFootprint = useEditorStore((s) => s.reportFootprint)
+  const handleDragChange = useCallback(
+    (dragging) => setOrbitEnabled(!dragging),
+    [setOrbitEnabled],
+  )
+  const handleMeasure = useCallback(
+    (size) => reportFootprint(item.localId, size),
+    [item.localId, reportFootprint],
+  )
+
+  return (
+    <PlacedItem
+      {...props}
+      item={item}
+      onDragChange={handleDragChange}
+      onMeasure={handleMeasure}
+    />
+  )
+}
 
 // Editor canvas: composes the shared SceneStage and adds the interactive layer —
 // the deselect plane and the gizmo-editable placed items, wired to the editor
@@ -24,7 +45,6 @@ export function RoomCanvas() {
   const editMode = useEditorStore((s) => s.editMode)
   const selectItem = useEditorStore((s) => s.selectItem)
   const updateTransform = useEditorStore((s) => s.updateTransform)
-  const reportFootprint = useEditorStore((s) => s.reportFootprint)
   const snap = useEditorStore((s) => s.snap)
   const wallSnap = useEditorStore((s) => s.wallSnap)
   const showScaleRef = useEditorStore((s) => s.showScaleRef)
@@ -53,9 +73,10 @@ export function RoomCanvas() {
         </mesh>
       )}
       {items.map((item) => (
-        <PlacedItem
+        <EditorPlacedItem
           key={item.localId}
           item={item}
+          setOrbitEnabled={setOrbitEnabled}
           room={room}
           selected={!topDown && item.localId === selectedId}
           gizmoMode={gizmoMode}
@@ -64,8 +85,6 @@ export function RoomCanvas() {
           conflict={conflictSet.has(item.localId)}
           onSelect={topDown ? undefined : selectItem}
           onTransform={updateTransform}
-          onDragChange={(dragging) => setOrbitEnabled(!dragging)}
-          onMeasure={(size) => reportFootprint(item.localId, size)}
           onModelError={observeModelError}
           interactive={!topDown}
         />

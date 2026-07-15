@@ -28,14 +28,10 @@ export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, co
       rotation: { x: node.rotation.x, y: node.rotation.y, z: node.rotation.z },
       scale: { x: node.scale.x, y: node.scale.y, z: node.scale.z },
     }, room, wallSnap)
-    const assign = (target, value) => {
-      if (typeof target?.set === 'function') target.set(value.x, value.y, value.z)
-      else return { ...value }
-      return target
-    }
-    node.position = assign(node.position, projected.position)
-    node.rotation = assign(node.rotation, projected.rotation)
-    node.scale = assign(node.scale, projected.scale)
+    // Decision Log: mutate Object3D transforms with .set() because Three.js exposes these properties as read-only object references.
+    node.position.set(projected.position.x, projected.position.y, projected.position.z)
+    node.rotation.set(projected.rotation.x, projected.rotation.y, projected.rotation.z)
+    node.scale.set(projected.scale.x, projected.scale.y, projected.scale.z)
   }
 
   const content = (

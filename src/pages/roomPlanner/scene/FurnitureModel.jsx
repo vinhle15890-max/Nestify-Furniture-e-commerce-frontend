@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo } from 'react'
+import { Component, Suspense, useCallback, useEffect, useMemo } from 'react'
 import { Box3, Vector3 } from 'three'
 import { Html, useGLTF } from '@react-three/drei'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -70,11 +70,15 @@ export class ModelErrorBoundary extends Component {
 }
 
 export function FurnitureModelRuntime({ url, onMeasure, onError, onStateChange }) {
+  const handleReady = useCallback(
+    () => onStateChange?.(MODEL_STATE.READY),
+    [onStateChange],
+  )
   if (!url) return <PlaceholderBox state={MODEL_STATE.NO_MODEL} onStateChange={onStateChange} />
   return (
     <ModelErrorBoundary resetKey={url} onError={onError} onStateChange={onStateChange}>
       <Suspense fallback={<PlaceholderBox state={MODEL_STATE.LOADING} onStateChange={onStateChange} />}>
-        <FurnitureModel url={url} onMeasure={onMeasure} onReady={() => onStateChange?.(MODEL_STATE.READY)} />
+        <FurnitureModel url={url} onMeasure={onMeasure} onReady={handleReady} />
       </Suspense>
     </ModelErrorBoundary>
   )
