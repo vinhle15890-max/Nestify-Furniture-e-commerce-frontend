@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react'
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three'
 import { describe, expect, it, vi } from 'vitest'
-import { MODEL_STATE, ModelErrorBoundary, PlaceholderBox } from './FurnitureModel'
+import { useGLTF } from '@react-three/drei'
+import { FurnitureModelRuntime, MODEL_STATE, ModelErrorBoundary, PlaceholderBox } from './FurnitureModel'
 
 vi.mock('@react-three/drei', () => ({
   Html: ({ children }) => <div>{children}</div>,
@@ -12,6 +14,34 @@ function BrokenModel() {
 }
 
 describe('runtime furniture model states', () => {
+  it('measures and reports ready once across rerenders with stable callbacks', () => {
+    const scene = new Group()
+    scene.add(new Mesh(new BoxGeometry(2, 1, 1), new MeshBasicMaterial()))
+    useGLTF.mockReturnValue({ scene })
+
+    const onMeasure = vi.fn()
+    const onReady = vi.fn()
+    const onStateChange = vi.fn((state) => {
+      if (state === MODEL_STATE.READY) onReady()
+    })
+    const props = {
+      url: 'https://models.nestify.asia/sofa.glb',
+      onMeasure,
+      onStateChange,
+    }
+
+    const { rerender } = render(<FurnitureModelRuntime {...props} />)
+    expect(onMeasure).toHaveBeenCalledOnce()
+    expect(onReady).toHaveBeenCalledOnce()
+
+    rerender(<FurnitureModelRuntime {...props} />)
+    rerender(<FurnitureModelRuntime {...props} />)
+    rerender(<FurnitureModelRuntime {...props} />)
+
+    expect(onMeasure).toHaveBeenCalledOnce()
+    expect(onReady).toHaveBeenCalledOnce()
+  })
+
   it.each([
     [MODEL_STATE.NO_MODEL, 'Chưa có mô hình 3D'],
     [MODEL_STATE.LOADING, 'Đang tải mô hình'],

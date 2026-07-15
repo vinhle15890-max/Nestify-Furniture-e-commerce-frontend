@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useEditorStore } from './editorStore'
 
 const variant = { id: 12, sku: 'SOFA-RED', name: 'Đỏ', model_3d_url: 'a.glb', price: 100, thumbnail: null }
@@ -61,6 +61,22 @@ describe('roomPlanner/editorStore', () => {
     const itemsRef = useEditorStore.getState().items
     useEditorStore.getState().reportFootprint(id, { x: 1, y: 1, z: 1 })
     expect(useEditorStore.getState().items).toBe(itemsRef)
+  })
+
+  it('reportFootprint notifies subscribers only for the first genuine size change', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const id = useEditorStore.getState().items[0].localId
+    const subscriber = vi.fn()
+    const unsubscribe = useEditorStore.subscribe(subscriber)
+
+    try {
+      useEditorStore.getState().reportFootprint(id, { x: 2, y: 0.8, z: 1.5 })
+      useEditorStore.getState().reportFootprint(id, { x: 2, y: 0.8, z: 1.5 })
+      expect(subscriber).toHaveBeenCalledOnce()
+    } finally {
+      unsubscribe()
+    }
   })
 
   it('kẹp size-aware — sofa rộng 2m không xuyên tường phòng 4m', () => {
