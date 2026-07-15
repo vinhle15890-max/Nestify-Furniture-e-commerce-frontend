@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { AdminRoute } from '../routes/AdminRoute'
 import { RequirePermission } from '../routes/RequirePermission'
 import { Spinner } from '../components/Spinner'
+import { DiagnosticRouteErrorBoundary } from '../pages/dev/DiagnosticRouteErrorBoundary'
 
 // Route-level code splitting: pages load on demand so the initial bundle stays small
 // (admin pages, in particular, ship in their own chunks behind the AdminRoute guard).
@@ -60,7 +61,10 @@ const pageFallback = (
 const lazyPage = (element) => <Suspense fallback={pageFallback}>{element}</Suspense>
 
 export const routes = [
-  ...(import.meta.env.DEV ? [{ path: '/__dev/r2-model', element: lazyPage(<R2ModelDiagnosticPage />) }] : []),
+  ...(import.meta.env.DEV ? [{
+    path: '/__dev/r2-model',
+    element: <DiagnosticRouteErrorBoundary>{lazyPage(<R2ModelDiagnosticPage />)}</DiagnosticRouteErrorBoundary>,
+  }] : []),
   {
     path: '/',
     element: <Layout />,

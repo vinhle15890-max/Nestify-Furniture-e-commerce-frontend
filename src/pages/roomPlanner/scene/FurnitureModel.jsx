@@ -3,6 +3,7 @@ import { Box3, Vector3 } from 'three'
 import { Html, useGLTF } from '@react-three/drei'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { baseOffset } from '../../../features/roomPlanner/threeD'
+import { placeholderGroupProps } from './modelStateProps'
 
 export const MODEL_STATE = Object.freeze({
   NO_MODEL: 'NO_MODEL',
@@ -40,7 +41,7 @@ export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange }) 
   const loading = state === MODEL_STATE.LOADING
   const failed = state === MODEL_STATE.LOAD_FAILED
   return (
-    <group name={`model-fallback-${state.toLowerCase()}`} userData={{ modelState: state }} data-model-state={state}>
+    <group {...placeholderGroupProps(state)}>
       <mesh position={[0, 0.5, 0]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color={failed ? '#6E6861' : '#8A7C68'} transparent opacity={loading ? 0.35 : 0.6} wireframe={loading} />

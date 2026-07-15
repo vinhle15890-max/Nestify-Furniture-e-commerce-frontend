@@ -3,16 +3,19 @@ import { Component, Suspense, useCallback, useEffect, useMemo, useState } from '
 import { Canvas } from '@react-three/fiber'
 import { Html, OrbitControls, useGLTF } from '@react-three/drei'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
+import { uploadModel } from '../../features/admin/products/api'
 import { INITIAL_EVIDENCE, inspectLoadedScene, safeFailureEvidence } from './r2ModelEvidence'
 
-function DiagnosticModel({ url, onLoaded }) {
+export function DiagnosticModel({ url, onLoaded }) {
   const { scene, parser } = useGLTF(url)
   const clone = useMemo(() => cloneSkinned(scene), [scene])
   useEffect(() => onLoaded(inspectLoadedScene(clone), parser?.json?.extensionsUsed ?? []), [clone, onLoaded, parser])
+  // `object` is Fiber's reserved primitive prop. A dashed path such as
+  // `object-model` makes applyProps traverse a nested path that does not exist.
   return <primitive object={clone} />
 }
 
-function Fallback() {
+export function Fallback() {
   return (
     <mesh position={[0, 0.5, 0]} name="r2-diagnostic-fallback">
       <boxGeometry args={[1, 1, 1]} />
@@ -40,18 +43,47 @@ export function R2ModelDiagnosticPage() {
   const [url, setUrl] = useState(initialUrl)
   const [activeUrl, setActiveUrl] = useState('')
   const [evidence, setEvidence] = useState(INITIAL_EVIDENCE)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+
+  const activatePublicUrl = async (publicUrl) => {
+    const response = await fetch(publicUrl, { mode: 'cors' })
+    if (!response.ok) throw new Error('Public fetch failed')
+    setUrl(publicUrl)
+    setEvidence((current) => ({ ...current, fetch: 'FETCH_OK' }))
+    setActiveUrl(publicUrl)
+  }
 
   const verify = async (event) => {
     event.preventDefault()
     setActiveUrl('')
     setEvidence(INITIAL_EVIDENCE)
     try {
-      const response = await fetch(url, { mode: 'cors' })
-      if (!response.ok) throw new Error('Public fetch failed')
-      setEvidence((current) => ({ ...current, fetch: 'FETCH_OK' }))
-      setActiveUrl(url)
+      await activatePublicUrl(url)
     } catch {
       setEvidence(safeFailureEvidence('fetch'))
+    }
+  }
+
+  const upload = async (event) => {
+    event.preventDefault()
+    const file = event.currentTarget.elements.model.files[0]
+    if (!file) return
+    setUploading(true)
+    setUploadError('')
+    setActiveUrl('')
+    setEvidence(INITIAL_EVIDENCE)
+    try {
+      const formData = new FormData()
+      formData.append('kind', 'model')
+      formData.append('file', file)
+      const result = await uploadModel(formData)
+      await activatePublicUrl(result.data.url)
+    } catch (error) {
+      setEvidence(safeFailureEvidence('fetch'))
+      setUploadError(error.message || 'Không thể tải GLB lên remote backend.')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -82,6 +114,14 @@ export function R2ModelDiagnosticPage() {
         </Canvas>
       </section>
       <aside className="border-l border-border bg-surface p-6">
+        <form onSubmit={upload} className="mb-6 space-y-3">
+          <label htmlFor="r2-model" className="block text-sm font-medium">Upload GLB qua remote API</label>
+          <input id="r2-model" name="model" type="file" accept=".glb,model/gltf-binary" required className="w-full text-sm" />
+          <button type="submit" disabled={uploading} className="rounded-control border border-border px-4 py-2 text-sm disabled:opacity-50">
+            {uploading ? 'Đang upload…' : 'Upload và kiểm tra'}
+          </button>
+          {uploadError ? <p role="alert" className="text-sm text-destructive">{uploadError}</p> : null}
+        </form>
         <form onSubmit={verify} className="mb-6 space-y-3">
           <label htmlFor="r2-url" className="block text-sm font-medium">Public R2 GLB URL</label>
           <input id="r2-url" type="url" required value={url} onChange={(event) => setUrl(event.target.value)} className="w-full rounded-control border border-border bg-background px-3 py-2 text-sm" />

@@ -42,6 +42,12 @@ export function uploadMedia(productId, formData) {
   })
 }
 
+export function uploadModel(formData) {
+  return apiClient.post('/admin/uploads', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
 export function reorderMedia(productId, ids) {
   return apiClient.patch(`/admin/products/${productId}/media/reorder`, { ids })
 }
