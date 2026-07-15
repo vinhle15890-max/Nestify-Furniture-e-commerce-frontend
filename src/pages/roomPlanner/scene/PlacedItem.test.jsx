@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
+import { Euler, Vector3 } from 'three'
 import { PlacedItem } from './PlacedItem'
 
 // Mock R3F: <Canvas> children bỏ qua; primitive/mesh render như null.
@@ -114,11 +115,17 @@ describe('PlacedItem live valid-position projection', () => {
     )
     expect(controlsProps.showY).toBe(false)
     const node = controlsProps.object.current
-    node.position = { x: 50, y: 7, z: -50 }
-    node.rotation = { x: 0, y: 0, z: 0 }
-    node.scale = { x: 1, y: 1, z: 1 }
+    node.position = new Vector3(50, 7, -50)
+    node.rotation = new Euler(0, 0, 0)
+    node.scale = new Vector3(1, 1, 1)
+    const position = node.position
+    const rotation = node.rotation
+    const scale = node.scale
     act(() => controlsProps.onObjectChange())
-    expect(node.position).toEqual({ x: 1.5, y: 0, z: -1.5 })
+    expect(node.position).toBe(position)
+    expect(node.rotation).toBe(rotation)
+    expect(node.scale).toBe(scale)
+    expect(node.position).toMatchObject({ x: 1.5, y: 0, z: -1.5 })
     expect(onTransform).not.toHaveBeenCalled()
     act(() => controlsProps.onMouseUp())
     expect(onTransform).toHaveBeenCalledOnce()
