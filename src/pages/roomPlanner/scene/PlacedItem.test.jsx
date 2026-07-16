@@ -1,17 +1,21 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render } from '@testing-library/react'
 import { Euler, Vector3 } from 'three'
 import { PlacedItem } from './PlacedItem'
 
-// Mock R3F: <Canvas> children bỏ qua; primitive/mesh render như null.
 vi.mock('@react-three/fiber', () => ({ Canvas: ({ children }) => children }))
 let controlsProps
-vi.mock('@react-three/drei', () => ({
-  TransformControls: (props) => {
+const fakeTcInstance = { positionStart: new Vector3() }
+vi.mock('@react-three/drei', () => {
+  const React = require('react')
+  const MockTransformControls = React.forwardRef((props, ref) => {
     controlsProps = props
+    if (ref && typeof ref === 'object') ref.current = fakeTcInstance
     return props.children
-  },
-}))
+  })
+  MockTransformControls.displayName = 'MockTransformControls'
+  return { TransformControls: MockTransformControls }
+})
 // FurnitureModel gọi onMeasure ngay khi mount (giả lập model đã đo xong).
 vi.mock('./FurnitureModel', () => ({
   MODEL_STATE: { NO_MODEL: 'NO_MODEL', LOADING: 'LOADING', READY: 'READY', LOAD_FAILED: 'LOAD_FAILED' },
@@ -25,6 +29,10 @@ vi.mock('./FurnitureModel', () => ({
     return <span data-model-state="READY" />
   },
 }))
+
+beforeEach(() => {
+  fakeTcInstance.positionStart.set(0, 0, 0)
+})
 
 const baseItem = {
   localId: 7,
@@ -130,5 +138,123 @@ describe('PlacedItem live valid-position projection', () => {
     act(() => controlsProps.onMouseUp())
     expect(onTransform).toHaveBeenCalledOnce()
     expect(onTransform.mock.calls[0][1].position).toEqual({ x: 1.5, y: 0, z: -1.5 })
+    expect(onTransform.mock.calls[0][1]).not.toHaveProperty('scale')
+  })
+
+  it('normalizes a stale scale gizmo value before it reaches TransformControls', () => {
+    render(
+      <PlacedItem
+        item={baseItem}
+        room={{ width: 4, depth: 4, height: 3 }}
+        selected
+        gizmoMode="scale"
+        snap={false}
+        wallSnap={false}
+        conflict={false}
+        onSelect={() => {}}
+        onTransform={() => {}}
+        onDragChange={() => {}}
+        onMeasure={() => {}}
+      />,
+    )
+
+    expect(controlsProps.mode).toBe('translate')
+    expect(controlsProps.scaleSnap).toBeUndefined()
+  })
+})
+
+describe('PlacedItem gizmo-object desync fix (P0-1)', () => {
+  it('shifts positionStart by the clamp delta so the gizmo anchor tracks the clamped position', () => {
+    render(
+      <PlacedItem
+        item={baseItem}
+        room={{ width: 4, depth: 4, height: 3 }}
+        selected
+        gizmoMode="translate"
+        snap={false}
+        wallSnap={false}
+        conflict={false}
+        onSelect={() => {}}
+        onTransform={() => {}}
+        onDragChange={() => {}}
+        onMeasure={() => {}}
+      />,
+    )
+    const node = controlsProps.object.current
+    fakeTcInstance.positionStart.set(0, 0, 0)
+    node.position = new Vector3(50, 7, -50)
+    node.rotation = new Euler(0, 0, 0)
+    node.scale = new Vector3(1, 1, 1)
+    act(() => controlsProps.onObjectChange())
+    expect(node.position).toMatchObject({ x: 1.5, y: 0, z: -1.5 })
+    const dx = 1.5 - 50
+    const dy = 0 - 7
+    const dz = -1.5 - (-50)
+    expect(fakeTcInstance.positionStart.x).toBeCloseTo(dx, 5)
+    expect(fakeTcInstance.positionStart.y).toBeCloseTo(dy, 5)
+    expect(fakeTcInstance.positionStart.z).toBeCloseTo(dz, 5)
+  })
+
+  it('does not adjust positionStart when no clamping occurs', () => {
+    render(
+      <PlacedItem
+        item={baseItem}
+        room={{ width: 4, depth: 4, height: 3 }}
+        selected
+        gizmoMode="translate"
+        snap={false}
+        wallSnap={false}
+        conflict={false}
+        onSelect={() => {}}
+        onTransform={() => {}}
+        onDragChange={() => {}}
+        onMeasure={() => {}}
+      />,
+    )
+    const node = controlsProps.object.current
+    fakeTcInstance.positionStart.set(0, 0, 0)
+    node.position = new Vector3(0.5, 0, -0.5)
+    node.rotation = new Euler(0, 0, 0)
+    node.scale = new Vector3(1, 1, 1)
+    act(() => controlsProps.onObjectChange())
+    expect(fakeTcInstance.positionStart.x).toBe(0)
+    expect(fakeTcInstance.positionStart.y).toBe(0)
+    expect(fakeTcInstance.positionStart.z).toBe(0)
+  })
+
+  it('accumulates positionStart corrections across consecutive boundary drags', () => {
+    render(
+      <PlacedItem
+        item={baseItem}
+        room={{ width: 4, depth: 4, height: 3 }}
+        selected
+        gizmoMode="translate"
+        snap={false}
+        wallSnap={false}
+        conflict={false}
+        onSelect={() => {}}
+        onTransform={() => {}}
+        onDragChange={() => {}}
+        onMeasure={() => {}}
+      />,
+    )
+    const node = controlsProps.object.current
+    fakeTcInstance.positionStart.set(0, 0, 0)
+    node.position = new Vector3(3, 0, -3)
+    node.rotation = new Euler(0, 0, 0)
+    node.scale = new Vector3(1, 1, 1)
+    act(() => controlsProps.onObjectChange())
+    expect(node.position).toMatchObject({ x: 1.5, y: 0, z: -1.5 })
+    const firstDx = 1.5 - 3
+    const firstDz = -1.5 - (-3)
+    expect(fakeTcInstance.positionStart.x).toBeCloseTo(firstDx, 5)
+    expect(fakeTcInstance.positionStart.z).toBeCloseTo(firstDz, 5)
+    node.position = new Vector3(4, 0, -4)
+    act(() => controlsProps.onObjectChange())
+    expect(node.position).toMatchObject({ x: 1.5, y: 0, z: -1.5 })
+    const secondDx = 1.5 - 4
+    const secondDz = -1.5 - (-4)
+    expect(fakeTcInstance.positionStart.x).toBeCloseTo(firstDx + secondDx, 5)
+    expect(fakeTcInstance.positionStart.z).toBeCloseTo(firstDz + secondDz, 5)
   })
 })

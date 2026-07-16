@@ -1,4 +1,5 @@
 import { apiClient } from '../../../lib/apiClient'
+import axios from 'axios'
 
 export function getProducts(page) {
   return apiClient.get('/admin/products', { params: { page } })
@@ -42,10 +43,28 @@ export function uploadMedia(productId, formData) {
   })
 }
 
-export function uploadModel(formData) {
-  return apiClient.post('/admin/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+export function presignVariantModel(variantId) {
+  return apiClient.post(`/admin/variants/${variantId}/model/presign`)
+}
+
+export function putPresignedModel({ url, headers, file, onProgress }) {
+  const normalizedHeaders = Object.fromEntries(
+    Object.entries(headers ?? {}).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]),
+  )
+  return axios.put(url, file, {
+    headers: { ...normalizedHeaders, 'Content-Type': 'model/gltf-binary' },
+    onUploadProgress: (event) => {
+      if (event.total) onProgress?.(Math.round((event.loaded / event.total) * 100))
+    },
   })
+}
+
+export function measureVariantModel(variantId, stagingToken) {
+  return apiClient.post(`/admin/variants/${variantId}/model/measure`, { staging_token: stagingToken })
+}
+
+export function confirmVariantModel(variantId, payload) {
+  return apiClient.post(`/admin/variants/${variantId}/model/confirm`, payload)
 }
 
 export function reorderMedia(productId, ids) {

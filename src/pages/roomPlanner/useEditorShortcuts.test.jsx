@@ -48,6 +48,12 @@ describe('useEditorShortcuts', () => {
     expect(useEditorStore.getState().selectedId).toBeNull()
   })
 
+  it('key 3 no longer enables customer scaling', () => {
+    render(<Harness />)
+    fireEvent.keyDown(window, { key: '3' })
+    expect(useEditorStore.getState().gizmoMode).toBe('translate')
+  })
+
   it('ignores shortcuts while typing in a field', () => {
     const { getByTestId } = render(<Harness />)
     fireEvent.keyDown(getByTestId('field'), { key: 'Delete' })

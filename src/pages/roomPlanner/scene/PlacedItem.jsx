@@ -8,6 +8,7 @@ import { projectTransform } from '../../../features/roomPlanner/collision'
 // mode where furniture is shown for reference but can't be manipulated.
 export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, conflict, onSelect, onTransform, onDragChange, onMeasure, onModelError, onModelStateChange, interactive = true }) {
   const groupRef = useRef()
+  const tcRef = useRef()
   const { position, rotation, scale } = item
 
   const commit = () => {
@@ -16,22 +17,42 @@ export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, co
     onTransform(item.localId, {
       position: { x: node.position.x, y: node.position.y, z: node.position.z },
       rotation: { x: node.rotation.x, y: node.rotation.y, z: node.rotation.z },
-      scale: { x: node.scale.x, y: node.scale.y, z: node.scale.z },
     })
   }
 
   const projectLive = () => {
     const node = groupRef.current
     if (!node || !room) return
+    const rawX = node.position.x
+    const rawY = node.position.y
+    const rawZ = node.position.z
     const projected = projectTransform(item, {
-      position: { x: node.position.x, y: node.position.y, z: node.position.z },
+      position: { x: rawX, y: rawY, z: rawZ },
       rotation: { x: node.rotation.x, y: node.rotation.y, z: node.rotation.z },
-      scale: { x: node.scale.x, y: node.scale.y, z: node.scale.z },
     }, room, wallSnap)
-    // Decision Log: mutate Object3D transforms with .set() because Three.js exposes these properties as read-only object references.
     node.position.set(projected.position.x, projected.position.y, projected.position.z)
     node.rotation.set(projected.rotation.x, projected.rotation.y, projected.rotation.z)
     node.scale.set(projected.scale.x, projected.scale.y, projected.scale.z)
+    // Decision Log (P0-1 gizmo desync): After clamping, shift TransformControls'
+    // positionStart by the clamp delta so subsequent pointerMove frames compute
+    // offset + positionStart from the corrected anchor. worldPositionStart and
+    // pointStart are intentionally left unchanged — adjusting both would cancel
+    // in the offset formula (offset = pointEnd − pointStart), defeating the fix.
+    // Limitation: the helper drag-distance lines (START/END/DELTA) may show a
+    // compressed distance near walls, but the main gizmo handles stay locked to
+    // the furniture at all times. Full desync resolution occurs at pointerUp
+    // when positionStart is re-initialised for the next drag.
+    const tc = tcRef.current
+    if (tc) {
+      const dx = projected.position.x - rawX
+      const dy = projected.position.y - rawY
+      const dz = projected.position.z - rawZ
+      if (dx !== 0 || dy !== 0 || dz !== 0) {
+        tc.positionStart.x += dx
+        tc.positionStart.y += dy
+        tc.positionStart.z += dz
+      }
+    }
   }
 
   const content = (
@@ -62,11 +83,11 @@ export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, co
 
   return (
     <TransformControls
+      ref={tcRef}
       object={groupRef}
-      mode={gizmoMode}
+      mode={gizmoMode === 'rotate' ? 'rotate' : 'translate'}
       translationSnap={snap ? 0.25 : null}
       rotationSnap={snap ? Math.PI / 12 : null}
-      scaleSnap={snap ? 0.1 : null}
       showY={gizmoMode !== 'translate'}
       onObjectChange={projectLive}
       onMouseUp={commit}

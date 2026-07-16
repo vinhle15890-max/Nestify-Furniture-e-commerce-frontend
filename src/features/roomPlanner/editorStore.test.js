@@ -24,6 +24,19 @@ describe('roomPlanner/editorStore', () => {
     expect(s.items[0].position).toEqual({ x: 0, y: 0, z: 0 })
     expect(s.selectedId).toBe(s.items[0].localId)
     expect(s.dirty).toBe(true)
+    expect(s.items[0].scale).toEqual({ x: 1, y: 1, z: 1 })
+  })
+
+  it('rejects scale gizmo mode and ignores scale transform patches', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 5, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const id = useEditorStore.getState().items[0].localId
+
+    useEditorStore.getState().setGizmoMode('scale')
+    useEditorStore.getState().updateTransform(id, { scale: { x: 2, y: 2, z: 2 } })
+
+    expect(useEditorStore.getState().gizmoMode).toBe('translate')
+    expect(useEditorStore.getState().items[0].scale).toEqual({ x: 1, y: 1, z: 1 })
   })
 
   it('updateTransform kẹp position theo kích thước — cạnh món không xuyên tường', () => {

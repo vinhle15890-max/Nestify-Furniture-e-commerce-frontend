@@ -1,11 +1,10 @@
-import { Move3d, RotateCw, Maximize, Save, ShoppingCart, ShoppingBag, Share2, Undo2, Redo2, Magnet, Frame, Ruler, Scan, X } from 'lucide-react'
+import { Move3d, RotateCw, Save, ShoppingCart, ShoppingBag, Share2, Undo2, Redo2, Magnet, Frame, Ruler, Scan, X } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 
 const MODES = [
   { key: 'translate', label: 'Di chuyển', icon: Move3d },
   { key: 'rotate', label: 'Xoay', icon: RotateCw },
-  { key: 'scale', label: 'Phóng to', icon: Maximize },
 ]
 
 export function PlannerToolbar({

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { Layers, Pencil, Plus, ImagePlus } from 'lucide-react'
+import { AlertTriangle, Layers, Pencil, Plus, ImagePlus } from 'lucide-react'
 import { BackLink } from '../../../components/BackLink'
 import { Button } from '../../../components/Button'
 import { Badge } from '../../../components/Badge'
@@ -471,7 +471,14 @@ function ProductEditor({ initialProduct }) {
                             className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40"
                           >
                             <td className="px-5 py-3 font-mono text-xs text-foreground">{variant.sku}</td>
-                            <td className="px-5 py-3 font-medium text-foreground">{variant.name}</td>
+                            <td className="px-5 py-3 font-medium text-foreground">
+                              <span>{variant.name}</span>
+                              {variant.model_3d_url && !variant.model_scaled_at && (
+                                <span className="mt-1 flex items-center gap-1 text-xs font-normal text-imagined">
+                                  <AlertTriangle size={13} aria-hidden="true" /> Chưa xác nhận kích thước thật
+                                </span>
+                              )}
+                            </td>
                             <td className="px-5 py-3 text-right text-foreground">{formatPrice(variant.price)}</td>
                             <td
                               className={`px-5 py-3 text-right tabular-nums ${

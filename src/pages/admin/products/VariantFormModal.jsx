@@ -9,6 +9,7 @@ import { useCreateVariant, useUpdateVariant } from '../../../features/admin/prod
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 import { variantSignature } from '../../../lib/variantOptions'
+import { VariantModelScaleFlow } from './VariantModelScaleFlow'
 
 const priceStockShape = {
   price: yup.number().typeError('Giá phải là số.').required('Vui lòng nhập giá.').min(0, 'Giá phải lớn hơn hoặc bằng 0.'),
@@ -17,7 +18,6 @@ const priceStockShape = {
     .typeError('Số lượng phải là số.')
     .required('Vui lòng nhập số lượng kho.')
     .min(0, 'Số lượng phải lớn hơn hoặc bằng 0.'),
-  model_3d_url: yup.string().url('URL không hợp lệ.'),
 }
 const nameShape = { name: yup.string().required('Vui lòng nhập tên biến thể.').max(255, 'Tối đa 255 ký tự.') }
 const skuShape = { sku: yup.string().max(100, 'Tối đa 100 ký tự.') }
@@ -36,7 +36,6 @@ const emptyValues = {
   name: '',
   price: '',
   stock_quantity: '',
-  model_3d_url: '',
   is_active: true,
 }
 
@@ -46,7 +45,6 @@ function toFormValues(variant) {
     name: variant.name ?? '',
     price: variant.price ?? '',
     stock_quantity: variant.available_stock ?? '',
-    model_3d_url: variant.model_3d_url ?? '',
     is_active: variant.is_active ?? true,
   }
 }
@@ -124,7 +122,6 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           id: variant.id,
           price: Number(values.price),
           stock_quantity: Number(values.stock_quantity),
-          model_3d_url: values.model_3d_url || null,
           is_active: values.is_active,
         }
         // Có thuộc tính → gửi attributes (BE tự suy tên + options_key). Không thì gửi tên tự do.
@@ -140,7 +137,6 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           sku: values.sku?.trim() || undefined,
           price: Number(values.price),
           stock_quantity: Number(values.stock_quantity),
-          model_3d_url: values.model_3d_url || undefined,
         }
         if (hasOptions) payload.attributes = selectedAttrs
         else payload.name = values.name
@@ -224,12 +220,13 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           error={errors.stock_quantity?.message}
           {...register('stock_quantity')}
         />
-        <Input
-          label="URL mô hình 3D (không bắt buộc)"
-          id="variant-model_3d_url"
-          error={errors.model_3d_url?.message}
-          {...register('model_3d_url')}
-        />
+        {isEditing ? (
+          <VariantModelScaleFlow variant={variant} onConfirmed={onSaved} />
+        ) : (
+          <p className="rounded-control border border-border bg-surface-alt p-3 text-sm text-muted-foreground">
+            Tạo biến thể trước, sau đó mở lại biến thể để tải lên và xác nhận kích thước mô hình 3D.
+          </p>
+        )}
 
         {isEditing && (
           <label className="flex items-center gap-2 text-sm font-medium text-foreground" htmlFor="variant-is_active">

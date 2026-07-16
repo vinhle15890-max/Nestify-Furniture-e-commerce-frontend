@@ -103,7 +103,7 @@ export const useEditorStore = create((set, get) => ({
 
   selectItem: (localId) => set({ selectedId: localId }),
 
-  setGizmoMode: (gizmoMode) => set({ gizmoMode }),
+  setGizmoMode: (gizmoMode) => set({ gizmoMode: gizmoMode === 'rotate' ? 'rotate' : 'translate' }),
 
   toggleSnap: () => set((s) => ({ snap: !s.snap })),
 
@@ -138,7 +138,9 @@ export const useEditorStore = create((set, get) => ({
     dirty: true,
     items: s.items.map((it) => {
       if (it.localId !== localId) return it
-      return { ...it, ...projectTransform(it, patch, s.room, s.wallSnap) }
+      const allowedPatch = { ...patch }
+      delete allowedPatch.scale
+      return { ...it, ...projectTransform(it, allowedPatch, s.room, s.wallSnap) }
     }),
   })),
 

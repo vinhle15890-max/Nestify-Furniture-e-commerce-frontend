@@ -78,6 +78,27 @@ export function useUpdateVariant() {
   })
 }
 
+export function usePresignVariantModel() {
+  return useMutation({ mutationFn: productsApi.presignVariantModel })
+}
+
+export function useMeasureVariantModel() {
+  return useMutation({
+    mutationFn: ({ variantId, stagingToken }) => productsApi.measureVariantModel(variantId, stagingToken),
+  })
+}
+
+export function useConfirmVariantModel() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ variantId, ...payload }) => productsApi.confirmVariantModel(variantId, payload),
+    onSuccess: (response) => {
+      if (response.data?.variant) queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+    },
+  })
+}
+
 export function useUploadMedia() {
   const queryClient = useQueryClient()
 

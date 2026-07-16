@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 
-const GIZMO_KEYS = { 1: 'translate', 2: 'rotate', 3: 'scale' }
+const GIZMO_KEYS = { 1: 'translate', 2: 'rotate' }
 
 // Keyboard editing for the planner. Reads the store via getState() so the single
 // window listener never goes stale. No-ops while typing in a field or before the

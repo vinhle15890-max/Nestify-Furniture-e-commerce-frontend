@@ -81,6 +81,16 @@ describe('AdminProductEditPage', () => {
     expect(screen.getByText('SOFA-NAU')).toBeInTheDocument()
   })
 
+  it('marks a legacy model whose real-world dimensions are not confirmed', async () => {
+    renderPage({
+      ...baseProduct,
+      variants: [{ ...baseProduct.variants[0], model_3d_url: 'https://models.test/legacy.glb', model_scaled_at: null }],
+    })
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Biến thể' }))
+    expect(screen.getByText('Chưa xác nhận kích thước thật')).toBeInTheDocument()
+  })
+
   it('fetches the product when deep-linked without router state', async () => {
     productsApi.getProduct.mockResolvedValue({ data: baseProduct })
 

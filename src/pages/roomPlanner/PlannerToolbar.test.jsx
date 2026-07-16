@@ -30,6 +30,11 @@ describe('PlannerToolbar', () => {
     expect(onGizmoModeChange).toHaveBeenCalledWith('rotate')
   })
 
+  it('does not expose a customer scale mode', () => {
+    render(<PlannerToolbar {...base} />)
+    expect(screen.queryByRole('button', { name: /phóng to/i })).not.toBeInTheDocument()
+  })
+
   it('disables save when not dirty', () => {
     render(<PlannerToolbar {...base} dirty={false} />)
     expect(screen.getByRole('button', { name: /lưu/i })).toBeDisabled()
