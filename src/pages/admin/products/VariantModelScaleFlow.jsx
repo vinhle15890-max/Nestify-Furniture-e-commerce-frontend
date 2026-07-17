@@ -18,6 +18,10 @@ const DIMENSIONS = [
   ['depth', 'Chiều sâu'],
 ]
 
+const largestAxis = (bounds) => AXES.reduce((largest, axis) => (
+  Number(bounds[axis]) > Number(bounds[largest]) ? axis : largest
+))
+
 export function VariantModelScaleFlow({ variant, onConfirmed }) {
   const presign = usePresignVariantModel()
   const measure = useMeasureVariantModel()
@@ -32,6 +36,7 @@ export function VariantModelScaleFlow({ variant, onConfirmed }) {
   const [referenceValueCm, setReferenceValueCm] = useState('')
   const [calculation, setCalculation] = useState(null)
   const [acknowledged, setAcknowledged] = useState(false)
+  const [activeDimension, setActiveDimension] = useState(null)
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
@@ -49,6 +54,8 @@ export function VariantModelScaleFlow({ variant, onConfirmed }) {
     }
 
     setBounds(null)
+    setAxisMap({ width: '', height: '', depth: '' })
+    setActiveDimension(null)
     setCalculation(null)
     setAcknowledged(false)
     setProgress(1)
@@ -68,7 +75,9 @@ export function VariantModelScaleFlow({ variant, onConfirmed }) {
       setProgress(100)
       setStagingToken(data.staging_token)
       const measured = await measure.mutateAsync({ variantId: variant.id, stagingToken: data.staging_token })
-      setBounds(measured.data.bounds)
+      const measuredBounds = measured.data.bounds
+      setBounds(measuredBounds)
+      setAxisMap({ width: largestAxis(measuredBounds), height: '', depth: '' })
     } catch (error) {
       setProgress(0)
       addToast({ title: 'Không thể tải hoặc đo mô hình.', description: error.message, variant: 'error' })
@@ -127,7 +136,11 @@ export function VariantModelScaleFlow({ variant, onConfirmed }) {
 
       {bounds && previewUrl && (
         <>
-          <VariantModelPreview url={previewUrl} />
+          <VariantModelPreview
+            url={previewUrl}
+            activeAxis={activeDimension ? axisMap[activeDimension] : null}
+          />
+          <p className="text-xs text-muted-foreground">Xoay để xem rõ hướng trục trước khi chọn.</p>
           <div className="grid grid-cols-3 gap-2 text-sm">
             {AXES.map((axis) => (
               <div key={axis} className="rounded-control border border-border bg-surface-alt p-2 text-center">
@@ -139,7 +152,14 @@ export function VariantModelScaleFlow({ variant, onConfirmed }) {
 
           <div className="grid gap-3 sm:grid-cols-3">
             {DIMENSIONS.map(([dimension, label]) => (
-              <label key={dimension} className="flex flex-col gap-1 text-sm font-medium text-foreground">
+              <label
+                key={dimension}
+                className="flex flex-col gap-1 text-sm font-medium text-foreground"
+                onMouseEnter={() => setActiveDimension(dimension)}
+                onMouseLeave={() => setActiveDimension(null)}
+                onFocus={() => setActiveDimension(dimension)}
+                onBlur={() => setActiveDimension(null)}
+              >
                 {label}
                 <select
                   aria-label={`Trục cho ${label}`}

@@ -186,6 +186,7 @@ describe('AdminProductEditPage', () => {
     // Only the meta description is filled; the title is left untouched.
     expect(await screen.findByLabelText('Mô tả SEO')).toHaveValue('Mô tả SEO mới do AI viết cho sofa da bò cao cấp.')
     expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('')
+    expect(screen.getByLabelText('Tiêu đề SEO')).toHaveAttribute('placeholder', 'Nhập tiêu đề SEO...')
   })
 
   it('drafts SEO from the product images and opens the variations modal', async () => {

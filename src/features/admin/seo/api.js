@@ -16,6 +16,11 @@ export function getSeoBatch(batchId) {
   return apiClient.get(`/admin/products/seo/bulk/${batchId}`)
 }
 
+// Update the staged draft only; does not touch the live product.
+export function updateSeoDraft(productId, payload) {
+  return apiClient.patch(`/admin/products/${productId}/seo/draft`, payload)
+}
+
 // Copy a draft's fields onto its product.
 export function applySeoDraft(productId) {
   return apiClient.post(`/admin/products/${productId}/seo/draft/apply`)

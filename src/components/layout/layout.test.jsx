@@ -6,10 +6,8 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 import { Layout } from './Layout'
 import { useAuthStore } from '../../store/authStore'
-import * as catalogApi from '../../features/catalog/api'
 import * as cartApi from '../../features/cart/api'
 
-vi.mock('../../features/catalog/api')
 vi.mock('../../features/cart/api')
 
 function renderWithProviders(children) {
@@ -25,7 +23,6 @@ describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAuthStore.setState({ token: null, user: null })
-    catalogApi.getCategories.mockResolvedValue({ data: [] })
     cartApi.getCart.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
   })
 
@@ -62,6 +59,12 @@ describe('Header', () => {
 
     expect(screen.queryByText('Quản trị')).not.toBeInTheDocument()
   })
+
+  it('does not render the removed horizontal category navigation', () => {
+    renderWithProviders(<Header />)
+
+    expect(screen.queryByRole('navigation', { name: 'Danh mục sản phẩm' })).not.toBeInTheDocument()
+  })
 })
 
 describe('Footer', () => {
@@ -93,7 +96,6 @@ describe('Footer', () => {
 
 describe('Layout', () => {
   it('renders the header, footer, and routed content', () => {
-    catalogApi.getCategories.mockResolvedValue({ data: [] })
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
     render(

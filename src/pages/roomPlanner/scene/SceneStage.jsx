@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { Environment, OrbitControls } from '@react-three/drei'
 import { MonitorOff, MonitorX } from 'lucide-react'
 import { Room } from './Room'
 import { useWebGLSupport } from '../../../hooks/useWebGLSupport'
@@ -98,6 +98,7 @@ export function SceneStage({ room, orbitEnabled = true, topDown = false, onRende
     <div className="relative h-full w-full">
       <Canvas gl={{ preserveDrawingBuffer: true }} onCreated={handleCreated} shadows camera={{ position: [camDistance, camDistance, camDistance], fov: 45 }}>
         <CameraRig topDown={topDown} room={room} camDistance={camDistance} />
+        <Environment preset="apartment" />
         <hemisphereLight intensity={0.9} groundColor="#C9C4B8" /> {/* unbuilt — Becoming ground bounce */}
         <directionalLight position={[5, 8, 5]} intensity={1.1} castShadow />
         <Room width={room.width} depth={room.depth} height={room.height} walls={room.walls} />

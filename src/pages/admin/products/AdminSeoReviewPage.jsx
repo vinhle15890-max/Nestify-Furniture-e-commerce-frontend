@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Sparkles, Check, X, Pencil, RefreshCw, ImageOff } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
+import { Input } from '../../../components/Input'
+import { Modal } from '../../../components/Modal'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
 import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
+import { RichTextEditor } from '../../../components/admin/RichTextEditor'
 import { useToastStore } from '../../../store/toastStore'
 import { computeSeoScore } from '../../../lib/seoScore'
 import {
@@ -16,6 +18,7 @@ import {
   useSeoBatch,
   useApplyDraft,
   useDismissDraft,
+  useUpdateDraft,
 } from '../../../features/admin/seo/hooks'
 
 const TABS = [
@@ -54,7 +57,7 @@ function Thumbnail({ url, alt }) {
   return <img src={url} alt={alt} className="h-12 w-12 shrink-0 rounded-control object-cover" />
 }
 
-function PendingRow({ draft, onApply, onDismiss, busy }) {
+function PendingRow({ draft, onApply, onEdit, onDismiss, busy }) {
   return (
     <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start">
       <Thumbnail url={draft.thumbnail} alt={draft.product_name ?? ''} />
@@ -70,17 +73,113 @@ function PendingRow({ draft, onApply, onDismiss, busy }) {
         <Button onClick={() => onApply(draft)} disabled={busy}>
           <Check size={15} aria-hidden="true" /> Áp dụng
         </Button>
-        <Link
-          to={`/admin/products/${draft.product_id}`}
-          className="inline-flex items-center gap-1.5 rounded-control border border-foreground px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface"
-        >
+        <Button variant="secondary" onClick={() => onEdit(draft)} disabled={busy}>
           <Pencil size={15} aria-hidden="true" /> Sửa
-        </Link>
+        </Button>
         <Button variant="ghost" onClick={() => onDismiss(draft)} disabled={busy} aria-label={`Bỏ bản nháp ${draft.product_name}`}>
           <X size={15} aria-hidden="true" /> Bỏ
         </Button>
       </div>
     </div>
+  )
+}
+
+function DraftEditorModal({ draft, open, onOpenChange, onSave, saving }) {
+  const [values, setValues] = useState(draft)
+
+  if (!draft || !values) return null
+
+  const setField = (field, value) => setValues((current) => ({ ...current, [field]: value }))
+  const seo = computeSeoScore({
+    metaTitle: values.meta_title,
+    metaDescription: values.meta_description,
+    description: values.description,
+    focusKeyword: values.focus_keyword,
+  })
+  const invalid =
+    !values.description?.trim() ||
+    !values.meta_title?.trim() ||
+    values.meta_title.length > 70 ||
+    !values.meta_description?.trim() ||
+    values.meta_description.length > 300 ||
+    !values.focus_keyword?.trim() ||
+    values.focus_keyword.length > 100
+
+  const submit = (event) => {
+    event.preventDefault()
+    onSave({
+      description: values.description,
+      meta_title: values.meta_title,
+      meta_description: values.meta_description,
+      focus_keyword: values.focus_keyword,
+    })
+  }
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Sửa bản nháp SEO — ${draft.product_name}`}
+      description="Các thay đổi chỉ cập nhật bản nháp chờ duyệt, chưa thay đổi sản phẩm đang hiển thị."
+      contentClassName="max-w-4xl"
+    >
+      <form className="flex max-h-[75vh] flex-col gap-4 overflow-y-auto pr-1" onSubmit={submit}>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="draft_description" className="text-sm font-medium text-foreground">Mô tả sản phẩm</label>
+          <RichTextEditor
+            id="draft_description"
+            ariaLabel="Mô tả sản phẩm bản nháp"
+            value={values.description}
+            onChange={(value) => setField('description', value)}
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="draft_meta_title" className="text-sm font-medium text-foreground">Tiêu đề SEO bản nháp</label>
+              <span className={`text-xs ${values.meta_title.length > 60 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {values.meta_title.length}/60
+              </span>
+            </div>
+            <Input id="draft_meta_title" value={values.meta_title} onChange={(event) => setField('meta_title', event.target.value)} />
+          </div>
+          <Input
+            id="draft_focus_keyword"
+            label="Từ khóa chính bản nháp"
+            value={values.focus_keyword}
+            onChange={(event) => setField('focus_keyword', event.target.value)}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="draft_meta_description" className="text-sm font-medium text-foreground">Mô tả SEO bản nháp</label>
+            <span className={`text-xs ${values.meta_description.length > 160 ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {values.meta_description.length}/160
+            </span>
+          </div>
+          <textarea
+            id="draft_meta_description"
+            rows={4}
+            value={values.meta_description}
+            onChange={(event) => setField('meta_description', event.target.value)}
+            className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="flex items-center justify-between rounded-control border border-border bg-surface-alt/40 p-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Điểm SEO trực tiếp</p>
+            <p className="text-xs text-muted-foreground">Tính từ chính các giá trị bản nháp đang sửa.</p>
+          </div>
+          <p className={`text-2xl font-semibold tabular-nums ${scoreTone(seo.score)}`} aria-label={`Điểm SEO bản nháp ${seo.score} trên 100`}>
+            {seo.score}<span className="text-sm text-muted-foreground">/100</span>
+          </p>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Hủy</Button>
+          <Button type="submit" disabled={saving || invalid}>{saving ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -103,18 +202,20 @@ export function AdminSeoReviewPage() {
   const [tab, setTab] = useState('pending')
   const [page, setPage] = useState(1)
   const [batchId, setBatchId] = useState(null)
+  const [editingDraft, setEditingDraft] = useState(null)
   const addToast = useToastStore((state) => state.addToast)
 
   const { data, isLoading, isError, isFetching, refetch } = useSeoDrafts({ status: tab, page })
   const bulk = useBulkGenerateSeo()
   const apply = useApplyDraft()
   const dismiss = useDismissDraft()
+  const updateDraft = useUpdateDraft()
   const { data: batchData } = useSeoBatch(batchId, { enabled: Boolean(batchId) })
   const batch = batchData?.data
 
   const drafts = data?.data ?? []
   const meta = data?.meta ?? { last_page: 1 }
-  const busy = apply.isPending || dismiss.isPending
+  const busy = apply.isPending || dismiss.isPending || updateDraft.isPending
 
   const runBulk = (payload, emptyMessage) => {
     bulk.mutate(payload, {
@@ -153,6 +254,18 @@ export function AdminSeoReviewPage() {
       onSuccess: () => addToast({ title: 'Đã bỏ bản nháp', variant: 'default' }),
       onError: (error) => addToast({ title: error.message ?? 'Không thể bỏ', variant: 'destructive' }),
     })
+
+  const handleSaveDraft = (payload) =>
+    updateDraft.mutate(
+      { productId: editingDraft.product_id, payload },
+      {
+        onSuccess: () => {
+          setEditingDraft(null)
+          addToast({ title: 'Đã lưu bản nháp SEO', variant: 'default' })
+        },
+        onError: (error) => addToast({ title: error.message ?? 'Không thể lưu bản nháp', variant: 'destructive' }),
+      },
+    )
 
   const batchRunning = batch && !batch.finished
 
@@ -216,7 +329,7 @@ export function AdminSeoReviewPage() {
           <div className="divide-y divide-border rounded-card border border-border bg-surface shadow-soft">
             {drafts.map((draft) =>
               tab === 'pending' ? (
-                <PendingRow key={draft.id} draft={draft} onApply={handleApply} onDismiss={handleDismiss} busy={busy} />
+                <PendingRow key={draft.id} draft={draft} onApply={handleApply} onEdit={setEditingDraft} onDismiss={handleDismiss} busy={busy} />
               ) : (
                 <FailedRow key={draft.id} draft={draft} onRetry={handleRetry} busy={bulk.isPending} />
               ),
@@ -228,6 +341,17 @@ export function AdminSeoReviewPage() {
       <div className="mt-6">
         <Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={setPage} />
       </div>
+
+      <DraftEditorModal
+        key={editingDraft?.id ?? 'closed'}
+        draft={editingDraft}
+        open={Boolean(editingDraft)}
+        onOpenChange={(open) => {
+          if (!open && !updateDraft.isPending) setEditingDraft(null)
+        }}
+        onSave={handleSaveDraft}
+        saving={updateDraft.isPending}
+      />
     </div>
   )
 }

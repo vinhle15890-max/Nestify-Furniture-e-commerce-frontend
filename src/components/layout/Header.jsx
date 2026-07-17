@@ -6,7 +6,6 @@ import { useUiStore } from '../../store/uiStore'
 import { useCart } from '../../features/cart/hooks'
 import { isStaff } from '../../lib/roles'
 import { Logo } from '../Logo'
-import { CategoryNav } from './CategoryNav'
 
 const focusRing =
   'rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
@@ -120,8 +119,6 @@ export function Header() {
           </button>
         </div>
       </div>
-
-      {!overlay && <CategoryNav />}
     </header>
   )
 }

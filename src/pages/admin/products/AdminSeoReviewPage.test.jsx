@@ -66,6 +66,32 @@ describe('AdminSeoReviewPage', () => {
     await waitFor(() => expect(seoApi.applySeoDraft).toHaveBeenCalledWith(5))
   })
 
+  it('edits and saves the pending draft instead of navigating to the product editor', async () => {
+    seoApi.updateSeoDraft.mockResolvedValue({ data: { ...pendingDraft, meta_title: 'Tiêu đề nháp đã sửa' } })
+    renderPage()
+    await screen.findByText('Bàn gỗ sồi')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa' }))
+
+    const titleInput = screen.getByLabelText('Tiêu đề SEO bản nháp')
+    expect(titleInput).toHaveValue(pendingDraft.meta_title)
+    expect(screen.getByLabelText(/Điểm SEO bản nháp/)).toBeInTheDocument()
+
+    await userEvent.clear(titleInput)
+    await userEvent.type(titleInput, 'Tiêu đề nháp đã sửa')
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu bản nháp' }))
+
+    await waitFor(() =>
+      expect(seoApi.updateSeoDraft).toHaveBeenCalledWith(5, {
+        description: pendingDraft.description,
+        meta_title: 'Tiêu đề nháp đã sửa',
+        meta_description: pendingDraft.meta_description,
+        focus_keyword: pendingDraft.focus_keyword,
+      }),
+    )
+    expect(screen.queryByText('Trang sửa sản phẩm')).not.toBeInTheDocument()
+  })
+
   it('dismisses a draft via the dismiss endpoint', async () => {
     seoApi.dismissSeoDraft.mockResolvedValue({ data: { product_id: 5, status: 'dismissed' } })
     renderPage()

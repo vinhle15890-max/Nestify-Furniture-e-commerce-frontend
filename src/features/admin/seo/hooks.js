@@ -42,6 +42,14 @@ export function useApplyDraft() {
   })
 }
 
+export function useUpdateDraft() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productId, payload }) => seoApi.updateSeoDraft(productId, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'seo-drafts'] }),
+  })
+}
+
 export function useDismissDraft() {
   const queryClient = useQueryClient()
   return useMutation({

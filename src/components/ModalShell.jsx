@@ -22,6 +22,9 @@ export function ModalShell({
   children,
   overlayClassName = 'fixed inset-0 z-50 bg-foreground/40',
   contentClassName = '',
+  bodyClassName = '',
+  footer,
+  footerClassName = '',
   contentProps,
 }) {
   return (
@@ -36,7 +39,8 @@ export function ModalShell({
           {description && (
             <Dialog.Description className="mt-1 text-sm text-muted-foreground">{description}</Dialog.Description>
           )}
-          <div className="mt-4">{children}</div>
+          <div className={`mt-4 ${bodyClassName}`}>{children}</div>
+          {footer && <div className={footerClassName}>{footer}</div>}
           <Dialog.Close
             aria-label="Đóng"
             className="absolute right-4 top-4 cursor-pointer rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"

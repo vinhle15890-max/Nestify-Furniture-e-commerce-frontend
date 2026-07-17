@@ -19,12 +19,29 @@ describe('Hero (Threshold)', () => {
     expect(screen.getByText(hero.subtitle)).toBeInTheDocument()
   })
 
-  it('renders one static editorial spatial study with no interactive mechanic', () => {
+  it('renders the approved decorative interior without the old SVG field or runtime 3D', () => {
     renderHero()
-    const study = screen.getByTestId('entered-edge-study')
-    expect(study).toHaveAttribute('aria-hidden', 'true')
-    expect(study.querySelectorAll('button, a, input')).toHaveLength(0)
+
+    const picture = screen.getByTestId('hero-interior')
+    const image = picture.querySelector('img')
+
+    expect(picture).toHaveAttribute('aria-hidden', 'true')
+    expect(image).toHaveAttribute('src', '/images/home/hero-interior.png')
+    expect(image).toHaveAttribute('alt', '')
+    expect(image).toHaveAttribute('width', '1536')
+    expect(image).toHaveAttribute('height', '1024')
+    expect(screen.queryByTestId('entered-edge-study')).not.toBeInTheDocument()
+    expect(document.querySelector('[data-light-gesture]')).not.toBeInTheDocument()
+    expect(document.querySelector('canvas')).not.toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('keeps the proposition before the spatial image in DOM order', () => {
+    renderHero()
+
+    const heading = screen.getByRole('heading', { name: hero.title, level: 1 })
+    const picture = screen.getByTestId('hero-interior')
+    expect(heading.compareDocumentPosition(picture) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('offers one exploratory CTA that invites exploration, not the Planner', () => {

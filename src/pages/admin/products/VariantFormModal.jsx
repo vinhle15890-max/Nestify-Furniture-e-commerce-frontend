@@ -158,8 +158,21 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
       onOpenChange={onOpenChange}
       title={isEditing ? 'Sửa biến thể' : 'Thêm biến thể mới'}
       description={isEditing ? 'Cập nhật thông tin bán hàng và tồn kho của biến thể này.' : 'Thiết lập lựa chọn, giá bán và tồn kho cho biến thể mới.'}
+      contentClassName="flex max-h-[90dvh] max-w-2xl flex-col overflow-hidden"
+      bodyClassName="min-h-0 flex-1 overflow-y-scroll pr-2 [scrollbar-gutter:stable]"
+      footerClassName="-mx-6 -mb-6 mt-4 border-t border-border bg-surface px-6 py-4"
+      footer={(
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Hủy
+          </Button>
+          <Button type="submit" form="variant-form" disabled={isSubmitting}>
+            {isEditing ? 'Lưu thay đổi' : 'Thêm biến thể'}
+          </Button>
+        </div>
+      )}
     >
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      <form id="variant-form" onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         {!isEditing && (
           <div className="flex flex-col gap-1">
             <Input
@@ -235,9 +248,6 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           </label>
         )}
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isEditing ? 'Lưu thay đổi' : 'Thêm biến thể'}
-        </Button>
       </form>
     </Modal>
   )

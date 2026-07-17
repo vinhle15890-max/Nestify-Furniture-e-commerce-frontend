@@ -5,12 +5,13 @@ import { SceneStage } from './SceneStage'
 // Camera stub shared by the useThree mock below — asserted against in the
 // topDown test. Declared via vi.hoisted so it's initialized before the
 // hoisted vi.mock factories run.
-const { mockCamera, orbitControlsSpy } = vi.hoisted(() => ({
+const { mockCamera, environmentSpy, orbitControlsSpy } = vi.hoisted(() => ({
   mockCamera: {
     position: { set: vi.fn() },
     lookAt: vi.fn(),
     updateProjectionMatrix: vi.fn(),
   },
+  environmentSpy: vi.fn(() => null),
   orbitControlsSpy: vi.fn(() => null),
 }))
 
@@ -34,6 +35,7 @@ vi.mock('@react-three/fiber', () => ({
 }))
 
 vi.mock('@react-three/drei', () => ({
+  Environment: (props) => environmentSpy(props),
   OrbitControls: (props) => orbitControlsSpy(props),
   Grid: () => null,
 }))
@@ -56,6 +58,17 @@ function mockContext() {
 }
 
 describe('SceneStage WebGL capability gate', () => {
+  test('uses apartment image-based environment lighting', () => {
+    const { ctx } = mockContext()
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx)
+
+    render(<SceneStage room={room} />)
+
+    expect(environmentSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ preset: 'apartment' }),
+    )
+  })
+
   test('no WebGL context → renders fallback, does NOT mount <Canvas>', () => {
     // getContext returns null for BOTH webgl2 and webgl → unsupported.
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null)

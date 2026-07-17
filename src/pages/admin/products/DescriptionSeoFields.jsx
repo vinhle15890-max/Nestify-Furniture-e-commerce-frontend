@@ -191,7 +191,7 @@ export function DescriptionSeoFields({
                 </span>
               </div>
             </div>
-            <Input id="meta_title" error={errors.meta_title?.message} placeholder={namePlaceholder} {...register('meta_title')} />
+            <Input id="meta_title" error={errors.meta_title?.message} placeholder="Nhập tiêu đề SEO..." {...register('meta_title')} />
           </div>
 
           <div className="flex flex-col gap-1.5">

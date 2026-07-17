@@ -15,7 +15,9 @@ vi.mock('../../../features/admin/products/hooks', () => ({
   useConfirmVariantModel: () => ({ mutateAsync: confirmAsync, isPending: false }),
 }))
 vi.mock('./VariantModelPreview', () => ({
-  VariantModelPreview: () => <div aria-label="Xem trước mô hình 3D và các trục X Y Z" />,
+  VariantModelPreview: ({ activeAxis }) => (
+    <div aria-label="Xem trước mô hình 3D và các trục X Y Z" data-active-axis={activeAxis ?? ''} />
+  ),
 }))
 
 describe('VariantModelScaleFlow', () => {
@@ -48,7 +50,14 @@ describe('VariantModelScaleFlow', () => {
     }))
     expect(measureAsync).toHaveBeenCalledWith({ variantId: 12, stagingToken: 'stage-token' })
 
-    await userEvent.selectOptions(screen.getByLabelText('Trục cho Chiều rộng'), 'z')
+    const widthAxis = screen.getByLabelText('Trục cho Chiều rộng')
+    expect(widthAxis).toHaveValue('z')
+    expect(screen.getByText('Xoay để xem rõ hướng trục trước khi chọn.')).toBeInTheDocument()
+
+    await userEvent.click(widthAxis)
+    expect(screen.getByLabelText('Xem trước mô hình 3D và các trục X Y Z')).toHaveAttribute('data-active-axis', 'z')
+
+    await userEvent.selectOptions(widthAxis, 'z')
     await userEvent.selectOptions(screen.getByLabelText('Trục cho Chiều cao'), 'y')
     await userEvent.selectOptions(screen.getByLabelText('Trục cho Chiều sâu'), 'x')
     await userEvent.clear(screen.getByLabelText('Số đo thật (cm)'))
