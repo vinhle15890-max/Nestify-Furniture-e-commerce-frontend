@@ -11,15 +11,13 @@ back-office for a furniture e-commerce platform, consuming a separate Laravel AP
 Nestify's brand + design system lives in `docs/nestify/` (source of truth, read in order):
 `01_Brand_Constitution.md` → `02_Story_Bible.md` → `03_Design_DNA.md` →
 `04_Visual_Grammar.md` → `05_Component_Bible.md` → token implementation
-layer. Consult `07_Decision_Register.md` whenever a dated spec or page brief
-appears to conflict. `00_Brand_Context.md` and `06_Brand_Manifesto.md` are
+layer. Consult `07_Decision_Register.md` whenever another document appears to
+conflict. `00_Brand_Context.md` and `06_Brand_Manifesto.md` are
 supporting context, not rule authorities.
 
 This DNA — **"The Becoming Room"** — is the current direction and supersedes
-Organic / Warm Luxury Editorial for every storefront visual decision. In
-`2026-06-13-fe-nestify-design.md`, read technical architecture and API material
-only when relevant; Section F is historical visual context, never a storefront
-design authority. `src/styles/tokens.css` is the current token implementation:
+Organic / Warm Luxury Editorial for every storefront visual decision.
+`src/styles/tokens.css` is the current token implementation:
 inspect it before editing, but do not assume the old cream+brass palette remains
 active.
 
@@ -50,14 +48,17 @@ not competitors.
 
 ## Read before starting any feature work
 
-1. `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` — architecture,
-   project structure, routing/page map, and FE/BE contract. Its Section F
-   Organic Editorial visual direction is superseded; do not use it for
-   storefront visual decisions.
-2. `docs/TASKS.md` — remaining work broken down by phase/module, with a checklist per module
-   and a prompt template for AI-assisted work.
-3. `Nestify-Furniture-e-commerce-backend/docs/FE_AI_CONTEXT.md` (in the BE repo) — exact request/response shapes for
+1. `docs/CURRENT-STATE-MECHANISMS.md` — canonical implemented architecture, behavioral mechanisms,
+   enforcement boundaries, failure modes, and known limitations.
+2. `docs/FE-TEAM-WORKFLOW.md` — canonical domain-by-domain request, cache/store, error, and route walkthrough.
+3. `docs/nestify/01_Brand_Constitution.md` through `05_Component_Bible.md`, plus
+   `07_Decision_Register.md`, for storefront UI work.
+4. `Nestify-Furniture-e-commerce-backend/docs/FE_AI_CONTEXT.md` (in the BE repo) — exact request/response shapes for
    every endpoint. FE never runs the BE locally; this doc is the source of truth for payloads.
+
+Dated specs/plans, briefs, spikes, `docs/TASKS.md`, templates, and skills are working records. They can supply
+historical rationale or task procedure, but are not current architecture/runtime contracts and must not be the
+only place an implemented behavior is documented.
 
 ## Stack
 
@@ -109,6 +110,6 @@ not competitors.
 
 - TDD: write the failing test first (Vitest + RTL), then implement.
 - Before committing: `npm run lint` and `npm test -- --run` must both be clean.
-- Branch off `main` per module/phase (see `docs/TASKS.md`).
+- Branch off `main` for each independently reviewable change, following the team's current Git policy.
 - Snyk: run a code scan on new/modified first-party source files and fix any issues found
   before committing.

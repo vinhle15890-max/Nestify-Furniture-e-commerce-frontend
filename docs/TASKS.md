@@ -169,17 +169,11 @@ orders pointing the user to the product page.
 
 ## Phase 6 — 3D Room Planner
 
-**Folders:** `src/features/rooms/`, `src/pages/rooms/`
-
-- [ ] Add deps: `three`, `@react-three/fiber`, `@react-three/drei`
-- [ ] `features/rooms/api.js` + `hooks.js` — CRUD `/api/room-scenes` (offset pagination), `share`, `convert-to-order`
-- [ ] `/rooms` page — scene list (offset `<Pagination>`)
-- [ ] `/rooms/new`, `/rooms/:id` — 3D editor: room-bounds helper from `width/depth/height`, load variant `model_3d_url` via `useGLTF`, drag/transform controls (place/move/rotate/scale)
-- [ ] Save: `PATCH /api/room-scenes/{id}` sends the **full** current `items[]` (no diffing)
-- [ ] Share: call `POST .../share` (idempotent) → build `/rooms/share/{token}` public URL
-- [ ] `/rooms/share/:token` — public read-only viewer (no auth)
-- [ ] Convert-to-order: confirm dialog warning cart will be replaced, then `POST .../convert-to-order`
-- [ ] Tests: scene save sends full item list, share URL construction
+**Reconciled 2026-07-17:** checklist gốc đã bị supersede. Current code dùng `features/roomPlanner`,
+`pages/roomPlanner`, `/room-planner`, account list `/account/rooms` và public
+`/room-planner/shared/:token`. Dependencies, CRUD, full-list save, share và tests đã triển khai. Customer chỉ
+translate/rotate; scale bị khóa client+server. Handoff commerce là add-scene-to-cart best-effort, **không**
+replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
 
 **Spec refs:** Section A (3D stack), Section G (Room Scenes)
 

@@ -1,5 +1,9 @@
 # Media Library Implementation Plan
 
+> **Historical plan note — reconciled 2026-07-17:** the `Laravel 11` label below was planning-time metadata,
+> not a frontend runtime dependency. Confirm the backend's current `composer.json` before relying on a PHP/
+> Laravel version; current FE media mechanics are documented in `docs/CURRENT-STATE-MECHANISMS.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn the site's image-adding flow into a WordPress-style Media Library — upload an image once, then reuse the same Cloudinary asset across many products/variants/categories by picking it from a browsable library.

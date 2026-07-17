@@ -4,9 +4,10 @@
 > teammate đọc, hiểu hệ thống, **phản biện** (trả lời câu hỏi hội đồng), đồng thời **chia việc cho 4 FE**.
 > **Cách đọc mỗi mục:** *Actor → Entry (route/page) → Luồng qua các tầng (page → hooks → api → apiClient) →
 > Side-effect (cache/store/toast) → Lỗi → **Điểm phản biện*** (vì sao thiết kế thế, câu hỏi hay bị hỏi).
-> **Last updated:** 2026-07-10 · **See also:** `AGENTS.md` (convention + stack), `docs/TASKS.md` (bảng việc theo phase),
-> `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` (spec thiết kế + hợp đồng FE/BE),
-> BE `docs/14-workflows.md` (luồng phía server — đối chiếu hợp đồng).
+> **Last reconciled with code:** 2026-07-17 · **See also:** `AGENTS.md` (convention + stack),
+> `docs/CURRENT-STATE-MECHANISMS.md` (cơ chế, enforcement gap và edge case chi tiết), BE
+> `docs/FE_AI_CONTEXT.md` (request/response contract) và BE `docs/14-workflows.md` (luồng server).
+> Dated specs/plans và `TASKS.md` là work records, không cần đọc để hiểu current state trong tài liệu này.
 
 ---
 
@@ -160,7 +161,7 @@ Laravel API (api.nestify.asia)
 - Chỉ user **đã mua** mới thấy form (verified purchase, 1 review/sản phẩm); comment trả lời 1 cấp. Review `approved` mới hiện public.
 
 > **Phản biện:** Form review nằm ở `/p/:slug` **không** ở `/orders/:id` vì `variant_snapshot` của đơn không mang `product_id`
-> (xem deviation Phase 5 trong `TASKS.md`) — cần `product` để gắn review.
+> Đây là lý do response review cần kèm `product`: danh sách moderation phải gắn review với đúng sản phẩm.
 
 ---
 
@@ -237,9 +238,10 @@ Laravel API (api.nestify.asia)
   của role khác thuần phía client, xem chi tiết bên dưới); **Audit logs** (RBAC Sub-project 4 thêm lọc
   theo hành động + nhãn tiếng Việt + tô nổi bật dòng truy cập bị chặn, xem chi tiết bên dưới); **Dashboard** thống kê.
 
-> **Phản biện:** (1) Trang admin detail **hydrate từ cache** (BE không có `GET /admin/products/{id}` lúc đầu → seed từ list/router
-> state, fallback fetch). (2) Reorder media là `{ids:[...]}` (không phải `media_order`); voucher đọc `meta.last_page` phẳng
-> (deviation Phase 8–9 trong `TASKS.md`). (3) Gate admin = `isStaff` (role ≠ customer); chỉ customer mới mua được hàng.
+> **Phản biện:** (1) Trang admin detail ưu tiên product từ router state hoặc cache danh sách để render ngay; nếu không có
+> seed thì `useAdminProduct(id)` gọi `GET /admin/products/{id}`. Đây là tối ưu latency, không phải dependency vào cache.
+> (2) Reorder media gửi `{ids:[...]}` (không phải `media_order`); voucher đọc `meta.last_page` phẳng.
+> (3) Gate admin = `isStaff` (role ≠ customer); chỉ customer mới mua được hàng.
 
 ---
 
@@ -373,7 +375,7 @@ token/quyền thật).
 - **Luồng tầng:** `RoomPlannerPage` điều phối → `useEditorStore` (Zustand) giữ `room` (rộng/sâu/cao, **đơn vị mét**) + `items`
   (mỗi item: `variant` + `position/rotation/scale`) + `selectedId` + `gizmoMode` + `dirty/status`. Canvas 3D ở
   `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
-  TransformControls di chuyển/xoay/phóng to). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
+  TransformControls chỉ di chuyển/xoay; customer scale bị loại khỏi gizmo và store). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
   (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
 - **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
   payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
@@ -381,7 +383,10 @@ token/quyền thật).
   "Thoát" khi còn `dirty` (cảnh báo mất thay đổi). Màn hình nhỏ (<lg) được chặn bằng `matchMedia` trước khi setup,
   scene/product preload, shortcut hay Canvas mount; `SmallScreenNotice` cho sao chép URL đầy đủ (scene/deep-link/UTM/hash)
   để tiếp tục trên desktop, có fallback thủ công và không tuyên bố các thay đổi chưa lưu đã đồng bộ.
-- **Đã loại khỏi MVP (BE có sẵn, FE chưa nối):** danh sách scene, chia sẻ (`/share`), chuyển scene → đơn (`convert-to-order`).
+- **Current-state correction (2026-07-17):** FE hiện đã nối danh sách phòng ở `/account/rooms`, public share
+  bằng token và handoff “thêm cả phòng vào giỏ”. Handoff không gọi `convert-to-order`: nó dùng
+  `POST /room-scenes/{id}/add-to-cart`, best-effort theo placement/stock; xem
+  `docs/CURRENT-STATE-MECHANISMS.md`. Câu cũ “FE chưa nối” đã lỗi thời.
 
 > **Phản biện:** (1) **three.js lazy-load** (chunk riêng ~960 kB) — không phình bundle khởi đầu, chỉ tải khi vào planner.
 > (2) **Đơn vị mét** theo chuẩn glTF → khớp tỉ lệ model `.glb` thật. (3) **PATCH thay toàn bộ items** (xoá + tạo lại) → lưu
@@ -451,7 +456,8 @@ Chia theo **miền** để mỗi người sở hữu một mảng *end-to-end* (
 
 > **Lưu ý nền tảng (FE3):** vì sở hữu `lib/`, `store/`, `router`, `AuthLayout` — mọi thay đổi ảnh hưởng cả nhóm → **PR review kỹ,
 > báo trước nhóm**. **3D Room Planner (§10b)** đã làm **MVP** (tạo phòng + thêm/biến đổi nội thất + lưu/sửa) bằng `three` +
-> `@react-three/fiber@8` + `drei@9`; phần danh sách scene / chia sẻ / chuyển-đơn còn **hoãn** — ai xong track sớm nhận mở rộng.
+> `@react-three/fiber@8` + `drei@9`; danh sách scene, public share và scene→cart hiện đã nối. Customer không
+> scale model; “chuyển-đơn” cũ được thay bằng add-to-cart rồi checkout thông thường.
 
 ---
 

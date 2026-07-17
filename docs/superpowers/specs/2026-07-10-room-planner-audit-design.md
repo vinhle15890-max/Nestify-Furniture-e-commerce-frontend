@@ -1,5 +1,9 @@
 # Room Planner — Audit end-to-end & sửa lỗi hành vi
 
+> **Historical audit brief — reconciled 2026-07-17:** A3's scale-gizmo wording is obsolete. Current A3 is
+> translate/rotate only; model real-world scale is admin-confirmed and immutable for customers. Current
+> findings, including enforcement gaps, are in `docs/CURRENT-STATE-MECHANISMS.md`.
+
 **Date:** 2026-07-10
 **Repos:** FE `Nestify-Furniture-e-commerce-frontend` + BE `Nestify-Furniture-e-commerce-backend`.
 **Bối cảnh:** vụ "bắt tường" (unit test xanh nhưng người dùng không thấy hoạt động vì hiệu ứng bị

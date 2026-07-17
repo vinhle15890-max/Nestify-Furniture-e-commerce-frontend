@@ -1,5 +1,9 @@
 # Room Planner — Scene Lifecycle & Sharing (Sub-project A)
 
+> **Historical design — reconciled 2026-07-17:** lifecycle/share/cart handoff are implemented. The statement
+> below that the gizmo supports scale is obsolete; current editor only translates/rotates and both layers
+> reject customer scaling. See `docs/CURRENT-STATE-MECHANISMS.md`.
+
 **Date:** 2026-07-09
 **Status:** Design approved, pending implementation
 **Repo:** `Nestify-Furniture-e-commerce-frontend` (frontend-only; no BE changes)

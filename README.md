@@ -47,7 +47,8 @@ Open [http://localhost:5173](http://localhost:5173) to see the app.
 - **Server state:** TanStack Query v5
 - **Client state:** Zustand (+ `persist`)
 - **HTTP:** Axios (single instance with interceptors)
-- **Styling:** Tailwind CSS v4 (CSS-first `@theme`, design tokens for the "Organic Editorial" theme)
+- **Styling:** Tailwind CSS v4 (CSS-first `@theme`; storefront visual decisions follow the current
+  “The Becoming Room” Design DNA in `docs/nestify/`; older “Organic Editorial” material is historical)
 - **Headless UI:** Radix UI primitives
 - **Icons:** lucide-react
 - **Forms:** React Hook Form + Yup
@@ -55,9 +56,20 @@ Open [http://localhost:5173](http://localhost:5173) to see the app.
 
 ## Project Documentation
 
-- [`AGENTS.md`](./AGENTS.md) — conventions and reference patterns (for contributors and AI assistants)
-- [`docs/superpowers/specs/2026-06-13-fe-nestify-design.md`](./docs/superpowers/specs/2026-06-13-fe-nestify-design.md) — full design spec: architecture, project structure, routing, design system, FE/BE contract
-- [`docs/TASKS.md`](./docs/TASKS.md) — remaining work broken down by phase/module
+- [`docs/CURRENT-STATE-MECHANISMS.md`](./docs/CURRENT-STATE-MECHANISMS.md) — canonical runtime and
+  architecture reference: route/auth boundaries, Room Planner mechanics, model-scale confirmation,
+  SEO, commerce, media, admin, failure behavior, and known enforcement gaps.
+- [`docs/FE-TEAM-WORKFLOW.md`](./docs/FE-TEAM-WORKFLOW.md) — durable, reviewer-oriented walkthrough of
+  each frontend domain from route/page through hooks, API calls, cache/store effects, and errors.
+- [`docs/nestify/`](./docs/nestify/) — canonical storefront brand and design system. Read Constitution →
+  Story Bible → Design DNA → Visual Grammar → Component Bible; use the Decision Register for conflicts.
+- [`AGENTS.md`](./AGENTS.md) — contributor conventions, implementation boundaries, and verification rules.
+
+Files under `docs/superpowers/`, `docs/spikes/`, `docs/nestify/briefs/`, `docs/nestify/templates/`,
+`.claude/skills/`, and `docs/TASKS.md` are working records or tooling instructions, not canonical product
+documentation. They may explain how a decision was reached, but reviewers should not need them to understand
+implemented behavior. When they disagree with the official references above, current code and the official
+references win.
 
 ## Project Structure
 

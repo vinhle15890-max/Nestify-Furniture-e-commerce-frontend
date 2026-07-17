@@ -1,5 +1,9 @@
 # Room Planner — Editor Depth Implementation Plan
 
+> **Historical plan — reconciled 2026-07-17:** undo/redo, duplicate and snap are implemented, but key `3`
+> and scale gizmo are deliberately absent; scale is fixed at 1 client+server. Current behavior is in
+> `docs/CURRENT-STATE-MECHANISMS.md`; code snippets below are not a runtime contract.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the planner feel professional — undo/redo, duplicate, keyboard shortcuts, and a snap toggle — all frontend, no new dependency.

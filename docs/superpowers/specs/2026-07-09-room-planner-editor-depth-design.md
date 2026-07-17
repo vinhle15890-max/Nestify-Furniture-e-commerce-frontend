@@ -1,5 +1,9 @@
 # Room Planner — Editor Depth: Undo/Redo, Duplicate, Shortcuts, Snap (Sub-project B)
 
+> **Historical design — reconciled 2026-07-17:** implementation is complete except scale was intentionally
+> removed: only keys `1`/`2` and translate/rotate exist, and backend accepts unit scale only. See the
+> current-state guide for exact history/snap mechanics.
+
 **Date:** 2026-07-09
 **Status:** Design approved, pending implementation
 **Repo:** `Nestify-Furniture-e-commerce-frontend` (frontend-only; no BE changes, no new dependency)
