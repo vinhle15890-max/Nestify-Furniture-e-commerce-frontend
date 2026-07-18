@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Package, Heart, ChevronRight, ShoppingBag } from 'lucide-react'
+import { MapPin, Package, Heart, ChevronRight, ShoppingBag, Box } from 'lucide-react'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { useLogout, useMe } from '../../features/auth/hooks'
 import { useOrders } from '../../features/orders/hooks'
@@ -14,6 +15,7 @@ import { formatPrice, formatDate } from '../../lib/format'
 import { ProfileForm } from './ProfileForm'
 
 const navItems = [
+  { to: '/account/rooms', label: 'Phòng của tôi', icon: Box },
   { to: '/account/addresses', label: 'Sổ địa chỉ', icon: MapPin },
   { to: '/orders', label: 'Đơn hàng của tôi', icon: Package },
   { to: '/wishlist', label: 'Sản phẩm yêu thích', icon: Heart },
@@ -26,31 +28,32 @@ const cardClass = 'rounded-card border border-border bg-surface p-6'
 export function AccountPage() {
   const storedUser = useAuthStore((state) => state.user)
   const setUser = useAuthStore((state) => state.setUser)
-  const { data, isLoading } = useMe()
-  const { data: ordersData } = useOrders()
-  const { data: addressesData } = useAddresses()
+  const meQuery = useMe()
+  const ordersQuery = useOrders()
+  const addressesQuery = useAddresses()
   const logout = useLogout()
 
   useEffect(() => {
-    if (data?.data) setUser(data.data)
-  }, [data, setUser])
+    if (meQuery.data?.data) setUser(meQuery.data.data)
+  }, [meQuery.data, setUser])
 
-  const user = data?.data ?? storedUser
+  const user = meQuery.data?.data ?? storedUser
 
-  const orders = ordersData?.data ?? []
-  const addresses = addressesData?.data ?? []
+  const orders = ordersQuery.data?.data ?? []
+  const addresses = addressesQuery.data?.data ?? []
   const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0]
   const recentOrders = orders.slice(0, 3)
 
   const stats = [
-    { label: 'Tổng đơn hàng', value: orders.length },
-    { label: 'Đang xử lý', value: orders.filter((order) => IN_PROGRESS_STATUSES.includes(order.status)).length },
-    { label: 'Đã giao', value: orders.filter((order) => order.status === 'delivered').length },
+    { label: 'Tổng đơn hàng', value: ordersQuery.isError && !ordersQuery.data ? '—' : orders.length },
+    { label: 'Đang xử lý', value: ordersQuery.isError && !ordersQuery.data ? '—' : orders.filter((order) => IN_PROGRESS_STATUSES.includes(order.status)).length },
+    { label: 'Đã giao', value: ordersQuery.isError && !ordersQuery.data ? '—' : orders.filter((order) => order.status === 'delivered').length },
   ]
 
   const initial = (user?.name?.trim()?.[0] ?? '?').toUpperCase()
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -69,12 +72,17 @@ export function AccountPage() {
         </Button>
       </div>
 
-      {isLoading && !user ? (
+      {meQuery.isLoading && !user ? (
         <div className="mt-10">
           <Spinner label="Đang tải thông tin tài khoản..." />
         </div>
+      ) : meQuery.isError && !user ? (
+        <LoadErrorState className="mt-10" title="Chưa thể tải thông tin tài khoản" description="Vui lòng thử lại để tiếp tục quản lý tài khoản." onRetry={meQuery.refetch} isRetrying={meQuery.isFetching} />
       ) : (
         <>
+          {meQuery.isError && user && (
+            <LoadErrorState className="mt-8" compact background title="Thông tin tài khoản có thể chưa mới nhất" description="Bạn vẫn có thể sử dụng dữ liệu đã lưu hoặc thử tải lại." onRetry={meQuery.refetch} isRetrying={meQuery.isFetching} />
+          )}
           <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
             <span className="eyebrow">Xác thực email</span>
             <Badge tone={user?.email_verified_at ? 'in-stock' : 'out-of-stock'}>
@@ -98,7 +106,9 @@ export function AccountPage() {
                 Quản lý
               </Link>
             </div>
-            {defaultAddress ? (
+            {addressesQuery.isError && !addressesQuery.data ? (
+              <LoadErrorState className="mt-4" compact title="Chưa thể tải địa chỉ mặc định" description="Địa chỉ của bạn chưa bị thay đổi. Hãy thử tải lại." onRetry={addressesQuery.refetch} isRetrying={addressesQuery.isFetching} />
+            ) : defaultAddress ? (
               <div className="mt-3 text-sm">
                 <p className="font-medium text-foreground">
                   {defaultAddress.recipient_name} · {defaultAddress.phone}
@@ -126,7 +136,9 @@ export function AccountPage() {
                 Xem tất cả
               </Link>
             </div>
-            {recentOrders.length > 0 ? (
+            {ordersQuery.isError && !ordersQuery.data ? (
+              <LoadErrorState className="mt-4" compact title="Chưa thể tải đơn hàng" description="Số liệu và đơn hàng gần đây chưa thể hiển thị. Hãy thử tải lại." onRetry={ordersQuery.refetch} isRetrying={ordersQuery.isFetching} />
+            ) : recentOrders.length > 0 ? (
               <ul className="mt-4 flex flex-col divide-y divide-border">
                 {recentOrders.map((order) => {
                   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
@@ -191,6 +203,7 @@ export function AccountPage() {
           )}
         </>
       )}
+    </div>
     </div>
   )
 }

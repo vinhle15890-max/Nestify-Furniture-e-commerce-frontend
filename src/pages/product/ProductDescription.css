@@ -1,6 +1,5 @@
-/* Storefront rendering of the rich product description (HTML from the admin
-   editor). Tailwind resets headings/lists, so style the semantic tags here with
-   the design-system tokens to match the "Warm Luxury Editorial" look. */
+/* Storefront rendering of rich product-description HTML. Tailwind resets
+   headings/lists, so keep the stored semantic content on Nestify tokens. */
 .product-description {
   color: var(--color-foreground);
   font-size: 1.0625rem;

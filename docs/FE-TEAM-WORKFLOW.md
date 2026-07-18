@@ -4,9 +4,10 @@
 > teammate đọc, hiểu hệ thống, **phản biện** (trả lời câu hỏi hội đồng), đồng thời **chia việc cho 4 FE**.
 > **Cách đọc mỗi mục:** *Actor → Entry (route/page) → Luồng qua các tầng (page → hooks → api → apiClient) →
 > Side-effect (cache/store/toast) → Lỗi → **Điểm phản biện*** (vì sao thiết kế thế, câu hỏi hay bị hỏi).
-> **Last updated:** 2026-07-01 · **See also:** `AGENTS.md` (convention + stack), `docs/TASKS.md` (bảng việc theo phase),
-> `docs/superpowers/specs/2026-06-13-fe-nestify-design.md` (spec thiết kế + hợp đồng FE/BE),
-> BE `docs/14-workflows.md` (luồng phía server — đối chiếu hợp đồng).
+> **Last reconciled with code:** 2026-07-17 · **See also:** `AGENTS.md` (convention + stack),
+> `docs/CURRENT-STATE-MECHANISMS.md` (cơ chế, enforcement gap và edge case chi tiết), BE
+> `docs/FE_AI_CONTEXT.md` (request/response contract) và BE `docs/14-workflows.md` (luồng server).
+> Dated specs/plans và `TASKS.md` là work records, không cần đọc để hiểu current state trong tài liệu này.
 
 ---
 
@@ -129,12 +130,13 @@ Laravel API (api.nestify.asia)
 
 - **Luồng:** chọn địa chỉ (mặc định trước) → voucher → **phương thức** `cod` | `payos` → tạo đơn (`useCreateOrder`) → nếu
   `payos`: tạo phiên thanh toán → **redirect** sang cổng PayOS; nếu `cod`: đơn `processing` ngay.
-- **Idempotency:** mỗi lần checkout gắn **Idempotency-Key** (`lib/idempotency.js`) → bấm 2 lần / mạng chập không tạo đơn trùng.
-- **Trang trả về `/checkout/return`:** poll trạng thái đơn; có lớp **reconcile** (đối chiếu) khi webhook PayOS đến trễ.
+- **Idempotency:** mỗi lần checkout gắn **Idempotency-Key** (`lib/idempotency.js`), giữ qua reload cùng tab bằng `sessionStorage`; BE persist key + fingerprint cùng transaction order → bấm 2 lần / mất response không lặp side-effect. Key chỉ rotate sau khi BE trả order.
+- **Sau khi order đã tạo:** Checkout chuyển sang state mở PayOS riêng. Lỗi session giữ nguyên order ID, có retry session + link chi tiết và tuyệt đối không gọi `createOrder` lần hai.
+- **Trang trả về `/checkout/return`:** gọi reconcile tối đa 10 lần/cycle; phân biệt `success|pending|failed`, dừng khi gateway/API lỗi và có retry rõ ràng. `503 GATEWAY_UNAVAILABLE` không bị hiển thị như pending giả.
 - **Gate staff:** staff vào `/checkout` → `CheckoutNotice` (không mua được).
 - **Lỗi:** `409 INSUFFICIENT_STOCK`, `409 ORDER_ALREADY_PAID`, `429 RATE_LIMITED` → thông báo & điều hướng phù hợp.
 
-> **Phản biện:** (1) **Idempotency-Key** là điểm chí mạng phía FE — chống double-submit. (2) Trang return poll + reconcile vì
+> **Phản biện:** (1) **Idempotency-Key** là điểm chí mạng xuyên FE/BE — FE giữ cùng key khi retry, BE mới là nơi enforce unique + replay. (2) Trang return poll + reconcile vì
 > webhook là nguồn sự thật nhưng có thể trễ → tránh kẹt "pending_payment" giả. (3) COD vs PayOS: COD xác nhận đơn ngay,
 > PayOS giữ chỗ kho tới khi trả tiền (khớp BE §4–§5).
 
@@ -159,7 +161,7 @@ Laravel API (api.nestify.asia)
 - Chỉ user **đã mua** mới thấy form (verified purchase, 1 review/sản phẩm); comment trả lời 1 cấp. Review `approved` mới hiện public.
 
 > **Phản biện:** Form review nằm ở `/p/:slug` **không** ở `/orders/:id` vì `variant_snapshot` của đơn không mang `product_id`
-> (xem deviation Phase 5 trong `TASKS.md`) — cần `product` để gắn review.
+> Đây là lý do response review cần kèm `product`: danh sách moderation phải gắn review với đúng sản phẩm.
 
 ---
 
@@ -227,13 +229,140 @@ Laravel API (api.nestify.asia)
 **Actor:** Staff (role ≠ customer). **Entry:** `/admin/*` sau `AdminRoute`. **Feature:** `features/admin/*`, `pages/admin/*`.
 
 - **Catalog:** products (CRUD), **variants** (modal) + **biến thể theo tùy chọn** (`VariantOptionsPanel` định nghĩa option +
-  `VariantMatrixGenerator` sinh ma trận qua endpoint bulk), media upload + **reorder** payload `{ids:[...]}`.
+  `VariantMatrixGenerator` sinh ma trận qua endpoint bulk), ảnh SP chọn từ **Thư viện ảnh** (picker) + **reorder** payload `{ids:[...]}` + gắn/**gỡ** theo biến thể.
+- **Thư viện ảnh (Media Library):** `/admin/media` + `features/admin/media/` — ảnh dùng lại được (upload 1 lần, dùng nhiều nơi); `MediaLibraryModal` dùng chung cho form SP + form danh mục; xoá bị chặn khi còn dùng (`409`). Chi tiết code-path: BE `14-workflows.md` §10d.
 - **Orders:** list + đổi trạng thái (**state machine**, chỉ bước hợp lệ) + **refund đồng bộ**.
-- **Voucher** CRUD; **Review moderation** approve/reject; **Users** (read-only + gán role); **Audit logs**; **Dashboard** thống kê.
+- **Voucher** CRUD; **Review moderation** approve/reject; **Users** (list + gán role qua `AssignRolesDialog`);
+  **Vai trò** (`/admin/roles`, RBAC Sub-project 2 — tạo/sửa/xoá role custom + tick ma trận permission; Sub-project 3
+  thêm toggle **view Ma trận** read-only; Sub-project 5 thêm nút **"Xem thử vai trò"** mô phỏng nav/route-gate
+  của role khác thuần phía client, xem chi tiết bên dưới); **Audit logs** (RBAC Sub-project 4 thêm lọc
+  theo hành động + nhãn tiếng Việt + tô nổi bật dòng truy cập bị chặn, xem chi tiết bên dưới); **Dashboard** thống kê.
 
-> **Phản biện:** (1) Trang admin detail **hydrate từ cache** (BE không có `GET /admin/products/{id}` lúc đầu → seed từ list/router
-> state, fallback fetch). (2) Reorder media là `{ids:[...]}` (không phải `media_order`); voucher đọc `meta.last_page` phẳng
-> (deviation Phase 8–9 trong `TASKS.md`). (3) Gate admin = `isStaff` (role ≠ customer); chỉ customer mới mua được hàng.
+> **Phản biện:** (1) Trang admin detail ưu tiên product từ router state hoặc cache danh sách để render ngay; nếu không có
+> seed thì `useAdminProduct(id)` gọi `GET /admin/products/{id}`. Đây là tối ưu latency, không phải dependency vào cache.
+> (2) Reorder media gửi `{ids:[...]}` (không phải `media_order`); voucher đọc `meta.last_page` phẳng.
+> (3) Gate admin = `isStaff` (role ≠ customer); chỉ customer mới mua được hàng.
+
+---
+
+### 10a-i. Quản lý role động (RBAC Sub-project 2)
+
+**Actor:** Staff có `manage_users`. **Entry:** mục nav "Vai trò" (nhóm "Nhân sự") → `/admin/roles`, gate
+`RequirePermission slug="manage_users"` (giống SP1). **Feature:** `features/admin/roles/{api,hooks}.js` +
+`pages/admin/roles/{AdminRolesPage,RoleFormDialog}.jsx`.
+
+- **`AdminRolesPage`:** bảng role (`useRoles` — tái dùng hook `features/admin/users`, giờ trả kèm
+  `permissions`/`users_count`/`locked`) — tên hiển thị + `name` (mã), số permission, số nhân viên đang giữ,
+  badge **"Hệ thống"** khi `locked`. Nút "Tạo vai trò" mở `RoleFormDialog` (tạo mới); mỗi hàng có nút Sửa
+  (mở dialog ở chế độ sửa) và Xoá (ẩn hoàn toàn nếu `locked`).
+- **`RoleFormDialog`:** input Tên hiển thị + ma trận checkbox permission (`usePermissions` →
+  `GET /admin/permissions`, nhãn tiếng Việt qua `PERMISSION_LABELS` của `adminNav.js` từ SP1, fallback
+  `display_name` BE). `locked` → toàn bộ field disabled, không có nút Lưu, chỉ ghi chú "Toàn quyền (bypass)"
+  (super_admin) hoặc "Vai trò hệ thống, không thể chỉnh sửa" (customer). Lưu gọi `useCreateRole`/`useUpdateRole`
+  (`display_name` + `permissions: string[]`) — invalidate `['admin','roles']` khi thành công.
+- **Xoá:** confirm `Modal`; nếu BE trả `409 ROLE_IN_USE` → toast đọc `err.details.users_count`
+  ("Còn {N} nhân viên giữ vai trò này, hãy gỡ trước khi xoá"), không đóng dialog kiểu lỗi chung chung.
+
+> **Phản biện:** Vì sao FE không tự chặn xoá role đang dùng trước khi gọi API (chặn optimistic)? BE là nguồn
+> chân lý duy nhất cho `users_count` tại thời điểm xoá (tránh lệch cache) — FE để BE trả 409 rồi hiển thị
+> đúng số liệu mới nhất. `locked` là cờ suy ra từ BE (`name` server-side), FE chỉ hiển thị, không tự đoán.
+
+---
+
+### 10a-ii. Ma trận Role × Permission (RBAC Sub-project 3)
+
+**Actor:** Staff có `manage_users` (cùng gate SP2). **Entry:** `AdminRolesPage` thêm toggle **"Bảng | Ma
+trận"** (state local, không route/nav mới). **Feature:** `pages/admin/roles/RolePermissionMatrix.jsx` — **thuần
+FE, không có API mới, không đổi BE contract.**
+
+- **Dữ liệu:** tái dùng nguyên `useRoles` (từ `features/admin/users/hooks`, đã trả kèm `permissions`) làm
+  hàng và `usePermissions` (từ `features/admin/roles/hooks`, `GET /admin/permissions`) làm cột — zero
+  network call mới so với view Bảng.
+- **`RolePermissionMatrix`:** lưới **chỉ đọc** (read-only), ẩn role `customer` khỏi hàng. Ô "có quyền" hiện
+  icon Check (`role="img"` + `aria-label` để accessible, không chỉ là màu). Hàng `super_admin` có ghi chú
+  **"Toàn quyền (bypass)"** thay vì tick từng cột (đúng ngữ nghĩa bypass ở BE).
+  Nút Sửa/Xem trên mỗi hàng vẫn mở `RoleFormDialog` của SP2 (locked → read-only) — ma trận **không tự ghi**,
+  toàn bộ luồng sửa đi qua path ghi có sẵn của SP2.
+- **`AdminRolesPage`:** toggle chuyển đổi giữa view Bảng (SP2, mặc định) và view Ma trận; không thêm route,
+  không thêm mục nav.
+
+> **Phản biện:** Vì sao ma trận không tự viết trực tiếp qua ô? Giữ đúng nguyên tắc SP2 — mọi ghi permission
+> đi qua `RoleFormDialog` (1 con đường ghi duy nhất, dễ audit); ma trận chỉ là **view khác của cùng dữ liệu**
+> để nhìn tổng quan nhanh hơn bảng liệt kê theo hàng.
+
+---
+
+### 10a-iii. Nhật ký: lọc theo hành động + tô nổi bật truy cập bị chặn (RBAC Sub-project 4)
+
+**Actor:** Staff có `view_audit`. **Entry:** `/admin/audit-logs` (không đổi route/nav). **Feature:**
+`features/admin/auditLogs/{api,hooks,actionLabels}.js` + `pages/admin/auditLogs/AdminAuditLogsPage.jsx`.
+Cross-repo với BE §12c/§14 (`14-workflows.md`): BE `CheckPermission` middleware giờ **ghi 1 `AuditLog`
+action `access.denied`** mỗi khi user đã đăng nhập bị chặn 403 vì thiếu quyền; FE hiển thị các dòng này
+rõ ràng hơn thay vì lẫn vào slug thô.
+
+- **`actionLabels.js`** (mới): `AUDIT_ACTION_LABELS` (object slug → nhãn tiếng Việt, gồm `access.denied`,
+  `order.cancel`, `order.status_transition`, `payment.refund`, `user.assign_roles`, `user.lock`,
+  `user.unlock`, `role.create`, `role.update`, `role.delete`) + `labelForAction(action)` — trả nhãn nếu có,
+  **fallback về slug thô** nếu BE thêm action mới mà FE chưa map (không vỡ UI).
+- **`api.js`/`hooks.js`:** `getAuditLogs(page, action = '')` gửi `params: { page, action: action || undefined }`
+  (chuỗi rỗng không gửi lên); `useAdminAuditLogs(page, action = '')` đưa `action` vào `queryKey` để cache
+  tách theo filter.
+- **`AdminAuditLogsPage`:** thêm `<select aria-label="Lọc theo hành động">` — "Tất cả hành động" + 1 option
+  cho mỗi entry của `AUDIT_ACTION_LABELS`; đổi filter → `setAction` + reset `page` về 1. Cột "Hành động"
+  hiển thị `labelForAction(log.action)` thay vì slug thô. Dòng có `log.action === 'access.denied'` được tô
+  **nền `bg-destructive/5`** + thêm **badge đỏ "Bị chặn"** cạnh nhãn hành động; ô "Chi tiết" (`new_values`)
+  giữ nguyên cơ chế `<details>`/`<pre>` sẵn có — không cần đổi gì vì BE đã trả `{permission, method, path}`
+  trong `new_values` cho các dòng này.
+- **Không đổi:** `AuditLogResource`, route, endpoint — chỉ query string `?action=` mới, đã có sẵn ở BE.
+
+> **Phản biện:** Vì sao dropdown lọc chỉ liệt kê action có trong `AUDIT_ACTION_LABELS` (không phải toàn bộ
+> action đang tồn tại trong DB)? Tránh gọi thêm 1 API "danh sách action distinct" chỉ để build dropdown —
+> danh sách action đã biết là đủ cho nhu cầu lọc hiện tại; action lạ vẫn xem được (không lọc được) qua
+> fallback hiển thị. Vì sao tô nền cả dòng thay vì chỉ đổi màu chữ? Badge màu đơn độc dễ bị bỏ sót khi lướt
+> nhanh bảng nhiều dòng — nền tô nhẹ cả hàng giúp mắt bắt được ngay dòng "bị chặn" mà không cần đọc từng ô.
+
+---
+
+### 10a-iv. "Xem với vai trò" — role preview (RBAC Sub-project 5, HẾT roadmap)
+
+**Actor:** Staff có `manage_users` (cùng gate nút Sửa/Xoá ở `/admin/roles`). **Entry:** icon "Eye" trên mỗi
+hàng bảng vai trò → xem thử ngay, không route/nav mới. **Feature:** `store/previewStore.js` (mới) — **thuần
+FE, không đổi BE contract, BE hoàn toàn không biết preview đang chạy** (mọi thao tác ghi vẫn bị BE chặn
+theo quyền THẬT của tài khoản đăng nhập — preview chỉ đổi những gì FE tự vẽ ra: nav + route-gate, không đổi
+token/quyền thật).
+
+- **`previewStore.js`:** Zustand store **không `persist`** (luôn reset khi reload) — state `{ previewRole }` +
+  action `setPreviewRole(role)` / `clearPreview()`. Kèm hook tổ hợp **`useEffectiveUser()`**: đọc
+  `authStore.user` (thật) + `previewStore.previewRole`; nếu đang preview, trả về `{...user, permissions:
+  previewRole.permissions ?? []}` (permissions bị tráo, mọi field khác — id/name/email — giữ nguyên); không
+  preview → trả `user` thật y nguyên.
+- **Nơi tiêu thụ `useEffectiveUser()` (thay vì đọc `authStore` trực tiếp)** — 3 chỗ, để nav/route-gate phản
+  ánh đúng vai trò đang xem thử:
+  - `routes/RequirePermission.jsx` — `can`/`canAny` chạy trên effective user, nên route-gate 403 khớp với
+    vai trò đang preview.
+  - `pages/admin/AdminHome.jsx` — logic redirect/403 ở index `/admin` cũng dùng effective user.
+  - `pages/admin/PermissionDenied.jsx` — danh sách "các mục bạn có thể vào" ở trang 403 liệt kê theo effective
+    user, tức đúng những mục vai trò đang xem thử có thể vào, không phải của admin thật.
+- **`AdminLayout.jsx`:** sidebar (`visibleGroups`) đọc **effective user** (đổi theo preview); `UserMenu`
+  (tên/email góc dưới) vẫn đọc `authStore.user` **thật** — danh tính không bao giờ đổi, chỉ nav hiển thị đổi.
+  Khi `previewRole` khác `null`, render `PreviewBanner` — thanh nền `bg-accent/10` nằm **ngoài `<Outlet/>`**
+  (tức ngoài `RequirePermission`), đọc "Đang xem thử giao diện như vai trò {display_name} — quyền thao tác
+  thật vẫn theo tài khoản của bạn" + nút "Thoát xem thử" (icon X) luôn bấm được bất kể vai trò đang xem thử
+  có quyền gì (vì nằm ngoài route-gate) — bấm gọi `clearPreview()` rồi `navigate('/admin')`.
+- **`AdminRolesPage.jsx`:** thêm icon nút "Eye" (`aria-label="Xem thử vai trò {display_name}"`) ở **view
+  Bảng** mỗi hàng, cạnh Sửa/Xoá — **không thêm ở view Ma trận** (giữ đúng quyết định SP3: ma trận chỉ đọc,
+  không thêm hành động mới). Ẩn hẳn với hàng `customer` (không phải vai trò quản trị, xem thử vô nghĩa).
+  Bấm → `setPreviewRole(role)` rồi `navigate(firstAllowedPath({ permissions: role.permissions ?? [] }) ??
+  '/admin')` — điều hướng thẳng tới mục đầu tiên vai trò đó xem được, tránh admin đứng lại ở trang chính họ
+  (vai trò thật) xem được nhưng vai trò đang preview thì không.
+
+> **Phản biện:** Vì sao preview không gọi BE (vd. đổi role tạm thời trên server) mà chỉ tráo `permissions`
+> phía client? Preview là công cụ UX cho admin "nhìn thử", không phải đổi quyền thật — nếu chạm BE sẽ có rủi
+> ro thật sự thay đổi quyền của chính tài khoản đang đăng nhập (và cần rollback khi thoát/crash/đóng tab).
+> Giữ 100% client-side + không `persist` nghĩa là reload trang = tự thoát preview, không cần cơ chế dọn dẹp
+> nào khác. Vì sao banner nằm ngoài `<Outlet/>`/`RequirePermission`? Nếu nằm trong, một preview quá hẹp
+> quyền (vd. vai trò không có mục nào) có thể tự chặn luôn nút "Thoát xem thử" của chính nó — banner phải
+> luôn thoát được bất kể đang giả lập vai trò gì.
 
 ---
 
@@ -246,13 +375,18 @@ Laravel API (api.nestify.asia)
 - **Luồng tầng:** `RoomPlannerPage` điều phối → `useEditorStore` (Zustand) giữ `room` (rộng/sâu/cao, **đơn vị mét**) + `items`
   (mỗi item: `variant` + `position/rotation/scale`) + `selectedId` + `gizmoMode` + `dirty/status`. Canvas 3D ở
   `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
-  TransformControls di chuyển/xoay/phóng to). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
+  TransformControls chỉ di chuyển/xoay; customer scale bị loại khỏi gizmo và store). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
   (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
 - **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
   payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
 - **Hiệu ứng phụ:** lần lưu đầu chuyển hướng `/room-planner` → `/room-planner/:id` (replace). Có **`beforeunload`** + chặn lúc
-  "Thoát" khi còn `dirty` (cảnh báo mất thay đổi). Màn hình nhỏ (<lg) hiện `SmallScreenNotice` thay vì editor.
-- **Đã loại khỏi MVP (BE có sẵn, FE chưa nối):** danh sách scene, chia sẻ (`/share`), chuyển scene → đơn (`convert-to-order`).
+  "Thoát" khi còn `dirty` (cảnh báo mất thay đổi). Màn hình nhỏ (<lg) được chặn bằng `matchMedia` trước khi setup,
+  scene/product preload, shortcut hay Canvas mount; `SmallScreenNotice` cho sao chép URL đầy đủ (scene/deep-link/UTM/hash)
+  để tiếp tục trên desktop, có fallback thủ công và không tuyên bố các thay đổi chưa lưu đã đồng bộ.
+- **Current-state correction (2026-07-17):** FE hiện đã nối danh sách phòng ở `/account/rooms`, public share
+  bằng token và handoff “thêm cả phòng vào giỏ”. Handoff không gọi `convert-to-order`: nó dùng
+  `POST /room-scenes/{id}/add-to-cart`, best-effort theo placement/stock; xem
+  `docs/CURRENT-STATE-MECHANISMS.md`. Câu cũ “FE chưa nối” đã lỗi thời.
 
 > **Phản biện:** (1) **three.js lazy-load** (chunk riêng ~960 kB) — không phình bundle khởi đầu, chỉ tải khi vào planner.
 > (2) **Đơn vị mét** theo chuẩn glTF → khớp tỉ lệ model `.glb` thật. (3) **PATCH thay toàn bộ items** (xoá + tạo lại) → lưu
@@ -322,7 +456,8 @@ Chia theo **miền** để mỗi người sở hữu một mảng *end-to-end* (
 
 > **Lưu ý nền tảng (FE3):** vì sở hữu `lib/`, `store/`, `router`, `AuthLayout` — mọi thay đổi ảnh hưởng cả nhóm → **PR review kỹ,
 > báo trước nhóm**. **3D Room Planner (§10b)** đã làm **MVP** (tạo phòng + thêm/biến đổi nội thất + lưu/sửa) bằng `three` +
-> `@react-three/fiber@8` + `drei@9`; phần danh sách scene / chia sẻ / chuyển-đơn còn **hoãn** — ai xong track sớm nhận mở rộng.
+> `@react-three/fiber@8` + `drei@9`; danh sách scene, public share và scene→cart hiện đã nối. Customer không
+> scale model; “chuyển-đơn” cũ được thay bằng add-to-cart rồi checkout thông thường.
 
 ---
 
@@ -386,4 +521,4 @@ chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail 
 
 ---
 
-_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-01._
+_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-10._

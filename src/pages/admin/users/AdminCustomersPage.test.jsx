@@ -51,6 +51,8 @@ describe('AdminCustomersPage', () => {
 
     expect(await screen.findByText('Mai Anh')).toBeInTheDocument()
     expect(usersApi.getUsers).toHaveBeenCalledWith(expect.objectContaining({ type: 'customer' }))
+    expect(screen.getByRole('table', { name: 'Danh sách khách hàng' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xem chi tiết khách hàng Mai Anh' })).toBeInTheDocument()
   })
 
   it('promotes a customer to employee, dropping the customer role', async () => {
@@ -58,7 +60,7 @@ describe('AdminCustomersPage', () => {
     renderPage()
 
     const row = (await screen.findByText('Mai Anh')).closest('tr')
-    await user.click(within(row).getByRole('button', { name: 'Chi tiết' }))
+    await user.click(within(row).getByRole('button', { name: 'Xem chi tiết khách hàng Mai Anh' }))
 
     // Drawer → promote
     await user.click(await screen.findByRole('button', { name: /Thăng thành nhân viên/ }))
@@ -77,6 +79,6 @@ describe('AdminCustomersPage', () => {
   it('renders a lock action for a customer row', async () => {
     renderPage()
     const row = (await screen.findByText('Mai Anh')).closest('tr')
-    expect(within(row).getByRole('button', { name: 'Khóa' })).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Khóa tài khoản Mai Anh' })).toBeInTheDocument()
   })
 })

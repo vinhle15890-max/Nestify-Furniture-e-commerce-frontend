@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { useUpdateProfile } from '../../features/auth/hooks'
-import { applyServerErrors } from '../../lib/formErrors'
+import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
 
 const schema = yup.object({
   name: yup.string().required('Vui lòng nhập họ tên.').max(255, 'Họ tên tối đa 255 ký tự.'),
@@ -30,6 +30,7 @@ export function ProfileForm({ user }) {
   const updateProfile = useUpdateProfile()
   const [formError, setFormError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const formRef = useRef(null)
 
   const {
     register,
@@ -55,15 +56,19 @@ export function ProfileForm({ user }) {
       setSuccess(true)
       reset({ name: values.name, current_password: '', password: '', password_confirmation: '' })
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
-      setFormError(error.message)
+      if (applyServerErrors(error, setError)) {
+        focusFirstError(formRef.current)
+        return
+      }
+      setFormError(formLevelMessage(error))
+      focusFirstError(formRef.current)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+    <form ref={formRef} onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
       {formError && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" tabIndex="-1" className="text-sm text-destructive">
           {formError}
         </p>
       )}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import {
   useWishlist,
   useUpdateWishlistItem,
@@ -9,11 +9,14 @@ import {
 } from '../../features/wishlist/hooks'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
+import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice } from '../../lib/format'
 
 export function WishlistPage() {
-  const { data, isLoading } = useWishlist()
+  const wishlistQuery = useWishlist()
+  const { data, isLoading, isError, isFetching } = wishlistQuery
   const updateItem = useUpdateWishlistItem()
   const removeItem = useRemoveWishlistItem()
   const moveToCart = useMoveToCart()
@@ -22,8 +25,27 @@ export function WishlistPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-4xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-4xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
+      </div>
+    )
+  }
+
+  if (isError && !data?.data) {
+    return (
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
+          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm yêu thích</h1>
+          <LoadErrorState
+            title="Chưa thể tải sản phẩm yêu thích"
+            description="Danh sách đã lưu chưa tải được. Hãy thử lại để tiếp tục cân nhắc các lựa chọn của bạn."
+            onRetry={() => wishlistQuery.refetch()}
+            isRetrying={isFetching}
+            className="mt-10"
+          />
+        </div>
       </div>
     )
   }
@@ -46,18 +68,36 @@ export function WishlistPage() {
   }
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
       <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm yêu thích</h1>
 
+      {isError && data?.data && (
+        <LoadErrorState
+          title="Chưa cập nhật được danh sách mới nhất"
+          description="Đang hiển thị các sản phẩm đã tải trước đó."
+          onRetry={() => wishlistQuery.refetch()}
+          isRetrying={isFetching}
+          compact
+          background
+          className="mt-6"
+        />
+      )}
+
       {items.length === 0 ? (
-        <div className="mt-10 rounded-card border border-border bg-surface p-12 text-center">
-          <Heart size={36} className="mx-auto text-border-strong" />
-          <p className="mt-4 text-muted-foreground">
-            Danh sách yêu thích trống.{' '}
-            <Link to="/c/all" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
-              Tiếp tục mua sắm
-            </Link>
+        <div className="mt-10 flex flex-col items-center rounded-card border border-border bg-surface px-6 py-14 text-center">
+          <div className="pointer-events-none w-full max-w-[300px]">
+            <BecomingRoomArt level={1} />
+          </div>
+          <p className="mt-6 max-w-sm text-muted-foreground">
+            Chưa có món nào được lưu — những điều bạn yêu thích sẽ tụ về đây.
           </p>
+          <Link
+            to="/c/all"
+            className="mt-4 text-sm text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent"
+          >
+            Tiếp tục mua sắm
+          </Link>
         </div>
       ) : (
         <ul className="mt-10 flex flex-col divide-y divide-border">
@@ -124,6 +164,7 @@ export function WishlistPage() {
           ))}
         </ul>
       )}
+    </div>
     </div>
   )
 }

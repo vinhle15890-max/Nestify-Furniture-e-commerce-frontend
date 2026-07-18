@@ -1,6 +1,36 @@
 import '@testing-library/jest-dom/vitest'
 import { beforeEach } from 'vitest'
 
+// React Router emits the same two v7 migration notices from every isolated
+// MemoryRouter test. Production opts into both flags; keep test output useful
+// without muting any other warning.
+const originalWarn = console.warn.bind(console)
+console.warn = (...args) => {
+  const message = args.map(String).join(' ')
+  if (message.includes('React Router Future Flag Warning')) return
+  originalWarn(...args)
+}
+
+// R3F host primitives (mesh, group, *Geometry, *Material) are valid only
+// inside the custom renderer. A few wiring tests intentionally render them
+// through jsdom, where React DOM reports casing/attribute noise. Suppress only
+// those known messages when the component stack proves the source is a scene
+// test; all other console errors remain visible.
+const originalError = console.error.bind(console)
+console.error = (...args) => {
+  const message = args.map(String).join(' ')
+  const fromSceneTest = message.includes('/roomPlanner/scene/')
+  const knownR3fDomNoise = [
+    'is using incorrect casing',
+    'is unrecognized in this browser',
+    'React does not recognize the',
+    'non-boolean attribute',
+  ].some((pattern) => message.includes(pattern))
+
+  if (fromSceneTest && knownR3fDomNoise) return
+  originalError(...args)
+}
+
 // Mock localStorage if not available
 const localStorageMock = (() => {
   let store = {}

@@ -57,6 +57,20 @@ describe('WishlistPage', () => {
     expect(screen.getByRole('checkbox', { name: 'Báo khi còn hàng' })).not.toBeChecked()
   })
 
+  it('shows a retryable failure instead of an empty wishlist', async () => {
+    wishlistApi.getWishlist
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(sampleWishlist)
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể tải sản phẩm yêu thích')
+    expect(screen.queryByText(/Chưa có món nào được lưu/)).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByText('Nâu')).toBeInTheDocument()
+    expect(wishlistApi.getWishlist).toHaveBeenCalledTimes(2)
+  })
+
   it('toggles the restock notification', async () => {
     wishlistApi.updateItem.mockResolvedValue({ data: { ...sampleWishlist.data.items[0], notify_on_restock: true } })
     renderPage()

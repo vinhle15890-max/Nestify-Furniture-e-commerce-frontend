@@ -9,13 +9,63 @@
 const UNSPLASH = 'https://images.unsplash.com'
 export const img = (id, w = 1200) => `${UNSPLASH}/${id}?auto=format&fit=crop&w=${w}&q=80`
 
+// Threshold copy (Story Bible §"Threshold (tiền-Chapter 1)", amended 2026-07-09
+// "Threshold-with-presence"). The headline holds the unanswered proposition;
+// the subtitle communicates seeing-before-deciding without describing Planner
+// mechanics. `cta` invites exploration; it never launches or demonstrates the
+// Planner. Scrolling past the Hero remains the canonical Entry Event.
 export const hero = {
-  image: img('photo-1618220179428-22790b461013', 2000),
-  eyebrow: 'Nội thất thủ công',
-  title: 'Không gian sống mang hơi thở của bạn.',
-  subtitle: 'Nội thất bền vững, chế tác từ vật liệu tự nhiên cho cuộc sống hiện đại.',
-  primaryCta: { label: 'Khám phá bộ sưu tập', to: '/c/all' },
-  secondaryCta: { label: 'Xem Lookbook', to: '#lookbook' },
+  title: 'Điều gì có thể bắt đầu ở đây?',
+  subtitle: 'Khám phá những lựa chọn để hình dung điều gì có thể phù hợp với không gian của bạn — trước khi quyết định.',
+  cta: { label: 'Khám phá không gian', to: '/c/all' },
+}
+
+// The Becoming, in three states — the homepage's compressed arc from an empty
+// room to a future home. Each step maps to a Story Bible chapter and drives
+// `BecomingRoomArt` at an increasing `level` of completeness. `imagined` warmth
+// is permitted only at level 3 (Future Home — the chapter that owns it), and
+// only as depiction, never as an interactive/CTA color.
+export const becomingSteps = [
+  {
+    n: '01',
+    level: 1,
+    chapter: 'Possibility',
+    title: 'Một căn phòng trống',
+    caption: 'Mọi khả năng còn để mở — bạn chưa phải cam kết bất cứ điều gì.',
+  },
+  {
+    n: '02',
+    level: 2,
+    chapter: 'Experiment',
+    title: 'Thử một món đồ',
+    caption: 'Đặt thử ngay trong chính căn phòng của bạn, thấy nó vừa vặn đến đâu.',
+  },
+  {
+    n: '03',
+    level: 3,
+    chapter: 'Future Home',
+    title: 'Thấy tổ ấm tương lai',
+    caption: 'Nhìn rõ ngôi nhà sẽ thành hình — trước khi bạn đưa ra quyết định.',
+  },
+]
+
+// Brand-promise interlude (Chapter 5 — Ownership echo). A quiet manifesto beat:
+// Nestify sells seeing-it-first (clarity), never the product; the Enemy is the
+// fear of irreversible decisions. Split lead/body for typographic hierarchy.
+export const brandPromise = {
+  eyebrow: 'Vì sao Nestify',
+  lead: 'Chúng tôi không bán cho bạn một món đồ.',
+  body: 'Chúng tôi cho bạn thấy trước ngôi nhà của mình — để không quyết định nào còn là một canh bạc.',
+}
+
+// Closing invitation — names the Room Planner as the destination (Chapter 4
+// pointer). This section is NOT the Threshold/Hero, so pointing straight to the
+// Planner is correct here. CTA stays `ink` (no `imagined` before visualization).
+export const plannerInvite = {
+  eyebrow: 'Điểm đến',
+  title: 'Bắt đầu trong chính căn phòng của bạn.',
+  intro: 'Nestify không bán món đồ trước — nó cho bạn thấy trước tổ ấm của mình. Bước vào không gian của bạn, thử bố trí, và nhìn thấy rõ.',
+  cta: { label: 'Mở không gian của bạn', to: '/room-planner' },
 }
 
 export const categories = [

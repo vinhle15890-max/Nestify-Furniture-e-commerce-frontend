@@ -23,7 +23,7 @@ describe('roomPlanner/mappers', () => {
   it('sceneToEditorState parses numbers and falls back name to sku', () => {
     const state = sceneToEditorState(resource)
     expect(state.id).toBe(7)
-    expect(state.room).toEqual({ width: 4, depth: 5, height: 2.8 })
+    expect(state.room).toEqual({ width: 4, depth: 5, height: 2.8, walls: { back: true, left: true, right: true } })
     expect(state.items).toHaveLength(1)
     const item = state.items[0]
     expect(item.variant).toMatchObject({ id: 12, sku: 'SOFA-RED', name: 'SOFA-RED', model_3d_url: 'https://x/m.glb' })
@@ -41,6 +41,9 @@ describe('roomPlanner/mappers', () => {
       width: 4,
       depth: 5,
       height: 2.8,
+      wall_back: true,
+      wall_left: true,
+      wall_right: true,
       items: [
         {
           variant_id: 12,
@@ -62,5 +65,38 @@ describe('roomPlanner/mappers', () => {
     const state = sceneToEditorState({ id: 1, width: '3', depth: '3', height: '2.5', items: [{ id: 9, variant: null, position: { x: '0', y: '0', z: '0' } }] })
     expect(state.items).toHaveLength(1)
     expect(state.items[0].variant.id).toBeNull()
+  })
+
+  it('giữ product_slug/product_name của variant', () => {
+    const state = sceneToEditorState({
+      id: 1, width: '4', depth: '4', height: '3',
+      items: [{ variant: { id: 9, sku: 'S', name: 'Đỏ', product_slug: 'ghe-sofa', product_name: 'Ghế Sofa' }, position: {}, rotation: {}, scale: {} }],
+    })
+    expect(state.items[0].variant.product_slug).toBe('ghe-sofa')
+    expect(state.items[0].variant.product_name).toBe('Ghế Sofa')
+  })
+
+  it('fallback null khi thiếu slug/name', () => {
+    const state = sceneToEditorState({ id: 1, width: '4', depth: '4', height: '3', items: [{ variant: { id: 9 }, position: {}, rotation: {}, scale: {} }] })
+    expect(state.items[0].variant.product_slug).toBeNull()
+    expect(state.items[0].variant.product_name).toBeNull()
+  })
+
+  it('sceneToEditorState đọc walls, fallback true khi thiếu', () => {
+    const a = sceneToEditorState({ width: 4, depth: 5, height: 3, wall_left: false })
+    expect(a.room.walls).toEqual({ back: true, left: false, right: true })
+    const b = sceneToEditorState({ width: 4, depth: 5, height: 3 }) // scene cũ trước migration
+    expect(b.room.walls).toEqual({ back: true, left: true, right: true })
+  })
+
+  it('editorStateToPayload gửi wall_back/left/right', () => {
+    const payload = editorStateToPayload({
+      name: 'P', description: '',
+      room: { width: 4, depth: 5, height: 3, walls: { back: true, left: false, right: true } },
+      items: [],
+    })
+    expect(payload.wall_back).toBe(true)
+    expect(payload.wall_left).toBe(false)
+    expect(payload.wall_right).toBe(true)
   })
 })

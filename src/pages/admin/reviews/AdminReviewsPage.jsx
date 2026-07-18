@@ -2,6 +2,7 @@ import { Star } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminReviews, useApproveReview, useRejectReview } from '../../../features/admin/reviews/hooks'
@@ -9,7 +10,7 @@ import { useToastStore } from '../../../store/toastStore'
 import { formatDate } from '../../../lib/format'
 
 export function AdminReviewsPage() {
-  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useAdminReviews()
+  const { data, isLoading, isError, isFetching, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } = useAdminReviews()
   const approveReview = useApproveReview()
   const rejectReview = useRejectReview()
   const addToast = useToastStore((state) => state.addToast)
@@ -45,6 +46,8 @@ export function AdminReviewsPage() {
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải đánh giá..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải đánh giá" description="Hãy thử tải lại hàng chờ duyệt." onRetry={refetch} isRetrying={isFetching} />
         ) : reviews.length === 0 ? (
           <Card>
             <EmptyState

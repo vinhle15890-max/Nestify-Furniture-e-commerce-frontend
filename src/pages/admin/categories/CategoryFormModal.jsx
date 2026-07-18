@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Upload, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Modal } from '../../../components/Modal'
 import { Input } from '../../../components/Input'
 import { Button } from '../../../components/Button'
-import { useCreateCategory, useUpdateCategory, useUploadCategoryImage } from '../../../features/admin/categories/hooks'
+import { useCreateCategory, useUpdateCategory } from '../../../features/admin/categories/hooks'
+import { MediaLibraryModal } from '../../../features/admin/media/MediaLibraryModal'
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 
@@ -54,20 +55,21 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
   const isEditing = !!category
   const createCategory = useCreateCategory()
   const updateCategory = useUpdateCategory()
-  const uploadImage = useUploadCategoryImage()
   const addToast = useToastStore((state) => state.addToast)
 
-  // The image lives outside react-hook-form: it is set by uploading a file, not by
-  // typing. We keep both the public URL (for preview + client) and the Cloudinary
-  // public_id (so the backend can delete the old asset when it changes).
-  const [image, setImage] = useState({ url: '', public_id: '' })
-  const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef(null)
+  // The image lives outside react-hook-form: it is set by picking an asset from the
+  // media library, not by typing. We keep the public URL (for preview) and the asset
+  // id (submitted as media_asset_id).
+  const [image, setImage] = useState({ url: '', media_asset_id: null })
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+  const submitErrorRef = useRef(null)
 
   const {
     register,
     handleSubmit,
     setError,
+    setFocus,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schema), defaultValues: emptyValues })
@@ -80,41 +82,40 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
   useEffect(() => {
     if (open) {
       reset(category ? toFormValues(category) : emptyValues)
-      setImage({ url: category?.image_url ?? '', public_id: category?.image_public_id ?? '' })
-      setUploading(false)
+      setImage({ url: category?.image_url ?? '', media_asset_id: category?.media_asset_id ?? null })
+      setSubmitError(null)
     }
   }, [open, category, reset])
 
-  const handleFileChange = async (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  useEffect(() => {
+    if (submitError) submitErrorRef.current?.focus()
+  }, [submitError])
 
-    const formData = new FormData()
-    formData.append('kind', 'image')
-    formData.append('file', file)
-
-    setUploading(true)
-    try {
-      const response = await uploadImage.mutateAsync(formData)
-      setImage({ url: response.data.url, public_id: response.data.public_id })
-    } catch (error) {
-      addToast({ title: 'Không thể tải ảnh lên.', description: error.message, variant: 'error' })
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
+  const handlePickImage = (assets) => {
+    const asset = assets[0]
+    if (asset) setImage({ url: asset.url, media_asset_id: asset.id })
   }
 
-  const handleRemoveImage = () => setImage({ url: '', public_id: '' })
+  const handleRemoveImage = () => setImage({ url: '', media_asset_id: null })
 
   const onSubmit = async (values) => {
-    const payload = {
+    setSubmitError(null)
+    const base = {
       name: values.name,
       slug: values.slug,
       parent_id: values.parent_id ? Number(values.parent_id) : null,
-      image_url: image.url || null,
-      image_public_id: image.public_id || null,
     }
+
+    let imageFields
+    if (image.media_asset_id) {
+      imageFields = { media_asset_id: image.media_asset_id } // library asset (shadows any legacy image via the resource)
+    } else if (!image.url) {
+      imageFields = { media_asset_id: null, image_url: null, image_public_id: null } // explicitly cleared
+    } else {
+      imageFields = {} // legacy image untouched — send nothing about the image
+    }
+
+    const payload = { ...base, ...imageFields }
 
     try {
       if (isEditing) {
@@ -126,13 +127,37 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
       }
       onOpenChange(false)
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
-      addToast({ title: 'Có lỗi xảy ra.', description: error.message, variant: 'error' })
+      if (applyServerErrors(error, setError)) {
+        const fields = error.details.fields
+        const firstField = Object.keys(fields).find((field) => ['name', 'slug', 'parent_id'].includes(field))
+        if (firstField) {
+          setFocus(firstField)
+        } else {
+          const firstMessage = Object.values(fields).flat()[0]
+          setSubmitError(firstMessage ?? 'Dữ liệu danh mục chưa hợp lệ. Vui lòng kiểm tra lại.')
+        }
+        return
+      }
+      setSubmitError(
+        error?.code === 'NETWORK_ERROR'
+          ? 'Chưa thể lưu danh mục. Vui lòng kiểm tra kết nối và thử lại.'
+          : error?.message ?? 'Chưa thể lưu danh mục. Vui lòng thử lại.',
+      )
     }
   }
 
+  const pending = isSubmitting || createCategory.isPending || updateCategory.isPending
+
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}>
+    <Modal
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && pending) return
+        onOpenChange(next)
+      }}
+      title={isEditing ? 'Sửa danh mục' : 'Thêm danh mục mới'}
+      description={isEditing ? `Cập nhật tên, vị trí và ảnh của danh mục ${category.name}.` : 'Tạo một mục mới trong cây danh mục sản phẩm.'}
+    >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <Input label="Tên danh mục" id="name" error={errors.name?.message} {...register('name')} />
         <Input label="Slug" id="slug" error={errors.slug?.message} {...register('slug')} />
@@ -144,7 +169,9 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
           <select
             id="parent_id"
             {...register('parent_id')}
-            className="rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-invalid={errors.parent_id ? 'true' : undefined}
+            aria-describedby={errors.parent_id ? 'parent_id-error' : undefined}
+            className={`rounded-control border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${errors.parent_id ? 'border-destructive' : 'border-border'}`}
           >
             <option value="">Không có</option>
             {parentOptions.map((option) => (
@@ -154,6 +181,7 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
               </option>
             ))}
           </select>
+          {errors.parent_id && <p id="parent_id-error" role="alert" className="text-sm text-destructive">{errors.parent_id.message}</p>}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -167,49 +195,43 @@ export function CategoryFormModal({ open, onOpenChange, category, categoryTree }
                 className="h-20 w-20 rounded-card border border-border object-cover"
               />
               <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploading ? 'Đang tải lên...' : 'Đổi ảnh'}
+                <Button type="button" variant="secondary" onClick={() => setPickerOpen(true)}>
+                  Đổi ảnh
                 </Button>
-                <Button type="button" variant="ghost" disabled={uploading} onClick={handleRemoveImage}>
+                <Button type="button" variant="ghost" onClick={handleRemoveImage}>
                   <X size={16} />
-                  Xóa ảnh
+                  Gỡ ảnh
                 </Button>
               </div>
             </div>
           ) : (
             <div className="flex flex-col items-start gap-1.5">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload size={16} />
-                {uploading ? 'Đang tải lên...' : 'Tải ảnh lên'}
+              <Button type="button" variant="secondary" onClick={() => setPickerOpen(true)}>
+                Chọn ảnh từ thư viện
               </Button>
-              <p className="text-xs text-muted-foreground">JPG, PNG hoặc WebP, tối đa 5MB.</p>
+              <p className="text-xs text-muted-foreground">Chọn ảnh có sẵn hoặc tải ảnh mới trong thư viện.</p>
             </div>
           )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            aria-label="Tải ảnh lên"
-            onChange={handleFileChange}
-          />
         </div>
 
-        <Button type="submit" disabled={isSubmitting || uploading}>
-          {isEditing ? 'Lưu thay đổi' : 'Thêm danh mục'}
+        {submitError && (
+          <p ref={submitErrorRef} tabIndex={-1} role="alert" className="text-sm text-destructive">
+            {submitError}
+          </p>
+        )}
+
+        <Button type="submit" disabled={pending}>
+          {pending ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Thêm danh mục'}
         </Button>
       </form>
+
+      <MediaLibraryModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        multiple={false}
+        attachedAssetIds={[]}
+        onSelect={handlePickImage}
+      />
     </Modal>
   )
 }

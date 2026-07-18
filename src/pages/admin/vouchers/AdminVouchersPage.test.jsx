@@ -72,6 +72,10 @@ describe('AdminVouchersPage', () => {
     expect(await screen.findByText('SALE10')).toBeInTheDocument()
     expect(screen.getByText('FREESHIP')).toBeInTheDocument()
     expect(screen.getByText('5/100')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Danh sách voucher' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sửa voucher SALE10' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xóa voucher FREESHIP' })).toBeInTheDocument()
   })
 
   it('shows max_discount only when type is percentage', async () => {
@@ -142,7 +146,7 @@ describe('AdminVouchersPage', () => {
 
     const rows = screen.getAllByRole('row')
     const saleRow = rows.find((row) => row.textContent.includes('SALE10'))
-    await userEvent.click(within(saleRow).getByRole('button', { name: 'Sửa' }))
+    await userEvent.click(within(saleRow).getByRole('button', { name: 'Sửa voucher SALE10' }))
 
     expect(screen.getByLabelText('Mã voucher')).toHaveValue('SALE10')
     expect(screen.getByLabelText('Giá trị')).toHaveValue(10)
@@ -158,14 +162,16 @@ describe('AdminVouchersPage', () => {
   })
 
   it('deletes a voucher after confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     vouchersApi.deleteVoucher.mockResolvedValue({})
     renderPage()
     await screen.findByText('SALE10')
 
     const rows = screen.getAllByRole('row')
     const freeshipRow = rows.find((row) => row.textContent.includes('FREESHIP'))
-    await userEvent.click(within(freeshipRow).getByRole('button', { name: 'Xóa' }))
+    await userEvent.click(within(freeshipRow).getByRole('button', { name: 'Xóa voucher FREESHIP' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xóa voucher' })
+    expect(within(dialog).getByText(/FREESHIP/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xóa voucher' }))
 
     await waitFor(() => expect(vouchersApi.deleteVoucher).toHaveBeenCalledWith(2))
   })
@@ -186,5 +192,27 @@ describe('AdminVouchersPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher mới' }))
 
     expect(await screen.findByText('Mã voucher đã tồn tại.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Mã voucher')).toHaveFocus()
+    expect(screen.getByLabelText('Mã voucher')).toHaveValue('SALE10')
+  })
+
+  it('shows pending submit copy and blocks a duplicate voucher create', async () => {
+    let resolveCreate
+    vouchersApi.createVoucher.mockImplementation(() => new Promise((resolve) => { resolveCreate = resolve }))
+    renderPage()
+    await screen.findByText('SALE10')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher' }))
+    await userEvent.type(screen.getByLabelText('Mã voucher'), 'NEWCODE')
+    await userEvent.type(screen.getByLabelText('Giá trị'), '10')
+    await userEvent.type(screen.getByLabelText(/Lượt sử dụng tối đa$/), '100')
+    await userEvent.type(screen.getByLabelText(/Lượt sử dụng \/ người/), '1')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher mới' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Đang lưu...' })
+    expect(pendingButton).toBeDisabled()
+    expect(vouchersApi.createVoucher).toHaveBeenCalledTimes(1)
+
+    resolveCreate({ data: {} })
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Thêm voucher mới' })).toBeNull())
   })
 })

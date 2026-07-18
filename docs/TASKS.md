@@ -63,7 +63,8 @@ plugin and you want to generate a similar task-by-task plan for a new phase befo
 - **Lib** (`src/lib/`): `apiClient.js` (axios + interceptors), `errors.js` (`ApiError`/`normalizeError`), `pagination.js` (offset/cursor helpers), `queryClient.js`
 - **Store** (`src/store/`): `authStore` (token/user, persisted), `uiStore` (cart drawer, mobile nav), `toastStore`
 - **Routing** (`src/app/router.jsx`, `src/routes/`): `ProtectedRoute`, `AdminRoute`, route tree wired into `App.jsx`
-- **Design tokens**: `src/styles/tokens.css` (Organic Editorial palette, Tailwind v4 `@theme`)
+- **Design tokens**: `src/styles/tokens.css` (current Becoming Room semantic
+  implementation, Tailwind v4 `@theme`; legacy scope is admin-only)
 
 Placeholder pages exist for: Home, Login, Account, Admin dashboard, 404 — replace these in-place
 as each phase lands rather than creating duplicates.
@@ -129,10 +130,10 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/checkout/`, `src/features/orders/`, `src/pages/checkout/`, `src/pages/orders/`
 
-- [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, stored in `uiStore` (not persisted), regenerated on new attempt or after success
+- [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, mirrored from `uiStore` to same-tab `sessionStorage`, regenerated only after the backend returns an order
 - [x] `features/checkout/api.js` — `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)` (addresses/voucher reused from existing `features/addresses` and `features/cart`)
 - [x] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **payment method picker** (`payos` online | `cod`), submit → create order → (PayOS: create payment session → redirect; COD: xác nhận ngay → trang đơn)
-- [x] `/checkout/return` page — polls `GET /api/orders/{id}` every 2–3s (capped attempts) until status leaves `pending_payment`
+- [x] `/checkout/return` page — calls `POST /api/orders/{id}/payment/reconcile` every 3s (10 total/cycle), stops on success/failed/error/timeout and offers explicit retry
 - [x] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder` (retry payment reuses `useCreatePaymentSession` from `features/checkout/hooks.js`)
 - [x] `/orders` page — order history list
 - [x] `/orders/:id` page — status, items, **Cancel** (enabled only while `pending_payment`), **Retry payment** (enabled only while `pending_payment`; handle `409 ORDER_ALREADY_PAID` → refetch + show paid state)
@@ -168,17 +169,11 @@ orders pointing the user to the product page.
 
 ## Phase 6 — 3D Room Planner
 
-**Folders:** `src/features/rooms/`, `src/pages/rooms/`
-
-- [ ] Add deps: `three`, `@react-three/fiber`, `@react-three/drei`
-- [ ] `features/rooms/api.js` + `hooks.js` — CRUD `/api/room-scenes` (offset pagination), `share`, `convert-to-order`
-- [ ] `/rooms` page — scene list (offset `<Pagination>`)
-- [ ] `/rooms/new`, `/rooms/:id` — 3D editor: room-bounds helper from `width/depth/height`, load variant `model_3d_url` via `useGLTF`, drag/transform controls (place/move/rotate/scale)
-- [ ] Save: `PATCH /api/room-scenes/{id}` sends the **full** current `items[]` (no diffing)
-- [ ] Share: call `POST .../share` (idempotent) → build `/rooms/share/{token}` public URL
-- [ ] `/rooms/share/:token` — public read-only viewer (no auth)
-- [ ] Convert-to-order: confirm dialog warning cart will be replaced, then `POST .../convert-to-order`
-- [ ] Tests: scene save sends full item list, share URL construction
+**Reconciled 2026-07-17:** checklist gốc đã bị supersede. Current code dùng `features/roomPlanner`,
+`pages/roomPlanner`, `/room-planner`, account list `/account/rooms` và public
+`/room-planner/shared/:token`. Dependencies, CRUD, full-list save, share và tests đã triển khai. Customer chỉ
+translate/rotate; scale bị khóa client+server. Handoff commerce là add-scene-to-cart best-effort, **không**
+replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
 
 **Spec refs:** Section A (3D stack), Section G (Room Scenes)
 
@@ -206,7 +201,8 @@ orders pointing the user to the product page.
 - [x] `/admin/categories` — list + create/update/delete (small dataset, plain list)
 - [x] `/admin/products`, `/admin/products/:id` — offset-paginated list, create/edit form; **edit hydrates from list-cache** (no working `GET /admin/products/{id}`)
 - [x] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
-- [x] Media: multipart upload, reorder, delete
+- [x] Media: pick from the **Media Library** picker + reorder + per-image variant tag + **detach** ("Gỡ") — direct product upload now happens inside the picker's upload tab
+- [x] **Media Library** (`/admin/media`, `features/admin/media/`) — reusable image assets (WordPress-style): browse/search + offset pagination, upload-once-reuse, per-asset `usage_count`, hard-delete blocked while in use (`409 MEDIA_IN_USE`). Shared `MediaLibraryModal` picker reused by product edit (multi-select, attach) + category form (single-select, `media_asset_id`). BE splits `media_assets` from the `product_media` junction. Refs: BE `14-workflows.md` §10d, FE spec `docs/superpowers/specs/2026-07-08-media-library-design.md`.
 - [x] `/admin/orders`, `/admin/orders/:id` — offset list + detail
 - [x] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
 - [x] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
@@ -235,15 +231,47 @@ orders pointing the user to the product page.
 
 - [x] `/admin/reviews` — cursor-paginated moderation queue, approve/reject, optimistic removal from list on action
 - [x] `/admin/vouchers` — full CRUD (`type: percentage|fixed`, usage limits, date range); form validation mirrors BE constraints (`min_order_value`, `max_discount` shown only for `percentage` as a UX nicety)
-- [x] `/admin/users` — **read-only** list (id, name, email, status, roles, email-verified) — `PATCH /admin/users/{id}/roles` (`role_ids` multi-select) remains **blocked on open question #2** (no `GET /api/roles` endpoint and `UserResource.roles` returns role names, not ids; no reliable name→id mapping for the FE)
+- [x] `/admin/users` — list (id, name, email, status, roles, email-verified) + role assignment (`AssignRolesDialog`, `PATCH /admin/users/{id}/roles`) — **open question #2 resolved**: `GET /api/admin/roles` shipped in RBAC Sub-project 1 (`docs/superpowers/specs/2026-07-*-rbac-*`, cross-repo, not tracked as a numbered Phase here); this Phase-9 entry originally shipped read-only and is superseded
+- [x] `/admin/roles` — **RBAC Sub-project 2** (dynamic role management, 2026-07-10): full CRUD for custom roles — list (`display_name`, `name`, permission count, `users_count`, "Hệ thống" badge for locked roles), create/edit via `RoleFormDialog` (permission checkbox matrix from `GET /admin/permissions`), delete with confirm + `ROLE_IN_USE` (409) toast reading `details.users_count`. `super_admin`/`customer` are `locked` (view-only, no edit/delete). `features/admin/roles/{api,hooks}.js`; nav entry "Vai trò" under "Nhân sự" in `adminNav.js`, gated `manage_users`. See spec/plan under `docs/superpowers/{specs,plans}/2026-07-10-rbac-dynamic-role-management*`.
+- [x] `/admin/roles` — **RBAC Sub-project 3** (role × permission matrix, 2026-07-10, pure FE, no BE contract change): `AdminRolesPage` adds a **Bảng | Ma trận** view toggle (local state, no new route/nav). Matrix view = `pages/admin/roles/RolePermissionMatrix.jsx`, a read-only grid (rows = roles from `useRoles`, columns = permissions from `usePermissions` — zero new API calls, `customer` row hidden), "has permission" cell = accessible Check icon (`role="img"` + `aria-label`), `super_admin` row shows a "Toàn quyền (bypass)" note instead of per-column ticks. Sửa/Xem still opens SP2's `RoleFormDialog` (locked roles stay read-only) — matrix never writes; all edits still flow through SP2's write path. See spec/plan under `docs/superpowers/{specs,plans}/2026-07-10-rbac-role-permission-matrix*`.
 - [x] `/admin/audit-logs` — read-only paginated table (offset), expandable `old_values`/`new_values` diff per row
-- [x] Tests: voucher form validation rules (incl. server 422 mapping), review queue optimistic removal, users list, audit log pagination + expansion
+- [x] `/admin/audit-logs` — **RBAC Sub-project 4** (audit action filter + denied-access logging UI, 2026-07-10,
+  cross-repo): action-filter `<select>` ("Tất cả hành động" + one option per known action) resets to page 1
+  on change; `useAdminAuditLogs(page, action)` / `getAuditLogs(page, action)` now send `?page=&action=`
+  (empty string omitted from the query). New `features/admin/auditLogs/actionLabels.js` maps raw `action`
+  slugs to Vietnamese labels (`AUDIT_ACTION_LABELS`, incl. `access.denied`, `user.lock`, `user.unlock`) with
+  `labelForAction()` falling back to the raw slug for actions the map doesn't know yet (forward-compatible
+  with new BE actions). Rows where `action === 'access.denied'` (written by BE's `check.permission`
+  middleware when an authenticated user is denied 403) get a red "Bị chặn" badge + `bg-destructive/5` row
+  tint; the existing "Chi tiết" `new_values` expander already surfaces `{permission, method, path}` for these
+  rows with no resource change needed. See spec/plan under
+  `docs/superpowers/{specs,plans}/2026-07-10-rbac-audit-denied-logging*`.
+- [x] `/admin/roles` — **RBAC Sub-project 5** ("Xem với vai trò" role preview, 2026-07-10, pure FE, no BE
+  contract change, no spec/plan doc — built directly per request): new `store/previewStore.js`, an
+  un-persisted Zustand store (`previewRole`, `setPreviewRole`, `clearPreview`) plus a combinator hook
+  `useEffectiveUser()` returning the real user with `permissions` swapped for the previewed role's
+  (everything else, incl. identity, untouched) — no preview active → the real user unchanged. Consumed by
+  `RequirePermission`, `AdminHome`, and `PermissionDenied` (instead of reading `authStore` directly) so
+  route-gating/nav/403-page all reflect the previewed role. `AdminLayout` sidebar (`visibleGroups`) reads
+  the effective user while `UserMenu` keeps showing the real logged-in admin's name/email; renders a
+  `PreviewBanner` (outside `<Outlet/>`/`RequirePermission`, so it's always clickable regardless of what the
+  previewed role can reach) reading "Đang xem thử giao diện như vai trò {display_name}..." with a "Thoát xem
+  thử" button (`clearPreview()` + navigate `/admin`). `AdminRolesPage` table view (not the SP3 matrix view,
+  kept read-only) adds an "Eye" icon button per row ("Xem thử vai trò {display_name}", hidden for `customer`)
+  that calls `setPreviewRole(role)` then navigates to `firstAllowedPath({ permissions: role.permissions })`
+  (fallback `/admin`). Backend is entirely unaware of preview — every write is still enforced against the
+  real logged-in account's real permissions; this is a client-only simulation of nav/route-gating.
+  **This is the last of the 5-sub-project RBAC roadmap (SP1 permission gating → SP2 dynamic roles → SP3
+  role×permission matrix → SP4 audit denial logging → SP5 role preview) — roadmap now fully complete.**
+- [x] Tests: voucher form validation rules (incl. server 422 mapping), review queue optimistic removal, users list, audit log pagination + expansion, role CRUD (`RoleFormDialog`, `AdminRolesPage`), role permission matrix (`RolePermissionMatrix`, view toggle), audit action label map (`actionLabels`) + action filter + denied-row highlight (`AdminAuditLogsPage`), role preview store (`previewStore`) + effective-user swap in `RequirePermission`/`AdminHome`/`AdminLayout`/`AdminRolesPage`
 
 **Spec refs:** Section G (Admin), Section I item 2
 
 **Deviations from `FE_AI_CONTEXT.md` / spec:**
-1. **`/admin/users` is read-only** — role assignment (`PATCH /admin/users/{id}/roles`) was not
-   built; see open question #2 below.
+1. **`/admin/users` was originally shipped read-only** — role assignment (`PATCH /admin/users/{id}/roles`)
+   was not built at the time; see open question #2 below. **Resolved** by RBAC Sub-project 1 (role
+   assignment) and Sub-project 2 (full role CRUD at `/admin/roles`), tracked outside this Phase-9 list —
+   see the new checklist entries above.
 2. **Voucher list pagination meta is the Laravel default (flat), not `meta.pagination`** —
    `VoucherController@index` returns `VoucherResource::collection($paginator)` directly, so the
    response uses Laravel's standard `{data, links, meta:{current_page, last_page, per_page,
@@ -286,10 +314,10 @@ orders pointing the user to the product page.
 From spec Section I:
 
 1. **`POST /api/media/sign`** — no documented FE consumer currently; ignore unless a future feature needs direct Cloudinary upload from the customer side.
-2. **Roles list for `PATCH /admin/users/{id}/roles`** — no `GET /api/roles` endpoint documented,
-   and `UserResource.roles` returns role *names* (strings), not ids, so there's no reliable
-   name→id mapping for the FE either. **Phase 9 implemented `/admin/users` as read-only**;
-   revisit role assignment once a roles-lookup endpoint (or id-returning `UserResource`) exists.
+2. ~~**Roles list for `PATCH /admin/users/{id}/roles`**~~ — **Resolved.** `GET /api/admin/roles`
+   shipped (RBAC Sub-project 1) returning id-bearing `RoleResource`s, unblocking role assignment;
+   Sub-project 2 additionally added `GET /admin/permissions` + `POST`/`PATCH`/`DELETE /admin/roles`
+   for full role CRUD at `/admin/roles`. See `FE_AI_CONTEXT.md` "Admin / Roles & Permissions".
 3. **Refund UX** — Phase 8 implemented the refund form against the current synchronous
    `POST /admin/orders/{id}/refund` (amount+reason → immediate result). Revisit if a 2-step
    flow is introduced later.

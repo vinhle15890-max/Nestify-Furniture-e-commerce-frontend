@@ -39,6 +39,30 @@ h1, h2, h3, h4 {
   color: var(--color-muted-foreground);
 }
 
+/* ── Legacy palette scope: "Warm Luxury Editorial" (ADMIN ONLY) ──────────────
+   The Becoming palette is now the :root default (tokens.css). This block
+   restores the legacy cream/brass/olive palette for the admin back-office,
+   which is intentionally NOT migrated. AdminLayout applies `data-theme="legacy"`
+   to <body> (so admin dialogs/portals, which portal to body, inherit it too)
+   and to its shell root (avoids a first-paint flash). Storefront + Room Planner
+   never set this attribute, so they use the :root Becoming defaults. */
+[data-theme='legacy'] {
+  --color-background: #F7F4EE;
+  --color-surface: #FAF8F3;
+  --color-surface-alt: #F1ECE1;
+  --color-foreground: #1F1F1D;
+  --color-muted-foreground: #5C584F;
+  --color-border: rgba(31, 31, 29, 0.08);
+  --color-border-strong: rgba(31, 31, 29, 0.16);
+  --color-primary: #1F1F1D;
+  --color-primary-hover: #34322E;
+  --color-accent: #B08D57;            /* brushed brass */
+  --color-accent-hover: #9A7A4A;
+  --color-secondary: #6D7860;         /* olive */
+  --color-secondary-hover: #5C6651;
+  --color-ring: #B08D57;
+}
+
 /* ── Scroll reveal (IntersectionObserver toggles .is-visible) ── */
 .reveal {
   opacity: 0;

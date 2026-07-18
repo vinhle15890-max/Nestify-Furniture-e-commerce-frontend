@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Modal } from '../../components/Modal'
+import { BecomingModal } from '../../components/BecomingModal'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 
@@ -28,7 +28,12 @@ export function RoomSetupDialog({ open, onOpenChange, initialRoom, onSubmit }) {
   }
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Kích thước phòng">
+    <BecomingModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Kích thước phòng"
+      description="Nhập kích thước để dựng căn phòng theo đúng tỷ lệ."
+    >
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-3">
           {FIELDS.map((field) => (
@@ -44,11 +49,11 @@ export function RoomSetupDialog({ open, onOpenChange, initialRoom, onSubmit }) {
             </label>
           ))}
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end">
           <Button type="submit">Tạo phòng</Button>
         </div>
       </form>
-    </Modal>
+    </BecomingModal>
   )
 }

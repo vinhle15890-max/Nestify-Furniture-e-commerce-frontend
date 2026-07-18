@@ -1,5 +1,12 @@
 # Nestify Frontend — Design Spec & Implementation Roadmap
 
+> **Visual-direction status — Decision Register D-001 (2026-07-12):** Section F,
+> “Organic Editorial,” is superseded for storefront visual decisions. Its
+> palette, layout, elevation, imagery, and motion guidance must not be used for
+> new or redesigned storefront UI. Technical architecture, routing, API
+> contracts, and other non-visual material remain historical reference where not
+> superseded by a later active specification.
+
 **Date:** 2026-06-13
 **Status:** Approved (pending spec self-review)
 **Scope:** Full rebuild of `FE-Nestify/Nestify-Furniture-e-commerce-frontend` as a React.js (JavaScript, no TypeScript) single-page app, covering customer storefront + admin back-office, against the API contract in `BE_Nestify/docs/FE_AI_CONTEXT.md` (commit `58b5418`).

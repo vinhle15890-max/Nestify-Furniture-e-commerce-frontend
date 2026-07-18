@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
 import { OrdersPage } from './OrdersPage'
 import * as ordersApi from '../../features/orders/api'
 
@@ -46,5 +47,19 @@ describe('OrdersPage', () => {
     renderPage()
 
     expect(await screen.findByText(/Bạn chưa có đơn hàng nào/)).toBeInTheDocument()
+  })
+
+  it('shows a retryable failure instead of claiming there are no orders', async () => {
+    ordersApi.getOrders
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ data: [] })
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể tải đơn hàng')
+    expect(screen.queryByText(/Bạn chưa có đơn hàng nào/)).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByText(/Bạn chưa có đơn hàng nào/)).toBeInTheDocument()
+    expect(ordersApi.getOrders).toHaveBeenCalledTimes(2)
   })
 })

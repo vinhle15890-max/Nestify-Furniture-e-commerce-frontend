@@ -78,6 +78,27 @@ export function useUpdateVariant() {
   })
 }
 
+export function usePresignVariantModel() {
+  return useMutation({ mutationFn: productsApi.presignVariantModel })
+}
+
+export function useMeasureVariantModel() {
+  return useMutation({
+    mutationFn: ({ variantId, stagingToken }) => productsApi.measureVariantModel(variantId, stagingToken),
+  })
+}
+
+export function useConfirmVariantModel() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ variantId, ...payload }) => productsApi.confirmVariantModel(variantId, payload),
+    onSuccess: (response) => {
+      if (response.data?.variant) queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+    },
+  })
+}
+
 export function useUploadMedia() {
   const queryClient = useQueryClient()
 
@@ -101,6 +122,26 @@ export function useDeleteMedia() {
 
   return useMutation({
     mutationFn: ({ productId, mediaId }) => productsApi.deleteMedia(productId, mediaId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+  })
+}
+
+export function useUpdateMedia() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ productId, mediaId, variantId }) => productsApi.updateMedia(productId, mediaId, variantId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+  })
+}
+
+// Attach media-library assets (from the media feature) to a product/variant.
+export function useAttachMedia() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ productId, mediaAssetIds, variantId = null }) =>
+      productsApi.attachMedia(productId, { media_asset_ids: mediaAssetIds, variant_id: variantId }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
   })
 }

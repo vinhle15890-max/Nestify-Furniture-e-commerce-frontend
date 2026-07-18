@@ -1,5 +1,9 @@
 # 3D Room Planner Implementation Plan
 
+> **Historical plan — reconciled 2026-07-17:** current editor supports translate/rotate only; customer scale
+> is intentionally removed and server rejects non-unit scale. Scene list/share/cart handoff now exist. Use
+> `docs/CURRENT-STATE-MECHANISMS.md`; snippets/checklists below preserve the implementation-time record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a logged-in, full-screen 3D room planner where a user defines a room, drops in catalog furniture that has a `.glb` model, transforms it with a gizmo, and saves the scene — consuming the already-built backend room-scene API.

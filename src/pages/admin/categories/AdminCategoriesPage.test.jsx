@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { AdminCategoriesPage } from './AdminCategoriesPage'
 import { Toaster } from '../../../components/Toast'
 import * as categoriesApi from '../../../features/admin/categories/api'
+import * as mediaApi from '../../../features/admin/media/api'
 import { ApiError } from '../../../lib/errors'
 
 vi.mock('../../../features/admin/categories/api')
+vi.mock('../../../features/admin/media/api')
 
 const tree = [
   {
@@ -66,6 +68,8 @@ describe('AdminCategoriesPage', () => {
     expect(await screen.findByText('Phòng khách')).toBeInTheDocument()
     expect(screen.getByText('Sofa')).toBeInTheDocument()
     expect(screen.getByText('Phòng ngủ')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sửa danh mục Phòng khách' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xóa danh mục Sofa' })).toBeInTheDocument()
   })
 
   it('creates a new category via the modal', async () => {
@@ -74,6 +78,7 @@ describe('AdminCategoriesPage', () => {
     await screen.findByText('Phòng khách')
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+    expect(screen.getByText('Tạo một mục mới trong cây danh mục sản phẩm.')).toBeInTheDocument()
     await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Đèn')
     await userEvent.type(screen.getByLabelText('Slug'), 'den')
     await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
@@ -85,12 +90,13 @@ describe('AdminCategoriesPage', () => {
     )
   })
 
-  it('uploads an image and submits its url + public_id with the category', async () => {
-    categoriesApi.uploadImage.mockResolvedValue({
-      data: { url: 'https://res.cloudinary.com/x/ghe.webp', public_id: 'furniture/products/ghe' },
+  it('picks an image from the media library and submits its media_asset_id with the category', async () => {
+    mediaApi.listMedia.mockResolvedValue({
+      data: [{ id: 5, url: 'https://example.com/lib/ghe.jpg', alt_text: 'Ảnh thư viện', usage_count: 0 }],
+      meta: { pagination: { total: 1, page: 1, last_page: 1, per_page: 24 } },
     })
     categoriesApi.createCategory.mockResolvedValue({
-      data: { id: 5, name: 'Ghế', slug: 'ghe', parent_id: null, image_url: 'https://res.cloudinary.com/x/ghe.webp', children: [] },
+      data: { id: 5, name: 'Ghế', slug: 'ghe', parent_id: null, image_url: 'https://example.com/lib/ghe.jpg', media_asset_id: 5, children: [] },
     })
     renderPage()
     await screen.findByText('Phòng khách')
@@ -99,11 +105,13 @@ describe('AdminCategoriesPage', () => {
     await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Ghế')
     await userEvent.type(screen.getByLabelText('Slug'), 'ghe')
 
-    const file = new File(['x'], 'ghe.jpg', { type: 'image/jpeg' })
-    await userEvent.upload(screen.getByLabelText('Tải ảnh lên'), file)
+    await userEvent.click(screen.getByRole('button', { name: 'Chọn ảnh từ thư viện' }))
 
-    await waitFor(() => expect(categoriesApi.uploadImage).toHaveBeenCalled())
-    // The preview image should now be shown.
+    const image = await screen.findByAltText('Ảnh thư viện')
+    await userEvent.click(image.closest('button'))
+    await userEvent.click(screen.getByRole('button', { name: /^chọn/i }))
+
+    // The preview image should now be shown in the form.
     expect(await screen.findByAltText('Ảnh đại diện danh mục')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
@@ -113,8 +121,7 @@ describe('AdminCategoriesPage', () => {
         expect.objectContaining({
           name: 'Ghế',
           slug: 'ghe',
-          image_url: 'https://res.cloudinary.com/x/ghe.webp',
-          image_public_id: 'furniture/products/ghe',
+          media_asset_id: 5,
         }),
       ),
     )
@@ -125,7 +132,7 @@ describe('AdminCategoriesPage', () => {
     renderPage()
     await screen.findByText('Phòng khách')
 
-    await userEvent.click(screen.getAllByRole('button', { name: 'Sửa' })[0])
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa danh mục Phòng khách' }))
 
     const nameInput = await screen.findByLabelText('Tên danh mục')
     await waitFor(() => expect(nameInput).toHaveValue('Phòng khách'))
@@ -143,28 +150,82 @@ describe('AdminCategoriesPage', () => {
   })
 
   it('deletes a category after confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     categoriesApi.deleteCategory.mockResolvedValue({})
     renderPage()
     await screen.findByText('Phòng ngủ')
 
-    const deleteButtons = screen.getAllByRole('button', { name: 'Xóa' })
-    await userEvent.click(deleteButtons[deleteButtons.length - 1])
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xóa danh mục' })
+    expect(within(dialog).getByText(/Phòng ngủ/)).toBeInTheDocument()
+    expect(categoriesApi.deleteCategory).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xóa danh mục' }))
 
     await waitFor(() => expect(categoriesApi.deleteCategory).toHaveBeenCalledWith(3))
   })
 
-  it('shows an error toast when deleting a category with active products', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
+  it('keeps the delete dialog open with a recoverable error when the category has active products', async () => {
     categoriesApi.deleteCategory.mockRejectedValue(
       new ApiError('HAS_ACTIVE_PRODUCTS', 'Danh mục đang có sản phẩm hoạt động.', null, 409),
     )
     renderPage()
     await screen.findByText('Phòng ngủ')
 
-    const deleteButtons = screen.getAllByRole('button', { name: 'Xóa' })
-    await userEvent.click(deleteButtons[deleteButtons.length - 1])
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục' }))
 
-    expect(await screen.findByText('Danh mục đang có sản phẩm hoạt động.')).toBeInTheDocument()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Danh mục đang có sản phẩm hoạt động.')
+    expect(screen.getByRole('dialog', { name: 'Xóa danh mục' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xóa danh mục' })).toBeEnabled()
+  })
+
+  it('focuses the first field rejected by server validation and retains entered values', async () => {
+    categoriesApi.createCategory.mockRejectedValue(
+      new ApiError('VALIDATION_FAILED', 'Dữ liệu không hợp lệ.', { fields: { slug: ['Slug đã tồn tại.'] } }, 422),
+    )
+    renderPage()
+    await screen.findByText('Phòng khách')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+    await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Đèn mới')
+    await userEvent.type(screen.getByLabelText('Slug'), 'den')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+
+    expect(await screen.findByText('Slug đã tồn tại.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Slug')).toHaveFocus()
+    expect(screen.getByLabelText('Tên danh mục')).toHaveValue('Đèn mới')
+  })
+
+  it('blocks duplicate deletion and dismissal while the request is pending', async () => {
+    let resolveDelete
+    categoriesApi.deleteCategory.mockImplementation(() => new Promise((resolve) => { resolveDelete = resolve }))
+    renderPage()
+    await screen.findByText('Phòng ngủ')
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục Phòng ngủ' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa danh mục' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Đang xóa...' })
+    expect(pendingButton).toBeDisabled()
+    expect(categoriesApi.deleteCategory).toHaveBeenCalledTimes(1)
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.getByRole('dialog', { name: 'Xóa danh mục' })).toBeInTheDocument()
+
+    resolveDelete({})
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Xóa danh mục' })).toBeNull())
+  })
+
+  it('announces and focuses a safe form-level message on network failure', async () => {
+    categoriesApi.createCategory.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null))
+    renderPage()
+    await screen.findByText('Phòng khách')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+    await userEvent.type(screen.getByLabelText('Tên danh mục'), 'Kệ sách')
+    await userEvent.type(screen.getByLabelText('Slug'), 'ke-sach')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm danh mục' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('Chưa thể lưu danh mục')
+    await waitFor(() => expect(alert).toHaveFocus())
+    expect(screen.getByLabelText('Tên danh mục')).toHaveValue('Kệ sách')
+    expect(screen.queryByText('Network Error')).toBeNull()
   })
 })

@@ -9,6 +9,7 @@ import { useCreateVariant, useUpdateVariant } from '../../../features/admin/prod
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 import { variantSignature } from '../../../lib/variantOptions'
+import { VariantModelScaleFlow } from './VariantModelScaleFlow'
 
 const priceStockShape = {
   price: yup.number().typeError('Giá phải là số.').required('Vui lòng nhập giá.').min(0, 'Giá phải lớn hơn hoặc bằng 0.'),
@@ -17,7 +18,6 @@ const priceStockShape = {
     .typeError('Số lượng phải là số.')
     .required('Vui lòng nhập số lượng kho.')
     .min(0, 'Số lượng phải lớn hơn hoặc bằng 0.'),
-  model_3d_url: yup.string().url('URL không hợp lệ.'),
 }
 const nameShape = { name: yup.string().required('Vui lòng nhập tên biến thể.').max(255, 'Tối đa 255 ký tự.') }
 const skuShape = { sku: yup.string().max(100, 'Tối đa 100 ký tự.') }
@@ -36,7 +36,6 @@ const emptyValues = {
   name: '',
   price: '',
   stock_quantity: '',
-  model_3d_url: '',
   is_active: true,
 }
 
@@ -46,7 +45,6 @@ function toFormValues(variant) {
     name: variant.name ?? '',
     price: variant.price ?? '',
     stock_quantity: variant.available_stock ?? '',
-    model_3d_url: variant.model_3d_url ?? '',
     is_active: variant.is_active ?? true,
   }
 }
@@ -124,7 +122,6 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           id: variant.id,
           price: Number(values.price),
           stock_quantity: Number(values.stock_quantity),
-          model_3d_url: values.model_3d_url || null,
           is_active: values.is_active,
         }
         // Có thuộc tính → gửi attributes (BE tự suy tên + options_key). Không thì gửi tên tự do.
@@ -140,7 +137,6 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           sku: values.sku?.trim() || undefined,
           price: Number(values.price),
           stock_quantity: Number(values.stock_quantity),
-          model_3d_url: values.model_3d_url || undefined,
         }
         if (hasOptions) payload.attributes = selectedAttrs
         else payload.name = values.name
@@ -157,8 +153,26 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
   }
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={isEditing ? 'Sửa biến thể' : 'Thêm biến thể mới'}>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? 'Sửa biến thể' : 'Thêm biến thể mới'}
+      description={isEditing ? 'Cập nhật thông tin bán hàng và tồn kho của biến thể này.' : 'Thiết lập lựa chọn, giá bán và tồn kho cho biến thể mới.'}
+      contentClassName="flex max-h-[90dvh] max-w-2xl flex-col overflow-hidden"
+      bodyClassName="min-h-0 flex-1 overflow-y-scroll pr-2 [scrollbar-gutter:stable]"
+      footerClassName="-mx-6 -mb-6 mt-4 border-t border-border bg-surface px-6 py-4"
+      footer={(
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Hủy
+          </Button>
+          <Button type="submit" form="variant-form" disabled={isSubmitting}>
+            {isEditing ? 'Lưu thay đổi' : 'Thêm biến thể'}
+          </Button>
+        </div>
+      )}
+    >
+      <form id="variant-form" onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         {!isEditing && (
           <div className="flex flex-col gap-1">
             <Input
@@ -219,12 +233,13 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           error={errors.stock_quantity?.message}
           {...register('stock_quantity')}
         />
-        <Input
-          label="URL mô hình 3D (không bắt buộc)"
-          id="variant-model_3d_url"
-          error={errors.model_3d_url?.message}
-          {...register('model_3d_url')}
-        />
+        {isEditing ? (
+          <VariantModelScaleFlow variant={variant} onConfirmed={onSaved} />
+        ) : (
+          <p className="rounded-control border border-border bg-surface-alt p-3 text-sm text-muted-foreground">
+            Tạo biến thể trước, sau đó mở lại biến thể để tải lên và xác nhận kích thước mô hình 3D.
+          </p>
+        )}
 
         {isEditing && (
           <label className="flex items-center gap-2 text-sm font-medium text-foreground" htmlFor="variant-is_active">
@@ -233,9 +248,6 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           </label>
         )}
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isEditing ? 'Lưu thay đổi' : 'Thêm biến thể'}
-        </Button>
       </form>
     </Modal>
   )

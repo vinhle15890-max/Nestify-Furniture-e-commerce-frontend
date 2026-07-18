@@ -1,5 +1,8 @@
 # 3D Room Planner — Design Spec
 
+> **Historical scope — reconciled 2026-07-17:** scene management, public share and scene→cart handoff were
+> later implemented. Scale was later prohibited. See `docs/CURRENT-STATE-MECHANISMS.md` for current behavior.
+
 > **Status:** Approved design, ready for planning.
 > **Date:** 2026-06-28
 > **Scope (MVP):** Frontend 3D editor that creates, edits, and saves a room scene. Consumes the **already-built** backend room-scene API. Scene-list management, public share, and convert-to-order are explicitly **out of scope** for this iteration (backend already supports them; they'll be separate follow-up features).

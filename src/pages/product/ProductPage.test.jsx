@@ -11,6 +11,7 @@ import * as ordersApi from '../../features/orders/api'
 import * as reviewsApi from '../../features/reviews/api'
 import * as personalizationHooks from '../../features/personalization/hooks'
 import { useAuthStore } from '../../store/authStore'
+import { useToastStore } from '../../store/toastStore'
 import { ApiError } from '../../lib/errors'
 
 vi.mock('../../features/catalog/api')
@@ -96,12 +97,15 @@ const reviewsResponse = {
 describe('ProductPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useToastStore.setState({ toasts: [] })
     useAuthStore.setState({ token: 'abc', user: { id: 1, name: 'Bao', roles: ['customer'] } })
     catalogApi.getProduct.mockResolvedValue(productResponse)
     catalogApi.getProductReviews.mockResolvedValue(reviewsResponse)
     catalogApi.getCategories.mockResolvedValue({ data: [] })
     cartApi.addItem.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
     wishlistApi.addItem.mockResolvedValue({ data: { id: 1 } })
+    wishlistApi.removeItem.mockResolvedValue({})
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [] } })
     ordersApi.getOrders.mockResolvedValue({ data: [] })
     personalizationHooks.useRecordProductView.mockReturnValue({ mutate: vi.fn() })
     personalizationHooks.useRecentlyViewed.mockReturnValue({ data: { data: [] } })
@@ -144,13 +148,13 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByText('Còn 5 sản phẩm')).toBeInTheDocument()
+    expect(screen.getByText('Có thể đặt hàng')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeEnabled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Xám' }))
 
     expect(screen.getByText('5.500.000 ₫')).toBeInTheDocument()
-    expect(screen.getByText('Hết hàng')).toBeInTheDocument()
+    expect(screen.getByText('Tạm hết hàng')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeDisabled()
   })
 
@@ -161,6 +165,144 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
 
     expect(cartApi.addItem).toHaveBeenCalledWith({ variant_id: 1, quantity: 1 })
+  })
+
+  it('uses safe Vietnamese copy when add-to-cart loses its network connection', async () => {
+    cartApi.addItem.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
+
+    await waitFor(() => {
+      expect(useToastStore.getState().toasts.at(-1)).toEqual(expect.objectContaining({
+        title: 'Không thể thêm vào giỏ hàng',
+        description: 'Đã có lỗi kết nối mạng. Vui lòng thử lại.',
+        variant: 'error',
+      }))
+    })
+  })
+
+  it('hands the selected product and variant directly to the real Planner', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    const handoff = screen.getByRole('link', { name: 'Thử trong Room Planner' })
+    expect(handoff).toHaveAttribute('href', '/room-planner?product=ghe-sofa-da&variant=1')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Thử trong Room Planner' })).toHaveLength(1)
+  })
+
+  it('keeps the real-Planner handoff available for a single implicit variant', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: { ...productResponse.data, variant_options: [], variants: [productResponse.data.variants[0]] },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByRole('link', { name: 'Thử trong Room Planner' })).toHaveAttribute(
+      'href',
+      '/room-planner?product=ghe-sofa-da&variant=1',
+    )
+  })
+
+  it('filters the gallery to the selected variant + shared media, hiding other variants', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        media: [
+          { id: 1, product_id: 1, variant_id: 1, url: 'https://example.com/nau.jpg', type: 'image', sort_order: 1 },
+          { id: 2, product_id: 1, variant_id: 2, url: 'https://example.com/xam.jpg', type: 'image', sort_order: 2 },
+          { id: 3, product_id: 1, variant_id: null, url: 'https://example.com/shared.jpg', type: 'image', sort_order: 3 },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    // Default variant Nâu (id 1): active image = its own; thumbnails = nau + shared (xam hidden).
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/nau.jpg')
+    expect(screen.getAllByRole('button', { name: /Xem ảnh/ })).toHaveLength(2)
+
+    // Switch to Xám (id 2): active image switches, xam now visible, nau hidden.
+    await userEvent.click(screen.getByRole('button', { name: 'Xám' }))
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/xam.jpg')
+    expect(screen.getAllByRole('button', { name: /Xem ảnh/ })).toHaveLength(2)
+  })
+
+  it('identifies media that is verified for the selected variant', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        media: [
+          { id: 1, product_id: 1, variant_id: 1, url: 'https://example.com/nau.jpg', type: 'image', sort_order: 1 },
+          { id: 3, product_id: 1, variant_id: null, url: 'https://example.com/shared.jpg', type: 'image', sort_order: 2 },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/nau.jpg')
+    expect(screen.getByText('Ảnh theo phiên bản đã chọn')).toBeInTheDocument()
+    expect(screen.queryByText(/chưa xác minh riêng cho phiên bản/i)).not.toBeInTheDocument()
+  })
+
+  it('identifies shared media without claiming variant fidelity', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        media: [
+          { id: 3, product_id: 1, variant_id: null, url: 'https://example.com/shared.jpg', type: 'image', sort_order: 1 },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/shared.jpg')
+    expect(screen.getByText('Ảnh bối cảnh dùng chung')).toBeInTheDocument()
+    expect(screen.getByText(/chưa xác minh riêng cho phiên bản Nâu/i)).toBeInTheDocument()
+  })
+
+  it('exposes the real-Planner handoff to guests while keeping purchase behind login', async () => {
+    useAuthStore.setState({ token: null, user: null })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByRole('link', { name: 'Thử trong Room Planner' })).toHaveAttribute(
+      'href',
+      '/room-planner?product=ghe-sofa-da&variant=1',
+    )
+    expect(screen.queryByRole('button', { name: 'Thêm vào giỏ' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Đăng nhập để mua hàng' })).toBeInTheDocument()
+  })
+
+  it('shows unavailable verified evidence without estimating from product imagery', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByRole('heading', { name: 'Bằng chứng chưa có', level: 3 })).toBeInTheDocument()
+    expect(screen.getByText(/Kích thước W \/ D \/ H/)).toBeInTheDocument()
+    expect(screen.getByText(/vật liệu và hoàn thiện/i)).toBeInTheDocument()
+    expect(screen.getByText('Nestify không ước tính từ hình ảnh hoặc nội dung mô tả.')).toBeInTheDocument()
+    expect(screen.queryByText(/cm|mm|m²/)).not.toBeInTheDocument()
+  })
+
+  it('orders identity, media, evidence, Planner, and transaction for narrow reflow', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    const identity = screen.getByTestId('product-identity-field')
+    const mediaField = screen.getByTestId('product-truth-field')
+    const evidence = screen.getByTestId('measured-suitability-field')
+    const planner = screen.getByTestId('planner-handoff')
+    const transaction = screen.getByTestId('transaction-runway')
+
+    expect(identity.compareDocumentPosition(mediaField) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(mediaField.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(evidence.compareDocumentPosition(planner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(planner.compareDocumentPosition(transaction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('hides the add-to-cart button and shows a notice for staff users', async () => {
@@ -181,7 +323,7 @@ describe('ProductPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào giỏ' }))
 
-    expect(await screen.findByText('Chỉ còn 2 sản phẩm trong kho')).toBeInTheDocument()
+    expect(await screen.findByText('Kho chỉ đủ 2 sản phẩm cho lựa chọn này')).toBeInTheDocument()
     expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(2)
   })
 
@@ -192,6 +334,57 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thêm vào yêu thích' }))
 
     expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 1 })
+  })
+
+  it('uses safe Vietnamese copy when adding to the wishlist loses its connection', async () => {
+    wishlistApi.addItem.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào yêu thích' }))
+
+    await waitFor(() => {
+      expect(useToastStore.getState().toasts.at(-1)?.description).toBe(
+        'Đã có lỗi kết nối mạng. Vui lòng thử lại.',
+      )
+    })
+  })
+
+  it('reflects that the selected variant is already in the wishlist', async () => {
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [{ id: 77, variant: { id: 1 } }] } })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    // The button flips to an "already saved" state (pressed + remove label).
+    const button = await screen.findByRole('button', { name: 'Bỏ khỏi yêu thích' })
+    expect(button).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Thêm vào yêu thích' })).not.toBeInTheDocument()
+  })
+
+  it('removes the variant from the wishlist when the saved button is clicked', async () => {
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [{ id: 77, variant: { id: 1 } }] } })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bỏ khỏi yêu thích' }))
+
+    expect(wishlistApi.removeItem).toHaveBeenCalledWith(77)
+    expect(wishlistApi.addItem).not.toHaveBeenCalled()
+  })
+
+  it('uses safe Vietnamese copy when removing from the wishlist loses its connection', async () => {
+    wishlistApi.getWishlist.mockResolvedValue({ data: { items: [{ id: 77, variant: { id: 1 } }] } })
+    wishlistApi.removeItem.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bỏ khỏi yêu thích' }))
+
+    await waitFor(() => {
+      expect(useToastStore.getState().toasts.at(-1)?.description).toBe(
+        'Đã có lỗi kết nối mạng. Vui lòng thử lại.',
+      )
+    })
   })
 
   it('does not show a review form without a delivered order containing this product', async () => {
@@ -234,12 +427,149 @@ describe('ProductPage', () => {
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
     expect(await screen.findByText('Đồng ý!')).toBeInTheDocument()
-    expect(screen.getByText('Lan', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Lan')).toBeInTheDocument()
 
     await userEvent.type(screen.getByLabelText('Bình luận'), 'Cảm ơn')
     await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
 
     expect(reviewsApi.createComment).toHaveBeenCalledWith(1, 'Cảm ơn')
+  })
+
+  // A verified purchase unlocks the review form for these tests.
+  function withVerifiedOrder() {
+    ordersApi.getOrders.mockResolvedValue({
+      data: [
+        {
+          id: 55,
+          status: 'delivered',
+          items: [{ id: 1, variant_id: 1, variant_snapshot: {}, quantity: 1, unit_price: 5000000, subtotal: 5000000 }],
+        },
+      ],
+    })
+  }
+
+  it('maps a 422 review error to the body field without losing the entered text', async () => {
+    withVerifiedOrder()
+    reviewsApi.createReview.mockRejectedValue(
+      new ApiError('VALIDATION_FAILED', 'Dữ liệu không hợp lệ.', { fields: { body: ['Nội dung đánh giá phải có ít nhất 10 ký tự.'] } }, 422),
+    )
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Đánh giá 5 sao' }))
+    const bodyInput = screen.getByLabelText('Nội dung đánh giá')
+    await userEvent.type(bodyInput, 'Ngắn')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi đánh giá' }))
+
+    expect(await screen.findByText('Nội dung đánh giá phải có ít nhất 10 ký tự.')).toBeInTheDocument()
+    expect(bodyInput).toHaveAttribute('aria-invalid', 'true')
+    expect(bodyInput).toHaveValue('Ngắn')
+    expect(screen.queryByText(/đang chờ kiểm duyệt/)).not.toBeInTheDocument()
+  })
+
+  it('shows a friendly message and retains the review when the user is not a verified purchase (403)', async () => {
+    withVerifiedOrder()
+    reviewsApi.createReview.mockRejectedValue(new ApiError('FORBIDDEN', 'Bạn chỉ được đánh giá sản phẩm đã nhận hàng.', null, 403))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Đánh giá 5 sao' }))
+    const bodyInput = screen.getByLabelText('Nội dung đánh giá')
+    await userEvent.type(bodyInput, 'Rất tốt sản phẩm')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi đánh giá' }))
+
+    expect(await screen.findByText('Bạn chỉ được đánh giá sản phẩm đã nhận hàng.')).toBeInTheDocument()
+    expect(bodyInput).toHaveValue('Rất tốt sản phẩm')
+    expect(screen.queryByText(/đang chờ kiểm duyệt/)).not.toBeInTheDocument()
+  })
+
+  it('shows a friendly Vietnamese message (not raw axios text) on a review network error', async () => {
+    withVerifiedOrder()
+    reviewsApi.createReview.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Đánh giá 5 sao' }))
+    await userEvent.type(screen.getByLabelText('Nội dung đánh giá'), 'Rất tốt sản phẩm')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi đánh giá' }))
+
+    expect(await screen.findByText('Đã có lỗi kết nối mạng. Vui lòng thử lại.')).toBeInTheDocument()
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+  })
+
+  it('shows pending copy and blocks a duplicate review submit while in flight', async () => {
+    withVerifiedOrder()
+    let resolveReview
+    reviewsApi.createReview.mockReturnValue(
+      new Promise((resolve) => {
+        resolveReview = resolve
+      }),
+    )
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Đánh giá 5 sao' }))
+    await userEvent.type(screen.getByLabelText('Nội dung đánh giá'), 'Rất tốt sản phẩm')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi đánh giá' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Đang gửi…' })
+    expect(pendingButton).toBeDisabled()
+    await userEvent.click(pendingButton)
+    expect(reviewsApi.createReview).toHaveBeenCalledTimes(1)
+
+    resolveReview({ data: { id: 10, status: 'pending' } })
+    await screen.findByText(/đang chờ kiểm duyệt/)
+  })
+
+  it('does not let a comment fail silently — shows an inline alert and retains the draft on a 422', async () => {
+    reviewsApi.createComment.mockRejectedValue(
+      new ApiError('VALIDATION_FAILED', 'Dữ liệu không hợp lệ.', { fields: { body: ['Bình luận phải có ít nhất 3 ký tự.'] } }, 422),
+    )
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    const commentBox = await screen.findByLabelText('Bình luận')
+    await userEvent.type(commentBox, 'a')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
+
+    expect(await screen.findByText('Bình luận phải có ít nhất 3 ký tự.')).toBeInTheDocument()
+    expect(commentBox).toHaveAttribute('aria-invalid', 'true')
+    expect(commentBox).toHaveValue('a')
+  })
+
+  it('does not let a comment fail silently — shows a friendly alert on a network error', async () => {
+    reviewsApi.createComment.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    const commentBox = await screen.findByLabelText('Bình luận')
+    await userEvent.type(commentBox, 'Cảm ơn')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
+
+    expect(await screen.findByText('Đã có lỗi kết nối mạng. Vui lòng thử lại.')).toBeInTheDocument()
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+    expect(commentBox).toHaveValue('Cảm ơn')
+  })
+
+  it('shows pending copy and blocks a duplicate comment submit while in flight', async () => {
+    let resolveComment
+    reviewsApi.createComment.mockReturnValue(
+      new Promise((resolve) => {
+        resolveComment = resolve
+      }),
+    )
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    const commentBox = await screen.findByLabelText('Bình luận')
+    await userEvent.type(commentBox, 'Cảm ơn')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
+
+    expect(await screen.findByRole('button', { name: 'Đang gửi…' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Đang gửi…' }))
+    expect(reviewsApi.createComment).toHaveBeenCalledTimes(1)
+
+    resolveComment({ data: { id: 2, body: 'Cảm ơn', user: { id: 1, name: 'Bao' }, created_at: '2026-01-03T00:00:00Z' } })
   })
 
   it('records a product view for a logged-in customer', async () => {

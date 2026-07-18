@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -68,5 +68,41 @@ describe('ResetPasswordPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đặt lại mật khẩu' }))
 
     expect(await screen.findByText('Liên kết đã hết hạn.')).toBeInTheDocument()
+  })
+
+  it('shows a friendly Vietnamese message and retains the password on a network error', async () => {
+    authApi.resetPassword.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
+    renderPage()
+
+    await userEvent.type(screen.getByLabelText('Mật khẩu mới'), 'password1234')
+    await userEvent.type(screen.getByLabelText('Xác nhận mật khẩu mới'), 'password1234')
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt lại mật khẩu' }))
+
+    expect(await screen.findByText('Đã có lỗi kết nối mạng. Vui lòng thử lại.')).toBeInTheDocument()
+    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Mật khẩu mới')).toHaveValue('password1234')
+  })
+
+  it('shows pending copy and blocks a duplicate submit while a request is in flight', async () => {
+    let resolveRequest
+    authApi.resetPassword.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve
+      }),
+    )
+    renderPage()
+
+    await userEvent.type(screen.getByLabelText('Mật khẩu mới'), 'password1234')
+    await userEvent.type(screen.getByLabelText('Xác nhận mật khẩu mới'), 'password1234')
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt lại mật khẩu' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Đang đặt lại…' })
+    expect(pendingButton).toBeDisabled()
+    await userEvent.click(pendingButton)
+    expect(authApi.resetPassword).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveRequest({ data: { message: 'Đặt lại mật khẩu thành công.' } })
+    })
   })
 })

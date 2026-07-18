@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOrder, useCancelOrder } from '../../features/orders/hooks'
@@ -7,35 +8,57 @@ import { redirectToExternal } from '../../lib/navigation'
 import { BackLink } from '../../components/BackLink'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
+import { BecomingModal } from '../../components/BecomingModal'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
+import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
+
+// Orders can be cancelled by their owner any time before they ship.
+const CANCELLABLE_STATUSES = ['pending_payment', 'paid', 'processing']
 
 const sectionClass = 'rounded-card border border-border bg-surface p-6'
 
 export function OrderDetailPage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
-  const { data, isLoading, isError } = useOrder(id)
+  const { data, error, isLoading, isError, isFetching, refetch } = useOrder(id)
   const cancelOrder = useCancelOrder()
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
   const gateway = 'payos' // PayOS is the only payment gateway
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-3xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-3xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
 
   const order = data?.data
 
-  if (isError || !order) {
+  if (isError && error?.status !== 404) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-20 lg:px-10">
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng</h1>
+          <LoadErrorState className="mt-8" title="Chưa thể tải chi tiết đơn hàng" description="Trạng thái đơn hàng chưa thể xác minh. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
+        </div>
+      </div>
+    )
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-3xl">
         <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Đơn hàng</h1>
         <div className="mt-8 rounded-card border border-border bg-surface p-8 text-center">
           <p className="text-muted-foreground">
@@ -46,16 +69,22 @@ export function OrderDetailPage() {
           </p>
         </div>
       </div>
+      </div>
     )
   }
 
   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
   const isPendingPayment = order.status === 'pending_payment'
+  const canCancel = CANCELLABLE_STATUSES.includes(order.status)
+  // A cancelled order refunds money only when an online payment was captured.
+  const willRefund = order.status === 'paid' || (order.status === 'processing' && order.payment_method === 'payos')
   const address = order.shipping_address
 
   async function handleCancel() {
     try {
-      await cancelOrder.mutateAsync(order.id)
+      await cancelOrder.mutateAsync({ id: order.id, reason: cancelReason.trim() || undefined })
+      setCancelOpen(false)
+      setCancelReason('')
       addToast({ title: 'Đã hủy đơn hàng.', variant: 'success' })
     } catch (error) {
       addToast({ title: 'Không thể hủy đơn hàng.', description: error.message, variant: 'error' })
@@ -76,6 +105,7 @@ export function OrderDetailPage() {
   }
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-3xl px-6 py-16 md:py-20 lg:px-10">
       <BackLink to="/orders">Đơn hàng của tôi</BackLink>
 
@@ -91,6 +121,20 @@ export function OrderDetailPage() {
           <> · {order.payment_method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán online (PayOS)'}</>
         )}
       </p>
+
+      {/* Ownership amplification (Ch5) — a confirmed order is the room becoming
+          real. Shown only once the order is genuinely placed, not while pending
+          payment or after cancellation. */}
+      {!isPendingPayment && order.status !== 'cancelled' && (
+        <div className="mt-6 flex items-center gap-4 rounded-card border border-border bg-unbuilt/15 p-4">
+          <div className="pointer-events-none w-24 shrink-0">
+            <BecomingRoomArt level={3} />
+          </div>
+          <p className="text-sm text-foreground">
+            Những món này đang trên đường thuộc về không gian bạn đã hình dung.
+          </p>
+        </div>
+      )}
 
       <div className={`mt-8 flex flex-col gap-2 ${sectionClass}`}>
         <h2 className="font-display text-xl text-foreground">Địa chỉ giao hàng</h2>
@@ -169,12 +213,57 @@ export function OrderDetailPage() {
             <Button onClick={handleRetryPayment} disabled={createPaymentSession.isPending}>
               {createPaymentSession.isPending ? 'Đang xử lý...' : 'Thanh toán lại'}
             </Button>
-            <Button variant="secondary" onClick={handleCancel} disabled={cancelOrder.isPending}>
+            <Button variant="secondary" onClick={() => setCancelOpen(true)} disabled={cancelOrder.isPending}>
               Hủy đơn
             </Button>
           </div>
         </div>
       )}
+
+      {/* A confirmed-but-not-yet-shipped order can still be cancelled (paid orders are refunded). */}
+      {canCancel && !isPendingPayment && (
+        <div className={`mt-6 flex flex-wrap items-center justify-between gap-4 ${sectionClass}`}>
+          <p className="text-sm text-muted-foreground">
+            Đơn hàng chưa giao — bạn có thể hủy{willRefund ? ' và được hoàn tiền' : ''}.
+          </p>
+          <Button variant="secondary" onClick={() => setCancelOpen(true)} disabled={cancelOrder.isPending}>
+            Hủy đơn
+          </Button>
+        </div>
+      )}
+
+      <BecomingModal
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title="Hủy đơn hàng"
+        description="Bạn có chắc muốn hủy đơn hàng này? Thao tác không thể hoàn tác."
+      >
+        {willRefund && (
+          <p className="mb-4 rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">
+            Đơn đã thanh toán sẽ được hoàn tiền; bộ phận CSKH sẽ liên hệ xử lý hoàn tiền cho bạn.
+          </p>
+        )}
+        <label className="block text-sm">
+          <span className="text-muted-foreground">Lý do hủy (không bắt buộc)</span>
+          <textarea
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder="Ví dụ: đặt nhầm, đổi ý..."
+            className="mt-1 w-full rounded-control border border-border bg-surface p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => setCancelOpen(false)}>
+            Đóng
+          </Button>
+          <Button variant="destructive" onClick={handleCancel} disabled={cancelOrder.isPending}>
+            {cancelOrder.isPending ? 'Đang hủy...' : 'Xác nhận hủy'}
+          </Button>
+        </div>
+      </BecomingModal>
+    </div>
     </div>
   )
 }

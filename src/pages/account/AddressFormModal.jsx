@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Modal } from '../../components/Modal'
+import { BecomingModal } from '../../components/BecomingModal'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { useCreateAddress, useUpdateAddress } from '../../features/addresses/hooks'
 import { useToastStore } from '../../store/toastStore'
-import { applyServerErrors } from '../../lib/formErrors'
+import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
 
 // Vietnam's administrative units were reorganised by Nghị quyết 202/2025/QH15:
 // 34 provinces/cities and a TWO-tier model (province → ward/commune), with the
@@ -37,7 +37,15 @@ function AddressSelect({ id, label, value, onChange, options, disabled, error })
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor={id}>
       {label}
-      <select id={id} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} className={selectClass}>
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={selectClass}
+      >
         <option value="">-- Chọn --</option>
         {options.map((name) => (
           <option key={name} value={name}>
@@ -45,7 +53,11 @@ function AddressSelect({ id, label, value, onChange, options, disabled, error })
           </option>
         ))}
       </select>
-      {error && <span className="text-sm font-normal text-destructive">{error}</span>}
+      {error && (
+        <span id={`${id}-error`} role="alert" className="text-sm font-normal text-destructive">
+          {error}
+        </span>
+      )}
     </label>
   )
 }
@@ -60,6 +72,8 @@ export function AddressFormModal({ open, onOpenChange, address }) {
   const [province, setProvince] = useState('')
   const [ward, setWard] = useState('')
   const [regionError, setRegionError] = useState({})
+  const [formError, setFormError] = useState(null)
+  const formRef = useRef(null)
 
   const {
     register,
@@ -82,6 +96,7 @@ export function AddressFormModal({ open, onOpenChange, address }) {
   // Reset the form + region selects whenever the modal (re)opens.
   useEffect(() => {
     if (!open) return
+    setFormError(null)
     reset({
       recipient_name: address?.recipient_name ?? '',
       phone: address?.phone ?? '',
@@ -101,14 +116,24 @@ export function AddressFormModal({ open, onOpenChange, address }) {
   function handleProvinceChange(value) {
     setProvince(value)
     setWard('')
+    if (regionError.province) setRegionError((prev) => ({ ...prev, province: undefined }))
+  }
+
+  function handleWardChange(value) {
+    setWard(value)
+    if (regionError.ward) setRegionError((prev) => ({ ...prev, ward: undefined }))
   }
 
   const onSubmit = async (values) => {
+    setFormError(null)
     const nextRegionError = {}
     if (!province) nextRegionError.province = 'Vui lòng chọn Tỉnh/Thành phố.'
     if (!ward) nextRegionError.ward = 'Vui lòng chọn Phường/Xã.'
     setRegionError(nextRegionError)
-    if (Object.keys(nextRegionError).length > 0) return
+    if (Object.keys(nextRegionError).length > 0) {
+      focusFirstError(formRef.current)
+      return
+    }
 
     const payload = {
       recipient_name: values.recipient_name,
@@ -130,19 +155,28 @@ export function AddressFormModal({ open, onOpenChange, address }) {
       }
       onOpenChange(false)
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
-      addToast({ title: 'Có lỗi xảy ra.', description: error.message, variant: 'error' })
+      if (applyServerErrors(error, setError)) {
+        focusFirstError(formRef.current)
+        return
+      }
+      setFormError(formLevelMessage(error))
+      focusFirstError(formRef.current)
     }
   }
 
   return (
-    <Modal
+    <BecomingModal
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}
       description="Nhập thông tin địa chỉ giao hàng tại Việt Nam."
     >
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} noValidate className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+        {formError && (
+          <p role="alert" tabIndex="-1" className="text-sm text-destructive">
+            {formError}
+          </p>
+        )}
         <Input
           label="Tên người nhận"
           id="recipient_name"
@@ -164,7 +198,7 @@ export function AddressFormModal({ open, onOpenChange, address }) {
           id="ward"
           label="Phường/Xã/Thị trấn"
           value={ward}
-          onChange={setWard}
+          onChange={handleWardChange}
           options={withCurrent(wardOptions, ward)}
           disabled={!province}
           error={regionError.ward}
@@ -178,9 +212,9 @@ export function AddressFormModal({ open, onOpenChange, address }) {
         />
 
         <Button type="submit" disabled={isSubmitting}>
-          {isEditing ? 'Lưu thay đổi' : 'Thêm địa chỉ'}
+          {isSubmitting ? (isEditing ? 'Đang lưu…' : 'Đang thêm…') : isEditing ? 'Lưu thay đổi' : 'Thêm địa chỉ'}
         </Button>
       </form>
-    </Modal>
+    </BecomingModal>
   )
 }

@@ -1,43 +1,97 @@
-import { useState } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { Room } from './Room'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { SceneStage } from './SceneStage'
 import { PlacedItem } from './PlacedItem'
+import { ScaleReference } from './ScaleReference'
+import { RoomEditOverlay } from './RoomEditOverlay'
 import { useEditorStore } from '../../../features/roomPlanner/editorStore'
+import { findOverlaps } from '../../../features/roomPlanner/collision'
+import { registerPlannerCanvas, unregisterPlannerCanvas } from '../../../features/roomPlanner/canvasCapture'
 
+const observeModelError = (error) => console.error('Planner furniture model failed to render', error)
+
+function EditorPlacedItem({ item, setOrbitEnabled, ...props }) {
+  const reportFootprint = useEditorStore((s) => s.reportFootprint)
+  const handleDragChange = useCallback(
+    (dragging) => setOrbitEnabled(!dragging),
+    [setOrbitEnabled],
+  )
+  const handleMeasure = useCallback(
+    (size) => reportFootprint(item.localId, size),
+    [item.localId, reportFootprint],
+  )
+
+  return (
+    <PlacedItem
+      {...props}
+      item={item}
+      onDragChange={handleDragChange}
+      onMeasure={handleMeasure}
+    />
+  )
+}
+
+// Editor canvas: composes the shared SceneStage and adds the interactive layer —
+// the deselect plane and the gizmo-editable placed items, wired to the editor
+// store. Dragging an item disables orbit so the two gestures don't fight.
+//
+// In "room" edit mode (editMode === 'room', the "Chỉnh phòng" top-down view),
+// furniture becomes non-interactive reference-only content and the
+// RoomEditOverlay (wall/size handles) takes over instead.
 export function RoomCanvas() {
   const room = useEditorStore((s) => s.room)
   const items = useEditorStore((s) => s.items)
   const selectedId = useEditorStore((s) => s.selectedId)
   const gizmoMode = useEditorStore((s) => s.gizmoMode)
+  const editMode = useEditorStore((s) => s.editMode)
   const selectItem = useEditorStore((s) => s.selectItem)
   const updateTransform = useEditorStore((s) => s.updateTransform)
+  const snap = useEditorStore((s) => s.snap)
+  const wallSnap = useEditorStore((s) => s.wallSnap)
+  const showScaleRef = useEditorStore((s) => s.showScaleRef)
   const [orbitEnabled, setOrbitEnabled] = useState(true)
+  const canvasElRef = useRef(null)
+  const topDown = editMode === 'room'
 
-  const camDistance = Math.max(room.width, room.depth, 4) * 1.4
+  // Huỷ đăng ký canvas khi editor unmount (để capturePlannerPreview không trỏ canvas cũ).
+  useEffect(() => () => { if (canvasElRef.current) unregisterPlannerCanvas(canvasElRef.current) }, [])
+
+  // Which items overlap another (top-down footprints). Recomputes when items move
+  // OR when their footprints get measured — both live in `items`.
+  const conflictSet = useMemo(() => findOverlaps(items), [items])
 
   return (
-    <Canvas shadows camera={{ position: [camDistance, camDistance, camDistance], fov: 45 }}>
-      <hemisphereLight intensity={0.9} groundColor="#cfc6b5" />
-      <directionalLight position={[5, 8, 5]} intensity={1.1} castShadow />
-      <Room width={room.width} depth={room.depth} height={room.height} />
-      {/* Click empty space → deselect. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={() => selectItem(null)} visible={false}>
-        <planeGeometry args={[room.width, room.depth]} />
-      </mesh>
+    <SceneStage
+      room={room}
+      orbitEnabled={orbitEnabled}
+      topDown={topDown}
+      onRendererReady={(gl) => { canvasElRef.current = gl.domElement; registerPlannerCanvas(gl.domElement) }}
+    >
+      {/* Click empty space → deselect. Hidden in room mode: nothing to select there. */}
+      {!topDown && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={() => selectItem(null)} visible={false}>
+          <planeGeometry args={[room.width, room.depth]} />
+        </mesh>
+      )}
       {items.map((item) => (
-        <PlacedItem
+        <EditorPlacedItem
           key={item.localId}
           item={item}
-          selected={item.localId === selectedId}
+          setOrbitEnabled={setOrbitEnabled}
+          room={room}
+          selected={!topDown && item.localId === selectedId}
           gizmoMode={gizmoMode}
-          onSelect={selectItem}
+          snap={snap}
+          wallSnap={wallSnap}
+          conflict={conflictSet.has(item.localId)}
+          onSelect={topDown ? undefined : selectItem}
           onTransform={updateTransform}
-          onDragChange={(dragging) => setOrbitEnabled(!dragging)}
+          onModelError={observeModelError}
+          interactive={!topDown}
         />
       ))}
-      <OrbitControls makeDefault enabled={orbitEnabled} target={[0, room.height / 4, 0]} />
-    </Canvas>
+      {topDown && <RoomEditOverlay room={room} onDragChange={(d) => setOrbitEnabled(!d)} />}
+      {showScaleRef && !topDown && <ScaleReference room={room} onDragChange={(dragging) => setOrbitEnabled(!dragging)} />}
+    </SceneStage>
   )
 }
 

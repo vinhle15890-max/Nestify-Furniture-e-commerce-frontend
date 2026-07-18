@@ -5,6 +5,8 @@ import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
+import { Modal } from '../../../components/Modal'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminVouchers, useDeleteVoucher } from '../../../features/admin/vouchers/hooks'
@@ -35,11 +37,13 @@ function formatDateRange(voucher) {
 
 export function AdminVouchersPage() {
   const [page, setPage] = useState(1)
-  const { data, isLoading } = useAdminVouchers(page)
+  const { data, isLoading, isError, isFetching, refetch } = useAdminVouchers(page)
   const deleteVoucher = useDeleteVoucher()
   const addToast = useToastStore((state) => state.addToast)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingVoucher, setEditingVoucher] = useState(null)
+  const [deletingVoucher, setDeletingVoucher] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   const vouchers = data?.data ?? []
   // VoucherController returns a plain resource collection → Laravel's default
@@ -57,14 +61,24 @@ export function AdminVouchersPage() {
     setModalOpen(true)
   }
 
-  const handleDelete = async (voucher) => {
-    if (!window.confirm(`Xóa voucher "${voucher.code}"?`)) return
+  const openDeleteModal = (voucher) => {
+    setDeletingVoucher(voucher)
+    setDeleteError(null)
+  }
 
+  const confirmDelete = async () => {
+    if (!deletingVoucher || deleteVoucher.isPending) return
+    setDeleteError(null)
     try {
-      await deleteVoucher.mutateAsync(voucher.id)
+      await deleteVoucher.mutateAsync(deletingVoucher.id)
       addToast({ title: 'Đã xóa voucher.', variant: 'success' })
+      setDeletingVoucher(null)
     } catch (error) {
-      addToast({ title: 'Không thể xóa voucher.', description: error.message, variant: 'error' })
+      setDeleteError(
+        error?.code === 'NETWORK_ERROR'
+          ? 'Chưa thể xóa voucher. Vui lòng kiểm tra kết nối và thử lại.'
+          : error?.message ?? 'Không thể xóa voucher. Vui lòng thử lại.',
+      )
     }
   }
 
@@ -80,6 +94,8 @@ export function AdminVouchersPage() {
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải voucher..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải voucher" description="Trang hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
         ) : vouchers.length === 0 ? (
           <Card>
             <EmptyState
@@ -91,6 +107,7 @@ export function AdminVouchersPage() {
         ) : (
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
+              <caption className="sr-only">Danh sách voucher</caption>
               <thead>
                 <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   <th className="px-4 py-3">Mã</th>
@@ -99,7 +116,7 @@ export function AdminVouchersPage() {
                   <th className="px-4 py-3">Sử dụng</th>
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3">Thời hạn</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-4 py-3"><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -121,6 +138,7 @@ export function AdminVouchersPage() {
                         <div className="flex justify-end gap-4">
                           <button
                             type="button"
+                            aria-label={`Sửa voucher ${voucher.code}`}
                             className="cursor-pointer text-foreground transition-colors hover:text-accent"
                             onClick={() => openEditModal(voucher)}
                           >
@@ -128,8 +146,9 @@ export function AdminVouchersPage() {
                           </button>
                           <button
                             type="button"
+                            aria-label={`Xóa voucher ${voucher.code}`}
                             className="cursor-pointer text-destructive hover:opacity-80"
-                            onClick={() => handleDelete(voucher)}
+                            onClick={() => openDeleteModal(voucher)}
                           >
                             Xóa
                           </button>
@@ -149,6 +168,25 @@ export function AdminVouchersPage() {
       </div>
 
       <VoucherFormModal open={modalOpen} onOpenChange={setModalOpen} voucher={editingVoucher} />
+
+      <Modal
+        open={Boolean(deletingVoucher)}
+        onOpenChange={(next) => {
+          if (!next && !deleteVoucher.isPending) setDeletingVoucher(null)
+        }}
+        title="Xóa voucher"
+        description={deletingVoucher ? `Xóa voucher “${deletingVoucher.code}”? Hành động này không thể hoàn tác.` : undefined}
+      >
+        <div className="flex flex-col gap-4">
+          {deleteError && <p role="alert" className="text-sm text-destructive">{deleteError}</p>}
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setDeletingVoucher(null)} disabled={deleteVoucher.isPending}>Hủy</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteVoucher.isPending}>
+              {deleteVoucher.isPending ? 'Đang xóa...' : 'Xóa voucher'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

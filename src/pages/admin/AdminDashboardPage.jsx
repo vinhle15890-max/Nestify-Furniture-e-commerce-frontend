@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { PageHeader } from '../../components/admin/PageHeader'
 import { BrandIllustration } from '../../components/admin/BrandIllustration'
 import { useAdminDashboard } from '../../features/admin/dashboard/hooks'
@@ -107,18 +108,14 @@ function ActionRow({ to, icon: Icon, label, count, urgent }) {
 }
 
 export function AdminDashboardPage() {
-  const { data, isLoading, isError, error } = useAdminDashboard()
+  const { data, isLoading, isError, isFetching, refetch } = useAdminDashboard()
 
   if (isLoading) {
     return <Spinner label="Đang tải số liệu tổng quan..." />
   }
 
   if (isError) {
-    return (
-      <p role="alert" className="text-sm text-destructive">
-        {error?.message ?? 'Không tải được số liệu tổng quan.'}
-      </p>
-    )
+    return <LoadErrorState title="Chưa thể tải số liệu tổng quan" description="Hãy thử tải lại bảng điều hành." onRetry={refetch} isRetrying={isFetching} />
   }
 
   const stats = data?.data

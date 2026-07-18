@@ -7,6 +7,10 @@ export function getOrders({ page, status } = {}) {
   return apiClient.get('/admin/orders', { params })
 }
 
+export function getOrder(id) {
+  return apiClient.get(`/admin/orders/${id}`)
+}
+
 export function updateOrderStatus(id, status) {
   return apiClient.patch(`/admin/orders/${id}/status`, { status })
 }

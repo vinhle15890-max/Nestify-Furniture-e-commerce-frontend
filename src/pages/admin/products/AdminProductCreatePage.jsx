@@ -51,6 +51,9 @@ export function AdminProductCreatePage() {
   } = useForm({ resolver: yupResolver(productSchema), defaultValues: emptyValues })
 
   const [slugTouched, setSlugTouched] = useState(false)
+  const [generatingField, setGeneratingField] = useState(null)
+  const [tone, setTone] = useState('sang_trong')
+  const [variations, setVariations] = useState(null)
   const nameValue = watch('name')
 
   useEffect(() => {
@@ -77,15 +80,45 @@ export function AdminProductCreatePage() {
         category: categoryName,
         keyword: watch('focus_keyword') || null,
         attributes: {},
+        tone,
+        count: 2,
       })
-      const draft = response.data
-      setValue('description', draft.description ?? '', { shouldDirty: true })
-      setValue('meta_title', draft.meta_title ?? '', { shouldDirty: true })
-      setValue('meta_description', draft.meta_description ?? '', { shouldDirty: true })
-      if (draft.focus_keyword) setValue('focus_keyword', draft.focus_keyword, { shouldDirty: true })
-      addToast({ title: 'AI đã tạo bản nháp mô tả. Hãy kiểm tra trước khi lưu.', variant: 'success' })
+      setVariations(response.data.drafts ?? [])
     } catch (error) {
       addToast({ title: 'Không thể tạo mô tả bằng AI.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const applyDraft = (draft) => {
+    setValue('description', draft.description ?? '', { shouldDirty: true })
+    setValue('meta_title', draft.meta_title ?? '', { shouldDirty: true })
+    setValue('meta_description', draft.meta_description ?? '', { shouldDirty: true })
+    if (draft.focus_keyword) setValue('focus_keyword', draft.focus_keyword, { shouldDirty: true })
+    setVariations(null)
+    addToast({ title: 'Đã áp dụng phương án. Kiểm tra trước khi lưu.', variant: 'success' })
+  }
+
+  const handleGenerateField = async (field) => {
+    setGeneratingField(field)
+    try {
+      const categoryName = categoryOptions.find((option) => String(option.id) === watch('category_id'))?.name ?? null
+      const response = await generateDescription.mutateAsync({
+        name: watch('name'),
+        category: categoryName,
+        keyword: watch('focus_keyword') || null,
+        attributes: {},
+        description: watch('description') || null,
+        tone,
+        field,
+      })
+      if (response.data[field] !== undefined) {
+        setValue(field, response.data[field] ?? '', { shouldDirty: true })
+      }
+      addToast({ title: 'AI đã cập nhật trường đã chọn. Kiểm tra trước khi lưu.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể tạo nội dung bằng AI.', description: error.message, variant: 'error' })
+    } finally {
+      setGeneratingField(null)
     }
   }
 
@@ -210,7 +243,15 @@ export function AdminProductCreatePage() {
             slug={watch('slug')}
             namePlaceholder={watch('name')}
             onGenerate={handleGenerateDescription}
-            isGenerating={generateDescription.isPending}
+            isGenerating={generateDescription.isPending && generatingField === null}
+            onGenerateField={handleGenerateField}
+            generatingField={generatingField}
+            tone={tone}
+            onToneChange={setTone}
+            variations={variations}
+            onApplyDraft={applyDraft}
+            onCloseVariations={() => setVariations(null)}
+            onRegenerate={handleGenerateDescription}
             onEditorError={(error) =>
               addToast({ title: 'Không thể chèn ảnh.', description: error.message, variant: 'error' })
             }

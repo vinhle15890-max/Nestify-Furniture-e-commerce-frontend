@@ -52,9 +52,14 @@ describe('Card', () => {
 })
 
 describe('Badge', () => {
-  it('renders the sale tone', () => {
+  it('renders the sale (in-progress) tone as an emerging outline', () => {
     render(<Badge tone="sale">Sale</Badge>)
-    expect(screen.getByText('Sale')).toHaveClass('bg-accent')
+    expect(screen.getByText('Sale')).toHaveClass('border-emerging')
+  })
+
+  it('renders the in-stock (done) tone as a solid ink fill', () => {
+    render(<Badge tone="in-stock">Done</Badge>)
+    expect(screen.getByText('Done')).toHaveClass('bg-foreground')
   })
 })
 

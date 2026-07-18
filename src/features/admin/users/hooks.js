@@ -4,11 +4,12 @@ import * as usersApi from './api'
 // Filtered, paginated admin user list. `type` partitions staff vs customers; `role`
 // narrows to one role; `search` matches name or email. Previous page data is kept
 // while refetching so the table doesn't flash on filter/page changes.
-export function useAdminUsers({ page = 1, type, search, role } = {}) {
+export function useAdminUsers({ page = 1, type, search, role, enabled = true } = {}) {
   return useQuery({
     queryKey: ['admin', 'users', { page, type: type ?? null, search: search || null, role: role ?? null }],
     queryFn: () => usersApi.getUsers({ page, type, search: search || undefined, role }),
     placeholderData: keepPreviousData,
+    enabled,
   })
 }
 

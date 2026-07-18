@@ -3,6 +3,8 @@ import { FolderTree } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Button } from '../../../components/Button'
 import { Spinner } from '../../../components/Spinner'
+import { LoadErrorState } from '../../../components/LoadErrorState'
+import { Modal } from '../../../components/Modal'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminCategories, useDeleteCategory } from '../../../features/admin/categories/hooks'
@@ -23,10 +25,20 @@ function CategoryRow({ category, depth, onEdit, onDelete }) {
           </div>
         </div>
         <div className="flex gap-4">
-          <button type="button" className="cursor-pointer text-foreground transition-colors hover:text-accent" onClick={() => onEdit(category)}>
+          <button
+            type="button"
+            aria-label={`Sửa danh mục ${category.name}`}
+            className="cursor-pointer text-foreground transition-colors hover:text-accent"
+            onClick={() => onEdit(category)}
+          >
             Sửa
           </button>
-          <button type="button" className="cursor-pointer text-destructive hover:opacity-80" onClick={() => onDelete(category)}>
+          <button
+            type="button"
+            aria-label={`Xóa danh mục ${category.name}`}
+            className="cursor-pointer text-destructive hover:opacity-80"
+            onClick={() => onDelete(category)}
+          >
             Xóa
           </button>
         </div>
@@ -39,11 +51,13 @@ function CategoryRow({ category, depth, onEdit, onDelete }) {
 }
 
 export function AdminCategoriesPage() {
-  const { data, isLoading } = useAdminCategories()
+  const { data, isLoading, isError, isFetching, refetch } = useAdminCategories()
   const deleteCategory = useDeleteCategory()
   const addToast = useToastStore((state) => state.addToast)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
+  const [deletingCategory, setDeletingCategory] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   const categories = data?.data ?? []
 
@@ -57,14 +71,24 @@ export function AdminCategoriesPage() {
     setModalOpen(true)
   }
 
-  const handleDelete = async (category) => {
-    if (!window.confirm(`Xóa danh mục "${category.name}"?`)) return
+  const openDeleteModal = (category) => {
+    setDeletingCategory(category)
+    setDeleteError(null)
+  }
 
+  const confirmDelete = async () => {
+    if (!deletingCategory || deleteCategory.isPending) return
+    setDeleteError(null)
     try {
-      await deleteCategory.mutateAsync(category.id)
+      await deleteCategory.mutateAsync(deletingCategory.id)
       addToast({ title: 'Đã xóa danh mục.', variant: 'success' })
+      setDeletingCategory(null)
     } catch (error) {
-      addToast({ title: 'Không thể xóa danh mục.', description: error.message, variant: 'error' })
+      setDeleteError(
+        error?.code === 'NETWORK_ERROR'
+          ? 'Chưa thể xóa danh mục. Vui lòng kiểm tra kết nối và thử lại.'
+          : error?.message ?? 'Không thể xóa danh mục. Vui lòng thử lại.',
+      )
     }
   }
 
@@ -74,12 +98,14 @@ export function AdminCategoriesPage() {
         icon={FolderTree}
         title="Danh mục"
         description="Sắp xếp cây danh mục sản phẩm của cửa hàng."
-        actions={<Button onClick={openCreateModal}>Thêm danh mục</Button>}
+        actions={<Button onClick={openCreateModal} disabled={isLoading || (isError && !data)}>Thêm danh mục</Button>}
       />
 
       <div className="mt-6">
         {isLoading ? (
           <Spinner label="Đang tải danh mục..." />
+        ) : isError && !data ? (
+          <LoadErrorState title="Chưa thể tải danh mục" description="Hãy thử tải lại danh sách danh mục." onRetry={refetch} isRetrying={isFetching} />
         ) : categories.length === 0 ? (
           <Card>
             <EmptyState
@@ -91,13 +117,32 @@ export function AdminCategoriesPage() {
         ) : (
           <Card>
             {categories.map((category) => (
-              <CategoryRow key={category.id} category={category} depth={0} onEdit={openEditModal} onDelete={handleDelete} />
+              <CategoryRow key={category.id} category={category} depth={0} onEdit={openEditModal} onDelete={openDeleteModal} />
             ))}
           </Card>
         )}
       </div>
 
       <CategoryFormModal open={modalOpen} onOpenChange={setModalOpen} category={editingCategory} categoryTree={categories} />
+
+      <Modal
+        open={Boolean(deletingCategory)}
+        onOpenChange={(next) => {
+          if (!next && !deleteCategory.isPending) setDeletingCategory(null)
+        }}
+        title="Xóa danh mục"
+        description={deletingCategory ? `Xóa danh mục “${deletingCategory.name}”? Hành động này không thể hoàn tác.` : undefined}
+      >
+        <div className="flex flex-col gap-4">
+          {deleteError && <p role="alert" className="text-sm text-destructive">{deleteError}</p>}
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setDeletingCategory(null)} disabled={deleteCategory.isPending}>Hủy</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteCategory.isPending}>
+              {deleteCategory.isPending ? 'Đang xóa...' : 'Xóa danh mục'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

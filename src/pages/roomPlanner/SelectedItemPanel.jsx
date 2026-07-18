@@ -1,11 +1,18 @@
-import { RotateCcw, Trash2 } from 'lucide-react'
+import { Copy, RotateCcw, Trash2 } from 'lucide-react'
 
-export function SelectedItemPanel({ item, onDelete, onResetTransform }) {
+export function SelectedItemPanel({ item, onDelete, onResetTransform, onDuplicate }) {
   if (!item) return null
   return (
     <div className="rounded-card border border-border bg-surface p-3">
       <p className="mb-3 truncate text-sm font-medium text-foreground">{item.variant.name}</p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onDuplicate}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-control border border-border py-2 text-sm text-foreground hover:border-border-strong"
+        >
+          <Copy size={15} aria-hidden="true" /> Nhân bản
+        </button>
         <button
           type="button"
           onClick={onResetTransform}

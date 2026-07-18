@@ -1,51 +1,11 @@
-import { useState } from 'react'
-import { NavLink, Link, Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
-import {
-  LayoutDashboard,
-  FolderTree,
-  Package,
-  Receipt,
-  Ticket,
-  Star,
-  ShieldCheck,
-  Users2,
-  ScrollText,
-  Store,
-  Menu,
-  X,
-  ChevronsUpDown,
-  LogOut,
-} from 'lucide-react'
-import { useLogout } from '../../features/auth/hooks'
+import { Store, Menu, X, ChevronsUpDown, LogOut, Eye } from 'lucide-react'
+import { useLogout, useMe } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
-
-const navGroups = [
-  { items: [{ to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true }] },
-  {
-    title: 'Danh mục',
-    items: [
-      { to: '/admin/categories', label: 'Danh mục', icon: FolderTree },
-      { to: '/admin/products', label: 'Sản phẩm', icon: Package },
-    ],
-  },
-  {
-    title: 'Bán hàng',
-    items: [
-      { to: '/admin/orders', label: 'Đơn hàng', icon: Receipt },
-      { to: '/admin/vouchers', label: 'Voucher', icon: Ticket },
-    ],
-  },
-  { title: 'Cộng đồng', items: [{ to: '/admin/reviews', label: 'Đánh giá', icon: Star }] },
-  {
-    title: 'Nhân sự',
-    items: [
-      { to: '/admin/employees', label: 'Nhân viên', icon: ShieldCheck },
-      { to: '/admin/customers', label: 'Khách hàng', icon: Users2 },
-    ],
-  },
-  { title: 'Hệ thống', items: [{ to: '/admin/audit-logs', label: 'Nhật ký', icon: ScrollText }] },
-]
+import { usePreviewStore, useEffectiveUser } from '../../store/previewStore'
+import { navGroups, visibleGroups } from './adminNav'
 
 const allItems = navGroups.flatMap((group) => group.items)
 
@@ -69,10 +29,10 @@ const navLinkClass = ({ isActive }) =>
       : 'border-transparent text-muted-foreground hover:bg-surface-alt/60 hover:text-foreground'
   }`
 
-function SidebarNav({ onNavigate }) {
+function SidebarNav({ groups, onNavigate }) {
   return (
     <nav className="flex-1 overflow-y-auto px-3 pb-4">
-      {navGroups.map((group, index) => (
+      {groups.map((group, index) => (
         <div key={group.title ?? index} className={index === 0 ? '' : 'mt-6'}>
           {group.title && (
             <p className="px-3 pb-2 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/60">
@@ -166,23 +126,71 @@ function UserMenu({ user, onLogout }) {
   )
 }
 
+function PreviewBanner({ role, onExit }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-accent/10 px-4 py-2 text-sm text-foreground lg:px-8">
+      <span className="flex items-center gap-2">
+        <Eye size={16} className="shrink-0 text-accent" aria-hidden="true" />
+        Đang xem thử giao diện như vai trò <strong className="font-medium">{role.display_name}</strong> — quyền thao tác
+        thật vẫn theo tài khoản của bạn.
+      </span>
+      <button
+        type="button"
+        onClick={onExit}
+        className="flex shrink-0 items-center gap-1.5 rounded-control border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-alt"
+      >
+        <X size={14} aria-hidden="true" /> Thoát xem thử
+      </button>
+    </div>
+  )
+}
+
 export function AdminLayout() {
   const logout = useLogout()
   const user = useAuthStore((state) => state.user)
+  const setUser = useAuthStore((state) => state.setUser)
+  const effectiveUser = useEffectiveUser()
+  const previewRole = usePreviewStore((state) => state.previewRole)
+  const clearPreview = usePreviewStore((state) => state.clearPreview)
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const title = activeTitle(pathname)
   const handleLogout = () => logout.mutate()
+  const groups = visibleGroups(effectiveUser)
+
+  function handleExitPreview() {
+    clearPreview()
+    navigate('/admin')
+  }
+
+  // Legacy persisted sessions may predate `user.permissions`. Sync `/auth/me`
+  // on entering the admin area so the sidebar/route guards reflect current
+  // permissions instead of locking the user out with a stale/empty set.
+  const { data: meData } = useMe()
+  useEffect(() => {
+    if (meData?.data) setUser(meData.data)
+  }, [meData, setUser])
+
+  // Admin keeps the legacy palette. Becoming is the :root default now, so we
+  // opt <body> into `legacy` while an admin route is mounted — admin dialogs
+  // portal to <body>, so this single stamp themes the shell AND every admin
+  // portal at once, with no per-dialog stamping. The attribute on the shell
+  // root below prevents a first-paint flash before this effect runs.
+  useEffect(() => {
+    document.body.setAttribute('data-theme', 'legacy')
+    return () => document.body.removeAttribute('data-theme')
+  }, [])
 
   return (
-    <div className="flex min-h-dvh bg-background">
+    <div data-theme="legacy" className="flex min-h-dvh bg-background">
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
         <div className="px-5 py-5">
           <Brand />
         </div>
-        <SidebarNav />
+        <SidebarNav groups={groups} />
         <div className="border-t border-border p-3">
           <UserMenu user={user} onLogout={handleLogout} />
         </div>
@@ -201,7 +209,7 @@ export function AdminLayout() {
                 <X size={20} />
               </Dialog.Close>
             </div>
-            <SidebarNav onNavigate={() => setMobileOpen(false)} />
+            <SidebarNav groups={groups} onNavigate={() => setMobileOpen(false)} />
             <div className="border-t border-border p-3">
               <UserMenu user={user} onLogout={handleLogout} />
             </div>
@@ -210,6 +218,8 @@ export function AdminLayout() {
       </Dialog.Root>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {previewRole && <PreviewBanner role={previewRole} onExit={handleExitPreview} />}
+
         {/* Sticky top bar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-md lg:px-8">
           <button

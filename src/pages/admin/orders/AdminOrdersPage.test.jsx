@@ -48,6 +48,9 @@ describe('AdminOrdersPage', () => {
     expect(await screen.findByText('Bao Le')).toBeInTheDocument()
     expect(screen.getByText('bao@example.com')).toBeInTheDocument()
     expect(screen.getByText('7.500.000 ₫')).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Danh sách đơn hàng' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Xem đơn hàng #101' })).toBeInTheDocument()
   })
 
   it('re-queries when the status filter changes', async () => {

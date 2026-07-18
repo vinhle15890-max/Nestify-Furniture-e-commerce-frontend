@@ -20,7 +20,7 @@ export function Newsletter() {
           <h2 className="mt-4 font-display text-[clamp(1.9rem,3.4vw,3rem)] leading-tight text-foreground">
             Tham gia Nestify Journal
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-foreground/80">
             Cảm hứng thiết kế, bộ sưu tập mới và ưu đãi dành riêng — gửi đến hộp thư của bạn.
           </p>
 

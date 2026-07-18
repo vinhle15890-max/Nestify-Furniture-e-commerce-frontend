@@ -16,6 +16,13 @@ export function snapToFloor(position, restingHeight) {
   return { x: position.x, y: restingHeight, z: position.z }
 }
 
+// Given a bounding box, the y-translation that puts the model's base at local
+// y=0 so a group at y=0 rests on the floor (fixes centred-origin models sinking).
+export function baseOffset(box) {
+  const minY = box?.min?.y
+  return Number.isFinite(minY) ? -minY : 0
+}
+
 // Keep an item's centre inside the room footprint (room is centred at origin).
 export function clampToRoom(position, room) {
   const halfW = room.width / 2

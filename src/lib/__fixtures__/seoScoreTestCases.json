@@ -1,0 +1,189 @@
+[
+  {
+    "name": "all_pass_perfect",
+    "input": {
+      "metaTitle": "Sofa Da Bò Cao Cấp – Thương Hiệu Luxury",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại, bền vượt thời gian. Giảm giá 30%. Giao miễn phí toàn quốc. Liên hệ ngay hôm nay.",
+      "description": "<p>Sofa da bò cao cấp của chúng tôi là sự lựa chọn hoàn hảo cho phòng khách.</p><h2>Tính năng nổi bật</h2><ul><li>Da bò Italia 100%</li><li>Khung gỗ sồi nguyên khối</li></ul><p>Bảo hành 5 năm.</p>",
+      "focusKeyword": "sofa da bò cao cấp"
+    },
+    "expectedScore": 65,
+    "description": "Perfect: all checks should pass"
+  },
+  {
+    "name": "partial_fail_no_keyword",
+    "input": {
+      "metaTitle": "Sofa Da",
+      "metaDescription": "Ghế sofa",
+      "description": "<p>Đây là một sản phẩm.</p>",
+      "focusKeyword": ""
+    },
+    "expectedScore": 23,
+    "description": "Fail: no keyword, title too short, meta too short, no structure"
+  },
+  {
+    "name": "warn_all_marginal",
+    "input": {
+      "metaTitle": "Sofa – Nội Thất",
+      "metaDescription": "Sofa chất lượng cao cho nhà bạn. Thiết kế đẹp, giá tốt.",
+      "description": "<p>Sofa là mảnh nội thất quan trọng.</p><h2>Đặc điểm</h2>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 53,
+    "description": "Warn most checks: title/meta in warn range, H2 only (no UL)"
+  },
+  {
+    "name": "edge_case_null_fields",
+    "input": {
+      "metaTitle": null,
+      "metaDescription": null,
+      "description": null,
+      "focusKeyword": null
+    },
+    "expectedScore": 23,
+    "description": "Edge: all null fields treated as empty"
+  },
+  {
+    "name": "edge_case_whitespace_only",
+    "input": {
+      "metaTitle": "   ",
+      "metaDescription": "   \n\t  ",
+      "description": "",
+      "focusKeyword": "  "
+    },
+    "expectedScore": 23,
+    "description": "Edge: whitespace-only treated as empty"
+  },
+  {
+    "name": "keyword_case_insensitive",
+    "input": {
+      "metaTitle": "SOFA DA BÒ CAO CẤP",
+      "metaDescription": "Mua Sofa Da Bò ngay hôm nay, chất lượng cao, giá tốt",
+      "description": "<p>Sản phẩm sofa da bò tốt nhất trên thị trường</p><h2>Lợi Ích</h2><ul><li>Chất lượng</li></ul>",
+      "focusKeyword": "sofa da bò"
+    },
+    "expectedScore": 60,
+    "description": "Keyword case-insensitive match (uppercase title, lowercase keyword)"
+  },
+  {
+    "name": "keyword_not_found",
+    "input": {
+      "metaTitle": "Ghế Sofa Đẹp",
+      "metaDescription": "Ghế sofa màu đỏ cao cấp với thiết kế hiện đại",
+      "description": "<p>Ghế sofa này rất đẹp.</p><h2>Chi Tiết</h2><ul><li>Bền</li></ul>",
+      "focusKeyword": "da bò"
+    },
+    "expectedScore": 15,
+    "description": "Keyword \"da bò\" not in title/meta/intro (3 fail, but structure pass)"
+  },
+  {
+    "name": "title_exactly_49_chars",
+    "input": {
+      "metaTitle": "Sofa Da Bò Cao Cấp – Thương Hiệu xxxxxxxxxxxxxxxx",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Test content.</p><h2>Section</h2><ul><li>Item</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 75,
+    "description": "Title exactly 49 chars (fail: < 50 ideal min)"
+  },
+  {
+    "name": "title_exactly_50_chars",
+    "input": {
+      "metaTitle": "Sofa Da Bò Cao Cấp – Thương Hiệu Home xxxxxxxxxxxx",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Test content.</p><h2>Section</h2><ul><li>Item</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 85,
+    "description": "Title exactly 50 chars (pass: ideal min)"
+  },
+  {
+    "name": "title_exactly_60_chars",
+    "input": {
+      "metaTitle": "Sofa Da Bò Cao Cấp – Thương Hiệu Luxury Với Chất Lượng xxxxx",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Test content.</p><h2>Section</h2><ul><li>Item</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 85,
+    "description": "Title exactly 60 chars (pass: ideal max)"
+  },
+  {
+    "name": "title_exactly_61_chars",
+    "input": {
+      "metaTitle": "Sofa Da Bò Cao Cấp – Thương Hiệu Luxury Với Chất Lượng A xxxx",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Test content.</p><h2>Section</h2><ul><li>Item</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 75,
+    "description": "Title exactly 61 chars (warn: outside ideal [50-60] but in ok [30-70])"
+  },
+  {
+    "name": "meta_exactly_139_chars",
+    "input": {
+      "metaTitle": "Sofa Da Cao Cấp",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại, bền vượt thời gian xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Content.</p><h2>Feature</h2><ul><li>X</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 55,
+    "description": "Meta exactly 139 chars (fail: < 140 ideal min)"
+  },
+  {
+    "name": "meta_exactly_140_chars",
+    "input": {
+      "metaTitle": "Sofa Da Cao Cấp",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại, bền vượt thời gian, giao xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Content.</p><h2>Feature</h2><ul><li>X</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 65,
+    "description": "Meta exactly 140 chars (pass: ideal min)"
+  },
+  {
+    "name": "meta_exactly_160_chars",
+    "input": {
+      "metaTitle": "Sofa Da Cao Cấp",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại, bền vượt thời gian. Giảm giá 30%. Giao miễn phí toàn xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Content.</p><h2>Feature</h2><ul><li>X</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 65,
+    "description": "Meta exactly 160 chars (pass: ideal max)"
+  },
+  {
+    "name": "meta_exactly_161_chars",
+    "input": {
+      "metaTitle": "Sofa Da Cao Cấp",
+      "metaDescription": "Sofa da bò nhập khẩu từ Italia, thiết kế hiện đại, bền vượt thời gian. Giảm giá 30%. Giao miễn phí toàn quốc xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "description": "<p>Content.</p><h2>Feature</h2><ul><li>X</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 55,
+    "description": "Meta exactly 161 chars (warn: outside ideal [140-160] but in ok [100-180])"
+  },
+  {
+    "name": "only_h2_no_ul",
+    "input": {
+      "metaTitle": "Sofa Test",
+      "metaDescription": "Sofa test description with sufficient length for meta check pass",
+      "description": "<p>Intro.</p><h2>Section Title</h2><p>Content without list.</p>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 38,
+    "description": "H2 present but no UL → structure warn"
+  },
+  {
+    "name": "only_ul_no_h2",
+    "input": {
+      "metaTitle": "Sofa Test",
+      "metaDescription": "Sofa test description with sufficient length for meta check pass",
+      "description": "<p>Intro.</p><ul><li>Item 1</li><li>Item 2</li></ul>",
+      "focusKeyword": "sofa"
+    },
+    "expectedScore": 38,
+    "description": "UL present but no H2 → structure warn"
+  }
+]

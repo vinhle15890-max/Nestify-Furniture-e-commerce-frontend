@@ -58,24 +58,45 @@ describe('AdminProductCreatePage', () => {
     expect(await screen.findByText('Trang sửa sản phẩm')).toBeInTheDocument()
   })
 
-  it('fills description and SEO fields from the AI draft', async () => {
+  it('fills description and SEO fields from a chosen AI variation, honoring the selected tone', async () => {
     productsApi.generateProductDescription.mockResolvedValue({
       data: {
-        description: '<p>Đèn bàn gỗ sồi tối giản.</p>',
-        meta_title: 'Đèn bàn gỗ sồi | Nestify',
-        meta_description: 'Đèn bàn gỗ sồi tối giản, ánh sáng ấm. Mua tại Nestify.',
-        focus_keyword: 'đèn bàn gỗ',
+        drafts: [
+          {
+            description: '<p>Đèn bàn gỗ sồi tối giản.</p>',
+            meta_title: 'Đèn bàn gỗ sồi | Nestify',
+            meta_description: 'Đèn bàn gỗ sồi tối giản, ánh sáng ấm. Mua tại Nestify.',
+            focus_keyword: 'đèn bàn gỗ',
+          },
+          {
+            description: '<p>Phương án B.</p>',
+            meta_title: 'Đèn bàn gỗ B | Nestify',
+            meta_description: 'Bản B.',
+            focus_keyword: 'đèn bàn gỗ',
+          },
+        ],
       },
     })
     renderPage()
 
     await userEvent.type(screen.getByLabelText('Tên sản phẩm'), 'Đèn bàn gỗ')
     await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
+    // The "from images" affordance is hidden on create — there are no product images yet.
+    expect(screen.queryByRole('button', { name: 'Gợi ý từ ảnh' })).not.toBeInTheDocument()
+    // Pick a non-default tone before generating.
+    await userEvent.click(screen.getByRole('button', { name: 'Tối giản' }))
     await userEvent.click(screen.getByRole('button', { name: /Gợi ý bằng AI/ }))
 
-    await waitFor(() => expect(productsApi.generateProductDescription).toHaveBeenCalledTimes(1))
+    // Two variations are offered; pick the first.
+    const useButtons = await screen.findAllByRole('button', { name: 'Dùng bản này' })
+    expect(useButtons).toHaveLength(2)
+    await userEvent.click(useButtons[0])
+
     expect(await screen.findByLabelText('Mô tả')).toHaveValue('<p>Đèn bàn gỗ sồi tối giản.</p>')
     expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('Đèn bàn gỗ sồi | Nestify')
+    expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 2, tone: 'toi_gian' }),
+    )
   })
 
   it('stops auto-filling the slug once it is manually edited', async () => {
@@ -93,9 +114,9 @@ describe('AdminProductCreatePage', () => {
     expect(screen.getByLabelText('Slug')).toHaveValue('den-ban-custom')
   })
 
-  it('locks the variants and images tabs until the product is saved', () => {
+  it('locks the variants and images tabs until the product is saved', async () => {
     renderPage()
-    expect(screen.getByRole('tab', { name: 'Biến thể' })).toBeDisabled()
+    expect(await screen.findByRole('tab', { name: 'Biến thể' })).toBeDisabled()
     expect(screen.getByRole('tab', { name: 'Hình ảnh' })).toBeDisabled()
   })
 })

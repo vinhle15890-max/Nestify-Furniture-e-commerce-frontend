@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { PackageSearch, X } from 'lucide-react'
-import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
-import { Reveal } from '../../components/Reveal'
-import { SearchInput } from '../../components/SearchInput'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { useCategory, useCategories, useInfiniteProducts } from '../../features/catalog/hooks'
 import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
+import { DiscoveryLens } from './DiscoveryLens'
+import { DiscoverProductUnit } from './DiscoverProductUnit'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Mặc định' },
@@ -19,7 +18,7 @@ const SORT_OPTIONS = [
   { value: '-name', label: 'Tên: Z → A' },
 ]
 
-// Preset budgets → BE filter[price_min]/filter[price_max] (VND).
+// Preset budgets map only to the supported BE price_min / price_max filters.
 const PRICE_RANGES = [
   { value: '', label: 'Mọi mức giá', min: '', max: '' },
   { value: '0-2000000', label: 'Dưới 2 triệu', min: '', max: '2000000' },
@@ -29,36 +28,17 @@ const PRICE_RANGES = [
   { value: '20000000-', label: 'Trên 20 triệu', min: '20000000', max: '' },
 ]
 
-const selectClass =
-  'rounded-control border border-border-strong bg-surface px-4 py-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-
-function FilterChip({ label, onRemove }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-surface py-1 pl-3 pr-1.5 text-xs text-foreground">
-      {label}
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={`Bỏ lọc ${label}`}
-        className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground"
-      >
-        <X size={13} />
-      </button>
-    </span>
-  )
-}
-
 export function CategoryPage() {
   const { categorySlug } = useParams()
   const navigate = useNavigate()
   const isAll = categorySlug === 'all'
 
   const [search, setSearch] = useState('')
-  const [woodType, setWoodType] = useState('')
   const [priceKey, setPriceKey] = useState('')
   const [sort, setSort] = useState('')
-  const [woodOptions, setWoodOptions] = useState([])
-  // Bumped to remount the (uncontrolled) search box when filters are cleared.
+  const [lensOpen, setLensOpen] = useState(false)
+  const [heldProductId, setHeldProductId] = useState(null)
+  // Remount the internally controlled search input when a constraint is cleared.
   const [resetKey, setResetKey] = useState(0)
 
   const categoryQuery = useCategory(isAll ? undefined : categorySlug)
@@ -71,30 +51,30 @@ export function CategoryPage() {
     ...(isAll
       ? [{ label: 'Tất cả sản phẩm' }]
       : categoryPath.length > 0
-        ? categoryPath.map((c, i) =>
-            i === categoryPath.length - 1 ? { label: c.name } : { label: c.name, to: `/c/${c.slug}` },
+        ? categoryPath.map((item, index) =>
+            index === categoryPath.length - 1
+              ? { label: item.name }
+              : { label: item.name, to: `/c/${item.slug}` },
           )
         : [{ label: category?.name ?? 'Danh mục' }]),
   ]
 
-  // Flatten the category tree (with depth for indentation) for the picker.
   const flatCategories = useMemo(() => {
-    const out = []
+    const result = []
     const walk = (nodes, depth) =>
       nodes.forEach((node) => {
-        out.push({ slug: node.slug, name: node.name, depth })
+        result.push({ slug: node.slug, name: node.name, depth })
         if (node.children?.length) walk(node.children, depth + 1)
       })
     walk(categoriesData?.data ?? [], 0)
-    return out
+    return result
   }, [categoriesData])
 
-  const priceRange = PRICE_RANGES.find((r) => r.value === priceKey) ?? PRICE_RANGES[0]
+  const priceRange = PRICE_RANGES.find((range) => range.value === priceKey) ?? PRICE_RANGES[0]
 
   const productsQuery = useInfiniteProducts({
     category: isAll ? undefined : categorySlug,
     search: search || undefined,
-    woodType: woodType || undefined,
     priceMin: priceRange.min || undefined,
     priceMax: priceRange.max || undefined,
     sort: sort || undefined,
@@ -104,210 +84,222 @@ export function CategoryPage() {
     () => productsQuery.data?.pages.flatMap((page) => page.data) ?? [],
     [productsQuery.data],
   )
+  const hasProductData = Boolean(productsQuery.data)
 
-  // Reset attribute filters and derived option lists whenever the category changes.
   useEffect(() => {
     setSearch('')
-    setWoodType('')
     setPriceKey('')
     setSort('')
-    setWoodOptions([])
-    setResetKey((k) => k + 1)
+    setLensOpen(false)
+    setHeldProductId(null)
+    setResetKey((key) => key + 1)
   }, [categorySlug])
 
-  // Accumulate wood-type options from loaded products (only grow, so options
-  // never vanish once the result set is narrowed by a filter).
   useEffect(() => {
-    if (products.length === 0) return
-    setWoodOptions((prev) => {
-      const set = new Set(prev)
-      products.forEach((p) => p.attributes?.wood_type && set.add(p.attributes.wood_type))
-      return set.size === prev.length ? prev : Array.from(set).sort()
-    })
-  }, [products])
-
-  const hasActiveFilters = Boolean(search || woodType || priceKey || sort)
+    if (heldProductId == null) return
+    if (!products.some((product) => product.id === heldProductId)) setHeldProductId(null)
+  }, [heldProductId, products])
 
   const clearAll = () => {
     setSearch('')
-    setWoodType('')
     setPriceKey('')
     setSort('')
-    setResetKey((k) => k + 1)
+    setHeldProductId(null)
+    setResetKey((key) => key + 1)
   }
 
   const clearSearch = () => {
     setSearch('')
-    setResetKey((k) => k + 1)
+    setResetKey((key) => key + 1)
   }
 
-  const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label
   const currentCategoryValue = isAll ? 'all' : categorySlug
-  const handleCategoryChange = (value) => navigate(value === 'all' ? '/all' : `/c/${value}`)
+  const handleCategoryChange = (value) => navigate(value === 'all' ? '/c/all' : `/c/${value}`)
+  const sortLabel = SORT_OPTIONS.find((option) => option.value === sort)?.label
+  const hasCategoryFallback =
+    !isAll && !flatCategories.some((item) => item.slug === categorySlug) && categorySlug
+
+  const activeConstraints = [
+    search
+      ? { key: 'search', label: `“${search}”`, onRemove: clearSearch }
+      : null,
+    priceKey
+      ? { key: 'price', label: priceRange.label, onRemove: () => setPriceKey('') }
+      : null,
+    sort
+      ? { key: 'sort', label: sortLabel, onRemove: () => setSort('') }
+      : null,
+  ].filter(Boolean)
+
+  const resultLabel = productsQuery.isLoading
+    ? 'Đang mở các khả năng…'
+    : productsQuery.isError && !hasProductData
+      ? 'Chưa tải được sản phẩm'
+      : `${products.length}${productsQuery.hasNextPage ? '+' : ''} sản phẩm`
+
+  const pageTitle = isAll ? 'Tất cả sản phẩm' : (category?.name ?? 'Danh mục')
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-16 md:py-20 lg:px-10">
-      <div className="mb-6">
-        <Breadcrumb items={breadcrumbItems} />
-      </div>
-      <Reveal>
-        <p className="eyebrow">Bộ sưu tập</p>
-        <h1 className="mt-4 font-display text-[clamp(2rem,4vw,3.2rem)] leading-tight text-foreground">
-          {isAll ? 'Tất cả sản phẩm' : (category?.name ?? 'Danh mục')}
-        </h1>
-        {category?.description && (
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">{category.description}</p>
-        )}
-      </Reveal>
-
-      {category?.children?.length > 0 && (
-        <div className="mt-8 flex flex-wrap gap-2">
-          {category.children.map((child) => (
-            <Link
-              key={child.id}
-              to={`/c/${child.slug}`}
-              className="rounded-full border border-border-strong px-4 py-1.5 text-sm text-foreground transition-colors duration-200 hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {child.name}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Search + filter + sort toolbar */}
-      <div className="mt-10 border-b border-border pb-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <SearchInput
-            key={`search-${resetKey}`}
-            placeholder="Tìm sản phẩm trong danh mục..."
-            onDebouncedChange={setSearch}
-            className="w-full lg:max-w-sm"
-          />
-
-          <div className="flex flex-wrap gap-4">
-            <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Danh mục
-              <select
-                value={currentCategoryValue}
-                onChange={(event) => handleCategoryChange(event.target.value)}
-                className={selectClass}
-              >
-                <option value="all">Tất cả sản phẩm</option>
-                {!isAll && !flatCategories.some((c) => c.slug === categorySlug) && (
-                  <option value={categorySlug}>{category?.name ?? 'Danh mục hiện tại'}</option>
-                )}
-                {flatCategories.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {`${'— '.repeat(c.depth)}${c.name}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {woodOptions.length > 0 && (
-              <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                Chất liệu gỗ
-                <select value={woodType} onChange={(event) => setWoodType(event.target.value)} className={selectClass}>
-                  <option value="">Tất cả</option>
-                  {woodOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Khoảng giá
-              <select value={priceKey} onChange={(event) => setPriceKey(event.target.value)} className={selectClass}>
-                {PRICE_RANGES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Sắp xếp
-              <select value={sort} onChange={(event) => setSort(event.target.value)} className={selectClass}>
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+    <div className="min-h-screen bg-canvas text-ink">
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pb-24">
+        <header>
+          <div className="mb-4 hidden sm:block">
+            <Breadcrumb items={breadcrumbItems} />
           </div>
-        </div>
-
-        {/* Result count + active filter chips */}
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-sm text-muted-foreground">
-            {productsQuery.isLoading
-              ? 'Đang tải...'
-              : `${products.length}${productsQuery.hasNextPage ? '+' : ''} sản phẩm`}
-          </span>
-          {search && <FilterChip label={`“${search}”`} onRemove={clearSearch} />}
-          {woodType && <FilterChip label={woodType} onRemove={() => setWoodType('')} />}
-          {priceKey && <FilterChip label={priceRange.label} onRemove={() => setPriceKey('')} />}
-          {sort && <FilterChip label={sortLabel} onRemove={() => setSort('')} />}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="ml-1 text-xs font-medium text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent"
-            >
-              Xóa tất cả
-            </button>
+          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-ink/55">Khám phá</p>
+          <h1 className="mt-1.5 font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-ink">
+            {pageTitle}
+          </h1>
+          {category?.description && (
+            <p className="mt-2 hidden max-w-xl text-sm leading-relaxed text-ink/60 sm:block">
+              {category.description}
+            </p>
           )}
-        </div>
-      </div>
 
-      {productsQuery.isLoading ? (
-        <div className="mt-20 flex justify-center">
-          <Spinner />
-        </div>
-      ) : products.length === 0 ? (
-        <div className="mt-16 rounded-card border border-border bg-surface p-12 text-center">
-          <PackageSearch size={36} className="mx-auto text-border-strong" />
-          <p className="mt-4 text-muted-foreground">
-            {hasActiveFilters
-              ? 'Không có sản phẩm nào khớp bộ lọc.'
-              : 'Chưa có sản phẩm nào trong danh mục này.'}
-          </p>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="mt-4 text-sm text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent"
-            >
-              Xóa bộ lọc
-            </button>
+          {category?.children?.length > 0 && (
+            <nav aria-label="Danh mục con" className="mt-4 flex gap-4 overflow-x-auto pb-1 text-sm">
+              {category.children.map((child) => (
+                <Link
+                  key={child.id}
+                  to={`/c/${child.slug}`}
+                  className="shrink-0 border-b border-unbuilt pb-1 text-ink/70 transition-colors hover:border-ink hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                >
+                  {child.name}
+                </Link>
+              ))}
+            </nav>
           )}
-        </div>
-      ) : (
-        <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((product, index) => (
-            <Reveal key={product.id} delay={(index % 4) * 70}>
-              <ProductCard product={product} />
-            </Reveal>
-          ))}
-        </div>
-      )}
+        </header>
 
-      {productsQuery.hasNextPage && (
-        <div className="mt-16 flex justify-center">
-          <Button
-            variant="secondary"
-            onClick={() => productsQuery.fetchNextPage()}
-            disabled={productsQuery.isFetchingNextPage}
+        {!isAll && categoryQuery.isError && !category && (
+          <LoadErrorState
+            title="Chưa thể tải thông tin danh mục"
+            description="Tên và mô tả danh mục chưa tải được. Bộ lọc hiện tại vẫn được giữ để bạn thử lại."
+            onRetry={() => categoryQuery.refetch()}
+            isRetrying={categoryQuery.isFetching}
+            compact
+            className="mt-5"
+          />
+        )}
+
+        {!isAll && categoryQuery.isError && category && (
+          <LoadErrorState
+            title="Chưa cập nhật được thông tin danh mục mới nhất"
+            description="Đang hiển thị thông tin danh mục đã tải trước đó."
+            onRetry={() => categoryQuery.refetch()}
+            isRetrying={categoryQuery.isFetching}
+            compact
+            background
+            className="mt-5"
+          />
+        )}
+
+        <DiscoveryLens
+          open={lensOpen}
+          onToggle={() => setLensOpen((current) => !current)}
+          resultLabel={resultLabel}
+          activeConstraints={activeConstraints}
+          onClearAll={clearAll}
+          resetKey={resetKey}
+          onSearchChange={setSearch}
+          currentCategoryValue={currentCategoryValue}
+          onCategoryChange={handleCategoryChange}
+          categories={flatCategories}
+          categoryFallback={
+            hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null
+          }
+          priceKey={priceKey}
+          onPriceChange={setPriceKey}
+          priceOptions={PRICE_RANGES}
+          sort={sort}
+          onSortChange={setSort}
+          sortOptions={SORT_OPTIONS}
+        />
+
+        {productsQuery.isError && hasProductData && (
+          <LoadErrorState
+            title="Chưa cập nhật được danh sách mới nhất"
+            description="Đang hiển thị các sản phẩm đã tải trước đó."
+            onRetry={() => productsQuery.refetch()}
+            isRetrying={productsQuery.isFetching}
+            compact
+            background
+            className="mt-6"
+          />
+        )}
+
+        {productsQuery.isLoading ? (
+          <div className="mt-16 flex justify-center">
+            <Spinner />
+          </div>
+        ) : productsQuery.isError && !hasProductData ? (
+          <LoadErrorState
+            title="Chưa thể tải sản phẩm"
+            description="Có gián đoạn khi tải các lựa chọn trong danh mục này. Bộ lọc hiện tại vẫn được giữ để bạn thử lại."
+            onRetry={() => productsQuery.refetch()}
+            isRetrying={productsQuery.isFetching}
+            className="mt-10"
+          />
+        ) : products.length === 0 ? (
+          <section className="mt-10 max-w-md border-l-2 border-unbuilt pl-5">
+            <h2 className="font-display text-xl text-ink">Chưa có khả năng nào trong trường nhìn này.</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink/65">
+              {activeConstraints.length > 0
+                ? 'Thử nới một điều kiện để mở lại trường sản phẩm.'
+                : 'Danh mục này hiện chưa có sản phẩm để khám phá.'}
+            </p>
+            {activeConstraints.length > 0 ? (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="mt-4 text-sm text-ink underline decoration-unbuilt underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+              >
+                Xóa điều kiện
+              </button>
+            ) : (
+              <Link
+                to="/c/all"
+                className="mt-4 inline-block text-sm text-ink underline decoration-unbuilt underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+              >
+                Xem tất cả sản phẩm
+              </Link>
+            )}
+          </section>
+        ) : (
+          <section
+            aria-label="Trường sản phẩm"
+            className="mt-5 grid grid-cols-2 gap-x-2 gap-y-9 sm:mt-6 sm:gap-x-3 sm:gap-y-12 md:grid-cols-3"
           >
-            {productsQuery.isFetchingNextPage ? 'Đang tải...' : 'Tải thêm'}
-          </Button>
-        </div>
-      )}
+            {products.map((product) => (
+              <DiscoverProductUnit
+                key={product.id}
+                product={product}
+                held={heldProductId === product.id}
+                fieldHasHeld={heldProductId != null}
+                onHold={() => setHeldProductId(product.id)}
+                onRelease={() =>
+                  setHeldProductId((current) => (current === product.id ? null : current))
+                }
+                onToggle={() =>
+                  setHeldProductId((current) => (current === product.id ? null : product.id))
+                }
+              />
+            ))}
+          </section>
+        )}
+
+        {productsQuery.hasNextPage && (
+          <div className="mt-16 flex justify-center">
+            <Button
+              variant="secondary"
+              onClick={() => productsQuery.fetchNextPage()}
+              disabled={productsQuery.isFetchingNextPage}
+            >
+              {productsQuery.isFetchingNextPage ? 'Đang tải...' : 'Tải thêm'}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

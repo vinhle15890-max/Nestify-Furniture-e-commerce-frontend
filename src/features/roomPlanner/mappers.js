@@ -22,6 +22,11 @@ export function sceneToEditorState(resource) {
       width: num(r.width),
       depth: num(r.depth),
       height: num(r.height),
+      walls: {
+        back:  r.wall_back  ?? true,
+        left:  r.wall_left  ?? true,
+        right: r.wall_right ?? true,
+      },
     },
     items: (r.items ?? []).map((item) => ({
       localId: makeLocalId(),
@@ -33,10 +38,13 @@ export function sceneToEditorState(resource) {
         model_3d_url: item.variant?.model_3d_url ?? null,
         price: item.variant?.price ?? null,
         thumbnail: item.variant?.thumbnail ?? null,
+        product_slug: item.variant?.product_slug ?? null,
+        product_name: item.variant?.product_name ?? null,
       },
       position: vec3(item.position, 0),
       rotation: vec3(item.rotation, 0),
       scale: vec3(item.scale, 1),
+      footprint: { x: 1, y: 1, z: 1 }, // đo lại từ GLB khi render
     })),
   }
 }
@@ -49,6 +57,9 @@ export function editorStateToPayload(state) {
     width: state.room.width,
     depth: state.room.depth,
     height: state.room.height,
+    wall_back:  state.room.walls?.back  ?? true,
+    wall_left:  state.room.walls?.left  ?? true,
+    wall_right: state.room.walls?.right ?? true,
     items: state.items.map((item) => ({
       variant_id: item.variant.id,
       position: { ...item.position },

@@ -6,9 +6,11 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AdminProductEditPage } from './AdminProductEditPage'
 import * as productsApi from '../../../features/admin/products/api'
 import * as catalogApi from '../../../features/catalog/api'
+import * as mediaApi from '../../../features/admin/media/api'
 
 vi.mock('../../../features/admin/products/api')
 vi.mock('../../../features/catalog/api')
+vi.mock('../../../features/admin/media/api')
 
 // TipTap can't mount in jsdom; swap the editor for a plain labelled textarea so
 // the description still participates in the form and stays queryable.
@@ -79,6 +81,16 @@ describe('AdminProductEditPage', () => {
     expect(screen.getByText('SOFA-NAU')).toBeInTheDocument()
   })
 
+  it('marks a legacy model whose real-world dimensions are not confirmed', async () => {
+    renderPage({
+      ...baseProduct,
+      variants: [{ ...baseProduct.variants[0], model_3d_url: 'https://models.test/legacy.glb', model_scaled_at: null }],
+    })
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Biến thể' }))
+    expect(screen.getByText('Chưa xác nhận kích thước thật')).toBeInTheDocument()
+  })
+
   it('fetches the product when deep-linked without router state', async () => {
     productsApi.getProduct.mockResolvedValue({ data: baseProduct })
 
@@ -115,13 +127,23 @@ describe('AdminProductEditPage', () => {
     )
   })
 
-  it('fills description and SEO fields from the AI draft', async () => {
+  it('offers AI variations and fills fields from the chosen one', async () => {
     productsApi.generateProductDescription.mockResolvedValue({
       data: {
-        description: '<p>Sofa da bò Ý sang trọng.</p>',
-        meta_title: 'Sofa da bò Ý 3 chỗ | Nestify',
-        meta_description: 'Sofa da bò Ý 3 chỗ khung gỗ sồi. Mua ngay tại Nestify.',
-        focus_keyword: 'sofa da bò',
+        drafts: [
+          {
+            description: '<p>Sofa da bò Ý sang trọng.</p>',
+            meta_title: 'Sofa da bò Ý 3 chỗ | Nestify',
+            meta_description: 'Sofa da bò Ý 3 chỗ khung gỗ sồi. Mua ngay tại Nestify.',
+            focus_keyword: 'sofa da bò',
+          },
+          {
+            description: '<p>Phương án B thân thiện.</p>',
+            meta_title: 'Sofa da bò Ý ấm cúng | Nestify',
+            meta_description: 'Bản B.',
+            focus_keyword: 'sofa da bò',
+          },
+        ],
       },
     })
     renderPage()
@@ -130,10 +152,67 @@ describe('AdminProductEditPage', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
     await userEvent.click(screen.getByRole('button', { name: /Gợi ý bằng AI/ }))
 
-    await waitFor(() => expect(productsApi.generateProductDescription).toHaveBeenCalledTimes(1))
+    const useButtons = await screen.findAllByRole('button', { name: 'Dùng bản này' })
+    expect(useButtons).toHaveLength(2)
+    await userEvent.click(useButtons[0])
+
     expect(await screen.findByLabelText('Mô tả')).toHaveValue('<p>Sofa da bò Ý sang trọng.</p>')
     expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('Sofa da bò Ý 3 chỗ | Nestify')
     expect(screen.getByLabelText('Từ khóa chính')).toHaveValue('sofa da bò')
+    expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
+      expect.objectContaining({ count: 2, tone: 'sang_trong' }),
+    )
+  })
+
+  it('drafts a single SEO field from its per-field suggest button', async () => {
+    productsApi.generateProductDescription.mockResolvedValue({
+      data: { meta_description: 'Mô tả SEO mới do AI viết cho sofa da bò cao cấp.' },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
+
+    // Live SEO score panel is present.
+    expect(screen.getByText('Điểm SEO')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Gợi ý mô tả SEO bằng AI' }))
+
+    await waitFor(() =>
+      expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
+        expect.objectContaining({ field: 'meta_description' }),
+      ),
+    )
+    // Only the meta description is filled; the title is left untouched.
+    expect(await screen.findByLabelText('Mô tả SEO')).toHaveValue('Mô tả SEO mới do AI viết cho sofa da bò cao cấp.')
+    expect(screen.getByLabelText('Tiêu đề SEO')).toHaveValue('')
+    expect(screen.getByLabelText('Tiêu đề SEO')).toHaveAttribute('placeholder', 'Nhập tiêu đề SEO...')
+  })
+
+  it('drafts SEO from the product images and opens the variations modal', async () => {
+    productsApi.generateProductDescription.mockResolvedValue({
+      data: {
+        drafts: [
+          { description: '<p>Từ ảnh A.</p>', meta_title: 'A', meta_description: 'A', focus_keyword: 'sofa' },
+          { description: '<p>Từ ảnh B.</p>', meta_title: 'B', meta_description: 'B', focus_keyword: 'sofa' },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Gợi ý từ ảnh' }))
+
+    await waitFor(() =>
+      expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          count: 2,
+          image_urls: ['https://example.com/1.jpg', 'https://example.com/2.jpg'],
+        }),
+      ),
+    )
+    expect(await screen.findAllByRole('button', { name: 'Dùng bản này' })).toHaveLength(2)
   })
 
   it('adds a new variant', async () => {
@@ -267,38 +346,46 @@ describe('AdminProductEditPage', () => {
         expect.objectContaining({ name: 'Nâu đậm' }),
       ),
     )
-    expect(await screen.findByText('Nâu đậm')).toBeInTheDocument()
+    // Scope to the variants table cell — the media "Áp dụng cho" dropdowns also
+    // list variant names as <option>s, so a bare text query is now ambiguous.
+    expect(await screen.findByRole('cell', { name: 'Nâu đậm' })).toBeInTheDocument()
   })
 
-  it('uploads a new media file', async () => {
-    productsApi.uploadMedia.mockResolvedValue({
-      data: { id: 30, product_id: 1, url: 'https://example.com/3.jpg', type: 'image', sort_order: 3 },
+  it('attaches media picked from the library modal', async () => {
+    mediaApi.listMedia.mockResolvedValue({
+      data: [{ id: 5, url: 'https://example.com/lib.jpg', alt_text: 'Ảnh thư viện', usage_count: 0 }],
+      meta: { pagination: { total: 1, page: 1, last_page: 1, per_page: 24 } },
+    })
+    productsApi.attachMedia.mockResolvedValue({
+      data: [
+        ...baseProduct.media,
+        { id: 30, product_id: 1, media_asset_id: 5, url: 'https://example.com/lib.jpg', type: 'image', sort_order: 3 },
+      ],
     })
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }))
 
-    const file = new File(['content'], 'photo.jpg', { type: 'image/jpeg' })
-    await userEvent.upload(screen.getByLabelText('Tệp'), file)
-    await userEvent.click(screen.getByRole('button', { name: 'Tải lên' }))
+    const image = await screen.findByAltText('Ảnh thư viện')
+    await userEvent.click(image.closest('button'))
+    await userEvent.click(screen.getByRole('button', { name: /^chọn/i }))
 
-    await waitFor(() => expect(productsApi.uploadMedia).toHaveBeenCalledTimes(1))
-    const [productId, formData] = productsApi.uploadMedia.mock.calls[0]
-    expect(productId).toBe(1)
-    expect(formData.get('type')).toBe('image')
-    expect(formData.get('file').name).toBe(file.name)
+    await waitFor(() =>
+      expect(productsApi.attachMedia).toHaveBeenCalledWith(1, { media_asset_ids: [5], variant_id: null }),
+    )
   })
 
-  it('deletes a media item', async () => {
+  it('detaches a media item', async () => {
     productsApi.deleteMedia.mockResolvedValue({})
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
 
-    const deleteButtons = screen.getAllByRole('button', { name: 'Xóa' })
-    await userEvent.click(deleteButtons[0])
+    const detachButtons = screen.getAllByRole('button', { name: 'Gỡ' })
+    await userEvent.click(detachButtons[0])
 
     await waitFor(() => expect(productsApi.deleteMedia).toHaveBeenCalledWith(1, 10))
   })
@@ -319,6 +406,21 @@ describe('AdminProductEditPage', () => {
     await userEvent.click(moveDownButtons[0])
 
     await waitFor(() => expect(productsApi.reorderMedia).toHaveBeenCalledWith(1, [20, 10]))
+  })
+
+  it('tags a media item to a variant via the per-card dropdown', async () => {
+    productsApi.updateMedia.mockResolvedValue({
+      data: { id: 10, product_id: 1, variant_id: 100, url: 'https://example.com/1.jpg', type: 'image', sort_order: 1 },
+    })
+    renderPage()
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+
+    const selects = screen.getAllByLabelText('Áp dụng cho')
+    await userEvent.selectOptions(selects[0], '100')
+
+    await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, 100))
   })
 
   it('switches to the info tab and flags it when a required field is missing on submit', async () => {

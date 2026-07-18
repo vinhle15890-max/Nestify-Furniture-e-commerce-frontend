@@ -81,16 +81,47 @@ describe('OrderDetailPage', () => {
     expect(screen.getByText(/Hãy để lại đánh giá/)).toBeInTheDocument()
   })
 
-  it('cancels the order on confirmation', async () => {
+  it('shows the cancel action for a paid order with a refund note, and cancels with a reason', async () => {
+    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'paid', payment_method: 'payos' } })
+    ordersApi.cancelOrder.mockResolvedValue({ data: { ...baseOrder, status: 'cancelled' } })
+    renderPage()
+
+    await screen.findByText('Đơn hàng #99')
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn' }))
+
+    // Paid orders warn about the refund.
+    expect(screen.getByText(/sẽ được hoàn tiền/)).toBeInTheDocument()
+
+    await userEvent.type(screen.getByPlaceholderText(/đặt nhầm/), 'Đổi ý')
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy' }))
+
+    expect(ordersApi.cancelOrder).toHaveBeenCalledWith(99, 'Đổi ý')
+  })
+
+  it('shows the cancel action for a COD processing order without a refund note', async () => {
+    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'processing', payment_method: 'cod' } })
+    renderPage()
+
+    await screen.findByText('Đơn hàng #99')
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn' }))
+
+    expect(screen.queryByText(/sẽ được hoàn tiền/)).not.toBeInTheDocument()
+    // Cancelling with no reason sends undefined.
+    ordersApi.cancelOrder.mockResolvedValue({ data: { ...baseOrder, status: 'cancelled' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy' }))
+    expect(ordersApi.cancelOrder).toHaveBeenCalledWith(99, undefined)
+  })
+
+  it('cancels a pending-payment order through the confirm dialog', async () => {
     ordersApi.getOrder.mockResolvedValue({ data: baseOrder })
     ordersApi.cancelOrder.mockResolvedValue({ data: { ...baseOrder, status: 'cancelled' } })
     renderPage()
 
     await screen.findByText('Đơn hàng #99')
-
     await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy' }))
 
-    expect(ordersApi.cancelOrder).toHaveBeenCalledWith(99)
+    expect(ordersApi.cancelOrder).toHaveBeenCalledWith(99, undefined)
   })
 
   it('refetches and hides retry when the order is already paid', async () => {

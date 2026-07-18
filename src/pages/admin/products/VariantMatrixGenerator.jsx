@@ -43,6 +43,7 @@ export function VariantMatrixGenerator({ productId, options, variants, onCreated
     <div className="flex flex-col gap-4">
       <div className="overflow-x-auto rounded-card border border-border">
         <table className="w-full text-sm">
+          <caption className="sr-only">Các tổ hợp biến thể chưa được tạo</caption>
           <thead className="bg-surface-alt text-left text-muted-foreground">
             <tr>{optionNames.map((n) => <th key={n} className="px-3 py-2">{n}</th>)}</tr>
           </thead>

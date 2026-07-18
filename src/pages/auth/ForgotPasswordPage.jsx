@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -7,7 +7,7 @@ import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
 import { Input } from '../../components/Input'
 import { Button } from '../../components/Button'
 import { useForgotPassword } from '../../features/auth/hooks'
-import { applyServerErrors } from '../../lib/formErrors'
+import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
 
 const schema = yup.object({
   email: yup.string().email('Email không hợp lệ.').required('Vui lòng nhập email.'),
@@ -17,6 +17,7 @@ export function ForgotPasswordPage() {
   const forgotPassword = useForgotPassword()
   const [formError, setFormError] = useState(null)
   const [message, setMessage] = useState(null)
+  const formRef = useRef(null)
 
   const {
     register,
@@ -32,8 +33,12 @@ export function ForgotPasswordPage() {
       const { data } = await forgotPassword.mutateAsync(values)
       setMessage(data.message)
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
-      setFormError(error.message)
+      if (applyServerErrors(error, setError)) {
+        focusFirstError(formRef.current)
+        return
+      }
+      setFormError(formLevelMessage(error))
+      focusFirstError(formRef.current)
     }
   }
 
@@ -51,12 +56,12 @@ export function ForgotPasswordPage() {
           {message}
         </p>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <form ref={formRef} onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
           <p className="text-sm leading-relaxed text-muted-foreground">
             Nhập email đã đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu cho bạn.
           </p>
           {formError && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" tabIndex="-1" className="text-sm text-destructive">
               {formError}
             </p>
           )}
@@ -69,7 +74,7 @@ export function ForgotPasswordPage() {
             {...register('email')}
           />
           <Button type="submit" disabled={isSubmitting} className="mt-2 py-3.5">
-            Gửi liên kết đặt lại
+            {isSubmitting ? 'Đang gửi…' : 'Gửi liên kết đặt lại'}
           </Button>
         </form>
       )}

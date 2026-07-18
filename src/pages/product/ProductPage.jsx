@@ -1,22 +1,25 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
 import './ProductDescription.css'
-import { Heart, Star, Box, ImageOff } from 'lucide-react'
+import { Heart, Star, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
+import { LoadErrorState } from '../../components/LoadErrorState'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
-import { useAddWishlistItem } from '../../features/wishlist/hooks'
+import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../features/wishlist/hooks'
 import { useOrders } from '../../features/orders/hooks'
 import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
+import { focusFirstError, formLevelMessage } from '../../lib/formErrors'
 import { useRecordProductView } from '../../features/personalization/hooks'
 import { RecentlyViewedStrip } from '../../components/personalization/RecentlyViewedStrip'
 import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
 import { ProductOptions } from './ProductOptions'
+import { ProductEvidencePanel } from './ProductEvidencePanel'
 import { resolveVariant } from '../../lib/variantOptions'
 import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
@@ -59,7 +62,7 @@ function appendMeta(attr, key, content) {
 
 export function ProductPage() {
   const { productSlug } = useParams()
-  const { data, isLoading, isError } = useProduct(productSlug)
+  const { data, error, isLoading, isError, isFetching, refetch } = useProduct(productSlug)
   const product = data?.data
   const { data: categoriesData } = useCategories()
   const token = useAuthStore((state) => state.token)
@@ -71,6 +74,8 @@ export function ProductPage() {
   const addToast = useToastStore((state) => state.addToast)
   const addCartItem = useAddCartItem()
   const addWishlistItem = useAddWishlistItem()
+  const removeWishlistItem = useRemoveWishlistItem()
+  const { data: wishlistData } = useWishlist({ enabled: isCustomer })
   const [stockError, setStockError] = useState(null)
 
   const media = useMemo(
@@ -101,12 +106,22 @@ export function ProductPage() {
   const availableStock = selectedVariant?.available_stock ?? 0
   const outOfStock = availableStock < 1
 
+  // Wishlist membership for the CURRENTLY selected variant (each variant is tracked
+  // independently), so the heart button reflects saved state and toggles.
+  const wishlistItems = wishlistData?.data?.items ?? []
+  const wishlistItem = selectedVariant
+    ? wishlistItems.find((item) => item.variant?.id === selectedVariant.id)
+    : undefined
+  const isWishlisted = Boolean(wishlistItem)
+
   useEffect(() => {
     setQuantity((current) => Math.min(Math.max(current, 1), Math.max(availableStock, 1)))
   }, [availableStock])
 
   useEffect(() => {
     setStockError(null)
+    // Changing variant re-filters the gallery — reset to the first visible image.
+    setSelectedMediaIndex(0)
   }, [selectedVariantId, selectedVariant?.id])
 
   useEffect(() => {
@@ -185,21 +200,28 @@ export function ProductPage() {
             setStockError(available)
             setQuantity(Math.max(available, 1))
           } else {
-            addToast({ title: 'Không thể thêm vào giỏ hàng', description: error.message, variant: 'error' })
+            addToast({ title: 'Không thể thêm vào giỏ hàng', description: formLevelMessage(error), variant: 'error' })
           }
         },
       },
     )
   }
 
-  function handleAddToWishlist() {
-    addWishlistItem.mutate(
-      { variant_id: selectedVariant.id },
-      {
-        onSuccess: () => addToast({ title: 'Đã thêm vào yêu thích', variant: 'success' }),
-        onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: error.message, variant: 'error' }),
-      },
-    )
+  function handleToggleWishlist() {
+    if (isWishlisted) {
+      removeWishlistItem.mutate(wishlistItem.id, {
+        onSuccess: () => addToast({ title: 'Đã bỏ khỏi yêu thích', variant: 'success' }),
+        onError: (error) => addToast({ title: 'Không thể bỏ khỏi yêu thích', description: formLevelMessage(error), variant: 'error' }),
+      })
+    } else {
+      addWishlistItem.mutate(
+        { variant_id: selectedVariant.id },
+        {
+          onSuccess: () => addToast({ title: 'Đã thêm vào yêu thích', variant: 'success' }),
+          onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: formLevelMessage(error), variant: 'error' }),
+        },
+      )
+    }
   }
 
   const reviewsQuery = useProductReviews(productSlug)
@@ -217,7 +239,11 @@ export function ProductPage() {
   const [reviewBody, setReviewBody] = useState('')
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [reviewError, setReviewError] = useState(null)
+  const [reviewFieldErrors, setReviewFieldErrors] = useState({ rating: null, title: null, body: null })
   const [commentDrafts, setCommentDrafts] = useState({})
+  const [commentErrors, setCommentErrors] = useState({})
+  const [commentSubmittingId, setCommentSubmittingId] = useState(null)
+  const reviewFormRef = useRef(null)
 
   const variantIds = useMemo(() => new Set(variants.map((variant) => variant.id)), [variants])
   const verifiedOrder = useMemo(
@@ -231,6 +257,7 @@ export function ProductPage() {
   async function handleSubmitReview(event) {
     event.preventDefault()
     setReviewError(null)
+    setReviewFieldErrors({ rating: null, title: null, body: null })
     try {
       await createReview.mutateAsync({
         productId: product.id,
@@ -241,32 +268,64 @@ export function ProductPage() {
       })
       setReviewSubmitted(true)
     } catch (error) {
-      setReviewError(error.message)
+      if (error?.code === 'VALIDATION_FAILED' && error.details?.fields) {
+        const fields = Object.fromEntries(
+          Object.entries(error.details.fields).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]),
+        )
+        setReviewFieldErrors({ rating: null, title: null, body: null, ...fields })
+      } else {
+        setReviewError(formLevelMessage(error))
+      }
+      focusFirstError(reviewFormRef.current)
     }
   }
 
-  function handleSubmitComment(event, reviewId) {
+  async function handleSubmitComment(event, reviewId) {
     event.preventDefault()
     const body = (commentDrafts[reviewId] ?? '').trim()
     if (!body) return
-
-    createComment.mutate(
-      { reviewId, body },
-      { onSuccess: () => setCommentDrafts((prev) => ({ ...prev, [reviewId]: '' })) },
-    )
+    setCommentErrors((prev) => ({ ...prev, [reviewId]: {} }))
+    setCommentSubmittingId(reviewId)
+    try {
+      await createComment.mutateAsync({ reviewId, body })
+      setCommentDrafts((prev) => ({ ...prev, [reviewId]: '' }))
+    } catch (error) {
+      if (error?.code === 'VALIDATION_FAILED' && error.details?.fields) {
+        setCommentErrors((prev) => ({ ...prev, [reviewId]: { fields: error.details.fields } }))
+      } else {
+        setCommentErrors((prev) => ({ ...prev, [reviewId]: { message: formLevelMessage(error) } }))
+      }
+      focusFirstError(event.currentTarget)
+    } finally {
+      setCommentSubmittingId(null)
+    }
   }
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
-        <Spinner />
+      <div className="min-h-screen bg-canvas text-ink">
+        <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
+          <Spinner />
+        </div>
       </div>
     )
   }
 
-  if (isError || !product) {
+  if (isError && error?.status !== 404) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-20 lg:px-10">
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm</h1>
+          <LoadErrorState className="mt-8" title="Chưa thể tải sản phẩm" description="Thông tin sản phẩm chưa thể hiển thị. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
+        </div>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-canvas px-6 py-20 text-ink lg:px-10">
+      <div className="mx-auto max-w-3xl">
         <h1 className="font-display text-[clamp(2rem,4vw,3rem)] text-foreground">Sản phẩm</h1>
         <div className="mt-8 rounded-card border border-border bg-surface p-8 text-center">
           <p className="text-muted-foreground">
@@ -277,10 +336,18 @@ export function ProductPage() {
           </p>
         </div>
       </div>
+      </div>
     )
   }
 
-  const activeMedia = media[selectedMediaIndex]
+  // Gallery filters to the selected variant's media + agnostic (variant_id null)
+  // media; media tagged to OTHER variants is hidden. Untagged products (all
+  // agnostic) → visibleMedia === media, i.e. unchanged from before.
+  const visibleMedia = media.filter(
+    (item) => item.variant_id == null || item.variant_id === selectedVariant?.id,
+  )
+  const activeMedia = visibleMedia[selectedMediaIndex]
+
   const sanitizedDescription = enhanceDescriptionHtml(product.description)
   const averageRating = reviews.length
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
@@ -300,38 +367,114 @@ export function ProductPage() {
   ]
 
   return (
+    <div className="min-h-screen bg-canvas text-ink">
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
       <Breadcrumb items={breadcrumbItems} />
 
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
-        <div>
-          <div className="group flex aspect-[4/5] items-center justify-center overflow-hidden rounded-card bg-surface-alt">
+      <section data-testid="product-identity-field" className="mt-6">
+        {product.category && (
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerging">
+            {product.category.name}
+          </p>
+        )}
+        <h1 className="mt-3 max-w-[72rem] font-display text-[clamp(2.15rem,4vw,3.2rem)] leading-[1.03] tracking-[-0.025em] text-ink">
+          {product.name}
+        </h1>
+
+        {averageRating && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-ink/60">
+            <span className="flex text-ink/70">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <Star key={value} size={15} fill={value <= Math.round(averageRating) ? 'currentColor' : 'none'} />
+              ))}
+            </span>
+            <span>
+              {averageRating} · {reviews.length} đánh giá
+            </span>
+          </div>
+        )}
+
+        <div className="mt-5 max-w-3xl">
+          {hasOptions ? (
+            <>
+              <ProductOptions
+                options={variantOptions}
+                variants={variants}
+                selected={selectedOptions}
+                onSelect={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))}
+              />
+              {!selectedVariant && (
+                <p className="mt-3 text-sm text-ink/65">Vui lòng chọn đầy đủ thuộc tính.</p>
+              )}
+            </>
+          ) : (
+            variants.length > 0 && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink/55">Phiên bản</p>
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  {variants.map((variant) => (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      aria-pressed={variant.id === selectedVariant?.id}
+                      className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${
+                        variant.id === selectedVariant?.id
+                          ? 'border-ink bg-ink text-canvas'
+                          : 'border-unbuilt text-ink hover:border-ink'
+                      }`}
+                    >
+                      {variant.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </section>
+
+      <div className="mt-7 grid items-start gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.9fr)] lg:gap-10 xl:gap-14">
+        <section data-testid="product-truth-field" aria-labelledby="product-media-role">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 text-xs">
+            <p id="product-media-role" className="font-medium uppercase tracking-[0.18em] text-ink/60">
+              {activeMedia?.variant_id === selectedVariant?.id && activeMedia?.variant_id != null
+                ? 'Ảnh sản phẩm theo phiên bản'
+                : 'Ảnh bối cảnh'}
+            </p>
+            <p className="text-ink/55">Không dùng để suy ra kích thước</p>
+          </div>
+
+          <div className="flex aspect-[5/4] items-center justify-center overflow-hidden bg-unbuilt/20 sm:aspect-auto sm:h-[22rem] lg:aspect-[4/3] lg:h-auto">
             {activeMedia ? (
               activeMedia.type === 'video' ? (
-                <video src={activeMedia.url} controls className="h-full w-full object-cover" />
+                <video src={activeMedia.url} controls className="h-full w-full object-contain" />
               ) : (
                 <img
                   src={activeMedia.url}
                   alt={product.name}
                   decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-[700ms] ease-out group-hover:scale-105"
+                  className="h-full w-full object-contain"
                 />
               )
             ) : (
-              <ImageOff size={36} className="text-border-strong" aria-hidden="true" />
+              <div className="flex flex-col items-center gap-3 text-ink/55">
+                <ImageOff size={32} aria-hidden="true" />
+                <p className="text-sm">Chưa có hình ảnh sản phẩm.</p>
+              </div>
             )}
           </div>
 
-          {media.length > 1 && (
-            <div className="mt-4 flex flex-wrap gap-3">
-              {media.map((item, index) => (
+          {visibleMedia.length > 1 && (
+            <div className="mt-4 flex max-w-full gap-3 overflow-x-auto pb-1">
+              {visibleMedia.map((item, index) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setSelectedMediaIndex(index)}
                   aria-label={`Xem ${item.type === 'video' ? 'video' : 'ảnh'} ${index + 1}`}
-                  className={`h-20 w-20 overflow-hidden rounded-control border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                    index === selectedMediaIndex ? 'border-foreground' : 'border-transparent hover:border-border-strong'
+                  className={`h-16 w-20 shrink-0 overflow-hidden rounded-control border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:h-20 sm:w-24 ${
+                    index === selectedMediaIndex ? 'border-ink' : 'border-transparent hover:border-unbuilt'
                   }`}
                 >
                   {item.type === 'video' ? (
@@ -343,90 +486,33 @@ export function ProductPage() {
               ))}
             </div>
           )}
+        </section>
+
+        <ProductEvidencePanel
+          product={product}
+          selectedVariant={selectedVariant}
+          activeMedia={activeMedia}
+          outOfStock={outOfStock}
+        />
+      </div>
+
+      <section
+        data-testid="transaction-runway"
+        aria-labelledby="transaction-runway-title"
+        className="mt-12 grid gap-8 border-t-2 border-ink/15 pt-8 md:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] md:items-end lg:mt-16"
+      >
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-ink/55">Mua trực tiếp</p>
+          <h2 id="transaction-runway-title" className="sr-only">Mua trực tiếp</h2>
+          <p className="mt-3 text-[clamp(1.55rem,2.5vw,2rem)] font-medium text-ink">{formatPrice(price)}</p>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-ink/60">
+            Nếu bạn đã có đủ thông tin, lựa chọn mua vẫn luôn sẵn sàng ở đây.
+          </p>
         </div>
 
-        <div className="lg:py-4">
-          {product.category && (
-            <p className="eyebrow">{product.category.name}</p>
-          )}
-          <h1 className="mt-3 font-display text-[clamp(1.9rem,3.2vw,2.8rem)] leading-tight text-foreground">
-            {product.name}
-          </h1>
-
-          {averageRating && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="flex text-accent">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <Star key={value} size={15} fill={value <= Math.round(averageRating) ? 'currentColor' : 'none'} />
-                ))}
-              </span>
-              <span>
-                {averageRating} · {reviews.length} đánh giá
-              </span>
-            </div>
-          )}
-
-          <p className="mt-5 text-3xl font-medium text-foreground">{formatPrice(price)}</p>
-
-          <div className="mt-8 h-px w-full bg-border" />
-
-          {hasOptions ? (
-            <div className="mt-8">
-              <ProductOptions
-                options={variantOptions}
-                variants={variants}
-                selected={selectedOptions}
-                onSelect={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))}
-              />
-              {!selectedVariant && (
-                <p className="mt-3 text-sm text-muted-foreground">Vui lòng chọn đầy đủ thuộc tính.</p>
-              )}
-            </div>
-          ) : (
-            variants.length > 0 && (
-              <div className="mt-8">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Phiên bản</p>
-                <div className="mt-3 flex flex-wrap gap-2.5">
-                  {variants.map((variant) => (
-                    <button
-                      key={variant.id}
-                      type="button"
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      aria-pressed={variant.id === selectedVariant?.id}
-                      className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                        variant.id === selectedVariant?.id
-                          ? 'border-foreground bg-foreground text-surface'
-                          : 'border-border-strong text-foreground hover:border-foreground'
-                      }`}
-                    >
-                      {variant.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          )}
-
-          {selectedVariant && (
-            <p className={`mt-5 text-sm ${outOfStock ? 'text-destructive' : 'text-secondary'}`}>
-              {outOfStock ? 'Hết hàng' : `Còn ${availableStock} sản phẩm`}
-            </p>
-          )}
-
-          {selectedVariant?.model_3d_url && (
-            <a
-              href={selectedVariant.model_3d_url}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1.5 text-sm text-foreground transition-colors hover:text-accent"
-            >
-              <Box size={16} />
-              Xem mô hình 3D
-            </a>
-          )}
-
-          <div className="mt-8 flex flex-wrap items-end gap-4">
-            <label className="flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.14em] text-ink/55">
               Số lượng
               <input
                 type="number"
@@ -439,38 +525,40 @@ export function ProductPage() {
                   const max = Math.max(stockError ?? availableStock, 1)
                   setQuantity(Math.min(Math.max(next, 1), max))
                 }}
-                className="w-24 rounded-control border border-border-strong bg-surface px-4 py-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
+                className="w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50"
               />
             </label>
 
             {token && staff ? (
-              <p className="rounded-control border border-border bg-surface-muted px-5 py-3.5 text-sm text-muted-foreground">
+              <p className="border-l-2 border-unbuilt pl-4 text-sm leading-6 text-ink/65">
                 Tài khoản quản trị không thể mua hàng.
               </p>
             ) : token ? (
               <>
                 <Button
+                  variant="secondary"
                   onClick={handleAddToCart}
                   disabled={!selectedVariant || outOfStock || addCartItem.isPending}
-                  className="px-8 py-3.5"
+                  className="px-6 py-3"
                 >
                   Thêm vào giỏ
                 </Button>
                 <Button
                   type="button"
                   variant="secondary"
-                  aria-label="Thêm vào yêu thích"
-                  onClick={handleAddToWishlist}
-                  disabled={!selectedVariant || addWishlistItem.isPending}
-                  className="px-4 py-3.5"
+                  aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
+                  aria-pressed={isWishlisted}
+                  onClick={handleToggleWishlist}
+                  disabled={!selectedVariant || addWishlistItem.isPending || removeWishlistItem.isPending}
+                  className="px-4 py-3"
                 >
-                  <Heart size={18} />
+                  <Heart size={18} className={isWishlisted ? 'fill-current text-accent' : ''} />
                 </Button>
               </>
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center rounded-control bg-primary px-8 py-3.5 text-sm font-medium text-surface transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex items-center rounded-control border border-ink px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink hover:text-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
               >
                 Đăng nhập để mua hàng
               </Link>
@@ -479,11 +567,11 @@ export function ProductPage() {
 
           {stockError !== null && (
             <p role="alert" className="mt-3 text-sm text-destructive">
-              Chỉ còn {stockError} sản phẩm trong kho
+              Kho chỉ đủ {stockError} sản phẩm cho lựa chọn này
             </p>
           )}
         </div>
-      </div>
+      </section>
 
       {sanitizedDescription && (
         <section className="mt-16 border-t border-border pt-12">
@@ -500,31 +588,55 @@ export function ProductPage() {
 
         {token && verifiedOrder && !reviewSubmitted && (
           <form
+            ref={reviewFormRef}
             onSubmit={handleSubmitReview}
             className="mt-6 flex max-w-xl flex-col gap-4 rounded-card border border-border bg-surface p-6 shadow-soft"
           >
             <p className="font-medium text-foreground">Viết đánh giá của bạn</p>
 
-            <div className="flex gap-1 text-accent">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-label={`Đánh giá ${value} sao`}
-                  aria-pressed={value <= reviewRating}
-                  onClick={() => setReviewRating(value)}
-                  className="transition-transform hover:scale-110"
-                >
-                  <Star size={24} fill={value <= reviewRating ? 'currentColor' : 'none'} />
-                </button>
-              ))}
+            <div className="flex flex-col gap-1.5">
+              <p id="review-rating-label" className="text-sm font-medium text-foreground">
+                Số sao
+              </p>
+              <div
+                className="flex gap-1 text-accent"
+                role="group"
+                aria-labelledby="review-rating-label"
+                aria-describedby={reviewFieldErrors.rating ? 'review-rating-error' : undefined}
+                aria-invalid={reviewFieldErrors.rating ? 'true' : undefined}
+              >
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={`Đánh giá ${value} sao`}
+                    aria-pressed={value <= reviewRating}
+                    onClick={() => {
+                      setReviewRating(value)
+                      if (reviewFieldErrors.rating) setReviewFieldErrors((prev) => ({ ...prev, rating: null }))
+                    }}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star size={24} fill={value <= reviewRating ? 'currentColor' : 'none'} />
+                  </button>
+                ))}
+              </div>
+              {reviewFieldErrors.rating && (
+                <p id="review-rating-error" role="alert" className="text-sm text-destructive">
+                  {reviewFieldErrors.rating}
+                </p>
+              )}
             </div>
 
             <Input
               id="review-title"
               label="Tiêu đề (không bắt buộc)"
               value={reviewTitle}
-              onChange={(event) => setReviewTitle(event.target.value)}
+              onChange={(event) => {
+                setReviewTitle(event.target.value)
+                if (reviewFieldErrors.title) setReviewFieldErrors((prev) => ({ ...prev, title: null }))
+              }}
+              error={reviewFieldErrors.title}
               maxLength={200}
             />
 
@@ -533,22 +645,32 @@ export function ProductPage() {
               <textarea
                 id="review-body"
                 value={reviewBody}
-                onChange={(event) => setReviewBody(event.target.value)}
+                onChange={(event) => {
+                  setReviewBody(event.target.value)
+                  if (reviewFieldErrors.body) setReviewFieldErrors((prev) => ({ ...prev, body: null }))
+                }}
                 maxLength={5000}
                 rows={4}
                 required
+                aria-invalid={reviewFieldErrors.body ? 'true' : undefined}
+                aria-describedby={reviewFieldErrors.body ? 'review-body-error' : undefined}
                 className="rounded-control border border-border-strong bg-surface px-4 py-3 text-base font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               />
             </label>
+            {reviewFieldErrors.body && (
+              <p id="review-body-error" role="alert" className="text-sm text-destructive">
+                {reviewFieldErrors.body}
+              </p>
+            )}
 
             {reviewError && (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" tabIndex="-1" className="text-sm text-destructive">
                 {reviewError}
               </p>
             )}
 
             <Button type="submit" disabled={reviewRating === 0 || !reviewBody.trim() || createReview.isPending}>
-              {createReview.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
+              {createReview.isPending ? 'Đang gửi…' : 'Gửi đánh giá'}
             </Button>
           </form>
         )}
@@ -560,7 +682,9 @@ export function ProductPage() {
         )}
 
         {reviews.length === 0 ? (
-          <p className="mt-6 text-muted-foreground">Chưa có đánh giá nào.</p>
+          <p className="mt-6 text-muted-foreground">
+            Chưa có đánh giá nào — những cảm nhận đầu tiên sẽ xuất hiện ở đây.
+          </p>
         ) : (
           <ul className="mt-8 flex flex-col gap-5">
             {reviews.map((review) => (
@@ -599,21 +723,36 @@ export function ProductPage() {
                       <textarea
                         id={`comment-${review.id}`}
                         value={commentDrafts[review.id] ?? ''}
-                        onChange={(event) =>
+                        onChange={(event) => {
                           setCommentDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))
-                        }
+                          if (commentErrors[review.id]) setCommentErrors((prev) => ({ ...prev, [review.id]: {} }))
+                        }}
                         maxLength={2000}
                         rows={2}
+                        aria-invalid={commentErrors[review.id]?.fields?.body ? 'true' : undefined}
+                        aria-describedby={commentErrors[review.id]?.fields?.body ? `comment-${review.id}-error` : undefined}
                         className="mt-1.5 block w-full rounded-control border border-border-strong bg-surface px-4 py-2.5 text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                       />
                     </label>
+                    {commentErrors[review.id]?.fields?.body && (
+                      <p id={`comment-${review.id}-error`} role="alert" className="text-sm text-destructive">
+                        {Array.isArray(commentErrors[review.id].fields.body)
+                          ? commentErrors[review.id].fields.body[0]
+                          : commentErrors[review.id].fields.body}
+                      </p>
+                    )}
+                    {commentErrors[review.id]?.message && (
+                      <p role="alert" className="text-sm text-destructive">
+                        {commentErrors[review.id].message}
+                      </p>
+                    )}
                     <div>
                       <Button
                         type="submit"
                         variant="secondary"
-                        disabled={!commentDrafts[review.id]?.trim() || createComment.isPending}
+                        disabled={!commentDrafts[review.id]?.trim() || commentSubmittingId === review.id}
                       >
-                        Gửi bình luận
+                        {commentSubmittingId === review.id ? 'Đang gửi…' : 'Gửi bình luận'}
                       </Button>
                     </div>
                   </form>
@@ -637,6 +776,8 @@ export function ProductPage() {
       </section>
 
       {isCustomer && <RecentlyViewedStrip excludeSlug={productSlug} />}
+    </div>
+
     </div>
   )
 }
