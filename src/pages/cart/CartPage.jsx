@@ -48,6 +48,16 @@ function mutationMessage(error, fallback) {
   return error?.message || fallback
 }
 
+function groupCartItems(items) {
+  const groups = new Map()
+  items.forEach((item) => {
+    const key = item.room?.id ? `room-${item.room.id}` : 'individual'
+    if (!groups.has(key)) groups.set(key, { key, room: item.room ?? null, items: [] })
+    groups.get(key).items.push(item)
+  })
+  return [...groups.values()]
+}
+
 function CartBoundary({ title = 'Giỏ hàng', children, action }) {
   return (
     <div className="min-h-screen bg-canvas px-6 py-16 text-ink md:py-20 lg:px-10">
@@ -349,6 +359,7 @@ export function CartPage() {
 
   const cart = data?.data
   const items = cart?.items ?? []
+  const itemGroups = groupCartItems(items)
   const checkoutBlocked = cartHasStockShortfall(items)
   const mutationPending = Object.keys(pendingQuantities).length > 0 || Object.keys(pendingRemovals).length > 0
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
@@ -508,9 +519,14 @@ export function CartPage() {
             </Link>
           </section>
         ) : (
-          <div className="mt-5 border-b-2 border-foreground/40">
-            <ul aria-label="Các lựa chọn trong giỏ hàng" className="space-y-2">
-              {items.map((item) => (
+          <div className="mt-5 space-y-10 border-b-2 border-foreground/40 pb-8">
+            {itemGroups.map((group) => <section key={group.key} aria-labelledby={`cart-group-${group.key}`}>
+              <div className="mb-3 flex items-center gap-4 border-b-2 border-foreground/40 pb-4">
+                {group.room?.preview_url && <img src={group.room.preview_url} alt={`Ảnh phòng ${group.room.name}`} className="h-20 w-28 shrink-0 object-cover" />}
+                <div><h2 id={`cart-group-${group.key}`} className="text-lg font-medium text-foreground">{group.room ? group.room.name : 'Sản phẩm chọn riêng'}</h2>{group.room && <p className="mt-1 text-sm text-muted-foreground">Các món được thêm cùng nhau từ phòng đã lưu này.</p>}</div>
+              </div>
+            <ul aria-label={group.room ? `Sản phẩm từ phòng ${group.room.name}` : 'Các lựa chọn riêng trong giỏ hàng'} className="space-y-2">
+              {group.items.map((item) => (
                 <CartLineItem
                   key={item.id}
                   item={item}
@@ -525,6 +541,7 @@ export function CartPage() {
                 />
               ))}
             </ul>
+            </section>)}
 
             <section
               aria-labelledby="cart-consequence-title"

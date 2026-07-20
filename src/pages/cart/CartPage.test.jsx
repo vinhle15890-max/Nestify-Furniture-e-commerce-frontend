@@ -130,7 +130,9 @@ describe('CartPage', () => {
     })
     renderPage()
 
-    expect(await screen.findByText(/Được thêm từ phòng đã lưu “Phòng khách”/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Phòng khách' })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Sản phẩm từ phòng Phòng khách' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Sản phẩm chọn riêng' })).toBeInTheDocument()
     expect(screen.queryByText(/xác nhận vừa|phù hợp|vừa với phòng/i)).not.toBeInTheDocument()
   })
 
