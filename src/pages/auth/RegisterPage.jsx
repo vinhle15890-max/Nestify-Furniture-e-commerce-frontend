@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
 import { Input } from '../../components/Input'
 import { PasswordInput } from '../../components/auth/PasswordInput'
@@ -25,6 +25,7 @@ const schema = yup.object({
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const registerUser = useRegister()
   const [formError, setFormError] = useState(null)
   const formRef = useRef(null)
@@ -43,7 +44,8 @@ export function RegisterPage() {
     setFormError(null)
     try {
       await registerUser.mutateAsync(values)
-      navigate('/account', { replace: true })
+      const from = location.state?.from
+      navigate(from ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}` : '/account', { replace: true })
     } catch (error) {
       if (applyServerErrors(error, setError)) {
         focusFirstError(formRef.current)

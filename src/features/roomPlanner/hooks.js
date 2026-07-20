@@ -96,3 +96,28 @@ export function useAddSceneToCart() {
     },
   })
 }
+
+export function useRoomDraft(token) {
+  return useQuery({
+    queryKey: ['roomDraft', token],
+    queryFn: () => roomPlannerApi.getRoomDraft(token),
+    enabled: Boolean(token),
+    retry: false,
+  })
+}
+
+export function useSaveRoomDraft() {
+  return useMutation({
+    mutationFn: ({ token, payload }) => token
+      ? roomPlannerApi.updateRoomDraft(token, payload)
+      : roomPlannerApi.createRoomDraft(payload),
+  })
+}
+
+export function useClaimRoomDraft() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: roomPlannerApi.claimRoomDraft,
+    onSuccess: (response) => queryClient.setQueryData(['roomScene', response.data.id], response),
+  })
+}

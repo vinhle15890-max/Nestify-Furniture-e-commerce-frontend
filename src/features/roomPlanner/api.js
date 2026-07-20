@@ -41,3 +41,19 @@ export function uploadScenePreview(id, file) {
 export function addSceneToCart(id) {
   return apiClient.post(`/room-scenes/${id}/add-to-cart`)
 }
+
+export function createRoomDraft(payload) {
+  return apiClient.post('/room-drafts', payload)
+}
+
+export function updateRoomDraft(token, payload) {
+  return apiClient.put(`/room-drafts/${token}`, payload)
+}
+
+export function getRoomDraft(token) {
+  return apiClient.get(`/room-drafts/${token}`)
+}
+
+export function claimRoomDraft(token) {
+  return apiClient.post(`/room-drafts/${token}/claim`)
+}

@@ -8,6 +8,7 @@ import * as roomPlannerApi from '../../features/roomPlanner/api'
 import * as catalogApi from '../../features/catalog/api'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 import { ApiError } from '../../lib/errors'
+import { useAuthStore } from '../../store/authStore'
 
 // The 3D canvas can't run in jsdom — replace it with a marker.
 vi.mock('./scene/RoomCanvas', () => ({ RoomCanvas: () => <div data-testid="room-canvas" /> }))
@@ -84,8 +85,10 @@ const PRODUCT = { data: { slug: 'ghe-sofa', name: 'Ghế sofa', variants: [{ id:
 describe('RoomPlannerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
     installMatchMedia(true)
     useEditorStore.getState().reset()
+    useAuthStore.setState({ token: 'customer-token', user: { id: 1 } })
     catalogApi.getProducts.mockResolvedValue({
       data: [{ id: 1, name: 'Sofa', thumbnail: null, variants: [{ id: 11, sku: 'A', name: 'Đỏ', model_3d_url: 'a.glb', price: 100 }] }],
       meta: { pagination: { has_more: false, next_cursor: null } },
@@ -93,6 +96,7 @@ describe('RoomPlannerPage', () => {
     roomPlannerApi.getScene.mockResolvedValue({
       data: { id: 55, name: 'Phòng của tôi', width: '4', depth: '5', height: '2.8', items: [] },
     })
+    roomPlannerApi.getRoomDraft.mockResolvedValue({ data: null })
     roomPlannerApi.reviewScene.mockResolvedValue({ data: { scene_id: 55, can_continue: true, items: [{ placement_id: 1, product_name: 'Sofa', variant_name: 'Đỏ', price: 100, available_stock: 2, purchasable: true, reason: null }] } })
   })
 
@@ -100,6 +104,27 @@ describe('RoomPlannerPage', () => {
     renderPage('/room-planner')
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
     expect(await screen.findByTestId('room-canvas')).toBeInTheDocument()
+  })
+
+  it('stores a guest room remotely and keeps its continuation token in the URL', async () => {
+    useAuthStore.setState({ token: null, user: null })
+    roomPlannerApi.createRoomDraft.mockResolvedValue({ data: { token: 'draft-secret' } })
+    renderDeepLink('/room-planner')
+
+    await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
+    await userEvent.type(screen.getByLabelText('Tên phòng'), ' khách')
+    await userEvent.click(screen.getByRole('button', { name: /lưu/i }))
+
+    await waitFor(() => expect(roomPlannerApi.createRoomDraft).toHaveBeenCalledTimes(1))
+    expect(screen.getByTestId('loc')).toHaveTextContent('/room-planner?draft=draft-secret')
+  })
+
+  it('claims a cross-device draft after authentication and opens the owned room', async () => {
+    roomPlannerApi.claimRoomDraft.mockResolvedValue({ data: { id: 77, name: 'Phòng tiếp tục' } })
+    renderDeepLink('/room-planner?draft=draft-secret')
+
+    await waitFor(() => expect(roomPlannerApi.claimRoomDraft).toHaveBeenCalledWith('draft-secret', expect.anything()))
+    expect(screen.getByTestId('loc')).toHaveTextContent('/room-planner/77')
   })
 
   it('adds a tray item then saves via create and shows the saved state', async () => {

@@ -16,12 +16,14 @@ import { useEditorShortcuts } from './useEditorShortcuts'
 import { SmallScreenNotice } from './SmallScreenNotice'
 import { PlannerGeometryPlaceholder } from '../../components/LoadingStates'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
-import { useScene, useSceneReview, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview } from '../../features/roomPlanner/hooks'
+import { useScene, useSceneReview, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview, useRoomDraft, useSaveRoomDraft, useClaimRoomDraft } from '../../features/roomPlanner/hooks'
 import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
 import { useProductPreload } from '../../features/catalog/hooks'
 import { editorStateToPayload } from '../../features/roomPlanner/mappers'
 import { useToastStore } from '../../store/toastStore'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { useAuthStore } from '../../store/authStore'
+import { clearLocalRoomDraft, editorStateToDraftSnapshot, readLocalRoomDraft, writeLocalRoomDraft } from '../../features/roomPlanner/guestDraft'
 
 const DEFAULT_ROOM = { width: 4, depth: 5, height: 2.8 }
 const PLANNER_DESKTOP_QUERY = '(min-width: 64rem)'
@@ -32,6 +34,7 @@ export function RoomPlannerPage() {
   const navigate = useNavigate()
   const addToast = useToastStore((state) => state.addToast)
   const isDesktop = useMediaQuery(PLANNER_DESKTOP_QUERY)
+  const token = useAuthStore((state) => state.token)
   const continueUrl = `${window.location.origin}${location.pathname}${location.search}${location.hash}`
 
   const sceneQuery = useScene(isDesktop ? id : null)
@@ -40,6 +43,8 @@ export function RoomPlannerPage() {
   const addSceneToCart = useAddSceneToCart()
   const shareScene = useShareScene()
   const uploadPreview = useUploadScenePreview()
+  const saveDraft = useSaveRoomDraft()
+  const claimDraft = useClaimRoomDraft()
 
   const store = useEditorStore()
   const [setupOpen, setSetupOpen] = useState(false)
@@ -56,6 +61,9 @@ export function RoomPlannerPage() {
   // never stashed in the (module-singleton) store or a module var, which would
   // outlive the page and bleed into a later param-less visit.
   const [searchParams, setSearchParams] = useSearchParams()
+  const draftToken = searchParams.get('draft')
+  const draftQuery = useRoomDraft(!token && !id ? draftToken : null)
+  const claimStarted = useRef(false)
   const previewSlug = searchParams.get('product')
   const variantId = searchParams.get('variant')
   const hasDeepLink = Boolean(previewSlug && variantId)
@@ -80,6 +88,47 @@ export function RoomPlannerPage() {
     return () => store.reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  // A same-device snapshot makes refresh recovery immediate; a server draft
+  // token remains the source that can continue on another device.
+  useEffect(() => {
+    if (id || draftToken || token || store.status !== 'idle') return
+    const localDraft = readLocalRoomDraft()
+    if (localDraft) {
+      store.loadScene(localDraft)
+      setSetupOpen(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, draftToken, token, store.status])
+
+  useEffect(() => {
+    if (!draftQuery.data?.data || token || id) return
+    store.loadScene(draftQuery.data.data)
+    setSetupOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftQuery.data, token, id])
+
+  useEffect(() => {
+    if (!token || !draftToken || id || claimStarted.current) return
+    claimStarted.current = true
+    claimDraft.mutate(draftToken, {
+      onSuccess: (response) => {
+        clearLocalRoomDraft()
+        navigate(`/room-planner/${response.data.id}`, { replace: true })
+        addToast({ title: 'Phòng đã được lưu vào tài khoản.', variant: 'success' })
+      },
+      onError: (error) => {
+        claimStarted.current = false
+        addToast({ title: 'Chưa thể nối phòng với tài khoản.', description: error?.message, variant: 'error' })
+      },
+    })
+  }, [token, draftToken, id, claimDraft, navigate, addToast])
+
+  useEffect(() => {
+    if (token || id || store.status !== 'ready' || !store.dirty) return undefined
+    const timer = window.setTimeout(() => writeLocalRoomDraft(editorStateToDraftSnapshot(useEditorStore.getState())), 250)
+    return () => window.clearTimeout(timer)
+  }, [token, id, store.status, store.dirty, store.name, store.description, store.room, store.items])
 
   // Capability changes only swap the shell. They must never reset in-memory
   // work: a user who narrows then widens the same tab resumes where they left.
@@ -215,6 +264,28 @@ export function RoomPlannerPage() {
     return response.data.id
   }
 
+  const persistGuestDraft = async () => {
+    const payload = editorStateToPayload(store)
+    const response = await saveDraft.mutateAsync({ token: draftToken, payload })
+    writeLocalRoomDraft(editorStateToDraftSnapshot(store))
+    const nextToken = draftToken ?? response.data.token
+    if (!draftToken) {
+      const next = new URLSearchParams(searchParams)
+      next.set('draft', nextToken)
+      setSearchParams(next, { replace: true })
+    }
+    return nextToken
+  }
+
+  const requireOwnedScene = async () => {
+    if (token) return ensureSaved()
+    const nextToken = await persistGuestDraft()
+    navigate('/login', {
+      state: { from: { pathname: '/room-planner', search: `?draft=${encodeURIComponent(nextToken)}` } },
+    })
+    return null
+  }
+
   const handleSave = async () => {
     // Chụp ảnh TRƯỚC khi lưu: ensureSaved có thể navigate(replace) khi tạo mới →
     // đổi :id → effect [id] gọi store.reset() → status 'idle' → RoomCanvas unmount
@@ -224,6 +295,11 @@ export function RoomPlannerPage() {
       previewFile = await capturePlannerPreview()
     } catch { previewFile = null }
     try {
+      if (!token) {
+        await persistGuestDraft()
+        addToast({ title: 'Đã giữ phòng trong 30 ngày.', description: 'Đăng nhập để lưu phòng vào tài khoản.', variant: 'success' })
+        return
+      }
       const sceneId = await ensureSaved()
       addToast({ title: 'Đã lưu phòng.', variant: 'success' })
       // Best-effort: ảnh phòng cho card "Phòng của tôi". Lỗi không đụng tới Save.
@@ -235,7 +311,8 @@ export function RoomPlannerPage() {
 
   const handleAddToCart = async () => {
     try {
-      const sceneId = await ensureSaved()
+      const sceneId = await requireOwnedScene()
+      if (!sceneId) return
       const response = await addSceneToCart.mutateAsync(sceneId)
       const skipped = response?.meta?.skipped ?? []
       if (skipped.length > 0) {
@@ -259,7 +336,8 @@ export function RoomPlannerPage() {
   // is idempotent server-side, so re-sharing returns the same token.
   const handleShare = async () => {
     try {
-      const sceneId = await ensureSaved()
+      const sceneId = await requireOwnedScene()
+      if (!sceneId) return
       const response = await shareScene.mutateAsync(sceneId)
       setShareToken(response.data.share_token)
     } catch (error) {
@@ -269,7 +347,8 @@ export function RoomPlannerPage() {
 
   const handleOpenReview = async () => {
     try {
-      const sceneId = await ensureSaved()
+      const sceneId = await requireOwnedScene()
+      if (!sceneId) return
       setReviewSceneId(sceneId)
       setReviewOpen(true)
     } catch (error) {
@@ -315,7 +394,7 @@ export function RoomPlannerPage() {
           name={store.name}
           onNameChange={store.setName}
           onSave={handleSave}
-          saving={createScene.isPending || updateScene.isPending}
+          saving={createScene.isPending || updateScene.isPending || saveDraft.isPending || claimDraft.isPending}
           dirty={store.dirty}
           onUndo={store.undo}
           onRedo={store.redo}

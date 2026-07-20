@@ -33,7 +33,8 @@ export function LoginPage() {
     setFormError(null)
     try {
       await login.mutateAsync(values)
-      navigate(location.state?.from?.pathname ?? '/account', { replace: true })
+      const from = location.state?.from
+      navigate(from ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}` : '/account', { replace: true })
     } catch (error) {
       if (applyServerErrors(error, setError)) {
         focusFirstError(formRef.current)

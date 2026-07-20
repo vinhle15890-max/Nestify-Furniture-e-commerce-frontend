@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { LoginPage } from './LoginPage'
 import { useAuthStore } from '../../store/authStore'
 import { ApiError } from '../../lib/errors'
@@ -10,14 +10,20 @@ import * as authApi from '../../features/auth/api'
 
 vi.mock('../../features/auth/api')
 
-function renderLoginPage() {
+function PlannerReturnProbe() {
+  const location = useLocation()
+  return <p>Phòng tiếp tục {location.search}</p>
+}
+
+function renderLoginPage(entry = '/login') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/account" element={<p>Trang tài khoản</p>} />
+          <Route path="/room-planner" element={<PlannerReturnProbe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -61,6 +67,17 @@ describe('LoginPage', () => {
     await waitFor(() => expect(screen.getByText('Trang tài khoản')).toBeInTheDocument())
     expect(useAuthStore.getState().token).toBe('abc123')
     expect(useAuthStore.getState().user).toEqual({ id: 1, name: 'Bao', email: 'bao@example.com', email_verified_at: '2026-01-01' })
+  })
+
+  it('preserves the guest draft token when returning to the planner after login', async () => {
+    authApi.login.mockResolvedValue({ data: { token: 'abc123', user: { id: 1 } } })
+    renderLoginPage({ pathname: '/login', state: { from: { pathname: '/room-planner', search: '?draft=secret' } } })
+
+    await userEvent.type(screen.getByLabelText('Email'), 'bao@example.com')
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'password123')
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }))
+
+    expect(await screen.findByText('Phòng tiếp tục ?draft=secret')).toBeInTheDocument()
   })
 
   it('shows a distinct message for wrong credentials (401)', async () => {
