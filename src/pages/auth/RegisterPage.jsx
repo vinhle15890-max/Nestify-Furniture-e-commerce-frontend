@@ -57,7 +57,7 @@ export function RegisterPage() {
   return (
     <AuthLayout
       title="Đăng ký"
-      subtitle="Tạo tài khoản để bắt đầu mua sắm cùng Nestify."
+      subtitle="Lưu phòng, giữ lại lựa chọn và tiếp tục khi bạn sẵn sàng."
       footer={
         <p className="text-muted-foreground">
           Đã có tài khoản?{' '}
@@ -74,7 +74,7 @@ export function RegisterPage() {
           </p>
         )}
         <Input label="Họ tên" id="name" autoComplete="name" error={errors.name?.message} {...register('name')} />
-        <PasswordInput
+        <Input
           label="Email"
           id="email"
           type="email"
@@ -82,7 +82,7 @@ export function RegisterPage() {
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
+        <PasswordInput
           label="Mật khẩu"
           id="password"
           guidance="Dùng ít nhất 10 ký tự. Một cụm từ dài sẽ dễ nhớ và khó đoán hơn."

@@ -54,7 +54,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="Đăng nhập"
-      subtitle="Chào mừng trở lại Nestify."
+      subtitle="Mở lại những căn phòng và lựa chọn bạn đang giữ."
       footer={
         <>
           <Link to="/forgot-password" className={authLink}>
@@ -75,7 +75,7 @@ export function LoginPage() {
             {formError}
           </p>
         )}
-        <PasswordInput
+        <Input
           label="Email"
           id="email"
           type="email"
@@ -83,7 +83,7 @@ export function LoginPage() {
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
+        <PasswordInput
           label="Mật khẩu"
           id="password"
           autoComplete="current-password"
