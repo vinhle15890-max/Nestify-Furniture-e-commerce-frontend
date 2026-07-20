@@ -285,6 +285,10 @@ replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
 
 ## Phase 10 — Polish & Testing
 
+### Tracked performance follow-up
+
+- [ ] **PERF-PLANNER-01 — Split 3D runtime below the 500 kB warning threshold.** Baseline và closeout đều tạo `SkeletonUtils` 912.03 kB minified (247.60 kB gzip), lớn hơn ngưỡng 500 kB 412.03 kB. Bước tiếp theo: chạy bundle visualizer để xác nhận module ownership, sau đó thử lazy boundary thứ hai quanh `RoomCanvas`/R3F và `manualChunks` cho `three`, `@react-three/fiber`, `@react-three/drei`; đo lại first Planner interaction và cache behavior trước khi chọn cấu hình. Acceptance: không làm 3D runtime lọt vào initial storefront bundle, không regress fallback/keyboard tests, và mỗi chunk emitted dưới ngưỡng đã thống nhất hoặc có performance budget được phê duyệt bằng số liệu.
+
 - [x] Accessibility pass: focus-visible rings on `Button` + all nav/icon/link controls (Header,
       Footer area, CartDrawer, CategoryNav, AdminLayout, ProductCard, HomePage CTA, Modal/Pagination
       close/arrows), skip-to-content link → `<main id="main-content" tabindex="-1">`, icon-only
