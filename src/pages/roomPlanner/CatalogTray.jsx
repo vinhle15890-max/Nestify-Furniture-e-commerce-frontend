@@ -21,7 +21,7 @@ export function CatalogTray({ onAdd }) {
   return (
     <div className="flex h-full flex-col gap-3">
       <SearchInput placeholder="Tìm nội thất 3D..." onDebouncedChange={setSearch} />
-      <p className="text-xs leading-5 text-muted-foreground">Chọn một sản phẩm để đặt vào giữa phòng. Sau đó dùng bảng điều khiển để chỉnh vị trí.</p>
+      <p className="text-xs leading-5 text-muted-foreground">Chọn một sản phẩm để đặt vào giữa phòng. Dùng phím mũi tên để di chuyển, [ hoặc ] để xoay, Enter để xác nhận, Escape để hủy.</p>
       <p role="status" aria-live="polite" className="sr-only">{placementMessage}</p>
       {query.isLoading ? (
         <div role="status" aria-label="Đang tải nội thất 3D" className="space-y-2 py-1">
@@ -48,7 +48,13 @@ export function CatalogTray({ onAdd }) {
               <button
                 type="button"
                 aria-label={`Đặt ${product.name}, phiên bản ${variant.name}, vào giữa phòng`}
-                onClick={() => { onAdd(variant); setPlacementMessage(`Đã đặt ${product.name}, phiên bản ${variant.name}, vào giữa phòng và chọn sản phẩm này.`) }}
+                onClick={(event) => {
+                  // Keyboard activation starts a reversible placement session;
+                  // pointer users retain the existing direct-add interaction.
+                  if (event.detail === 0) onAdd(variant, { provisional: true })
+                  else onAdd(variant)
+                  setPlacementMessage(`Đã đặt ${product.name}, phiên bản ${variant.name}, vào giữa phòng và chọn sản phẩm này.`)
+                }}
                 className="flex w-full items-center gap-3 rounded-card border border-border bg-surface p-2 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-control bg-surface-alt">

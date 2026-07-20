@@ -17,6 +17,10 @@ function seedReadyWithItem() {
   s.addVariant(variant)
 }
 
+function startKeyboardPlacement() {
+  useEditorStore.getState().addVariant(variant, { provisional: true })
+}
+
 describe('useEditorShortcuts', () => {
   beforeEach(() => { seedReadyWithItem() })
 
@@ -40,12 +44,36 @@ describe('useEditorShortcuts', () => {
     expect(useEditorStore.getState().items).toHaveLength(2)
   })
 
-  it('digit keys switch gizmo mode; Escape deselects', () => {
+  it('digit keys switch gizmo mode', () => {
     render(<Harness />)
     fireEvent.keyDown(window, { key: '2' })
     expect(useEditorStore.getState().gizmoMode).toBe('rotate')
+  })
+
+  it('moves the placed item with arrows and rotates it with bracket keys', () => {
+    startKeyboardPlacement()
+    render(<Harness />)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { key: 'ArrowDown', shiftKey: true })
+    fireEvent.keyDown(window, { key: ']' })
+
+    const item = useEditorStore.getState().items[1]
+    expect(item.position).toMatchObject({ x: 0.1, z: 0.5 })
+    expect(item.rotation.y).toBeCloseTo(Math.PI / 12)
+  })
+
+  it('Enter confirms a keyboard placement and Escape cancels one', () => {
+    startKeyboardPlacement()
+    render(<Harness />)
+    fireEvent.keyDown(window, { key: 'Enter' })
+    expect(useEditorStore.getState()).toMatchObject({ pendingPlacementId: null, selectedId: null })
+    expect(useEditorStore.getState().items).toHaveLength(2)
+
+    startKeyboardPlacement()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(useEditorStore.getState().selectedId).toBeNull()
+    expect(useEditorStore.getState()).toMatchObject({ pendingPlacementId: null, selectedId: null })
+    expect(useEditorStore.getState().items).toHaveLength(2)
   })
 
   it('key 3 no longer enables customer scaling', () => {

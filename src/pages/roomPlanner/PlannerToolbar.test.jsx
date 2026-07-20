@@ -16,6 +16,15 @@ const base = {
 }
 
 describe('PlannerToolbar', () => {
+  it('gives every icon-only control an accessible name and visible keyboard focus style', () => {
+    render(<PlannerToolbar {...base} />)
+    for (const name of ['Thoát Room Planner', 'Hoàn tác', 'Làm lại']) {
+      const control = screen.getByRole('button', { name })
+      expect(control).toHaveClass('focus-visible:ring-2')
+      expect(control).not.toHaveAttribute('title')
+    }
+  })
+
   it('calls onSave when Lưu is clicked', async () => {
     const onSave = vi.fn()
     render(<PlannerToolbar {...base} onSave={onSave} />)

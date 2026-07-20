@@ -51,4 +51,13 @@ describe('CatalogTray', () => {
     renderTray()
     expect(await screen.findByText(/^chưa có sản phẩm 3d$/i)).toBeInTheDocument()
   })
+
+  it('marks keyboard activation as a reversible placement', async () => {
+    const onAdd = vi.fn()
+    renderTray(onAdd)
+    const button = await screen.findByRole('button', { name: /đặt sofa/i })
+    button.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ id: 11 }), { provisional: true })
+  })
 })
