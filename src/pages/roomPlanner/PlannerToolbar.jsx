@@ -36,7 +36,7 @@ export function PlannerToolbar({
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border bg-surface px-4 py-3">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={onExit} aria-label="Thoát" className="text-muted-foreground hover:text-foreground">
+        <button type="button" onClick={onExit} aria-label="Thoát Room Planner" className="rounded-control text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <X size={20} />
         </button>
         <input
@@ -55,8 +55,8 @@ export function PlannerToolbar({
             onClick={onUndo}
             disabled={!canUndo}
             aria-label="Hoàn tác"
-            title="Hoàn tác (Ctrl+Z)"
-            className="rounded-control p-1.5 text-foreground transition-colors hover:bg-surface-alt disabled:opacity-40"
+            aria-description="Phím tắt Ctrl+Z"
+            className="rounded-control p-1.5 text-foreground transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
           >
             <Undo2 size={16} aria-hidden="true" />
           </button>
@@ -65,8 +65,8 @@ export function PlannerToolbar({
             onClick={onRedo}
             disabled={!canRedo}
             aria-label="Làm lại"
-            title="Làm lại (Ctrl+Shift+Z)"
-            className="rounded-control p-1.5 text-foreground transition-colors hover:bg-surface-alt disabled:opacity-40"
+            aria-description="Phím tắt Ctrl+Shift+Z"
+            className="rounded-control p-1.5 text-foreground transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
           >
             <Redo2 size={16} aria-hidden="true" />
           </button>
@@ -82,8 +82,8 @@ export function PlannerToolbar({
                 type="button"
                 onClick={() => onGizmoModeChange(mode.key)}
                 aria-pressed={active}
-                title={`${mode.label} (${index + 1})`}
-                className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors ${
+                aria-label={`${mode.label}. Phím tắt ${index + 1}`}
+                className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   active ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
                 }`}
               >
@@ -99,8 +99,9 @@ export function PlannerToolbar({
             type="button"
             onClick={onToggleSnap}
             aria-pressed={snap}
-            title="Bắt điểm 0.25m / 15°"
-            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors ${
+            aria-label="Snap"
+            aria-description="Bắt điểm theo lưới 0,25 mét và góc 15 độ"
+            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               snap ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
             }`}
           >
@@ -110,8 +111,9 @@ export function PlannerToolbar({
             type="button"
             onClick={onToggleWallSnap}
             aria-pressed={wallSnap}
-            title="Hút cạnh món áp sát tường khi thả gần (≤ 0.5m)"
-            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors ${
+            aria-label="Bắt tường"
+            aria-description="Đưa cạnh sản phẩm vào tường khi ở gần"
+            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               wallSnap ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
             }`}
           >
@@ -121,8 +123,8 @@ export function PlannerToolbar({
             type="button"
             onClick={onToggleScaleRef}
             aria-pressed={showScaleRef}
-            title="Bóng người 1.7m + cửa làm mốc tỉ lệ"
-            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors ${
+            aria-label="Hiện mốc tỉ lệ người và cửa"
+            className={`flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               showScaleRef ? 'bg-primary text-surface' : 'text-foreground hover:bg-surface-alt'
             }`}
           >
@@ -135,8 +137,9 @@ export function PlannerToolbar({
           <button
             type="button"
             onClick={onEnterRoomEdit}
-            title="Chỉnh kích thước phòng & tường (nhìn từ trên)"
-            className="flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-alt"
+            aria-label="Chỉnh phòng"
+            aria-description="Chỉnh kích thước và tường ở góc nhìn từ trên"
+            className="flex items-center gap-1.5 rounded-control px-2.5 py-1.5 text-sm text-foreground transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Scan size={15} aria-hidden="true" /> Chỉnh phòng
           </button>

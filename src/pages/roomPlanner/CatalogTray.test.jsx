@@ -40,6 +40,7 @@ describe('CatalogTray', () => {
     expect(screen.queryByText('Xanh')).not.toBeInTheDocument()
     await userEvent.click(button)
     expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ id: 11, model_3d_url: 'a.glb' }))
+    expect(screen.getByRole('status')).toHaveTextContent('Đã đặt Sofa')
   })
 
   it('shows an empty state when no products have a 3D model', async () => {

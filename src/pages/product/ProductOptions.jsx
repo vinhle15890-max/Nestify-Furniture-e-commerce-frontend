@@ -41,10 +41,9 @@ export function ProductOptions({ options, variants, selected, onSelect }) {
                   type="button"
                   aria-label={v.label}
                   aria-pressed={active}
-                  title={v.label}
                   disabled={!available}
                   onClick={() => onSelect(option.name, v.label)}
-                  className={`h-9 w-9 rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-30 ${
+                  className={`h-11 w-11 rounded-full border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30 ${
                     active ? 'border-foreground ring-2 ring-ring ring-offset-2' : 'border-border'
                   }`}
                   style={{ backgroundColor: v.hex }}

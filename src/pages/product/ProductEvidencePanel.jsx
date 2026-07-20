@@ -86,7 +86,7 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
         {plannerHref ? (
           <Link
             to={plannerHref}
-            className="inline-flex items-center gap-3 rounded-control bg-ink px-5 py-3 text-sm font-medium text-canvas transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
+            className="inline-flex items-center gap-3 rounded-control border border-ink px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-unbuilt/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
           >
             Thử trong Room Planner
             <ArrowRight size={16} aria-hidden="true" />

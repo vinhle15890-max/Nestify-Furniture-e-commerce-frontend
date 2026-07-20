@@ -9,6 +9,7 @@ import { formatPrice } from '../../lib/format'
 
 export function CatalogTray({ onAdd }) {
   const [search, setSearch] = useState('')
+  const [placementMessage, setPlacementMessage] = useState('')
   const query = useInfiniteProducts({ search, limit: 24 })
 
   const products = useMemo(
@@ -20,6 +21,8 @@ export function CatalogTray({ onAdd }) {
   return (
     <div className="flex h-full flex-col gap-3">
       <SearchInput placeholder="Tìm nội thất 3D..." onDebouncedChange={setSearch} />
+      <p className="text-xs leading-5 text-muted-foreground">Chọn một sản phẩm để đặt vào giữa phòng. Sau đó dùng bảng điều khiển để chỉnh vị trí.</p>
+      <p role="status" aria-live="polite" className="sr-only">{placementMessage}</p>
       {query.isLoading ? (
         <div role="status" aria-label="Đang tải nội thất 3D" className="space-y-2 py-1">
           {Array.from({ length: 5 }, (_, index) => (
@@ -44,8 +47,9 @@ export function CatalogTray({ onAdd }) {
             <li key={variant.id}>
               <button
                 type="button"
-                onClick={() => onAdd(variant)}
-                className="flex w-full items-center gap-3 rounded-card border border-border bg-surface p-2 text-left transition-colors hover:border-border-strong"
+                aria-label={`Đặt ${product.name}, phiên bản ${variant.name}, vào giữa phòng`}
+                onClick={() => { onAdd(variant); setPlacementMessage(`Đã đặt ${product.name}, phiên bản ${variant.name}, vào giữa phòng và chọn sản phẩm này.`) }}
+                className="flex w-full items-center gap-3 rounded-card border border-border bg-surface p-2 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-control bg-surface-alt">
                   {product.thumbnail ? (
