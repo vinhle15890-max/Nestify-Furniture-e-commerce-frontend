@@ -71,12 +71,12 @@ function CameraRig({ topDown, room, camDistance }) {
 // down and orbit-rotation is locked, so the caller (RoomCanvas) can also make
 // furniture non-interactive and show the room-edit overlay. Defaults to false
 // so SharedSceneCanvas (which never passes it) keeps its normal perspective view.
-export function SceneStage({ room, orbitEnabled = true, topDown = false, onRendererReady, children }) {
+export function SceneStage({ room, orbitEnabled = true, topDown = false, onRendererReady, fallback, children }) {
   const webglSupported = useWebGLSupport()
   const [contextLost, setContextLost] = useState(false)
 
   if (!webglSupported) {
-    return <WebGLUnsupportedFallback room={room} />
+    return fallback ?? <WebGLUnsupportedFallback room={room} />
   }
 
   const camDistance = Math.max(room.width, room.depth, 4) * 1.4

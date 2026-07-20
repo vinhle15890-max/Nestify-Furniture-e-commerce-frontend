@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Check, Copy, Monitor } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
+import { DimensionComparisonFallback } from './DimensionComparisonFallback'
 
-export function SmallScreenNotice({ continueUrl, hasUnsavedChanges = false, onExit }) {
+export function SmallScreenNotice({ continueUrl, hasUnsavedChanges = false, onExit, room, items = [] }) {
   const [copyState, setCopyState] = useState('idle')
 
   const handleCopy = async () => {
@@ -17,7 +18,7 @@ export function SmallScreenNotice({ continueUrl, hasUnsavedChanges = false, onEx
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-canvas px-6 py-12 text-center">
+    <div className="flex min-h-dvh flex-col items-center gap-6 bg-canvas px-6 py-12 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-card border border-unbuilt bg-surface">
         <Monitor size={32} className="text-foreground" aria-hidden="true" />
       </div>
@@ -68,6 +69,7 @@ export function SmallScreenNotice({ continueUrl, hasUnsavedChanges = false, onEx
           />
         </div>
       )}
+      {room && <div className="w-full text-left"><DimensionComparisonFallback room={room} items={items} /></div>}
     </div>
   )
 }

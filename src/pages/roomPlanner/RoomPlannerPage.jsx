@@ -278,6 +278,8 @@ export function RoomPlannerPage() {
         continueUrl={continueUrl}
         hasUnsavedChanges={store.dirty}
         onExit={handleExit}
+        room={store.status === 'ready' ? store.room : null}
+        items={store.items}
       />
     )
   }
