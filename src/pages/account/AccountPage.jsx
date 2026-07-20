@@ -91,13 +91,16 @@ export function AccountPage() {
               </div>
             </section>
 
-            <section aria-label="Nội dung đã lưu" className="mt-8 grid gap-4 sm:grid-cols-2">
-              <Link to="/account/rooms" className="group flex items-center justify-between rounded-card border border-border p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Box size={20} aria-hidden="true" /><span className="font-medium">Phòng đã lưu</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
-              <Link to="/wishlist" className="group flex items-center justify-between rounded-card border border-border p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Heart size={20} aria-hidden="true" /><span className="font-medium">Sản phẩm yêu thích</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
+            <section aria-labelledby="saved-index-title" className="mt-10 border-t border-border pt-7">
+              <h2 id="saved-index-title" className="text-lg font-medium text-foreground">Những điều bạn đang giữ lại</h2>
+              <div className="mt-4 divide-y divide-unbuilt border-y border-unbuilt">
+                <Link to="/account/rooms" className="group flex items-center justify-between py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Box size={19} aria-hidden="true" /><span>Phòng đã lưu</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
+                <Link to="/wishlist" className="group flex items-center justify-between py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Heart size={19} aria-hidden="true" /><span>Sản phẩm yêu thích</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
+              </div>
             </section>
 
-            <nav aria-label="Quản lý tài khoản" className="mt-10 border-t border-border pt-6">
-              <p className="text-sm font-medium text-muted-foreground">Quản lý tài khoản</p>
+            <nav aria-label="Quản lý tài khoản" className="mt-12">
+              <p className="text-sm text-muted-foreground">Thông tin tài khoản</p>
               <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
                 {secondaryLinks.map(({ to, label, icon: Icon }) => <Link key={to} to={to} className="inline-flex items-center gap-2 text-sm text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon size={16} aria-hidden="true" />{label}</Link>)}
               </div>
