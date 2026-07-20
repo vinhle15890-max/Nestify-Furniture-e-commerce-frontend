@@ -26,7 +26,7 @@ describe('FeaturedCategories', () => {
     })
     renderCats()
 
-    expect(screen.getByRole('heading', { name: 'Khám phá theo không gian' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Bắt đầu từ căn phòng bạn đang nghĩ tới' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Sofa/ })).toHaveAttribute('href', '/c/sofa')
     expect(screen.getByRole('link', { name: /Bàn ăn/ })).toHaveAttribute('href', '/c/ban-an')
   })

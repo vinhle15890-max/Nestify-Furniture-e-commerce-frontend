@@ -1,11 +1,7 @@
 import { Hero } from '../../components/home/Hero'
 import { FeaturedCategories } from '../../components/home/FeaturedCategories'
 import { BecomingStates } from '../../components/home/BecomingStates'
-import { PersonalizedSection } from '../../components/personalization/PersonalizedSection'
-import { CuratedCollections } from '../../components/home/CuratedCollections'
 import { BestSellers } from '../../components/home/BestSellers'
-import { BrandPromise } from '../../components/home/BrandPromise'
-import { Lookbook } from '../../components/home/Lookbook'
 import { PlannerInvite } from '../../components/home/PlannerInvite'
 
 /**
@@ -38,11 +34,7 @@ export function HomePage() {
       <Hero />
       <FeaturedCategories />
       <BecomingStates />
-      <CuratedCollections />
-      <PersonalizedSection />
       <BestSellers />
-      <BrandPromise />
-      <Lookbook />
       <PlannerInvite />
     </div>
   )

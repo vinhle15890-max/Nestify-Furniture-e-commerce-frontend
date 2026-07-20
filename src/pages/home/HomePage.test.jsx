@@ -47,9 +47,10 @@ describe('HomePage', () => {
       screen.getByRole('heading', { name: 'Điều gì có thể bắt đầu ở đây?', level: 1 }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'Bắt đầu với những thiết kế tiêu biểu' }),
+      screen.getByRole('heading', { name: 'Một trường sản phẩm được chọn lọc' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Khám phá theo không gian' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Bắt đầu từ căn phòng bạn đang nghĩ tới' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(4)
     // Threshold permits one exploratory route alongside scrolling. The old
     // Lookbook-specific CTA remains absent.
     expect(screen.queryByRole('link', { name: 'Xem Lookbook' })).not.toBeInTheDocument()
