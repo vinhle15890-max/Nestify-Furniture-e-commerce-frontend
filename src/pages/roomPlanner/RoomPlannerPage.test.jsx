@@ -93,6 +93,7 @@ describe('RoomPlannerPage', () => {
     roomPlannerApi.getScene.mockResolvedValue({
       data: { id: 55, name: 'Phòng của tôi', width: '4', depth: '5', height: '2.8', items: [] },
     })
+    roomPlannerApi.reviewScene.mockResolvedValue({ data: { scene_id: 55, can_continue: true, items: [{ placement_id: 1, product_name: 'Sofa', variant_name: 'Đỏ', price: 100, available_stock: 2, purchasable: true, reason: null }] } })
   })
 
   it('shows the setup dialog for a new room, then the canvas', async () => {
@@ -133,8 +134,8 @@ describe('RoomPlannerPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
     await userEvent.click(await screen.findByRole('button', { name: /Sofa.*Đỏ/s }))
     await userEvent.click(screen.getByRole('button', { name: /xem lại phòng/i }))
-    expect(screen.getByRole('dialog', { name: /xem lại phòng/i })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: /tiếp tục đến giỏ hàng/i }))
+    expect(await screen.findByRole('dialog', { name: /xem lại phòng/i })).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: /tiếp tục đến giỏ hàng/i }))
 
     // Unsaved room is persisted first, then its saved id drives the cart handoff.
     await waitFor(() => expect(roomPlannerApi.createScene).toHaveBeenCalled())

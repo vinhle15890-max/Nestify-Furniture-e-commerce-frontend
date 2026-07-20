@@ -16,7 +16,7 @@ import { useEditorShortcuts } from './useEditorShortcuts'
 import { SmallScreenNotice } from './SmallScreenNotice'
 import { PlannerGeometryPlaceholder } from '../../components/LoadingStates'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
-import { useScene, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview } from '../../features/roomPlanner/hooks'
+import { useScene, useSceneReview, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview } from '../../features/roomPlanner/hooks'
 import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
 import { useProductPreload } from '../../features/catalog/hooks'
 import { editorStateToPayload } from '../../features/roomPlanner/mappers'
@@ -45,6 +45,8 @@ export function RoomPlannerPage() {
   const [setupOpen, setSetupOpen] = useState(false)
   const [shareToken, setShareToken] = useState(null)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewSceneId, setReviewSceneId] = useState(null)
+  const sceneReview = useSceneReview(reviewSceneId, reviewOpen)
 
   // Keyboard editing (delete / undo / redo / duplicate / gizmo modes / deselect).
   useEditorShortcuts(isDesktop)
@@ -265,6 +267,16 @@ export function RoomPlannerPage() {
     }
   }
 
+  const handleOpenReview = async () => {
+    try {
+      const sceneId = await ensureSaved()
+      setReviewSceneId(sceneId)
+      setReviewOpen(true)
+    } catch (error) {
+      addToast({ title: 'Chưa thể xem lại phòng.', description: error?.message, variant: 'error' })
+    }
+  }
+
   const handleExit = () => {
     if (store.dirty && !window.confirm('Bạn có thay đổi chưa lưu. Thoát?')) return
     navigate('/')
@@ -328,7 +340,7 @@ export function RoomPlannerPage() {
               <OverlapNotice items={store.items} />
               <RoomSummary items={store.items} />
             </div>
-            <PlannerCompletionArea onShare={handleShare} sharing={shareScene.isPending || createScene.isPending || updateScene.isPending} onReview={() => setReviewOpen(true)} reviewing={addSceneToCart.isPending} saving={createScene.isPending || updateScene.isPending} itemCount={store.items.length} />
+            <PlannerCompletionArea onShare={handleShare} sharing={shareScene.isPending || createScene.isPending || updateScene.isPending} onReview={handleOpenReview} reviewing={addSceneToCart.isPending || createScene.isPending || updateScene.isPending} saving={createScene.isPending || updateScene.isPending} itemCount={store.items.length} />
           </aside>
         </div>
       </div>
@@ -351,6 +363,9 @@ export function RoomPlannerPage() {
         items={store.items}
         onContinue={handleAddToCart}
         pending={addSceneToCart.isPending || createScene.isPending || updateScene.isPending}
+        review={sceneReview.data?.data}
+        loading={sceneReview.isLoading}
+        error={sceneReview.isError}
       />
     </div>
   )

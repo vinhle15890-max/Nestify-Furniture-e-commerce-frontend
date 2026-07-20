@@ -8,6 +8,10 @@ export function getScene(id) {
   return apiClient.get(`/room-scenes/${id}`)
 }
 
+export function reviewScene(id) {
+  return apiClient.get(`/room-scenes/${id}/review`)
+}
+
 export function deleteScene(id) {
   return apiClient.delete(`/room-scenes/${id}`)
 }

@@ -51,6 +51,14 @@ export function useScene(id) {
   })
 }
 
+export function useSceneReview(id, enabled = true) {
+  return useQuery({
+    queryKey: ['roomSceneReview', id],
+    queryFn: () => roomPlannerApi.reviewScene(id),
+    enabled: Boolean(id) && enabled,
+  })
+}
+
 export function useCreateScene() {
   const queryClient = useQueryClient()
   return useMutation({
