@@ -64,11 +64,17 @@ describe('useEditorShortcuts', () => {
 
   it('clamps keyboard movement at the same room boundary as pointer transforms', () => {
     render(<Harness />)
-    for (let index = 0; index < 4; index += 1) {
+    expect(useEditorStore.getState().wallSnap).toBe(false)
+
+    for (let index = 0; index < 3; index += 1) {
       fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
     }
+    expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1.5)
 
-    // A 1 m footprint in a 4 m room stops with its edge at x=2 m.
+    // The next candidate center is x=2.0, which would put the item's right
+    // edge at x=2.5 beyond the room wall at x=2.0. With wall snap disabled,
+    // remaining at x=1.5 can only come from the shared boundary projection.
+    fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
     expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1.5)
   })
 
