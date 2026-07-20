@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { CatalogSkeleton } from '../../components/LoadingStates'
@@ -8,6 +8,7 @@ import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
 import { DiscoveryLens } from './DiscoveryLens'
 import { DiscoverProductUnit } from './DiscoverProductUnit'
+import { readCatalogUrlState, writeCatalogUrlState } from '../../lib/catalogUrlState'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Mặc định' },
@@ -31,12 +32,9 @@ const PRICE_RANGES = [
 export function CategoryPage() {
   const { categorySlug } = useParams()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const isAll = categorySlug === 'all'
-
-  const [search, setSearch] = useState(() => searchParams.get('search')?.trim() ?? '')
-  const [priceKey, setPriceKey] = useState('')
-  const [sort, setSort] = useState('')
+  const { search, price: priceKey, sort } = readCatalogUrlState(searchParams)
   const [lensOpen, setLensOpen] = useState(false)
   // Remount the internally controlled search input when a constraint is cleared.
   const [resetKey, setResetKey] = useState(0)
@@ -86,18 +84,13 @@ export function CategoryPage() {
   )
   const hasProductData = Boolean(productsQuery.data)
 
-  useEffect(() => {
-    setSearch(searchParams.get('search')?.trim() ?? '')
-    setPriceKey('')
-    setSort('')
-    setLensOpen(false)
-    setResetKey((key) => key + 1)
-  }, [categorySlug, searchParams])
+  const updateUrlState = (updates) => setSearchParams(writeCatalogUrlState(searchParams, updates))
+  const setSearch = (value) => updateUrlState({ search: value })
+  const setPriceKey = (value) => updateUrlState({ price: value })
+  const setSort = (value) => updateUrlState({ sort: value })
 
   const clearAll = () => {
-    setSearch('')
-    setPriceKey('')
-    setSort('')
+    setSearchParams(writeCatalogUrlState(searchParams, { search: '', price: '', sort: '' }))
     setResetKey((key) => key + 1)
   }
 
@@ -107,7 +100,10 @@ export function CategoryPage() {
   }
 
   const currentCategoryValue = isAll ? 'all' : categorySlug
-  const handleCategoryChange = (value) => navigate(value === 'all' ? '/c/all' : `/c/${value}`)
+  const handleCategoryChange = (value) => {
+    const query = searchParams.toString()
+    navigate(`${value === 'all' ? '/c/all' : `/c/${value}`}${query ? `?${query}` : ''}`)
+  }
   const sortLabel = SORT_OPTIONS.find((option) => option.value === sort)?.label
   const hasCategoryFallback =
     !isAll && !flatCategories.some((item) => item.slug === categorySlug) && categorySlug

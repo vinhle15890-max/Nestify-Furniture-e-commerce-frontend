@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { useCategories, useInfiniteProducts } from '../../features/catalog/hooks'
 
@@ -13,7 +13,9 @@ function flattenCategories(nodes, result = []) {
 
 export function GlobalSearch({ compact = false, onNavigate }) {
   const navigate = useNavigate()
-  const [query, setQuery] = useState('')
+  const location = useLocation()
+  const initialQuery = location.pathname.startsWith('/c/') ? new URLSearchParams(location.search).get('search') ?? '' : ''
+  const [query, setQuery] = useState(initialQuery)
   const [focused, setFocused] = useState(false)
   const trimmed = query.trim()
   const enabled = focused && trimmed.length >= 2
