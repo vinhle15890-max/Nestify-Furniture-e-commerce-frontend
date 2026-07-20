@@ -1,98 +1,71 @@
-import { Link, useLocation } from 'react-router-dom'
-import { Instagram, Facebook, Youtube } from 'lucide-react'
-import { Newsletter } from '../home/Newsletter'
+import { Link } from 'react-router-dom'
 
 const focusRing =
   'rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
 
-const columns = [
+const groups = [
   {
     title: 'Mua sắm',
     links: [
       { label: 'Tất cả sản phẩm', to: '/c/all' },
-      { label: 'Sofa', to: '/c/sofa' },
-      { label: 'Bàn ăn', to: '/c/ban-an' },
-      { label: 'Phòng ngủ', to: '/c/phong-ngu' },
+      { label: 'Sản phẩm yêu thích', to: '/wishlist' },
+      { label: 'Giỏ hàng', to: '/cart' },
     ],
   },
   {
-    title: 'Về Nestify',
-    links: [{ label: 'Câu chuyện thương hiệu', to: '/about' }],
+    title: 'Phòng của bạn',
+    links: [
+      { label: 'Thiết kế phòng', to: '/room-planner' },
+      { label: 'Phòng đã lưu', to: '/account/rooms' },
+    ],
   },
   {
     title: 'Hỗ trợ',
     links: [
-      { label: 'Tài khoản', to: '/account' },
-      { label: 'Đơn hàng', to: '/orders' },
-      { label: 'Yêu thích', to: '/wishlist' },
+      { label: 'Giao hàng', href: 'mailto:support@nestify.vn?subject=H%E1%BB%97%20tr%E1%BB%A3%20giao%20h%C3%A0ng' },
+      { label: 'Đổi trả và hủy đơn', href: 'mailto:support@nestify.vn?subject=H%E1%BB%97%20tr%E1%BB%A3%20%C4%91%E1%BB%95i%20tr%E1%BA%A3' },
+      { label: 'Quyền riêng tư', href: 'mailto:support@nestify.vn?subject=Quy%E1%BB%81n%20ri%C3%AAng%20t%C6%B0' },
+      { label: 'Liên hệ', href: 'mailto:support@nestify.vn' },
     ],
   },
 ]
 
-const socials = [
-  { label: 'Instagram', icon: Instagram, href: 'https://instagram.com' },
-  { label: 'Facebook', icon: Facebook, href: 'https://facebook.com' },
-  { label: 'YouTube', icon: Youtube, href: 'https://youtube.com' },
-]
-
 export function Footer() {
-  const { pathname } = useLocation()
-  const isCheckoutCommitment = pathname === '/checkout' || pathname.startsWith('/checkout/')
-
   return (
     <footer className="border-t border-border bg-surface">
-      {!isCheckoutCommitment && <Newsletter />}
-      <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
+      <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10 lg:py-20">
+        <div className="grid gap-12 lg:grid-cols-[minmax(16rem,1.15fr)_2fr]">
           <div>
             <Link to="/" aria-label="Nestify — trang chủ" className={`inline-flex ${focusRing}`}>
               <span className="font-display text-4xl tracking-tight text-foreground">Nestify</span>
             </Link>
-            <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Nội thất ấm áp, vượt thời gian — chế tác từ vật liệu tự nhiên cho không gian sống hiện đại.
+            <p className="mt-5 max-w-sm leading-relaxed text-muted-foreground">
+              Thấy rõ món đồ trong không gian của bạn trước khi quyết định.
             </p>
-            <div className="mt-6 flex items-center gap-4">
-              {socials.map(({ label, icon: Icon, href }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={label}
-                  className={`text-muted-foreground transition-colors duration-200 hover:text-accent ${focusRing}`}
-                >
-                  <Icon size={20} />
-                </a>
-              ))}
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
-            {columns.map((column) => (
-              <div key={column.title}>
-                <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  {column.title}
-                </h3>
+            {groups.map((group) => (
+              <section key={group.title} aria-labelledby={`footer-${group.title}`}>
+                <h2 id={`footer-${group.title}`} className="text-sm font-medium text-muted-foreground">{group.title}</h2>
                 <ul className="mt-4 space-y-3">
-                  {column.links.map((link) => (
-                    <li key={link.label}>
-                      <Link
-                        to={link.to}
-                        className={`text-sm text-foreground transition-colors duration-200 hover:text-accent ${focusRing}`}
-                      >
-                        {link.label}
-                      </Link>
+                  {group.links.map((item) => (
+                    <li key={item.label}>
+                      {item.to ? (
+                        <Link to={item.to} className={`text-sm text-foreground transition-colors hover:text-muted-foreground ${focusRing}`}>{item.label}</Link>
+                      ) : (
+                        <a href={item.href} className={`text-sm text-foreground transition-colors hover:text-muted-foreground ${focusRing}`}>{item.label}</a>
+                      )}
                     </li>
                   ))}
                 </ul>
-              </div>
+              </section>
             ))}
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col gap-2 border-t border-border pt-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Nestify. Mọi quyền được bảo lưu.</p>
-          <p>Thiết kế tại Việt Nam · Vật liệu tự nhiên</p>
+        <div className="mt-14 border-t border-border pt-6 text-sm text-muted-foreground">
+          © {new Date().getFullYear()} Nestify. Mọi quyền được bảo lưu.
         </div>
       </div>
     </footer>

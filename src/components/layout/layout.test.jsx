@@ -80,19 +80,10 @@ describe('Footer', () => {
     expect(screen.getAllByText(/Nestify/).length).toBeGreaterThan(0)
   })
 
-  it('suppresses the promotional newsletter on Checkout commitment and recovery routes', () => {
-    const { rerender } = render(
-      <MemoryRouter initialEntries={['/checkout']}>
-        <Footer />
-      </MemoryRouter>,
-    )
-    expect(screen.queryByText('Tham gia Nestify Journal')).not.toBeInTheDocument()
-
-    rerender(
-      <MemoryRouter initialEntries={['/checkout/return']}>
-        <Footer />
-      </MemoryRouter>,
-    )
+  it('states the clarity promise and exposes practical support paths', () => {
+    render(<MemoryRouter><Footer /></MemoryRouter>)
+    expect(screen.getByText(/Thấy rõ món đồ/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Giao hàng' })).toHaveAttribute('href', expect.stringContaining('mailto:'))
     expect(screen.queryByText('Tham gia Nestify Journal')).not.toBeInTheDocument()
   })
 })
