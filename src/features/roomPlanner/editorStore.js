@@ -205,6 +205,16 @@ export const useEditorStore = create((set, get) => ({
     }
   }),
 
+  removeItem: (localId) => set((s) => {
+    if (!s.items.some((item) => item.localId === localId)) return {}
+    return {
+      ...pushPast(s),
+      items: s.items.filter((item) => item.localId !== localId),
+      selectedId: s.selectedId === localId ? null : s.selectedId,
+      dirty: true,
+    }
+  }),
+
   resetSelectedTransform: () => set((s) => ({
     ...pushPast(s),
     dirty: true,
@@ -237,5 +247,13 @@ export const useEditorStore = create((set, get) => ({
     }
   }),
 
-  markSaved: (id) => set({ id, dirty: false }),
+  markSaved: (id, persistedItems = null) => set((s) => ({
+    id,
+    dirty: false,
+    // The API recreates placements on update. Reconcile ids by the submitted
+    // order while retaining local ids and undo history for cheap reversibility.
+    items: persistedItems
+      ? s.items.map((item, index) => ({ ...item, placementId: persistedItems[index]?.id ?? null }))
+      : s.items,
+  })),
 }))

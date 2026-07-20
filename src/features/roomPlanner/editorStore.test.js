@@ -27,6 +27,19 @@ describe('roomPlanner/editorStore', () => {
     expect(s.items[0].scale).toEqual({ x: 1, y: 1, z: 1 })
   })
 
+  it('removes a placement through the same reversible history as canvas deletion', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 5, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const localId = useEditorStore.getState().items[0].localId
+
+    useEditorStore.getState().removeItem(localId)
+    expect(useEditorStore.getState().items).toHaveLength(0)
+    expect(useEditorStore.getState().dirty).toBe(true)
+
+    useEditorStore.getState().undo()
+    expect(useEditorStore.getState().items).toHaveLength(1)
+  })
+
   it('rejects scale gizmo mode and ignores scale transform patches', () => {
     useEditorStore.getState().initNew({ width: 4, depth: 5, height: 2.8 })
     useEditorStore.getState().addVariant(variant)

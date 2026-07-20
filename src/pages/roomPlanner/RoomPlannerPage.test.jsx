@@ -168,6 +168,36 @@ describe('RoomPlannerPage', () => {
     expect(await screen.findByTestId('cart-page')).toBeInTheDocument()
   })
 
+  it('removes a blocked placement from the room history, persists it, and retries review', async () => {
+    const scene = {
+      id: 9,
+      name: 'Phòng khách',
+      width: '4',
+      depth: '5',
+      height: '2.8',
+      items: [{ id: 501, variant: { id: 11, name: 'Đỏ', model_3d_url: 'a.glb', price: 100 }, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } }],
+    }
+    roomPlannerApi.getScene.mockResolvedValue({ data: scene })
+    roomPlannerApi.reviewScene
+      .mockResolvedValueOnce({ data: { scene_id: 9, can_continue: false, items: [{ placement_id: 501, product_name: 'Sofa', variant_name: 'Đỏ', price: 100, available_stock: 0, purchasable: false, reason: 'out_of_stock' }] } })
+      .mockResolvedValueOnce({ data: { scene_id: 9, can_continue: true, items: [] } })
+    roomPlannerApi.updateScene.mockResolvedValue({ data: { ...scene, items: [] } })
+
+    renderPage('/room-planner/9')
+    await userEvent.click(await screen.findByRole('button', { name: /xem lại phòng/i }))
+    expect(await screen.findByRole('button', { name: /tiếp tục đến giỏ hàng/i })).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa Sofa khỏi phòng' }))
+
+    await waitFor(() => expect(roomPlannerApi.updateScene).toHaveBeenCalledWith(9, expect.objectContaining({ items: [] })))
+    expect(await screen.findByRole('button', { name: /tiếp tục đến giỏ hàng/i })).toBeEnabled()
+    expect(useEditorStore.getState().items).toHaveLength(0)
+    expect(useEditorStore.getState().past.length).toBeGreaterThan(0)
+
+    act(() => useEditorStore.getState().undo())
+    expect(useEditorStore.getState().items).toHaveLength(1)
+  })
+
   it('loads an existing scene by id without the setup dialog', async () => {
     roomPlannerApi.getScene.mockResolvedValue({
       data: { id: 9, name: 'Phòng cũ', width: '4', depth: '5', height: '2.8', items: [] },

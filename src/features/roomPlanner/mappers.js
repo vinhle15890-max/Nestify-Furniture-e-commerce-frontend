@@ -30,6 +30,7 @@ export function sceneToEditorState(resource) {
     },
     items: (r.items ?? []).map((item) => ({
       localId: makeLocalId(),
+      placementId: item.id ?? null,
       variant: {
         id: item.variant?.id ?? null,
         sku: item.variant?.sku ?? '',

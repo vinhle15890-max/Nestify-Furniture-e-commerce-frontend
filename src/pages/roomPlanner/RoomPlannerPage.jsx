@@ -51,6 +51,8 @@ export function RoomPlannerPage() {
   const [shareToken, setShareToken] = useState(null)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewSceneId, setReviewSceneId] = useState(null)
+  const [removingPlacementId, setRemovingPlacementId] = useState(null)
+  const [reviewRemoveError, setReviewRemoveError] = useState(null)
   const sceneReview = useSceneReview(reviewSceneId, reviewOpen)
 
   // Keyboard editing (delete / undo / redo / duplicate / gizmo modes / deselect).
@@ -252,14 +254,16 @@ export function RoomPlannerPage() {
   // Shared by Save and Add-to-cart — the cart handoff needs a saved scene id to
   // tag items with (the whole point of the imagined callback in the Cart).
   const ensureSaved = async () => {
-    if (store.id && !store.dirty) return store.id
-    const payload = editorStateToPayload(store)
-    if (store.id) {
-      await updateScene.mutateAsync({ id: store.id, payload })
-      return store.id
+    const current = useEditorStore.getState()
+    if (current.id && !current.dirty) return current.id
+    const payload = editorStateToPayload(current)
+    if (current.id) {
+      const response = await updateScene.mutateAsync({ id: current.id, payload })
+      current.markSaved(current.id, response.data.items)
+      return current.id
     }
     const response = await createScene.mutateAsync(payload)
-    store.markSaved(response.data.id)
+    current.markSaved(response.data.id, response.data.items)
     navigate(`/room-planner/${response.data.id}`, { replace: true })
     return response.data.id
   }
@@ -356,6 +360,27 @@ export function RoomPlannerPage() {
     }
   }
 
+  const handleRemoveReviewPlacement = async (placementId) => {
+    const current = useEditorStore.getState()
+    const item = current.items.find((candidate) => candidate.placementId === placementId)
+    if (!item) {
+      setReviewRemoveError('Không tìm thấy món này trong phòng. Hãy đóng và mở lại phần xem phòng.')
+      return
+    }
+
+    setReviewRemoveError(null)
+    setRemovingPlacementId(placementId)
+    current.removeItem(item.localId)
+    try {
+      await ensureSaved()
+      await sceneReview.refetch()
+    } catch (error) {
+      setReviewRemoveError(error?.message ?? 'Chưa thể lưu thay đổi. Thay đổi vẫn còn trong phòng này; hãy thử lưu lại.')
+    } finally {
+      setRemovingPlacementId(null)
+    }
+  }
+
   const handleExit = () => {
     if (store.dirty && !window.confirm('Bạn có thay đổi chưa lưu. Thoát?')) return
     navigate('/')
@@ -445,6 +470,9 @@ export function RoomPlannerPage() {
         review={sceneReview.data?.data}
         loading={sceneReview.isLoading}
         error={sceneReview.isError}
+        onRemove={handleRemoveReviewPlacement}
+        removingPlacementId={removingPlacementId}
+        removeError={reviewRemoveError}
       />
     </div>
   )
