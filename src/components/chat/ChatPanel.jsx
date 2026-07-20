@@ -65,7 +65,7 @@ export function ChatPanel() {
       className="flex h-[28rem] w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-card border border-border bg-surface shadow-soft"
     >
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="font-display text-base text-foreground">Trợ lý mua sắm</h2>
+        <h2 className="text-base font-semibold text-foreground">Trợ lý mua sắm</h2>
         <button
           type="button"
           aria-label="Đóng"

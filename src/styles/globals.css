@@ -23,19 +23,18 @@ body {
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   line-height: 1.08;
-  font-weight: 400;            /* editorial: light serif weights */
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-/* Small-caps eyebrow label used across editorial sections */
+/* Supporting labels stay readable and sentence-cased; they are not decoration. */
 .eyebrow {
   font-family: var(--font-sans);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--color-muted-foreground);
 }
 

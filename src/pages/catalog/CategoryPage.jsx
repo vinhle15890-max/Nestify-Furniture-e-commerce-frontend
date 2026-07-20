@@ -139,7 +139,7 @@ export function CategoryPage() {
           <div className="mb-4 hidden sm:block">
             <Breadcrumb items={breadcrumbItems} />
           </div>
-          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-ink/55">Khám phá</p>
+          <p className="text-sm font-medium text-ink/55">Khám phá</p>
           <h1 className="mt-1.5 font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-ink">
             {pageTitle}
           </h1>

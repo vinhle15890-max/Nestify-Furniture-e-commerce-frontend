@@ -373,7 +373,7 @@ export function ProductPage() {
 
       <section data-testid="product-identity-field" className="mt-6">
         {product.category && (
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerging">
+          <p className="text-sm font-medium text-emerging">
             {product.category.name}
           </p>
         )}
@@ -410,7 +410,7 @@ export function ProductPage() {
           ) : (
             variants.length > 0 && (
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink/55">Phiên bản</p>
+                <p className="text-sm font-medium text-ink/55">Phiên bản</p>
                 <div className="mt-3 flex flex-wrap gap-2.5">
                   {variants.map((variant) => (
                     <button
@@ -437,7 +437,7 @@ export function ProductPage() {
       <div className="mt-7 grid items-start gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.9fr)] lg:gap-10 xl:gap-14">
         <section data-testid="product-truth-field" aria-labelledby="product-media-role">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 text-xs">
-            <p id="product-media-role" className="font-medium uppercase tracking-[0.18em] text-ink/60">
+            <p id="product-media-role" className="text-sm font-medium text-ink/60">
               {activeMedia?.variant_id === selectedVariant?.id && activeMedia?.variant_id != null
                 ? 'Ảnh sản phẩm theo phiên bản'
                 : 'Ảnh bối cảnh'}
@@ -502,7 +502,7 @@ export function ProductPage() {
         className="mt-12 grid gap-8 border-t-2 border-ink/15 pt-8 md:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] md:items-end lg:mt-16"
       >
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-ink/55">Mua trực tiếp</p>
+          <p className="text-sm font-medium text-ink/55">Mua trực tiếp</p>
           <h2 id="transaction-runway-title" className="sr-only">Mua trực tiếp</h2>
           <p className="mt-3 text-[clamp(1.55rem,2.5vw,2rem)] font-medium text-ink">{formatPrice(price)}</p>
           <p className="mt-3 max-w-sm text-sm leading-6 text-ink/60">
@@ -512,7 +512,7 @@ export function ProductPage() {
 
         <div>
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.14em] text-ink/55">
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/55">
               Số lượng
               <input
                 type="number"

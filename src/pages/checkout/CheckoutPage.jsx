@@ -190,7 +190,7 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
       <div className="flex flex-col gap-2 border-b-2 border-foreground pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">Đơn hàng của bạn</p>
-          <h2 id="checkout-transaction-heading" className="mt-1 font-display text-[clamp(1.65rem,3vw,2.35rem)] leading-tight text-foreground">
+          <h2 id="checkout-transaction-heading" className="mt-1  text-[clamp(1.65rem,3vw,2.35rem)] leading-tight text-foreground">
             Sản phẩm bạn đã chọn
           </h2>
         </div>
@@ -216,7 +216,7 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
                   className="rounded-none"
                 />
                 <div className="min-w-0">
-                  <p className="font-display text-lg leading-snug text-foreground sm:text-xl">{name}</p>
+                  <p className="text-lg font-medium leading-snug text-foreground sm:text-xl">{name}</p>
                   {detail && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{detail}</p>}
                   {attributes.length > 0 && (
                     <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -256,7 +256,7 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
             Giá trị từ Cart đã tải gần nhất; chưa phải xác nhận thanh toán hay số tiền cuối cùng có phí chưa được cung cấp.
           </p>
         </div>
-        <p className="mt-4 font-display text-[clamp(1.7rem,3.2vw,2.4rem)] tabular-nums text-foreground sm:mt-0">
+        <p className="mt-4  text-[clamp(1.7rem,3.2vw,2.4rem)] tabular-nums text-foreground sm:mt-0">
           {formatPrice(goodsTotal)}
         </p>
       </div>
@@ -462,7 +462,7 @@ function VoucherClause({
               </div>
               <div className="mt-3 flex items-baseline justify-between gap-6 border-t border-border/70 pt-3">
                 <dt className="text-foreground">Giảm giá dự kiến</dt>
-                <dd className="font-display text-xl tabular-nums text-foreground">{formatPrice(result.final_total)}</dd>
+                <dd className="text-xl font-semibold tabular-nums text-foreground">{formatPrice(result.final_total)}</dd>
               </div>
             </dl>
           )}
@@ -494,7 +494,7 @@ function CreatedOrderEvidence({ order }) {
       {order?.total != null && (
         <div className="mt-4 flex items-baseline justify-between gap-6 border-t border-foreground pt-4">
           <span className="text-sm text-muted-foreground">Tổng trên đơn đã tạo</span>
-          <span className="font-display text-2xl tabular-nums text-foreground">{formatPrice(order.total)}</span>
+          <span className="text-2xl font-semibold tabular-nums text-foreground">{formatPrice(order.total)}</span>
         </div>
       )}
     </div>
@@ -1019,7 +1019,7 @@ export function CheckoutPage() {
 
         <section aria-labelledby="checkout-certainty-heading" className="mt-4 max-w-5xl border-t-2 border-foreground pt-5">
           <div className="max-w-3xl">
-            <h2 id="checkout-certainty-heading" className="font-display text-xl text-foreground">Trước khi tạo đơn hàng</h2>
+            <h2 id="checkout-certainty-heading" className="text-xl font-semibold text-foreground">Trước khi tạo đơn hàng</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Phí giao hàng và thuế chưa được cung cấp. Số tiền đang hiển thị gồm sản phẩm và mã giảm giá dự kiến. Với PayOS, thanh toán được xác nhận ở bước tiếp theo; với COD, đơn hàng được tiếp nhận để xử lý.
             </p>

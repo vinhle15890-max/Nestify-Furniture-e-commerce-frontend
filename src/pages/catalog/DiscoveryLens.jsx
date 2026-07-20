@@ -94,7 +94,7 @@ export function DiscoveryLens({
         <div id={panelId} className="mt-4 border-t border-unbuilt pt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(15rem,1.3fr)_repeat(3,minmax(10rem,0.8fr))] lg:items-end">
             <div>
-              <span className="mb-1.5 block text-[0.68rem] uppercase tracking-[0.14em] text-ink/55">
+              <span className="mb-1.5 block text-sm font-medium text-ink/55">
                 Tìm kiếm
               </span>
               <SearchInput
@@ -105,7 +105,7 @@ export function DiscoveryLens({
               />
             </div>
 
-            <label className="flex flex-col gap-1.5 text-[0.68rem] uppercase tracking-[0.14em] text-ink/55">
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/55">
               Danh mục
               <select
                 value={currentCategoryValue}
@@ -124,7 +124,7 @@ export function DiscoveryLens({
               </select>
             </label>
 
-            <label className="flex flex-col gap-1.5 text-[0.68rem] uppercase tracking-[0.14em] text-ink/55">
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/55">
               Khoảng giá
               <select value={priceKey} onChange={(event) => onPriceChange(event.target.value)} className={selectClass}>
                 {priceOptions.map((option) => (
@@ -135,7 +135,7 @@ export function DiscoveryLens({
               </select>
             </label>
 
-            <label className="flex flex-col gap-1.5 text-[0.68rem] uppercase tracking-[0.14em] text-ink/55">
+            <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/55">
               Sắp xếp
               <select value={sort} onChange={(event) => onSortChange(event.target.value)} className={selectClass}>
                 {sortOptions.map((option) => (

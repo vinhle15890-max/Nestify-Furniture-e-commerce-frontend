@@ -30,7 +30,7 @@ export function ProductOptions({ options, variants, selected, onSelect }) {
     <div className="flex flex-col gap-5">
       {options.map((option) => (
         <div key={option.name}>
-          <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{option.name}</p>
+          <p className="mb-2 text-sm font-medium text-muted-foreground">{option.name}</p>
           <div className="flex flex-wrap gap-2">
             {option.values.map((v) => {
               const active = selected[option.name] === v.label

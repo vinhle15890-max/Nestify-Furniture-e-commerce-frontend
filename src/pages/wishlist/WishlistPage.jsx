@@ -116,12 +116,12 @@ export function WishlistPage() {
                     {item.variant?.product_slug ? (
                       <Link
                         to={`/p/${item.variant.product_slug}`}
-                        className="font-display text-lg text-foreground transition-colors duration-200 hover:text-accent"
+                        className="text-lg font-medium text-foreground transition-colors duration-200 hover:text-accent"
                       >
                         {item.variant?.product_name ?? item.variant?.name}
                       </Link>
                     ) : (
-                      <p className="font-display text-lg text-foreground">{item.variant?.product_name ?? item.variant?.name}</p>
+                      <p className="text-lg font-medium text-foreground">{item.variant?.product_name ?? item.variant?.name}</p>
                     )}
                     <p className="text-sm text-muted-foreground">{item.variant?.name} · {item.variant?.sku}</p>
                     <p className="mt-1 text-sm text-foreground">{formatPrice(item.variant?.price)}</p>

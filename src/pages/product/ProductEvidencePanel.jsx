@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 function EvidenceRow({ label, children }) {
   return (
     <div className="grid grid-cols-[minmax(4.75rem,0.55fr)_minmax(0,1.45fr)] gap-3 border-t border-unbuilt/70 py-2.5">
-      <dt className="text-xs font-medium uppercase tracking-[0.14em] text-ink/55">{label}</dt>
+      <dt className="text-sm font-medium text-ink/55">{label}</dt>
       <dd className="text-sm leading-6 text-ink">{children}</dd>
     </div>
   )
@@ -30,7 +30,7 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
       aria-labelledby="measured-suitability-title"
       className="border-t-2 border-emerging/45 pt-7 lg:border-l-2 lg:border-t-0 lg:pl-9 lg:pt-1 xl:pl-12"
     >
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerging">
+      <p className="text-sm font-medium text-emerging">
         Sự phù hợp đã biết
       </p>
       <h2

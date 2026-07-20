@@ -236,7 +236,7 @@ function CartLineItem({
 
       <div className="border-l-2 border-foreground/25 py-5 pl-5 md:pl-7 md:text-right lg:py-6">
         <p className="text-sm text-muted-foreground">Thành tiền dòng</p>
-        <p className="mt-2 font-display text-xl tabular-nums text-foreground lg:text-2xl">
+        <p className="mt-2  text-xl tabular-nums text-foreground lg:text-2xl">
           {formatPrice(item.subtotal)}
         </p>
       </div>
@@ -541,7 +541,7 @@ export function CartPage() {
 
               <div className="border-l-2 border-foreground/25 py-5 pl-5 md:pl-7 md:text-right">
                 <p className="text-sm text-muted-foreground">Tổng tiền hàng</p>
-                <p className="mt-2 font-display text-2xl tabular-nums text-foreground lg:text-3xl">
+                <p className="mt-2  text-2xl tabular-nums text-foreground lg:text-3xl">
                   {formatPrice(cart.total)}
                 </p>
 
