@@ -5,6 +5,7 @@ import { RoomEditPanel } from './RoomEditPanel'
 import { RoomSetupDialog } from './RoomSetupDialog'
 import { CatalogTray } from './CatalogTray'
 import { PlannerToolbar } from './PlannerToolbar'
+import { PlannerCompletionArea, PlannerContextControls, PlannerViewMenu } from './PlannerWorkspaceControls'
 import { ShareSceneDialog } from './ShareSceneDialog'
 import { SelectedItemPanel } from './SelectedItemPanel'
 import { RoomSummary } from './RoomSummary'
@@ -299,41 +300,34 @@ export function RoomPlannerPage() {
         <PlannerToolbar
           name={store.name}
           onNameChange={store.setName}
-          gizmoMode={store.gizmoMode}
-          onGizmoModeChange={store.setGizmoMode}
           onSave={handleSave}
           saving={createScene.isPending || updateScene.isPending}
           dirty={store.dirty}
-          onReview={() => setReviewOpen(true)}
-          reviewing={addSceneToCart.isPending}
-          onShare={handleShare}
-          sharing={shareScene.isPending || createScene.isPending || updateScene.isPending}
           onUndo={store.undo}
           onRedo={store.redo}
           canUndo={store.past.length > 0}
           canRedo={store.future.length > 0}
-          snap={store.snap}
-          onToggleSnap={store.toggleSnap}
-          wallSnap={store.wallSnap}
-          onToggleWallSnap={store.toggleWallSnap}
-          showScaleRef={store.showScaleRef}
-          onToggleScaleRef={store.toggleScaleRef}
-          itemCount={store.items.length}
           onExit={handleExit}
-          onEnterRoomEdit={() => store.setEditMode('room')}
         />
         <div className="flex min-h-0 flex-1">
-          <aside className="flex w-80 shrink-0 flex-col gap-3 overflow-hidden border-r border-border bg-surface-alt/40 p-4">
+          <aside aria-label="Thư viện nội thất" className="flex w-72 shrink-0 flex-col overflow-hidden border-r border-border bg-surface-alt/40 p-4 xl:w-80">
             <CatalogTray onAdd={store.addVariant} />
-            <SelectedItemPanel item={selectedItem} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
-            <OverlapNotice items={store.items} />
-            <RoomSummary items={store.items} />
           </aside>
           <main className="relative min-w-0 flex-1 bg-surface">
+            <PlannerViewMenu snap={store.snap} onToggleSnap={store.toggleSnap} wallSnap={store.wallSnap} onToggleWallSnap={store.toggleWallSnap} showScaleRef={store.showScaleRef} onToggleScaleRef={store.toggleScaleRef} onEnterRoomEdit={() => store.setEditMode('room')} />
+            {selectedItem && store.editMode === 'furnish' && <PlannerContextControls gizmoMode={store.gizmoMode} onGizmoModeChange={store.setGizmoMode} />}
             {store.status === 'ready' && <RoomCanvas />}
             {store.status === 'ready' && store.editMode === 'room' && <RoomEditPanel />}
             {store.status === 'ready' && store.editMode === 'furnish' && <ScaleLegend room={store.room} />}
           </main>
+          <aside aria-label="Thông tin phòng" className="flex w-72 shrink-0 flex-col border-l border-border bg-surface">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              <SelectedItemPanel item={selectedItem} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
+              <OverlapNotice items={store.items} />
+              <RoomSummary items={store.items} />
+            </div>
+            <PlannerCompletionArea onShare={handleShare} sharing={shareScene.isPending || createScene.isPending || updateScene.isPending} onReview={() => setReviewOpen(true)} reviewing={addSceneToCart.isPending} saving={createScene.isPending || updateScene.isPending} itemCount={store.items.length} />
+          </aside>
         </div>
       </div>
 
