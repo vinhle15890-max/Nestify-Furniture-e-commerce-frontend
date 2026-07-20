@@ -4,6 +4,15 @@ import { RoomEditPanel } from './RoomEditPanel'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 
 describe('RoomEditPanel', () => {
+  it('names icon-only height controls and gives them visible keyboard focus styles', () => {
+    render(<RoomEditPanel />)
+    for (const name of ['Giảm chiều cao', 'Tăng chiều cao']) {
+      const control = screen.getByRole('button', { name })
+      expect(control).toHaveClass('focus-visible:ring-2')
+      expect(control).not.toHaveAttribute('title')
+    }
+  })
+
   beforeEach(() => {
     useEditorStore.getState().initNew({ width: 4, depth: 5, height: 3, walls: { back: true, left: true, right: true } })
     useEditorStore.getState().setEditMode('room')
