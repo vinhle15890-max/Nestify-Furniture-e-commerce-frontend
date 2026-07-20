@@ -6,6 +6,7 @@ import { useUiStore } from '../../store/uiStore'
 import { useCart } from '../../features/cart/hooks'
 import { isStaff } from '../../lib/roles'
 import { Logo } from '../Logo'
+import { GlobalSearch } from './GlobalSearch'
 
 const focusRing =
   'rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
@@ -76,6 +77,7 @@ export function Header() {
         </nav>
 
         <div className={`flex items-center gap-4 ${tone}`}>
+          <div className="hidden lg:block"><GlobalSearch /></div>
           <button
             type="button"
             aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}

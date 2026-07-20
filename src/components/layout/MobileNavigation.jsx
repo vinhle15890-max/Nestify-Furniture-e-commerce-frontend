@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Link, useLocation } from 'react-router-dom'
-import { Search, ShoppingCart, X } from 'lucide-react'
+import { ShoppingCart, X } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
 import { isStaff } from '../../lib/roles'
+import { GlobalSearch } from './GlobalSearch'
 
 const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
@@ -62,6 +63,8 @@ export function MobileNavigation() {
             </Dialog.Close>
           </div>
 
+          <div className="pt-5"><GlobalSearch compact onNavigate={close} /></div>
+
           <nav aria-label="Điều hướng di động" className="flex-1 divide-y divide-border">
             <section aria-labelledby="mobile-discover" className="py-6">
               <h2 id="mobile-discover" className="text-sm font-medium text-muted-foreground">Khám phá</h2>
@@ -102,10 +105,7 @@ export function MobileNavigation() {
             </section>
           </nav>
 
-          <div className="grid grid-cols-2 gap-3 border-t border-border pt-5">
-            <Link to="/c/all" onClick={close} className={`inline-flex items-center justify-center gap-2 rounded-control border border-border px-4 py-3 text-sm font-medium text-foreground ${focusRing}`}>
-              <Search size={17} aria-hidden="true" /> Tìm kiếm
-            </Link>
+          <div className="border-t border-border pt-5">
             <button type="button" onClick={handleCart} className={`inline-flex items-center justify-center gap-2 rounded-control bg-primary px-4 py-3 text-sm font-medium text-surface ${focusRing}`}>
               <ShoppingCart size={17} aria-hidden="true" /> Giỏ hàng
             </button>

@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useCursorQuery } from '../../lib/pagination'
 import * as catalogApi from './api'
 
-export function useCategories() {
+export function useCategories(options = {}) {
   return useQuery({
     queryKey: ['categories'],
     queryFn: catalogApi.getCategories,
+    ...options,
   })
 }
 

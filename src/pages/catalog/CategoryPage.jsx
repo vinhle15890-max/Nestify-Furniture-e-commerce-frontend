@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
@@ -31,9 +31,10 @@ const PRICE_RANGES = [
 export function CategoryPage() {
   const { categorySlug } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const isAll = categorySlug === 'all'
 
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => searchParams.get('search')?.trim() ?? '')
   const [priceKey, setPriceKey] = useState('')
   const [sort, setSort] = useState('')
   const [lensOpen, setLensOpen] = useState(false)
@@ -86,12 +87,12 @@ export function CategoryPage() {
   const hasProductData = Boolean(productsQuery.data)
 
   useEffect(() => {
-    setSearch('')
+    setSearch(searchParams.get('search')?.trim() ?? '')
     setPriceKey('')
     setSort('')
     setLensOpen(false)
     setResetKey((key) => key + 1)
-  }, [categorySlug])
+  }, [categorySlug, searchParams])
 
   const clearAll = () => {
     setSearch('')
