@@ -26,7 +26,7 @@ export function DiscoverProductUnit({ product }) {
         className="block aspect-[4/5] w-full overflow-hidden bg-unbuilt/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
         {product.thumbnail ? (
-          <img src={product.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
+          <img src={product.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 ease-out motion-reduce:transition-none group-hover:scale-[1.015]" />
         ) : (
           <span className="flex h-full w-full items-center justify-center" aria-hidden="true">
             <ImageOff size={28} className="text-unbuilt" />
@@ -34,7 +34,7 @@ export function DiscoverProductUnit({ product }) {
         )}
       </Link>
 
-      <div className="mt-3 border-t border-transparent pt-1 transition-colors duration-200 group-hover:border-unbuilt group-focus-within:border-unbuilt">
+      <div className="mt-3 border-t border-unbuilt pt-3">
         <div className="flex items-start justify-between gap-3">
           <Link
             to={`/p/${product.slug}`}
