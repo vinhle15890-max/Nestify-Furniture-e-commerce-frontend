@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { clearLocalRoomDraft, editorStateToDraftSnapshot, readLocalRoomDraft, writeLocalRoomDraft } from './guestDraft'
+import { buildRoomDraftResumeUrl, clearLocalRoomDraft, clearRoomDraftToken, editorStateToDraftSnapshot, readLocalRoomDraft, readSessionRoomDraftToken, rememberRoomDraftToken, roomDraftTokenFromHash, writeLocalRoomDraft } from './guestDraft'
+
+const TOKEN = 'A'.repeat(64)
 
 describe('guest room recovery', () => {
-  beforeEach(clearLocalRoomDraft)
+  beforeEach(() => {
+    clearLocalRoomDraft()
+    clearRoomDraftToken()
+  })
 
   it('keeps a versioned scene snapshot with variant evidence for same-device recovery', () => {
     const scene = editorStateToDraftSnapshot({
@@ -24,5 +29,15 @@ describe('guest room recovery', () => {
       wall_right: false,
       items: [{ variant: { id: 11, name: 'Vải be' }, position: { x: 1, z: 2 } }],
     })
+  })
+
+  it('transports the bearer secret in a fragment and keeps it only for the current tab', () => {
+    const url = buildRoomDraftResumeUrl(TOKEN, 'https://nestify.test')
+
+    expect(url).toBe(`https://nestify.test/room-planner#draft=${TOKEN}`)
+    expect(roomDraftTokenFromHash(`#draft=${TOKEN}`)).toBe(TOKEN)
+    expect(roomDraftTokenFromHash('#draft=short')).toBeNull()
+    expect(rememberRoomDraftToken(TOKEN)).toBe(true)
+    expect(readSessionRoomDraftToken()).toBe(TOKEN)
   })
 })

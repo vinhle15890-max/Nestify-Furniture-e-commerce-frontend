@@ -69,15 +69,15 @@ describe('LoginPage', () => {
     expect(useAuthStore.getState().user).toEqual({ id: 1, name: 'Bao', email: 'bao@example.com', email_verified_at: '2026-01-01' })
   })
 
-  it('preserves the guest draft token when returning to the planner after login', async () => {
+  it('returns to the planner after login without rewriting its destination', async () => {
     authApi.login.mockResolvedValue({ data: { token: 'abc123', user: { id: 1 } } })
-    renderLoginPage({ pathname: '/login', state: { from: { pathname: '/room-planner', search: '?draft=secret' } } })
+    renderLoginPage({ pathname: '/login', state: { from: { pathname: '/room-planner' } } })
 
     await userEvent.type(screen.getByLabelText('Email'), 'bao@example.com')
     await userEvent.type(screen.getByLabelText('Mật khẩu'), 'password123')
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
-    expect(await screen.findByText('Phòng tiếp tục ?draft=secret')).toBeInTheDocument()
+    expect(await screen.findByText('Phòng tiếp tục')).toBeInTheDocument()
   })
 
   it('shows a distinct message for wrong credentials (401)', async () => {

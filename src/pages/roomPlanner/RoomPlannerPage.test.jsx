@@ -58,7 +58,7 @@ function renderPage(path = '/room-planner') {
 // Echoes the current URL so redirects and param-clearing are observable.
 function LocationProbe() {
   const loc = useLocation()
-  return <div data-testid="loc">{loc.pathname + loc.search}</div>
+  return <><div data-testid="loc">{loc.pathname + loc.search}</div><div data-testid="hash">{loc.hash}</div></>
 }
 
 // Deep-link variant of renderPage: adds product-page / home landing routes so
@@ -81,11 +81,13 @@ function renderDeepLink(path) {
 }
 
 const PRODUCT = { data: { slug: 'ghe-sofa', name: 'Ghế sofa', variants: [{ id: 11, name: 'Đỏ' }] } }
+const DRAFT_TOKEN = 'A'.repeat(64)
 
 describe('RoomPlannerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.clear()
+    window.sessionStorage.clear()
     installMatchMedia(true)
     useEditorStore.getState().reset()
     useAuthStore.setState({ token: 'customer-token', user: { id: 1 } })
@@ -106,9 +108,9 @@ describe('RoomPlannerPage', () => {
     expect(await screen.findByTestId('room-canvas')).toBeInTheDocument()
   })
 
-  it('stores a guest room remotely and keeps its continuation token in the URL', async () => {
+  it('stores a guest room and surfaces a fragment-based continuation link', async () => {
     useAuthStore.setState({ token: null, user: null })
-    roomPlannerApi.createRoomDraft.mockResolvedValue({ data: { token: 'draft-secret' } })
+    roomPlannerApi.createRoomDraft.mockResolvedValue({ data: { token: DRAFT_TOKEN } })
     renderDeepLink('/room-planner')
 
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
@@ -116,15 +118,17 @@ describe('RoomPlannerPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /lưu/i }))
 
     await waitFor(() => expect(roomPlannerApi.createRoomDraft).toHaveBeenCalledTimes(1))
-    expect(screen.getByTestId('loc')).toHaveTextContent('/room-planner?draft=draft-secret')
+    expect(await screen.findByLabelText('Liên kết tiếp tục')).toHaveValue(`${window.location.origin}/room-planner#draft=${DRAFT_TOKEN}`)
+    expect(screen.getByTestId('loc')).toHaveTextContent('/room-planner')
   })
 
-  it('claims a cross-device draft after authentication and opens the owned room', async () => {
+  it('captures and strips a cross-device fragment before claiming the draft', async () => {
     roomPlannerApi.claimRoomDraft.mockResolvedValue({ data: { id: 77, name: 'Phòng tiếp tục' } })
-    renderDeepLink('/room-planner?draft=draft-secret')
+    renderDeepLink(`/room-planner#draft=${DRAFT_TOKEN}`)
 
-    await waitFor(() => expect(roomPlannerApi.claimRoomDraft).toHaveBeenCalledWith('draft-secret', expect.anything()))
+    await waitFor(() => expect(roomPlannerApi.claimRoomDraft).toHaveBeenCalledWith(DRAFT_TOKEN, expect.anything()))
     expect(screen.getByTestId('loc')).toHaveTextContent('/room-planner/77')
+    expect(screen.getByTestId('hash')).toBeEmptyDOMElement()
   })
 
   it('adds a tray item then saves via create and shows the saved state', async () => {

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiClient } from '../../lib/apiClient'
-import { getScene, createScene, updateScene } from './api'
+import { claimRoomDraft, createScene, getRoomDraft, getScene, updateScene } from './api'
 
 vi.mock('../../lib/apiClient', () => ({
-  apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+  apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn() },
 }))
 
 describe('roomPlanner/api', () => {
@@ -24,5 +24,15 @@ describe('roomPlanner/api', () => {
     const payload = { name: 'P', items: [] }
     updateScene(9, payload)
     expect(apiClient.patch).toHaveBeenCalledWith('/room-scenes/9', payload)
+  })
+
+  it('keeps the room draft bearer secret out of API URLs', () => {
+    const token = 'A'.repeat(64)
+
+    getRoomDraft(token)
+    claimRoomDraft(token)
+
+    expect(apiClient.get).toHaveBeenCalledWith('/room-drafts/current', { headers: { 'X-Room-Draft-Token': token } })
+    expect(apiClient.post).toHaveBeenCalledWith('/room-drafts/claim', null, { headers: { 'X-Room-Draft-Token': token } })
   })
 })

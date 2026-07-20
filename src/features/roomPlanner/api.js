@@ -47,13 +47,13 @@ export function createRoomDraft(payload) {
 }
 
 export function updateRoomDraft(token, payload) {
-  return apiClient.put(`/room-drafts/${token}`, payload)
+  return apiClient.put('/room-drafts/current', payload, { headers: { 'X-Room-Draft-Token': token } })
 }
 
 export function getRoomDraft(token) {
-  return apiClient.get(`/room-drafts/${token}`)
+  return apiClient.get('/room-drafts/current', { headers: { 'X-Room-Draft-Token': token } })
 }
 
 export function claimRoomDraft(token) {
-  return apiClient.post(`/room-drafts/${token}/claim`)
+  return apiClient.post('/room-drafts/claim', null, { headers: { 'X-Room-Draft-Token': token } })
 }

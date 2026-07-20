@@ -7,6 +7,7 @@ import { CatalogTray } from './CatalogTray'
 import { PlannerToolbar } from './PlannerToolbar'
 import { PlannerCompletionArea, PlannerContextControls, PlannerViewMenu } from './PlannerWorkspaceControls'
 import { ShareSceneDialog } from './ShareSceneDialog'
+import { GuestDraftLinkDialog } from './GuestDraftLinkDialog'
 import { ObjectInspector } from './ObjectInspector'
 import { RoomSummary } from './RoomSummary'
 import { ReviewRoomDialog } from './ReviewRoomDialog'
@@ -23,7 +24,7 @@ import { editorStateToPayload } from '../../features/roomPlanner/mappers'
 import { useToastStore } from '../../store/toastStore'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useAuthStore } from '../../store/authStore'
-import { clearLocalRoomDraft, editorStateToDraftSnapshot, readLocalRoomDraft, writeLocalRoomDraft } from '../../features/roomPlanner/guestDraft'
+import { buildRoomDraftResumeUrl, clearLocalRoomDraft, clearRoomDraftToken, editorStateToDraftSnapshot, readLocalRoomDraft, readSessionRoomDraftToken, rememberRoomDraftToken, roomDraftTokenFromHash, writeLocalRoomDraft } from '../../features/roomPlanner/guestDraft'
 
 const DEFAULT_ROOM = { width: 4, depth: 5, height: 2.8 }
 const PLANNER_DESKTOP_QUERY = '(min-width: 64rem)'
@@ -35,7 +36,10 @@ export function RoomPlannerPage() {
   const addToast = useToastStore((state) => state.addToast)
   const isDesktop = useMediaQuery(PLANNER_DESKTOP_QUERY)
   const token = useAuthStore((state) => state.token)
-  const continueUrl = `${window.location.origin}${location.pathname}${location.search}${location.hash}`
+  const [draftToken, setDraftToken] = useState(readSessionRoomDraftToken)
+  const continueUrl = draftToken
+    ? buildRoomDraftResumeUrl(draftToken)
+    : `${window.location.origin}${location.pathname}${location.search}${location.hash}`
 
   const sceneQuery = useScene(isDesktop ? id : null)
   const createScene = useCreateScene()
@@ -49,6 +53,7 @@ export function RoomPlannerPage() {
   const store = useEditorStore()
   const [setupOpen, setSetupOpen] = useState(false)
   const [shareToken, setShareToken] = useState(null)
+  const [guestDraftUrl, setGuestDraftUrl] = useState(null)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewSceneId, setReviewSceneId] = useState(null)
   const [removingPlacementId, setRemovingPlacementId] = useState(null)
@@ -63,7 +68,6 @@ export function RoomPlannerPage() {
   // never stashed in the (module-singleton) store or a module var, which would
   // outlive the page and bleed into a later param-less visit.
   const [searchParams, setSearchParams] = useSearchParams()
-  const draftToken = searchParams.get('draft')
   const draftQuery = useRoomDraft(!token && !id ? draftToken : null)
   const claimStarted = useRef(false)
   const previewSlug = searchParams.get('product')
@@ -91,6 +95,15 @@ export function RoomPlannerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  useEffect(() => {
+    const incomingToken = roomDraftTokenFromHash(location.hash)
+    if (!incomingToken) return
+    rememberRoomDraftToken(incomingToken)
+    setDraftToken(incomingToken)
+    // Strip the bearer secret before this page can initiate any navigation or outbound request.
+    navigate(`${location.pathname}${location.search}`, { replace: true })
+  }, [location.hash, location.pathname, location.search, navigate])
+
   // A same-device snapshot makes refresh recovery immediate; a server draft
   // token remains the source that can continue on another device.
   useEffect(() => {
@@ -116,6 +129,8 @@ export function RoomPlannerPage() {
     claimDraft.mutate(draftToken, {
       onSuccess: (response) => {
         clearLocalRoomDraft()
+        clearRoomDraftToken()
+        setDraftToken(null)
         navigate(`/room-planner/${response.data.id}`, { replace: true })
         addToast({ title: 'Phòng đã được lưu vào tài khoản.', variant: 'success' })
       },
@@ -271,21 +286,18 @@ export function RoomPlannerPage() {
   const persistGuestDraft = async () => {
     const payload = editorStateToPayload(store)
     const response = await saveDraft.mutateAsync({ token: draftToken, payload })
-    writeLocalRoomDraft(editorStateToDraftSnapshot(store))
+    writeLocalRoomDraft(editorStateToDraftSnapshot(useEditorStore.getState()))
     const nextToken = draftToken ?? response.data.token
-    if (!draftToken) {
-      const next = new URLSearchParams(searchParams)
-      next.set('draft', nextToken)
-      setSearchParams(next, { replace: true })
-    }
+    rememberRoomDraftToken(nextToken)
+    setDraftToken(nextToken)
     return nextToken
   }
 
   const requireOwnedScene = async () => {
     if (token) return ensureSaved()
-    const nextToken = await persistGuestDraft()
+    await persistGuestDraft()
     navigate('/login', {
-      state: { from: { pathname: '/room-planner', search: `?draft=${encodeURIComponent(nextToken)}` } },
+      state: { from: { pathname: '/room-planner' } },
     })
     return null
   }
@@ -300,7 +312,8 @@ export function RoomPlannerPage() {
     } catch { previewFile = null }
     try {
       if (!token) {
-        await persistGuestDraft()
+        const nextToken = await persistGuestDraft()
+        setGuestDraftUrl(buildRoomDraftResumeUrl(nextToken))
         addToast({ title: 'Đã giữ phòng trong 30 ngày.', description: 'Đăng nhập để lưu phòng vào tài khoản.', variant: 'success' })
         return
       }
@@ -460,6 +473,11 @@ export function RoomPlannerPage() {
         open={shareToken !== null}
         onOpenChange={(open) => { if (!open) setShareToken(null) }}
         token={shareToken}
+      />
+      <GuestDraftLinkDialog
+        open={guestDraftUrl !== null}
+        onOpenChange={(open) => { if (!open) setGuestDraftUrl(null) }}
+        url={guestDraftUrl}
       />
       <ReviewRoomDialog
         open={reviewOpen}
