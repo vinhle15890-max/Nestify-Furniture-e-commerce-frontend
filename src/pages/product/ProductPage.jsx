@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
 import './ProductDescription.css'
-import { Heart, Star, ImageOff } from 'lucide-react'
+import { Star, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { ProductDetailSkeleton } from '../../components/LoadingStates'
 import { LoadErrorState } from '../../components/LoadErrorState'
-import { formatPrice, formatDate, numericClassName } from '../../lib/format'
+import { formatDate } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
 import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../features/wishlist/hooks'
@@ -18,8 +18,8 @@ import { useRecordProductView } from '../../features/personalization/hooks'
 import { RecentlyViewedStrip } from '../../components/personalization/RecentlyViewedStrip'
 import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
-import { ProductOptions } from './ProductOptions'
-import { ProductEvidencePanel } from './ProductEvidencePanel'
+import { ProductDecisionRail } from './ProductDecisionRail'
+import { ProductSpecifications } from './ProductSpecifications'
 import { resolveVariant } from '../../lib/variantOptions'
 import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
@@ -413,51 +413,6 @@ export function ProductPage() {
           </div>
         )}
 
-        <div className="mt-5 max-w-3xl">
-          {hasOptions ? (
-            <>
-              <ProductOptions
-                options={variantOptions}
-                variants={variants}
-                selected={selectedOptions}
-                onSelect={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))}
-              />
-              {!selectedVariant && (
-                <p className="mt-3 text-sm text-ink/65">Vui lòng chọn đầy đủ thuộc tính.</p>
-              )}
-            </>
-          ) : (
-            variants.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-ink/55">Phiên bản</p>
-                <div className="mt-3 flex flex-wrap gap-2.5">
-                  {variants.map((variant) => (
-                    <button
-                      key={variant.id}
-                      type="button"
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      aria-pressed={variant.id === selectedVariant?.id}
-                      className={`rounded-control border px-4 py-2.5 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${
-                        variant.id === selectedVariant?.id
-                          ? 'border-ink bg-ink text-canvas'
-                          : 'border-unbuilt text-ink hover:border-ink'
-                      }`}
-                    >
-                      {variant.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          )}
-          {selectedVariant && (
-            <p className="mt-3 text-sm leading-6 text-ink/65">
-              {visibleMedia.some((item) => item.variant_id === selectedVariant.id)
-                ? 'Bộ ảnh có hình được gắn đúng với phiên bản này.'
-                : 'Bộ ảnh hiện là ảnh dùng chung, chưa xác nhận riêng cho phiên bản này.'}
-            </p>
-          )}
-        </div>
       </section>
 
       <div className="mt-7 grid items-start gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(19rem,0.9fr)] lg:gap-10 xl:gap-14">
@@ -514,123 +469,10 @@ export function ProductPage() {
           )}
         </section>
 
-        <ProductEvidencePanel
-          product={product}
-          selectedVariant={selectedVariant}
-          activeMedia={activeMedia}
-          outOfStock={outOfStock}
-        />
+        <ProductDecisionRail product={product} variants={variants} variantOptions={variantOptions} selectedOptions={selectedOptions} onSelectOption={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))} selectedVariant={selectedVariant} onSelectVariant={setSelectedVariantId} activeMedia={activeMedia} visibleMedia={visibleMedia} outOfStock={outOfStock} price={price} quantity={quantity} onQuantityChange={(next) => { const max = Math.max(stockError ?? availableStock, 1); setQuantity(Math.min(Math.max(next, 1), max)) }} maxQuantity={Math.max(stockError ?? availableStock, 1)} token={token} staff={staff} onAddToCart={handleAddToCart} adding={addCartItem.isPending} isWishlisted={isWishlisted} onToggleWishlist={handleToggleWishlist} wishlistPending={addWishlistItem.isPending || removeWishlistItem.isPending} stockError={stockError} deliveryFact={deliveryFact} returnsFact={returnsFact} />
       </div>
 
-      <section
-        data-testid="transaction-runway"
-        aria-labelledby="transaction-runway-title"
-        className="mt-12 grid gap-8 border-t-2 border-ink/15 pt-8 md:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] md:items-end lg:mt-16"
-      >
-        <div>
-          <p className="text-sm font-medium text-ink/55">Mua trực tiếp</p>
-          <h2 id="transaction-runway-title" className="sr-only">Mua trực tiếp</h2>
-          <p className={`mt-3 text-[clamp(1.55rem,2.5vw,2rem)] font-medium text-ink ${numericClassName}`}>{formatPrice(price)}</p>
-          <p className="mt-3 max-w-sm text-sm leading-6 text-ink/60">
-            Nếu bạn đã có đủ thông tin, lựa chọn mua vẫn luôn sẵn sàng ở đây.
-          </p>
-        </div>
-
-        <div>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/55">
-              Số lượng
-              <input
-                type="number"
-                min={1}
-                max={Math.max(stockError ?? availableStock, 1)}
-                value={quantity}
-                disabled={outOfStock}
-                onChange={(event) => {
-                  const next = Number(event.target.value)
-                  const max = Math.max(stockError ?? availableStock, 1)
-                  setQuantity(Math.min(Math.max(next, 1), max))
-                }}
-                className={`w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 ${numericClassName}`}
-              />
-            </label>
-
-            {token && staff ? (
-              <p className="border-l-2 border-unbuilt pl-4 text-sm leading-6 text-ink/65">
-                Tài khoản quản trị không thể mua hàng.
-              </p>
-            ) : token ? (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={handleAddToCart}
-                  disabled={!selectedVariant || outOfStock || addCartItem.isPending}
-                  className="px-6 py-3"
-                >
-                  Thêm vào giỏ
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'}
-                  aria-pressed={isWishlisted}
-                  onClick={handleToggleWishlist}
-                  disabled={!selectedVariant || addWishlistItem.isPending || removeWishlistItem.isPending}
-                  className="px-4 py-3"
-                >
-                  <Heart size={18} className={isWishlisted ? 'fill-current text-accent' : ''} />
-                </Button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center rounded-control border border-ink px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-ink hover:text-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-              >
-                Đăng nhập để mua hàng
-              </Link>
-            )}
-          </div>
-
-          {stockError !== null && (
-            <p role="alert" className="mt-3 text-sm text-destructive">
-              Kho chỉ đủ {stockError} sản phẩm cho lựa chọn này
-            </p>
-          )}
-
-          <dl className="mt-5 grid gap-4 border-t border-unbuilt/70 pt-5 sm:grid-cols-2">
-            <div>
-              <dt className="text-sm font-medium text-ink">Giao hàng</dt>
-              <dd className="mt-1 text-sm leading-6 text-ink/65">
-                {deliveryFact ?? 'Chưa có thời gian giao hàng. Liên hệ Nestify trước khi đặt.'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-ink">Đổi trả và hủy đơn</dt>
-              <dd className="mt-1 text-sm leading-6 text-ink/65">
-                {returnsFact ?? 'Chính sách cho sản phẩm này chưa được cung cấp.'}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <section aria-labelledby="ownership-details-title" className="mt-12 border-t border-border pt-8">
-        <h2 id="ownership-details-title" className="text-xl font-medium text-ink">Sau khi sản phẩm được giao</h2>
-        <dl className="mt-5 grid gap-6 sm:grid-cols-2">
-          <div>
-            <dt className="text-sm font-medium text-ink">Lắp ráp</dt>
-            <dd className="mt-1 text-sm leading-6 text-ink/65">
-              {assemblyFact ?? 'Thông tin lắp ráp chưa được cung cấp.'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm font-medium text-ink">Bảo hành</dt>
-            <dd className="mt-1 text-sm leading-6 text-ink/65">
-              {warrantyFact ?? 'Thông tin bảo hành chưa được cung cấp.'}
-            </dd>
-          </div>
-        </dl>
-      </section>
+      <ProductSpecifications product={product} selectedVariant={selectedVariant} delivery={deliveryFact} assembly={assemblyFact} warranty={warrantyFact} />
 
       {sanitizedDescription && (
         <section className="mt-16 border-t border-border pt-12">

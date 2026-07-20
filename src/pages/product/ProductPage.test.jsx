@@ -145,7 +145,7 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByText('Giao trong 3–5 ngày làm việc')).toBeInTheDocument()
+    expect(screen.getAllByText('Giao trong 3–5 ngày làm việc')).toHaveLength(2)
     expect(screen.getByText('Đổi trong 14 ngày nếu sản phẩm chưa sử dụng')).toBeInTheDocument()
     expect(screen.getByText('Có đội ngũ lắp ráp khi giao')).toBeInTheDocument()
     expect(screen.getByText('24 tháng')).toBeInTheDocument()
