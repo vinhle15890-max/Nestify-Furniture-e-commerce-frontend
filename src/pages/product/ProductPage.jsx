@@ -7,7 +7,7 @@ import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
-import { formatPrice, formatDate } from '../../lib/format'
+import { formatPrice, formatDate, numericClassName } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
 import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../features/wishlist/hooks'
@@ -58,6 +58,15 @@ function appendMeta(attr, key, content) {
   el.setAttribute('data-nestify-seo', 'true')
   document.head.appendChild(el)
   return el
+}
+
+function findProductFact(attributes, aliases) {
+  if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return null
+  const normalizedAliases = aliases.map((alias) => alias.toLocaleLowerCase('vi'))
+  const entry = Object.entries(attributes).find(([name]) =>
+    normalizedAliases.includes(name.trim().toLocaleLowerCase('vi')),
+  )
+  return entry?.[1] == null || entry[1] === '' ? null : String(entry[1])
 }
 
 export function ProductPage() {
@@ -349,6 +358,18 @@ export function ProductPage() {
   const activeMedia = visibleMedia[selectedMediaIndex]
 
   const sanitizedDescription = enhanceDescriptionHtml(product.description)
+  const deliveryFact = findProductFact(product.attributes, [
+    'Thời gian giao hàng', 'Giao hàng', 'delivery', 'delivery estimate', 'delivery_estimate',
+  ])
+  const returnsFact = findProductFact(product.attributes, [
+    'Đổi trả', 'Chính sách đổi trả', 'Đổi trả và hủy đơn', 'returns', 'return policy', 'return_policy',
+  ])
+  const assemblyFact = findProductFact(product.attributes, [
+    'Lắp ráp', 'Thông tin lắp ráp', 'assembly', 'assembly info', 'assembly_info',
+  ])
+  const warrantyFact = findProductFact(product.attributes, [
+    'Bảo hành', 'Thời hạn bảo hành', 'warranty', 'warranty period', 'warranty_period',
+  ])
   const averageRating = reviews.length
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : null
@@ -431,6 +452,13 @@ export function ProductPage() {
               </div>
             )
           )}
+          {selectedVariant && (
+            <p className="mt-3 text-sm leading-6 text-ink/65">
+              {visibleMedia.some((item) => item.variant_id === selectedVariant.id)
+                ? 'Bộ ảnh có hình được gắn đúng với phiên bản này.'
+                : 'Bộ ảnh hiện là ảnh dùng chung, chưa xác nhận riêng cho phiên bản này.'}
+            </p>
+          )}
         </div>
       </section>
 
@@ -504,7 +532,7 @@ export function ProductPage() {
         <div>
           <p className="text-sm font-medium text-ink/55">Mua trực tiếp</p>
           <h2 id="transaction-runway-title" className="sr-only">Mua trực tiếp</h2>
-          <p className="mt-3 text-[clamp(1.55rem,2.5vw,2rem)] font-medium text-ink">{formatPrice(price)}</p>
+          <p className={`mt-3 text-[clamp(1.55rem,2.5vw,2rem)] font-medium text-ink ${numericClassName}`}>{formatPrice(price)}</p>
           <p className="mt-3 max-w-sm text-sm leading-6 text-ink/60">
             Nếu bạn đã có đủ thông tin, lựa chọn mua vẫn luôn sẵn sàng ở đây.
           </p>
@@ -525,7 +553,7 @@ export function ProductPage() {
                   const max = Math.max(stockError ?? availableStock, 1)
                   setQuantity(Math.min(Math.max(next, 1), max))
                 }}
-                className="w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50"
+                className={`w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 ${numericClassName}`}
               />
             </label>
 
@@ -570,7 +598,40 @@ export function ProductPage() {
               Kho chỉ đủ {stockError} sản phẩm cho lựa chọn này
             </p>
           )}
+
+          <dl className="mt-5 grid gap-4 border-t border-unbuilt/70 pt-5 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm font-medium text-ink">Giao hàng</dt>
+              <dd className="mt-1 text-sm leading-6 text-ink/65">
+                {deliveryFact ?? 'Chưa có thời gian giao hàng. Liên hệ Nestify trước khi đặt.'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-ink">Đổi trả và hủy đơn</dt>
+              <dd className="mt-1 text-sm leading-6 text-ink/65">
+                {returnsFact ?? 'Chính sách cho sản phẩm này chưa được cung cấp.'}
+              </dd>
+            </div>
+          </dl>
         </div>
+      </section>
+
+      <section aria-labelledby="ownership-details-title" className="mt-12 border-t border-border pt-8">
+        <h2 id="ownership-details-title" className="text-xl font-medium text-ink">Sau khi sản phẩm được giao</h2>
+        <dl className="mt-5 grid gap-6 sm:grid-cols-2">
+          <div>
+            <dt className="text-sm font-medium text-ink">Lắp ráp</dt>
+            <dd className="mt-1 text-sm leading-6 text-ink/65">
+              {assemblyFact ?? 'Thông tin lắp ráp chưa được cung cấp.'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm font-medium text-ink">Bảo hành</dt>
+            <dd className="mt-1 text-sm leading-6 text-ink/65">
+              {warrantyFact ?? 'Thông tin bảo hành chưa được cung cấp.'}
+            </dd>
+          </div>
+        </dl>
       </section>
 
       {sanitizedDescription && (

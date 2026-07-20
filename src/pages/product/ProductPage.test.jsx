@@ -121,6 +121,38 @@ describe('ProductPage', () => {
     expect(await screen.findByText('Rất hài lòng với sản phẩm')).toBeInTheDocument()
   })
 
+  it('keeps product-specific trust facts beside the decisions they support', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        attributes: {
+          'Thời gian giao hàng': 'Giao trong 3–5 ngày làm việc',
+          'Chính sách đổi trả': 'Đổi trong 14 ngày nếu sản phẩm chưa sử dụng',
+          'Lắp ráp': 'Có đội ngũ lắp ráp khi giao',
+          'Bảo hành': '24 tháng',
+        },
+        variants: productResponse.data.variants.map((variant, index) => ({
+          ...variant,
+          model_3d_url: index === 0 ? 'https://example.com/sofa.glb' : null,
+        })),
+        media: [
+          { ...productResponse.data.media[0], variant_id: 1 },
+          productResponse.data.media[1],
+        ],
+      },
+    })
+
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByText('Giao trong 3–5 ngày làm việc')).toBeInTheDocument()
+    expect(screen.getByText('Đổi trong 14 ngày nếu sản phẩm chưa sử dụng')).toBeInTheDocument()
+    expect(screen.getByText('Có đội ngũ lắp ráp khi giao')).toBeInTheDocument()
+    expect(screen.getByText('24 tháng')).toBeInTheDocument()
+    expect(screen.getByText('Mô hình được gắn với phiên bản đã chọn.')).toBeInTheDocument()
+    expect(screen.getByText('Bộ ảnh có hình được gắn đúng với phiên bản này.')).toBeInTheDocument()
+  })
+
   it('sets SEO document title, meta description, and Product JSON-LD', async () => {
     catalogApi.getProduct.mockResolvedValue({
       data: {

@@ -57,6 +57,13 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
             </span>
           )}
         </EvidenceRow>
+        <EvidenceRow label="Mô hình 3D">
+          {selectedVariant?.model_3d_url
+            ? 'Mô hình được gắn với phiên bản đã chọn.'
+            : selectedVariant
+              ? 'Phiên bản này chưa có mô hình 3D.'
+              : 'Cần chọn phiên bản để kiểm tra.'}
+        </EvidenceRow>
         <EvidenceRow label="Khả dụng">
           {selectedVariant ? (outOfStock ? 'Tạm hết hàng' : 'Có thể đặt hàng') : 'Cần chọn phiên bản'}
         </EvidenceRow>
