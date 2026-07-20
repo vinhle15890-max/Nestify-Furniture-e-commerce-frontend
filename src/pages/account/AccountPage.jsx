@@ -11,6 +11,7 @@ import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
 import { useAuthStore } from '../../store/authStore'
 import { formatDate, formatPrice, numericClassName } from '../../lib/format'
 import { ProfileForm } from './ProfileForm'
+import { AccountSkeleton } from '../../components/LoadingStates'
 
 const secondaryLinks = [
   { to: '/account/addresses', label: 'Địa chỉ giao hàng', icon: MapPin },
@@ -41,6 +42,7 @@ export function AccountPage() {
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
+        {meQuery.isLoading && !user ? <AccountSkeleton /> : <>
         <header className="flex flex-wrap items-start justify-between gap-5">
           <div>
             <h1 className="font-display text-[clamp(1.8rem,3vw,2.5rem)] text-foreground">Xin chào, {user?.name ?? 'bạn'}</h1>
@@ -104,6 +106,7 @@ export function AccountPage() {
             {user && <details className="mt-8 border-t border-border pt-6"><summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><UserRound size={17} aria-hidden="true" />Thông tin cá nhân</summary><div className="mt-6 max-w-2xl"><ProfileForm user={user} /></div></details>}
           </>
         )}
+        </>}
       </div>
     </div>
   )

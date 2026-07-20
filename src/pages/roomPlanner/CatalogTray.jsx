@@ -4,7 +4,6 @@ import { useInfiniteProducts } from '../../features/catalog/hooks'
 import { toPlaceableItems } from '../../features/roomPlanner/placeable'
 import { SearchInput } from '../../components/SearchInput'
 import { EmptyState } from '../../components/admin/EmptyState'
-import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { formatPrice } from '../../lib/format'
 
@@ -22,7 +21,15 @@ export function CatalogTray({ onAdd }) {
     <div className="flex h-full flex-col gap-3">
       <SearchInput placeholder="Tìm nội thất 3D..." onDebouncedChange={setSearch} />
       {query.isLoading ? (
-        <div className="flex justify-center py-10"><Spinner /></div>
+        <div role="status" aria-label="Đang tải nội thất 3D" className="space-y-2 py-1">
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} aria-hidden="true" className="flex animate-pulse items-center gap-3 rounded-card border border-border p-2 motion-reduce:animate-none">
+              <span className="h-12 w-12 shrink-0 bg-unbuilt/35" />
+              <span className="h-4 w-2/3 rounded-control bg-unbuilt/35" />
+            </div>
+          ))}
+          <span className="sr-only">Đang tải nội thất 3D</span>
+        </div>
       ) : query.isError && !query.data ? (
         <LoadErrorState compact title="Chưa thể tải nội thất 3D" description="Tìm kiếm hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : placeable.length === 0 ? (

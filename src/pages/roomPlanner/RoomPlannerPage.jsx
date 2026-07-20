@@ -13,7 +13,7 @@ import { OverlapNotice } from './OverlapNotice'
 import { ScaleLegend } from './ScaleLegend'
 import { useEditorShortcuts } from './useEditorShortcuts'
 import { SmallScreenNotice } from './SmallScreenNotice'
-import { Spinner } from '../../components/Spinner'
+import { PlannerGeometryPlaceholder } from '../../components/LoadingStates'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 import { useScene, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview } from '../../features/roomPlanner/hooks'
 import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
@@ -282,11 +282,7 @@ export function RoomPlannerPage() {
   }
 
   if (id && sceneQuery.isLoading) {
-    return (
-      <div className="flex h-dvh items-center justify-center bg-canvas">
-        <Spinner label="Đang tải phòng" />
-      </div>
-    )
+    return <PlannerGeometryPlaceholder />
   }
   if (id && sceneQuery.isError) {
     return (

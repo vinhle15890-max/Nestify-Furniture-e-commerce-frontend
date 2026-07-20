@@ -5,7 +5,7 @@ import './ProductDescription.css'
 import { Heart, Star, ImageOff } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
-import { Spinner } from '../../components/Spinner'
+import { ProductDetailSkeleton } from '../../components/LoadingStates'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { formatPrice, formatDate, numericClassName } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
@@ -313,9 +313,7 @@ export function ProductPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-canvas text-ink">
-        <div className="mx-auto flex max-w-7xl justify-center px-6 py-32">
-          <Spinner />
-        </div>
+        <ProductDetailSkeleton />
       </div>
     )
   }

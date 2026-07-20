@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
-import { Spinner } from '../../components/Spinner'
+import { CatalogSkeleton } from '../../components/LoadingStates'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { useCategory, useCategories, useInfiniteProducts } from '../../features/catalog/hooks'
 import { Breadcrumb } from '../../components/Breadcrumb'
@@ -222,9 +222,7 @@ export function CategoryPage() {
         )}
 
         {productsQuery.isLoading ? (
-          <div className="mt-16 flex justify-center">
-            <Spinner />
-          </div>
+          <CatalogSkeleton />
         ) : productsQuery.isError && !hasProductData ? (
           <LoadErrorState
             title="Chưa thể tải sản phẩm"
