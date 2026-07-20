@@ -7,7 +7,7 @@ import { CatalogTray } from './CatalogTray'
 import { PlannerToolbar } from './PlannerToolbar'
 import { PlannerCompletionArea, PlannerContextControls, PlannerViewMenu } from './PlannerWorkspaceControls'
 import { ShareSceneDialog } from './ShareSceneDialog'
-import { SelectedItemPanel } from './SelectedItemPanel'
+import { ObjectInspector } from './ObjectInspector'
 import { RoomSummary } from './RoomSummary'
 import { ReviewRoomDialog } from './ReviewRoomDialog'
 import { OverlapNotice } from './OverlapNotice'
@@ -322,7 +322,7 @@ export function RoomPlannerPage() {
           </main>
           <aside aria-label="Thông tin phòng" className="flex w-72 shrink-0 flex-col border-l border-border bg-surface">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-              <SelectedItemPanel item={selectedItem} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
+              <ObjectInspector item={selectedItem} onTransform={store.updateTransform} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
               <OverlapNotice items={store.items} />
               <RoomSummary items={store.items} />
             </div>
