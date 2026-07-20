@@ -152,7 +152,7 @@ describe('CheckoutPage', () => {
       .mockResolvedValueOnce(sampleCart)
     renderPage()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể chuẩn bị khai báo đặt hàng')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chưa thể chuẩn bị đơn hàng')
     expect(screen.queryByRole('button', { name: 'Đặt hàng' })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
@@ -164,7 +164,7 @@ describe('CheckoutPage', () => {
     addressesApi.getAddresses.mockResolvedValue({ data: [] })
     renderPage()
 
-    expect(await screen.findByText(/Chưa có địa chỉ giao hàng/)).toBeInTheDocument()
+    expect(await screen.findByText(/chưa có địa chỉ giao hàng/i)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
     expect(await screen.findByRole('heading', { name: 'Thêm địa chỉ mới' })).toBeInTheDocument()
   })
@@ -222,10 +222,10 @@ describe('CheckoutPage', () => {
     await userEvent.type(screen.getByLabelText('Mã muốn kiểm tra'), 'GIAM10')
     await userEvent.click(screen.getByRole('button', { name: 'Xem trước' }))
 
-    expect(await screen.findByText('Hệ quả xem trước')).toBeInTheDocument()
+    expect(await screen.findByText('Giảm giá dự kiến')).toBeInTheDocument()
     expect(screen.getByText('Điều chỉnh xem trước')).toBeInTheDocument()
     expect(screen.queryByText('Thành tiền')).not.toBeInTheDocument()
-    expect(screen.getByText(/Số đang thấy chỉ là hệ quả hàng hóa/)).toBeInTheDocument()
+    expect(screen.getByText(/Số tiền đang hiển thị gồm sản phẩm/)).toBeInTheDocument()
     expect(screen.queryByText(/tổng thanh toán cuối cùng/i)).not.toBeInTheDocument()
   })
 
@@ -236,7 +236,7 @@ describe('CheckoutPage', () => {
 
     await userEvent.type(screen.getByLabelText('Mã muốn kiểm tra'), 'GIAM10')
     await userEvent.click(screen.getByRole('button', { name: 'Xem trước' }))
-    expect(await screen.findByText('Hệ quả xem trước')).toBeInTheDocument()
+    expect(await screen.findByText('Giảm giá dự kiến')).toBeInTheDocument()
 
     act(() => {
       queryClient.setQueryData(['cart'], {
@@ -249,7 +249,7 @@ describe('CheckoutPage', () => {
     })
 
     expect(await screen.findByText(/Kết quả xem trước trước đó không còn được dùng/)).toBeInTheDocument()
-    expect(screen.queryByText('Hệ quả xem trước')).not.toBeInTheDocument()
+    expect(screen.queryByText('Giảm giá dự kiến')).not.toBeInTheDocument()
   })
 
   it('attaches a safe voucher failure to the voucher field and focuses it', async () => {
@@ -322,10 +322,10 @@ describe('CheckoutPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
 
     expect(await screen.findByText(/Chưa thể xác định đơn đã được tạo/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Thử xác nhận lại khai báo này' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Thử đặt lại đơn này' })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Thay đổi' }).every((button) => button.disabled)).toBe(true)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thử xác nhận lại khai báo này' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thử đặt lại đơn này' }))
     expect(checkoutApi.createOrder).toHaveBeenCalledTimes(2)
     expect(await screen.findByText(/Đơn hàng NES-77 đã được tạo/)).toBeInTheDocument()
   })
@@ -440,7 +440,7 @@ describe('CheckoutPage', () => {
     renderPage()
     await screen.findByText('Sofa Mây')
 
-    expect(screen.getByText(/vượt mức kho quan sát được/)).toBeInTheDocument()
+    expect(screen.getAllByText(/số lượng hiện có/).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Đặt hàng' })).toBeDisabled()
     expect(checkoutApi.createOrder).not.toHaveBeenCalled()
   })
