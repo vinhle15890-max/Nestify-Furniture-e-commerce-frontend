@@ -8,6 +8,7 @@ import { PlannerToolbar } from './PlannerToolbar'
 import { ShareSceneDialog } from './ShareSceneDialog'
 import { SelectedItemPanel } from './SelectedItemPanel'
 import { RoomSummary } from './RoomSummary'
+import { ReviewRoomDialog } from './ReviewRoomDialog'
 import { OverlapNotice } from './OverlapNotice'
 import { ScaleLegend } from './ScaleLegend'
 import { useEditorShortcuts } from './useEditorShortcuts'
@@ -42,6 +43,7 @@ export function RoomPlannerPage() {
   const store = useEditorStore()
   const [setupOpen, setSetupOpen] = useState(false)
   const [shareToken, setShareToken] = useState(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   // Keyboard editing (delete / undo / redo / duplicate / gizmo modes / deselect).
   useEditorShortcuts(isDesktop)
@@ -242,30 +244,10 @@ export function RoomPlannerPage() {
       } else {
         addToast({ title: 'Đã thêm phòng vào giỏ.', variant: 'success' })
       }
+      setReviewOpen(false)
       navigate('/cart')
     } catch (error) {
       addToast({ title: 'Thêm vào giỏ thất bại.', description: error?.message, variant: 'error' })
-    }
-  }
-
-  // "Đặt cả phòng": express path into the existing checkout. Reuses the same
-  // save + add-to-cart handoff as "Thêm vào giỏ", but lands on /checkout instead
-  // of /cart — the checkout then owns address/payment/voucher/confirm.
-  const handleOrder = async () => {
-    try {
-      const sceneId = await ensureSaved()
-      const response = await addSceneToCart.mutateAsync(sceneId)
-      const skipped = response?.meta?.skipped ?? []
-      if (skipped.length > 0) {
-        addToast({
-          title: 'Đã thêm phòng vào giỏ.',
-          description: `Một số món hiện hết hàng, chưa thêm được: ${skipped.join(', ')}.`,
-          variant: 'default',
-        })
-      }
-      navigate('/checkout')
-    } catch (error) {
-      addToast({ title: 'Không thể đặt phòng.', description: error?.message, variant: 'error' })
     }
   }
 
@@ -326,10 +308,8 @@ export function RoomPlannerPage() {
           onSave={handleSave}
           saving={createScene.isPending || updateScene.isPending}
           dirty={store.dirty}
-          onAddToCart={handleAddToCart}
-          addingToCart={addSceneToCart.isPending}
-          onOrder={handleOrder}
-          ordering={addSceneToCart.isPending || createScene.isPending || updateScene.isPending}
+          onReview={() => setReviewOpen(true)}
+          reviewing={addSceneToCart.isPending}
           onShare={handleShare}
           sharing={shareScene.isPending || createScene.isPending || updateScene.isPending}
           onUndo={store.undo}
@@ -372,6 +352,13 @@ export function RoomPlannerPage() {
         open={shareToken !== null}
         onOpenChange={(open) => { if (!open) setShareToken(null) }}
         token={shareToken}
+      />
+      <ReviewRoomDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        items={store.items}
+        onContinue={handleAddToCart}
+        pending={addSceneToCart.isPending || createScene.isPending || updateScene.isPending}
       />
     </div>
   )

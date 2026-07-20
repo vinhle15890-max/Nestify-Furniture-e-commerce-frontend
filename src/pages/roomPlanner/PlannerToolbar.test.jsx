@@ -6,7 +6,7 @@ import { PlannerToolbar } from './PlannerToolbar'
 const base = {
   name: 'Phòng A', onNameChange: vi.fn(), gizmoMode: 'translate',
   onGizmoModeChange: vi.fn(), onSave: vi.fn(), saving: false, dirty: true,
-  onAddToCart: vi.fn(), addingToCart: false, onOrder: vi.fn(), ordering: false,
+  onReview: vi.fn(), reviewing: false,
   onUndo: vi.fn(), onRedo: vi.fn(), canUndo: true, canRedo: true,
   snap: false, onToggleSnap: vi.fn(),
   wallSnap: false, onToggleWallSnap: vi.fn(),
@@ -40,28 +40,16 @@ describe('PlannerToolbar', () => {
     expect(screen.getByRole('button', { name: /lưu/i })).toBeDisabled()
   })
 
-  it('calls onAddToCart when Thêm vào giỏ is clicked', async () => {
-    const onAddToCart = vi.fn()
-    render(<PlannerToolbar {...base} onAddToCart={onAddToCart} />)
-    await userEvent.click(screen.getByRole('button', { name: /thêm vào giỏ/i }))
-    expect(onAddToCart).toHaveBeenCalled()
+  it('opens review from the single commerce action', async () => {
+    const onReview = vi.fn()
+    render(<PlannerToolbar {...base} onReview={onReview} />)
+    await userEvent.click(screen.getByRole('button', { name: /xem lại phòng/i }))
+    expect(onReview).toHaveBeenCalled()
   })
 
   it('disables add-to-cart when the room is empty', () => {
     render(<PlannerToolbar {...base} itemCount={0} />)
-    expect(screen.getByRole('button', { name: /thêm vào giỏ/i })).toBeDisabled()
-  })
-
-  it('calls onOrder when "Đặt cả phòng" is clicked', async () => {
-    const onOrder = vi.fn()
-    render(<PlannerToolbar {...base} onOrder={onOrder} />)
-    await userEvent.click(screen.getByRole('button', { name: /đặt cả phòng/i }))
-    expect(onOrder).toHaveBeenCalled()
-  })
-
-  it('disables "Đặt cả phòng" when the room is empty', () => {
-    render(<PlannerToolbar {...base} itemCount={0} />)
-    expect(screen.getByRole('button', { name: /đặt cả phòng/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /xem lại phòng/i })).toBeDisabled()
   })
 
   it('calls onUndo / onRedo and disables them per history', async () => {

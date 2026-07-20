@@ -1,4 +1,4 @@
-import { Move3d, RotateCw, Save, ShoppingCart, ShoppingBag, Share2, Undo2, Redo2, Magnet, Frame, Ruler, Scan, X } from 'lucide-react'
+import { Move3d, RotateCw, Save, ShoppingBag, Share2, Undo2, Redo2, Magnet, Frame, Ruler, Scan, X } from 'lucide-react'
 import { Button } from '../../components/Button'
 import { Spinner } from '../../components/Spinner'
 
@@ -15,10 +15,8 @@ export function PlannerToolbar({
   onSave,
   saving,
   dirty,
-  onAddToCart,
-  addingToCart,
-  onOrder,
-  ordering,
+  onReview,
+  reviewing,
   onShare,
   sharing,
   onUndo,
@@ -154,20 +152,14 @@ export function PlannerToolbar({
         <Button type="button" variant="imagined" onClick={onSave} disabled={saving || !dirty}>
           {saving ? <Spinner label="Đang lưu" /> : <><Save size={16} /> Lưu</>}
         </Button>
-        {/* Mechanical handoff to Cart — NOT `imagined` (Save keeps the single imagined
-            peak). The imagined *feeling* carries into the Cart callback, not this button. */}
+        {/* Review is the only commerce exit so room contents stay visible before handoff. */}
         <Button
           type="button"
           variant="primary"
-          onClick={onAddToCart}
-          disabled={addingToCart || saving || itemCount === 0}
+          onClick={onReview}
+          disabled={reviewing || saving || itemCount === 0}
         >
-          {addingToCart ? <Spinner label="Đang thêm" /> : <><ShoppingCart size={16} /> Thêm vào giỏ</>}
-        </Button>
-        {/* Express path: carry the room into the existing checkout. `primary`, never
-            `confirmed` — the Checkout confirm stays the only Committed-state moment. */}
-        <Button type="button" variant="primary" onClick={onOrder} disabled={ordering || itemCount === 0}>
-          {ordering ? <Spinner label="Đang chuẩn bị" /> : <><ShoppingBag size={16} /> Đặt cả phòng</>}
+          {reviewing ? <Spinner label="Đang chuẩn bị" /> : <><ShoppingBag size={16} /> Xem lại phòng</>}
         </Button>
       </div>
     </div>
