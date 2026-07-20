@@ -56,6 +56,11 @@ function renderPage(orderId = '99') {
 }
 
 describe('OrderDetailPage', () => {
+  it('keeps saved-room evidence attached to room-derived order items', async () => {
+    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, items: [{ ...baseOrder.items[0], room: { id: 9, name: 'Phòng khách', preview_url: null } }] } })
+    renderPage()
+    expect(await screen.findByText('Từ phòng “Phòng khách”')).toBeInTheDocument()
+  })
   beforeEach(() => {
     vi.clearAllMocks()
   })
