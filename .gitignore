@@ -38,3 +38,4 @@ BE-Nestify/
 
 # claude code worktrees/sessions
 .claude/
+.agents/

@@ -42,9 +42,21 @@ ownership are consequences, never sold directly. The Enemy is **fear of irrevers
 not competitors.
 
 ### Skills
-- Creating/editing storefront UI → use the **`nestify-ui`** skill (`/nestify-ui`).
-- Checking UI against the DNA → use the **`nestify-review`** skill (`/nestify-review`) before calling
-  a UI task done.
+- Storefront design work uses **`hallmark`** from `.agents/skills/hallmark/SKILL.md`.
+  Read that `SKILL.md` in full before applying the skill, then load only the
+  references required by its routing rules.
+- Creating or visually redesigning storefront UI → use **`hallmark redesign <target>`**.
+- Reviewing storefront UI without editing → use **`hallmark audit <target>`**.
+- Studying a supplied screenshot or public URL for transferable design DNA → use
+  **`hallmark study <screenshot | URL>`**. Do not pixel-copy the reference.
+- Nestify's canonical documents above override Hallmark's catalog themes, generic
+  macrostructure defaults, palette suggestions, typography suggestions, spacing defaults,
+  CTA conventions, and motion suggestions. Treat the existing Nestify token layer as a
+  locked project system: do not create a root `tokens.css`, `design.md`, or `.hallmark/`
+  project memory unless the user explicitly asks for those artifacts.
+- For audit-only requests, do not emit code, edit files, create previews, or update Hallmark
+  project memory. The output is a ranked, evidence-based design report checked against both
+  Hallmark's audit rules and Nestify's Design DNA.
 
 ## Read before starting any feature work
 
