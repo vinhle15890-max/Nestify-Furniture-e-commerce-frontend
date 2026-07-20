@@ -37,7 +37,6 @@ export function CategoryPage() {
   const [priceKey, setPriceKey] = useState('')
   const [sort, setSort] = useState('')
   const [lensOpen, setLensOpen] = useState(false)
-  const [heldProductId, setHeldProductId] = useState(null)
   // Remount the internally controlled search input when a constraint is cleared.
   const [resetKey, setResetKey] = useState(0)
 
@@ -91,20 +90,13 @@ export function CategoryPage() {
     setPriceKey('')
     setSort('')
     setLensOpen(false)
-    setHeldProductId(null)
     setResetKey((key) => key + 1)
   }, [categorySlug])
-
-  useEffect(() => {
-    if (heldProductId == null) return
-    if (!products.some((product) => product.id === heldProductId)) setHeldProductId(null)
-  }, [heldProductId, products])
 
   const clearAll = () => {
     setSearch('')
     setPriceKey('')
     setSort('')
-    setHeldProductId(null)
     setResetKey((key) => key + 1)
   }
 
@@ -271,19 +263,7 @@ export function CategoryPage() {
             className="mt-5 grid grid-cols-2 gap-x-2 gap-y-9 sm:mt-6 sm:gap-x-3 sm:gap-y-12 md:grid-cols-3"
           >
             {products.map((product) => (
-              <DiscoverProductUnit
-                key={product.id}
-                product={product}
-                held={heldProductId === product.id}
-                fieldHasHeld={heldProductId != null}
-                onHold={() => setHeldProductId(product.id)}
-                onRelease={() =>
-                  setHeldProductId((current) => (current === product.id ? null : current))
-                }
-                onToggle={() =>
-                  setHeldProductId((current) => (current === product.id ? null : product.id))
-                }
-              />
+              <DiscoverProductUnit key={product.id} product={product} />
             ))}
           </section>
         )}

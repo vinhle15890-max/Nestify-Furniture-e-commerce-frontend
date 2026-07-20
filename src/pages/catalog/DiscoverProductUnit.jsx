@@ -1,112 +1,57 @@
-import { useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, ImageOff } from 'lucide-react'
-import { formatPrice } from '../../lib/format'
+import { Heart, ImageOff } from 'lucide-react'
+import { formatPrice, numericClassName } from '../../lib/format'
 
-export function DiscoverProductUnit({
-  product,
-  held,
-  fieldHasHeld,
-  onHold,
-  onRelease,
-  onToggle,
-}) {
-  const lastPointerType = useRef(null)
-  const isNeighbor = fieldHasHeld && !held
+function productDifferentiator(product) {
+  const attributes = product.attributes
+  if (!attributes || Array.isArray(attributes) || typeof attributes !== 'object') return null
 
-  const handlePointerEnter = (event) => {
-    if (event.pointerType !== 'touch') onHold()
-  }
+  const preferredKeys = ['material', 'chất liệu', 'dimensions', 'kích thước']
+  const entry = Object.entries(attributes).find(([key, value]) => (
+    preferredKeys.includes(key.toLocaleLowerCase('vi'))
+      && ['string', 'number'].includes(typeof value)
+      && String(value).trim()
+  ))
+  return entry ? `${entry[0]}: ${entry[1]}` : null
+}
 
-  const handlePointerLeave = (event) => {
-    if (event.pointerType === 'touch') return
-    if (!event.currentTarget.contains(document.activeElement)) onRelease()
-  }
-
-  const handleFocus = () => {
-    if (lastPointerType.current !== 'touch') onHold()
-  }
-
-  const handleBlur = (event) => {
-    if (!event.currentTarget.contains(event.relatedTarget)) onRelease()
-  }
-
-  const handleMediaClick = () => {
-    if (lastPointerType.current === 'touch') onToggle()
-    else onHold()
-    lastPointerType.current = null
-  }
+export function DiscoverProductUnit({ product }) {
+  const differentiator = productDifferentiator(product)
 
   return (
-    <article
-      data-testid="discover-product-unit"
-      data-held={held ? 'true' : 'false'}
-      data-neighbor={isNeighbor ? 'true' : 'false'}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-      onPointerDownCapture={(event) => {
-        lastPointerType.current = event.pointerType
-      }}
-      onFocusCapture={handleFocus}
-      onBlurCapture={handleBlur}
-      className={`min-w-0 transition-[opacity] duration-300 motion-reduce:transition-none ${
-        isNeighbor ? 'opacity-80' : 'opacity-100'
-      } ${held ? 'mx-1 sm:mx-2' : 'mx-0'}`}
-    >
-      <button
-        type="button"
-        onClick={handleMediaClick}
-        aria-pressed={held}
-        aria-label={held ? `Bỏ ${product.name} khỏi tầm chú ý` : `Giữ ${product.name} trong tầm chú ý`}
-        className="block aspect-[4/5] w-full overflow-hidden bg-unbuilt/35 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+    <article data-testid="discover-product-unit" className="group min-w-0">
+      <Link
+        to={`/p/${product.slug}`}
+        aria-label={`Xem ${product.name}`}
+        className="block aspect-[4/5] w-full overflow-hidden bg-unbuilt/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
         {product.thumbnail ? (
-          <img
-            src={product.thumbnail}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
+          <img src={product.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center" aria-hidden="true">
             <ImageOff size={28} className="text-unbuilt" />
           </span>
         )}
-      </button>
+      </Link>
 
-      <div
-        className={`border-t-2 transition-[margin,padding,border-color] duration-300 motion-reduce:transition-none ${
-          held
-            ? 'mt-5 border-ink pt-3'
-            : 'mt-3 border-transparent pt-1'
-        }`}
-      >
-        {held && (
-          <p className="mb-1.5 text-[0.65rem] uppercase tracking-[0.15em] text-ink/50">
-            Hình ảnh tham khảo
-          </p>
-        )}
-        <Link
-          to={`/p/${product.slug}`}
-          className="group/link flex items-start justify-between gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-        >
-          <h2
-            style={{ fontFamily: held ? 'var(--font-display)' : 'var(--font-sans)' }}
-            className={`${
-              held
-                ? 'text-lg leading-snug text-ink sm:text-xl'
-                : 'line-clamp-2 text-sm font-medium leading-snug text-ink/75 sm:text-base'
-            }`}
+      <div className="mt-3 border-t border-transparent pt-1 transition-colors duration-200 group-hover:border-unbuilt group-focus-within:border-unbuilt">
+        <div className="flex items-start justify-between gap-3">
+          <Link
+            to={`/p/${product.slug}`}
+            className="min-w-0 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
           >
-            {product.name}
-          </h2>
-          {held && <ArrowUpRight size={17} className="mt-1 shrink-0 text-ink/65" aria-hidden="true" />}
-        </Link>
-        {held && (
-          <p className="mt-1.5 text-sm tabular-nums text-ink/70">
-            {formatPrice(product.base_price)}
-          </p>
-        )}
+            <h2 className="line-clamp-2 text-sm font-medium leading-snug text-ink sm:text-base">{product.name}</h2>
+          </Link>
+          <Link
+            to={`/p/${product.slug}`}
+            aria-label={`Chọn phiên bản ${product.name} để lưu vào yêu thích`}
+            className="shrink-0 rounded-control p-1 text-ink/55 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+          >
+            <Heart size={18} aria-hidden="true" />
+          </Link>
+        </div>
+        <p className={`mt-1.5 text-sm text-ink/75 ${numericClassName}`}>Từ {formatPrice(product.base_price)}</p>
+        {differentiator && <p className="mt-1 line-clamp-1 text-xs text-ink/55">{differentiator}</p>}
       </div>
     </article>
   )

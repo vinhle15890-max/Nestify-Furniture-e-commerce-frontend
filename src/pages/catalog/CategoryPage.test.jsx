@@ -179,7 +179,7 @@ describe('CategoryPage', () => {
     expect(current).toHaveAttribute('aria-current', 'page')
   })
 
-  it('starts as an unheld possibility field with a compact discovery lens', async () => {
+  it('starts as a comparable product field with a compact discovery lens', async () => {
     catalogApi.getProducts.mockResolvedValue({
       data: [
         product(),
@@ -192,7 +192,7 @@ describe('CategoryPage', () => {
 
     const units = await screen.findAllByTestId('discover-product-unit')
     expect(units).toHaveLength(2)
-    units.forEach((unit) => expect(unit).toHaveAttribute('data-held', 'false'))
+    units.forEach((unit) => expect(within(unit).getByText(/Từ .*₫/)).toBeInTheDocument())
     expect(screen.getByRole('status')).toHaveTextContent('2 sản phẩm')
     expect(screen.getByRole('button', { name: 'Mở tìm kiếm, lọc và sắp xếp' })).toHaveAttribute(
       'aria-expanded',
