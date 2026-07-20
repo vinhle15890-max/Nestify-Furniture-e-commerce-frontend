@@ -3,9 +3,10 @@ import { ArrowRight } from 'lucide-react'
 import { SectionHeading } from './SectionHeading'
 import { Reveal } from '../Reveal'
 import { ProductCard } from '../ProductCard'
-import { Spinner } from '../Spinner'
 import { LoadErrorState } from '../LoadErrorState'
 import { useBestSellers } from '../../features/catalog/hooks'
+import { CatalogSkeleton } from '../LoadingStates'
+import { FeedbackState } from '../FeedbackState'
 
 export function BestSellers() {
   const query = useBestSellers(8)
@@ -29,13 +30,11 @@ export function BestSellers() {
       </div>
 
       {query.isLoading ? (
-        <div className="mt-16 flex justify-center">
-          <Spinner />
-        </div>
+        <CatalogSkeleton />
       ) : query.isError && !query.data ? (
         <LoadErrorState className="mt-10" compact title="Chưa thể tải các thiết kế tiêu biểu" description="Bạn vẫn có thể xem toàn bộ sản phẩm hoặc thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : products.length === 0 ? (
-        <p className="mt-10 text-muted-foreground">Chưa có sản phẩm.</p>
+        <FeedbackState className="mt-10" compact title="Chưa có sản phẩm để giới thiệu" description="Bạn vẫn có thể xem toàn bộ danh mục." />
       ) : (
         <div className="mt-14 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((product, index) => (

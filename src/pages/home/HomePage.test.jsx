@@ -62,6 +62,6 @@ describe('HomePage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Chưa có sản phẩm.')).toBeInTheDocument()
+    expect(await screen.findByText('Chưa có sản phẩm để giới thiệu')).toBeInTheDocument()
   })
 })

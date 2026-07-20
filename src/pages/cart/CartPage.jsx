@@ -12,6 +12,7 @@ import { VerifyEmailGate } from '../../components/VerifyEmailGate'
 import { formatPrice } from '../../lib/format'
 import { isStaff } from '../../lib/roles'
 import { stockShortfall, cartHasStockShortfall } from '../../lib/stock'
+import { FeedbackState } from '../../components/FeedbackState'
 
 const MAX_QUANTITY = 100
 
@@ -506,18 +507,12 @@ export function CartPage() {
         )}
 
         {items.length === 0 ? (
-          <section className="mt-10 max-w-3xl border-t-2 border-foreground py-8">
-            <h2 className="font-display text-2xl text-foreground">Chưa có lựa chọn nào để xác nhận.</h2>
-            <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
-              Giỏ hàng đang trống. Bạn có thể quay lại danh sách sản phẩm để tiếp tục khám phá.
-            </p>
-            <Link
+          <FeedbackState className="mt-10 max-w-3xl" title="Giỏ hàng đang trống" description="Bạn có thể quay lại danh sách sản phẩm để tiếp tục khám phá." action={<Link
               to="/c/all"
               className="mt-6 inline-flex items-center gap-2 border-b-2 border-foreground pb-1 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             >
               Xem sản phẩm <ArrowRight size={16} />
-            </Link>
-          </section>
+            </Link>} />
         ) : (
           <div className="mt-5 space-y-10 border-b-2 border-foreground/40 pb-8">
             {itemGroups.map((group) => <section key={group.key} aria-labelledby={`cart-group-${group.key}`}>

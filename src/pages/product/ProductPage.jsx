@@ -200,7 +200,6 @@ export function ProductPage() {
       {
         onSuccess: () => {
           setStockError(null)
-          addToast({ title: 'Đã thêm vào giỏ hàng', variant: 'success' })
           openCart()
         },
         onError: (error) => {
@@ -219,14 +218,14 @@ export function ProductPage() {
   function handleToggleWishlist() {
     if (isWishlisted) {
       removeWishlistItem.mutate(wishlistItem.id, {
-        onSuccess: () => addToast({ title: 'Đã bỏ khỏi yêu thích', variant: 'success' }),
+        onSuccess: () => {},
         onError: (error) => addToast({ title: 'Không thể bỏ khỏi yêu thích', description: formLevelMessage(error), variant: 'error' }),
       })
     } else {
       addWishlistItem.mutate(
         { variant_id: selectedVariant.id },
         {
-          onSuccess: () => addToast({ title: 'Đã thêm vào yêu thích', variant: 'success' }),
+          onSuccess: () => {},
           onError: (error) => addToast({ title: 'Không thể thêm vào yêu thích', description: formLevelMessage(error), variant: 'error' }),
         },
       )

@@ -9,6 +9,7 @@ import { findCategoryPath } from '../../lib/categoryPath'
 import { DiscoverProductUnit } from './DiscoverProductUnit'
 import { readCatalogUrlState, writeCatalogUrlState } from '../../lib/catalogUrlState'
 import { CatalogFilterDrawer, CatalogFilterFields } from './CatalogFilterDrawer'
+import { FeedbackState } from '../../components/FeedbackState'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Mặc định' },
@@ -211,14 +212,7 @@ export function CategoryPage() {
             className="mt-10"
           />
         ) : products.length === 0 ? (
-          <section className="mt-10 max-w-md border-l-2 border-unbuilt pl-5">
-            <h2 className="font-display text-xl text-ink">Chưa có khả năng nào trong trường nhìn này.</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink/65">
-              {activeConstraints.length > 0
-                ? 'Thử nới một điều kiện để mở lại trường sản phẩm.'
-                : 'Danh mục này hiện chưa có sản phẩm để khám phá.'}
-            </p>
-            {activeConstraints.length > 0 ? (
+          <FeedbackState title="Chưa tìm thấy sản phẩm phù hợp" description={activeConstraints.length > 0 ? 'Thử nới một điều kiện để xem thêm lựa chọn.' : 'Danh mục này hiện chưa có sản phẩm.'} action={activeConstraints.length > 0 ? (
               <button
                 type="button"
                 onClick={clearAll}
@@ -233,8 +227,7 @@ export function CategoryPage() {
               >
                 Xem tất cả sản phẩm
               </Link>
-            )}
-          </section>
+            )} />
         ) : (
           <section
             aria-label="Trường sản phẩm"
