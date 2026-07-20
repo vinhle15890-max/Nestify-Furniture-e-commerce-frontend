@@ -112,6 +112,7 @@ export function Header() {
           <button
             type="button"
             aria-label="Mở menu"
+            aria-haspopup="dialog"
             className={`cursor-pointer ${interactive} ${focusRing} md:hidden`}
             onClick={toggleMobileNav}
           >

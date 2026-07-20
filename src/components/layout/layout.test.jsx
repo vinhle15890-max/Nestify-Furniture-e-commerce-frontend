@@ -6,6 +6,8 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 import { Layout } from './Layout'
 import { useAuthStore } from '../../store/authStore'
+import { useUiStore } from '../../store/uiStore'
+import userEvent from '@testing-library/user-event'
 import * as cartApi from '../../features/cart/api'
 
 vi.mock('../../features/cart/api')
@@ -23,6 +25,7 @@ describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAuthStore.setState({ token: null, user: null })
+    useUiStore.setState({ isMobileNavOpen: false, isCartOpen: false })
     cartApi.getCart.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
   })
 
@@ -95,6 +98,12 @@ describe('Footer', () => {
 })
 
 describe('Layout', () => {
+  beforeEach(() => {
+    useAuthStore.setState({ token: null, user: null })
+    useUiStore.setState({ isMobileNavOpen: false, isCartOpen: false })
+    cartApi.getCart.mockResolvedValue({ data: { id: 1, items: [], total: 0 } })
+  })
+
   it('renders the header, footer, and routed content', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
@@ -133,5 +142,29 @@ describe('Layout', () => {
     const skipLink = screen.getByRole('link', { name: 'Bỏ qua tới nội dung chính' })
     expect(skipLink).toHaveAttribute('href', '#main-content')
     expect(document.getElementById('main-content')?.tagName).toBe('MAIN')
+  })
+
+  it('opens an accessible mobile navigation dialog and closes it with Escape', async () => {
+    const user = userEvent.setup()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<p>Nội dung trang</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Mở menu' }))
+    expect(screen.getByRole('dialog', { name: 'Menu' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Điều hướng di động' })).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument()
   })
 })

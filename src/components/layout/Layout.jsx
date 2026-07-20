@@ -3,6 +3,7 @@ import { Header } from './Header'
 import { Footer } from './Footer'
 import { CartDrawer } from './CartDrawer'
 import { ChatWidget } from '../chat/ChatWidget'
+import { MobileNavigation } from './MobileNavigation'
 
 export function Layout() {
   return (
@@ -18,6 +19,7 @@ export function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <MobileNavigation />
       <CartDrawer />
       <ChatWidget />
     </div>
