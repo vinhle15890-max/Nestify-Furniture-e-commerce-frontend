@@ -16,13 +16,30 @@ const base = {
 }
 
 describe('PlannerToolbar', () => {
-  it('gives every icon-only control an accessible name and visible keyboard focus style', () => {
+  it('exposes a name and visible keyboard focus style for every toolbar control', () => {
     render(<PlannerToolbar {...base} />)
-    for (const name of ['Thoát Room Planner', 'Hoàn tác', 'Làm lại']) {
-      const control = screen.getByRole('button', { name })
-      expect(control).toHaveClass('focus-visible:ring-2')
+    const controls = [
+      { role: 'button', name: 'Thoát Room Planner', focusClass: 'focus-visible:ring-2' },
+      { role: 'textbox', name: 'Tên phòng', focusClass: 'focus-visible:border-border-strong' },
+      { role: 'button', name: 'Hoàn tác', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Làm lại', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Di chuyển. Phím tắt 1', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Xoay. Phím tắt 2', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Snap', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Bắt tường', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Hiện mốc tỉ lệ người và cửa', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Chỉnh phòng', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Chia sẻ', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Lưu', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Xem lại phòng', focusClass: 'focus-visible:ring-2' },
+    ]
+
+    for (const { role, name, focusClass } of controls) {
+      const control = screen.getByRole(role, { name })
+      expect(control).toHaveClass(focusClass)
       expect(control).not.toHaveAttribute('title')
     }
+    expect(screen.getAllByRole('button')).toHaveLength(12)
   })
 
   it('calls onSave when Lưu is clicked', async () => {

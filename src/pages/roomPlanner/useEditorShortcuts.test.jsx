@@ -62,6 +62,29 @@ describe('useEditorShortcuts', () => {
     expect(item.rotation.y).toBeCloseTo(Math.PI / 12)
   })
 
+  it('clamps keyboard movement at the same room boundary as pointer transforms', () => {
+    render(<Harness />)
+    for (let index = 0; index < 4; index += 1) {
+      fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
+    }
+
+    // A 1 m footprint in a 4 m room stops with its edge at x=2 m.
+    expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1.5)
+  })
+
+  it('applies wall snap when keyboard movement enters the pointer snap range', () => {
+    useEditorStore.getState().toggleWallSnap()
+    render(<Harness />)
+    fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
+    expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(0.5)
+
+    fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
+    expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    // x=1.1 m enters the shared strict <0.5 m threshold and snaps flush.
+    expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1.5)
+  })
+
   it('Enter confirms a keyboard placement and Escape cancels one', () => {
     startKeyboardPlacement()
     render(<Harness />)
