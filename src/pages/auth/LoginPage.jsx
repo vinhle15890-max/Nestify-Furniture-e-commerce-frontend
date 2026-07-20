@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
 import { Input } from '../../components/Input'
+import { PasswordInput } from '../../components/auth/PasswordInput'
 import { Button } from '../../components/Button'
 import { useLogin } from '../../features/auth/hooks'
 import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
@@ -74,7 +75,7 @@ export function LoginPage() {
             {formError}
           </p>
         )}
-        <Input
+        <PasswordInput
           label="Email"
           id="email"
           type="email"
@@ -85,7 +86,6 @@ export function LoginPage() {
         <Input
           label="Mật khẩu"
           id="password"
-          type="password"
           autoComplete="current-password"
           error={errors.password?.message}
           {...register('password')}
