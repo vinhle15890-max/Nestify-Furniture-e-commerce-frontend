@@ -149,7 +149,7 @@ describe('ProductPage', () => {
     expect(screen.getByText('Đổi trong 14 ngày nếu sản phẩm chưa sử dụng')).toBeInTheDocument()
     expect(screen.getByText('Có đội ngũ lắp ráp khi giao')).toBeInTheDocument()
     expect(screen.getByText('24 tháng')).toBeInTheDocument()
-    expect(screen.getByText('Mô hình được gắn với phiên bản đã chọn.')).toBeInTheDocument()
+    expect(screen.getByText('Mô hình chưa được xác nhận đúng tỉ lệ thực.')).toBeInTheDocument()
     expect(screen.getByText('Bộ ảnh có hình được gắn đúng với phiên bản này.')).toBeInTheDocument()
   })
 

@@ -1,10 +1,12 @@
 import { Copy, RotateCcw, Trash2 } from 'lucide-react'
 import { formatDimension } from '../../lib/format'
+import { describeModelFidelity } from '../../features/roomPlanner/modelFidelity'
 
 const fieldClass = 'w-full rounded-control border border-border bg-surface px-2 py-2 text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 export function ObjectInspector({ item, onTransform, onDelete, onResetTransform, onDuplicate }) {
   if (!item) return <p className="text-sm leading-6 text-muted-foreground">Chọn một món trong phòng để xem kích thước và chỉnh vị trí.</p>
+  const modelFidelity = describeModelFidelity(item.variant)
   const commitPosition = (axis, value) => {
     const number = Number(value)
     if (Number.isFinite(number)) onTransform(item.localId, { position: { ...item.position, [axis]: number } })
@@ -18,6 +20,7 @@ export function ObjectInspector({ item, onTransform, onDelete, onResetTransform,
     <section aria-labelledby="object-inspector-title">
       <p className="text-xs font-medium text-muted-foreground">Vật thể đang chọn</p>
       <h2 id="object-inspector-title" className="mt-1 truncate text-base font-medium text-foreground">{item.variant.name}</h2>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">{modelFidelity.text}</p>
       <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-border py-3 text-center">
         {[['Rộng', item.footprint.x], ['Cao', item.footprint.y], ['Sâu', item.footprint.z]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-sm tabular-nums text-foreground">{formatDimension(value, 'm')}</dd></div>)}
       </dl>
