@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -260,6 +260,13 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Xám' }))
     expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/xam.jpg')
     expect(screen.getAllByRole('button', { name: /Xem ảnh/ })).toHaveLength(2)
+  })
+
+  it('exposes each gallery thumbnail as one named control with decorative nested media', async () => {
+    renderPage()
+    const thumbnail = await screen.findByRole('button', { name: 'Xem ảnh 1' })
+    expect(thumbnail).not.toHaveAttribute('title')
+    expect(within(thumbnail).queryByRole('img')).not.toBeInTheDocument()
   })
 
   it('identifies media that is verified for the selected variant', async () => {
