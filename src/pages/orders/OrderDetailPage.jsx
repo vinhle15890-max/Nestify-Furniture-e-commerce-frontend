@@ -171,6 +171,7 @@ export function OrderDetailPage() {
                   <p className="text-muted-foreground">
                     {snapshot.name} · x{item.quantity}
                   </p>
+                  {item.room?.name && <p className="mt-1 text-xs text-emerging">Từ phòng “{item.room.name}”</p>}
                 </div>
                 <p className="shrink-0 font-medium text-foreground">{formatPrice(item.subtotal)}</p>
               </li>

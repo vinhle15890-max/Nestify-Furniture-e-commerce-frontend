@@ -17,9 +17,8 @@ export function BecomingStates() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
       <SectionHeading
-        eyebrow="Cách Nestify hoạt động"
-        title="Từ căn phòng trống đến của bạn"
-        intro="Cùng một căn phòng, hoàn thiện dần — đó là cách bạn nhìn thấy tổ ấm tương lai trước khi quyết định."
+        title="Thấy trước khi quyết định"
+        intro="Đặt sản phẩm vào đúng kích thước phòng để so sánh bố cục trước khi bạn chọn mua."
       />
 
       <ol className="mt-14 grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-3">
@@ -29,10 +28,10 @@ export function BecomingStates() {
               <BecomingRoomArt level={step.level} />
             </div>
             <div className="mt-6 flex items-baseline gap-3">
-              <span className="font-display text-sm text-emerging">{step.n}</span>
-              <span className="eyebrow">{step.chapter}</span>
+              <span className="text-sm font-medium text-emerging">{step.n}</span>
+              <span className="text-sm text-ink/55">{step.chapter}</span>
             </div>
-            <h3 className="mt-3 font-display text-2xl leading-tight text-foreground">{step.title}</h3>
+            <h3 className="mt-3 text-xl font-medium leading-tight text-foreground">{step.title}</h3>
             <p className="mt-2 text-base leading-relaxed text-muted-foreground">{step.caption}</p>
           </Reveal>
         ))}

@@ -3,9 +3,10 @@ import { ArrowRight } from 'lucide-react'
 import { SectionHeading } from './SectionHeading'
 import { Reveal } from '../Reveal'
 import { ProductCard } from '../ProductCard'
-import { Spinner } from '../Spinner'
 import { LoadErrorState } from '../LoadErrorState'
 import { useBestSellers } from '../../features/catalog/hooks'
+import { CatalogSkeleton } from '../LoadingStates'
+import { FeedbackState } from '../FeedbackState'
 
 export function BestSellers() {
   const query = useBestSellers(8)
@@ -15,9 +16,8 @@ export function BestSellers() {
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <SectionHeading
-          eyebrow="Khám phá"
-          title="Bắt đầu với những thiết kế tiêu biểu"
-          intro="Không phải để chạy theo số đông — chỉ vài điểm khởi đầu để bạn bắt đầu hình dung."
+          title="Một trường sản phẩm được chọn lọc"
+          intro="Những món đồ đủ khác nhau để bạn bắt đầu so sánh tỷ lệ, vật liệu và cảm giác trong phòng."
         />
         <Reveal
           as={Link}
@@ -30,13 +30,11 @@ export function BestSellers() {
       </div>
 
       {query.isLoading ? (
-        <div className="mt-16 flex justify-center">
-          <Spinner />
-        </div>
+        <CatalogSkeleton />
       ) : query.isError && !query.data ? (
         <LoadErrorState className="mt-10" compact title="Chưa thể tải các thiết kế tiêu biểu" description="Bạn vẫn có thể xem toàn bộ sản phẩm hoặc thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : products.length === 0 ? (
-        <p className="mt-10 text-muted-foreground">Chưa có sản phẩm.</p>
+        <FeedbackState className="mt-10" compact title="Chưa có sản phẩm để giới thiệu" description="Bạn vẫn có thể xem toàn bộ danh mục." />
       ) : (
         <div className="mt-14 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((product, index) => (

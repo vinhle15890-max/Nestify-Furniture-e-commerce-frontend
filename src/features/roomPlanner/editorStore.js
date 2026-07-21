@@ -31,6 +31,7 @@ const emptyState = {
   room: { width: 0, depth: 0, height: 0, walls: { back: true, left: true, right: true } },
   items: [],
   selectedId: null,
+  pendingPlacementId: null,
   gizmoMode: 'translate',
   editMode: 'furnish', // 'furnish' | 'room'
   dirty: false,
@@ -83,9 +84,9 @@ export const useEditorStore = create((set, get) => ({
     dirty: true,
   })),
 
-  addVariant: (variant) => set((s) => {
+  addVariant: (variant, { provisional = false } = {}) => set((s) => {
     const item = { localId: makeLocalId(), variant, footprint: { ...DEFAULT_FOOTPRINT }, ...structuredClone(IDENTITY) }
-    return { ...pushPast(s), items: [...s.items, item], selectedId: item.localId, dirty: true }
+    return { ...pushPast(s), items: [...s.items, item], selectedId: item.localId, pendingPlacementId: provisional ? item.localId : null, dirty: true }
   }),
 
   duplicateSelected: () => set((s) => {
@@ -104,6 +105,56 @@ export const useEditorStore = create((set, get) => ({
   selectItem: (localId) => set({ selectedId: localId }),
 
   setGizmoMode: (gizmoMode) => set({ gizmoMode: gizmoMode === 'rotate' ? 'rotate' : 'translate' }),
+
+  nudgeSelected: (delta) => set((s) => {
+    const item = s.items.find((candidate) => candidate.localId === s.selectedId)
+    if (!item) return {}
+    const position = {
+      x: item.position.x + (delta.x ?? 0),
+      y: item.position.y,
+      z: item.position.z + (delta.z ?? 0),
+    }
+    return {
+      ...pushPast(s),
+      dirty: true,
+      items: s.items.map((candidate) => candidate.localId === item.localId
+        ? { ...candidate, ...projectTransform(candidate, { position }, s.room, s.wallSnap) }
+        : candidate),
+    }
+  }),
+
+  rotateSelected: (radians) => set((s) => {
+    const item = s.items.find((candidate) => candidate.localId === s.selectedId)
+    if (!item) return {}
+    const rotation = { ...item.rotation, y: item.rotation.y + radians }
+    return {
+      ...pushPast(s),
+      dirty: true,
+      items: s.items.map((candidate) => candidate.localId === item.localId
+        ? { ...candidate, ...projectTransform(candidate, { rotation }, s.room, s.wallSnap) }
+        : candidate),
+    }
+  }),
+
+  confirmPlacement: () => set((s) => ({
+    pendingPlacementId: null,
+    selectedId: s.selectedId === s.pendingPlacementId ? null : s.selectedId,
+  })),
+
+  cancelPlacement: () => set((s) => {
+    if (s.pendingPlacementId === null) return {}
+    const pendingId = s.pendingPlacementId
+    // Removing snapshots that contain the provisional item prevents Undo from
+    // resurrecting a placement the customer explicitly cancelled.
+    return {
+      items: s.items.filter((item) => item.localId !== pendingId),
+      past: s.past.filter((items) => !items.some((item) => item.localId === pendingId)),
+      future: [],
+      selectedId: null,
+      pendingPlacementId: null,
+      dirty: true,
+    }
+  }),
 
   toggleSnap: () => set((s) => ({ snap: !s.snap })),
 
@@ -154,6 +205,16 @@ export const useEditorStore = create((set, get) => ({
     }
   }),
 
+  removeItem: (localId) => set((s) => {
+    if (!s.items.some((item) => item.localId === localId)) return {}
+    return {
+      ...pushPast(s),
+      items: s.items.filter((item) => item.localId !== localId),
+      selectedId: s.selectedId === localId ? null : s.selectedId,
+      dirty: true,
+    }
+  }),
+
   resetSelectedTransform: () => set((s) => ({
     ...pushPast(s),
     dirty: true,
@@ -186,5 +247,13 @@ export const useEditorStore = create((set, get) => ({
     }
   }),
 
-  markSaved: (id) => set({ id, dirty: false }),
+  markSaved: (id, persistedItems = null) => set((s) => ({
+    id,
+    dirty: false,
+    // The API recreates placements on update. Reconcile ids by the submitted
+    // order while retaining local ids and undo history for cheap reversibility.
+    items: persistedItems
+      ? s.items.map((item, index) => ({ ...item, placementId: persistedItems[index]?.id ?? null }))
+      : s.items,
+  })),
 }))

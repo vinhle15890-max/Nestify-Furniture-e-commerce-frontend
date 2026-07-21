@@ -2,11 +2,12 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PlannerToolbar } from './PlannerToolbar'
+import { PlannerCompletionArea, PlannerContextControls, PlannerViewMenu } from './PlannerWorkspaceControls'
 
 const base = {
   name: 'Phòng A', onNameChange: vi.fn(), gizmoMode: 'translate',
   onGizmoModeChange: vi.fn(), onSave: vi.fn(), saving: false, dirty: true,
-  onAddToCart: vi.fn(), addingToCart: false, onOrder: vi.fn(), ordering: false,
+  onReview: vi.fn(), reviewing: false,
   onUndo: vi.fn(), onRedo: vi.fn(), canUndo: true, canRedo: true,
   snap: false, onToggleSnap: vi.fn(),
   wallSnap: false, onToggleWallSnap: vi.fn(),
@@ -16,6 +17,32 @@ const base = {
 }
 
 describe('PlannerToolbar', () => {
+  it('exposes a name and visible keyboard focus style for every toolbar control', () => {
+    render(<><PlannerToolbar {...base} /><PlannerViewMenu {...base} /><PlannerContextControls {...base} /><PlannerCompletionArea {...base} /></>)
+    const controls = [
+      { role: 'button', name: 'Thoát Room Planner', focusClass: 'focus-visible:ring-2' },
+      { role: 'textbox', name: 'Tên phòng', focusClass: 'focus-visible:border-border-strong' },
+      { role: 'button', name: 'Hoàn tác', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Làm lại', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Di chuyển. Phím tắt 1', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Xoay. Phím tắt 2', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Snap', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Bắt tường', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Hiện mốc tỉ lệ người và cửa', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Chỉnh phòng', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Chia sẻ', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Lưu', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Xem lại phòng', focusClass: 'focus-visible:ring-2' },
+    ]
+
+    for (const { role, name, focusClass } of controls) {
+      const control = screen.getByRole(role, { name })
+      expect(control).toHaveClass(focusClass)
+      expect(control).not.toHaveAttribute('title')
+    }
+    expect(screen.getAllByRole('button')).toHaveLength(12)
+  })
+
   it('calls onSave when Lưu is clicked', async () => {
     const onSave = vi.fn()
     render(<PlannerToolbar {...base} onSave={onSave} />)
@@ -25,7 +52,7 @@ describe('PlannerToolbar', () => {
 
   it('switches gizmo mode', async () => {
     const onGizmoModeChange = vi.fn()
-    render(<PlannerToolbar {...base} onGizmoModeChange={onGizmoModeChange} />)
+    render(<PlannerContextControls {...base} onGizmoModeChange={onGizmoModeChange} />)
     await userEvent.click(screen.getByRole('button', { name: /xoay/i }))
     expect(onGizmoModeChange).toHaveBeenCalledWith('rotate')
   })
@@ -40,28 +67,16 @@ describe('PlannerToolbar', () => {
     expect(screen.getByRole('button', { name: /lưu/i })).toBeDisabled()
   })
 
-  it('calls onAddToCart when Thêm vào giỏ is clicked', async () => {
-    const onAddToCart = vi.fn()
-    render(<PlannerToolbar {...base} onAddToCart={onAddToCart} />)
-    await userEvent.click(screen.getByRole('button', { name: /thêm vào giỏ/i }))
-    expect(onAddToCart).toHaveBeenCalled()
+  it('opens review from the single commerce action', async () => {
+    const onReview = vi.fn()
+    render(<PlannerCompletionArea {...base} onReview={onReview} />)
+    await userEvent.click(screen.getByRole('button', { name: /xem lại phòng/i }))
+    expect(onReview).toHaveBeenCalled()
   })
 
   it('disables add-to-cart when the room is empty', () => {
-    render(<PlannerToolbar {...base} itemCount={0} />)
-    expect(screen.getByRole('button', { name: /thêm vào giỏ/i })).toBeDisabled()
-  })
-
-  it('calls onOrder when "Đặt cả phòng" is clicked', async () => {
-    const onOrder = vi.fn()
-    render(<PlannerToolbar {...base} onOrder={onOrder} />)
-    await userEvent.click(screen.getByRole('button', { name: /đặt cả phòng/i }))
-    expect(onOrder).toHaveBeenCalled()
-  })
-
-  it('disables "Đặt cả phòng" when the room is empty', () => {
-    render(<PlannerToolbar {...base} itemCount={0} />)
-    expect(screen.getByRole('button', { name: /đặt cả phòng/i })).toBeDisabled()
+    render(<PlannerCompletionArea {...base} itemCount={0} />)
+    expect(screen.getByRole('button', { name: /xem lại phòng/i })).toBeDisabled()
   })
 
   it('calls onUndo / onRedo and disables them per history', async () => {
@@ -74,7 +89,7 @@ describe('PlannerToolbar', () => {
 
   it('toggles snap', async () => {
     const onToggleSnap = vi.fn()
-    render(<PlannerToolbar {...base} onToggleSnap={onToggleSnap} snap={false} />)
+    render(<PlannerViewMenu {...base} onToggleSnap={onToggleSnap} snap={false} />)
     const btn = screen.getByRole('button', { name: /^snap$/i })
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(btn)
@@ -83,7 +98,7 @@ describe('PlannerToolbar', () => {
 
   it('toggles wall-snap', async () => {
     const onToggleWallSnap = vi.fn()
-    render(<PlannerToolbar {...base} onToggleWallSnap={onToggleWallSnap} wallSnap={false} />)
+    render(<PlannerViewMenu {...base} onToggleWallSnap={onToggleWallSnap} wallSnap={false} />)
     const btn = screen.getByRole('button', { name: /bắt tường/i })
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(btn)
@@ -92,7 +107,7 @@ describe('PlannerToolbar', () => {
 
   it('toggles scale reference', async () => {
     const onToggleScaleRef = vi.fn()
-    render(<PlannerToolbar {...base} onToggleScaleRef={onToggleScaleRef} showScaleRef={false} />)
+    render(<PlannerViewMenu {...base} onToggleScaleRef={onToggleScaleRef} showScaleRef={false} />)
     const btn = screen.getByRole('button', { name: /tỉ lệ/i })
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     await userEvent.click(btn)
@@ -101,7 +116,7 @@ describe('PlannerToolbar', () => {
 
   it('calls onEnterRoomEdit when "Chỉnh phòng" is clicked', async () => {
     const onEnterRoomEdit = vi.fn()
-    render(<PlannerToolbar {...base} onEnterRoomEdit={onEnterRoomEdit} />)
+    render(<PlannerViewMenu {...base} onEnterRoomEdit={onEnterRoomEdit} />)
     await userEvent.click(screen.getByRole('button', { name: /chỉnh phòng/i }))
     expect(onEnterRoomEdit).toHaveBeenCalled()
   })

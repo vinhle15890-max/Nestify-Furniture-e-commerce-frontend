@@ -35,7 +35,7 @@ export function ModalShell({
           {...contentProps}
           className={`fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card bg-surface p-6 shadow-soft ${contentClassName}`}
         >
-          {title && <Dialog.Title className="font-display text-xl text-foreground">{title}</Dialog.Title>}
+          {title && <Dialog.Title className="text-xl font-semibold text-foreground">{title}</Dialog.Title>}
           {description && (
             <Dialog.Description className="mt-1 text-sm text-muted-foreground">{description}</Dialog.Description>
           )}

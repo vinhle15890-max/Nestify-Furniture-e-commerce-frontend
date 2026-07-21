@@ -26,6 +26,7 @@ async function openDiscoveryLens() {
   await userEvent.click(
     await screen.findByRole('button', { name: 'Mở tìm kiếm, lọc và sắp xếp' }),
   )
+  return screen.findByRole('dialog')
 }
 
 const product = (overrides = {}) => ({
@@ -101,9 +102,9 @@ describe('CategoryPage', () => {
   it('refetches with the new sort param when the sort filter changes', async () => {
     renderPage()
     await screen.findByText('Ghế sofa')
-    await openDiscoveryLens()
+    const dialog = await openDiscoveryLens()
 
-    await userEvent.selectOptions(screen.getByLabelText('Sắp xếp'), '-created_at')
+    await userEvent.selectOptions(within(dialog).getByLabelText('Sắp xếp'), '-created_at')
 
     await waitFor(() =>
       expect(catalogApi.getProducts).toHaveBeenCalledWith(
@@ -115,9 +116,9 @@ describe('CategoryPage', () => {
   it('chuyển danh mục qua dropdown Danh mục và nạp lại theo danh mục mới', async () => {
     renderPage()
     await screen.findByText('Ghế sofa')
-    await openDiscoveryLens()
+    const dialog = await openDiscoveryLens()
 
-    await userEvent.selectOptions(screen.getByLabelText('Danh mục'), 'phong-ngu')
+    await userEvent.selectOptions(within(dialog).getByLabelText('Danh mục'), 'phong-ngu')
 
     await waitFor(() =>
       expect(catalogApi.getProducts).toHaveBeenCalledWith(
@@ -129,9 +130,9 @@ describe('CategoryPage', () => {
   it('tìm kiếm thủ công gọi API với filter search (debounced)', async () => {
     renderPage()
     await screen.findByText('Ghế sofa')
-    await openDiscoveryLens()
+    const dialog = await openDiscoveryLens()
 
-    await userEvent.type(screen.getByLabelText('Tìm sản phẩm trong danh mục...'), 'sofa')
+    await userEvent.type(within(dialog).getByLabelText('Tên sản phẩm…'), 'sofa')
 
     await waitFor(() =>
       expect(catalogApi.getProducts).toHaveBeenCalledWith(
@@ -143,9 +144,9 @@ describe('CategoryPage', () => {
   it('lọc theo khoảng giá gọi API với price_min/price_max', async () => {
     renderPage()
     await screen.findByText('Ghế sofa')
-    await openDiscoveryLens()
+    const dialog = await openDiscoveryLens()
 
-    await userEvent.selectOptions(screen.getByLabelText('Khoảng giá'), '2000000-5000000')
+    await userEvent.selectOptions(within(dialog).getByLabelText('Khoảng giá'), '2000000-5000000')
 
     await waitFor(() =>
       expect(catalogApi.getProducts).toHaveBeenCalledWith(
@@ -153,16 +154,16 @@ describe('CategoryPage', () => {
       ),
     )
 
-    await userEvent.click(screen.getByRole('button', { name: 'Đóng tìm kiếm, lọc và sắp xếp' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Đóng bộ lọc' }))
     expect(screen.getByRole('button', { name: 'Bỏ lọc 2 – 5 triệu' })).toBeInTheDocument()
   })
 
   it('sắp xếp theo giá gọi API với sort base_price', async () => {
     renderPage()
     await screen.findByText('Ghế sofa')
-    await openDiscoveryLens()
+    const dialog = await openDiscoveryLens()
 
-    await userEvent.selectOptions(screen.getByLabelText('Sắp xếp'), 'base_price')
+    await userEvent.selectOptions(within(dialog).getByLabelText('Sắp xếp'), 'base_price')
 
     await waitFor(() =>
       expect(catalogApi.getProducts).toHaveBeenCalledWith(
@@ -179,7 +180,7 @@ describe('CategoryPage', () => {
     expect(current).toHaveAttribute('aria-current', 'page')
   })
 
-  it('starts as an unheld possibility field with a compact discovery lens', async () => {
+  it('starts as a comparable product field with a compact discovery lens', async () => {
     catalogApi.getProducts.mockResolvedValue({
       data: [
         product(),
@@ -192,13 +193,13 @@ describe('CategoryPage', () => {
 
     const units = await screen.findAllByTestId('discover-product-unit')
     expect(units).toHaveLength(2)
-    units.forEach((unit) => expect(unit).toHaveAttribute('data-held', 'false'))
+    units.forEach((unit) => expect(within(unit).getByText(/Từ .*₫/)).toBeInTheDocument())
     expect(screen.getByRole('status')).toHaveTextContent('2 sản phẩm')
     expect(screen.getByRole('button', { name: 'Mở tìm kiếm, lọc và sắp xếp' })).toHaveAttribute(
       'aria-expanded',
       'false',
     )
-    expect(screen.queryByLabelText('Khoảng giá')).not.toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: 'Lọc và sắp xếp sản phẩm' })).toBeInTheDocument()
     expect(screen.queryByText(/đề xuất|bán chạy|phù hợp nhất/i)).not.toBeInTheDocument()
   })
 
@@ -210,8 +211,8 @@ describe('CategoryPage', () => {
 
     renderPage()
     await screen.findByText('Ghế sofa')
-    await openDiscoveryLens()
+    const dialog = await openDiscoveryLens()
 
-    expect(screen.queryByLabelText('Chất liệu gỗ')).not.toBeInTheDocument()
+    expect(within(dialog).queryByLabelText('Chất liệu gỗ')).not.toBeInTheDocument()
   })
 })

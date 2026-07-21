@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { Logo } from '../../components/Logo'
-import { Spinner } from '../../components/Spinner'
+import { PlannerGeometryPlaceholder } from '../../components/LoadingStates'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { SharedSceneCanvas } from './scene/SharedSceneCanvas'
 import { SharedRoomItems } from './SharedRoomItems'
@@ -15,11 +15,7 @@ export function SharedRoomPage() {
   const { data, error, isLoading, isError, isFetching, refetch } = useSharedScene(token)
 
   if (isLoading) {
-    return (
-      <div className="flex h-dvh items-center justify-center bg-canvas">
-        <Spinner label="Đang tải phòng" />
-      </div>
-    )
+    return <PlannerGeometryPlaceholder />
   }
 
   if (isError && error?.status !== 404) {

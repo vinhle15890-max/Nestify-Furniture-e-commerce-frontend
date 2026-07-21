@@ -64,7 +64,7 @@ function RoomCard({ scene }) {
             onKeyDown={(e) => { if (e.key === 'Enter') commitName() }}
           />
         ) : (
-          <p className="truncate font-display text-lg text-foreground">{scene.name}</p>
+          <p className="truncate  text-lg text-foreground">{scene.name}</p>
         )}
         {scene.is_public && (
           <Badge tone="in-stock" className="shrink-0 gap-1">

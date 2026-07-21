@@ -3,13 +3,15 @@ import { Search, X } from 'lucide-react'
 
 // Controlled-ish search box that debounces upward to avoid a request per keystroke.
 // `onDebouncedChange` fires `delay` ms after typing stops.
-export function SearchInput({ placeholder = 'Tìm kiếm...', onDebouncedChange, delay = 300, className = '' }) {
-  const [value, setValue] = useState('')
+export function SearchInput({ placeholder = 'Tìm kiếm...', initialValue = '', onDebouncedChange, delay = 300, className = '' }) {
+  const [value, setValue] = useState(initialValue)
   const callbackRef = useRef(onDebouncedChange)
 
   useEffect(() => {
     callbackRef.current = onDebouncedChange
   }, [onDebouncedChange])
+
+  useEffect(() => setValue(initialValue), [initialValue])
 
   useEffect(() => {
     const id = setTimeout(() => callbackRef.current(value.trim()), delay)

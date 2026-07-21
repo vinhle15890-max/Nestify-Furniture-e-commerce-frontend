@@ -7,7 +7,7 @@ describe('BecomingStates', () => {
   it('renders the section heading and all three becoming steps in order', () => {
     render(<BecomingStates />)
 
-    expect(screen.getByRole('heading', { name: 'Từ căn phòng trống đến của bạn' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Thấy trước khi quyết định' })).toBeInTheDocument()
 
     const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
     expect(titles).toEqual(becomingSteps.map((s) => s.title))

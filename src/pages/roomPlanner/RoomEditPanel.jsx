@@ -24,12 +24,12 @@ export function RoomEditPanel() {
 
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Chiều cao</span>
-        <button type="button" aria-label="Giảm chiều cao" onClick={() => resizeRoom({ height: round1(room.height - 0.1) })} className="rounded-control border border-border p-1 hover:bg-surface-alt">
-          <Minus size={14} />
+        <button type="button" aria-label="Giảm chiều cao" onClick={() => resizeRoom({ height: round1(room.height - 0.1) })} className="rounded-control border border-border p-1 hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Minus size={14} aria-hidden="true" />
         </button>
         <span className="w-10 text-center tabular-nums">{round1(room.height)}m</span>
-        <button type="button" aria-label="Tăng chiều cao" onClick={() => resizeRoom({ height: round1(room.height + 0.1) })} className="rounded-control border border-border p-1 hover:bg-surface-alt">
-          <Plus size={14} />
+        <button type="button" aria-label="Tăng chiều cao" onClick={() => resizeRoom({ height: round1(room.height + 0.1) })} className="rounded-control border border-border p-1 hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Plus size={14} aria-hidden="true" />
         </button>
       </div>
 

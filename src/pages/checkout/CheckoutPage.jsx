@@ -60,13 +60,13 @@ function voucherFailureMessage(error) {
 
 function orderFailureMessage(error) {
   if (error?.code === 'NETWORK_ERROR') {
-    return 'Kết nối bị gián đoạn. Chưa thể xác định đơn đã được tạo hay chưa. Khai báo đã gửi được giữ nguyên để bạn thử lại an toàn.'
+    return 'Kết nối bị gián đoạn. Chưa thể xác định đơn đã được tạo hay chưa. Thông tin đặt hàng được giữ nguyên để bạn thử lại an toàn.'
   }
   if (error?.code === 'STAFF_CANNOT_PURCHASE') {
     return 'Tài khoản này không thể đặt hàng. Vui lòng dùng tài khoản khách hàng.'
   }
 
-  return 'Chưa thể tạo đơn hàng. Không có thanh toán nào được xác nhận; hãy kiểm tra khai báo và thử lại.'
+  return 'Chưa thể tạo đơn hàng. Không có thanh toán nào được xác nhận; hãy kiểm tra thông tin và thử lại.'
 }
 
 function paymentSessionFailureMessage(error) {
@@ -161,10 +161,10 @@ function CheckoutLoading() {
   return (
     <CheckoutShell>
       <p className="text-sm text-muted-foreground">Thanh toán</p>
-      <div role="status" className="mt-8 border-y-2 border-foreground/25 py-8" aria-label="Đang chuẩn bị khai báo đặt hàng">
+      <div role="status" className="mt-8 border-y-2 border-foreground/25 py-8" aria-label="Đang chuẩn bị đơn hàng">
         <div className="h-24 max-w-3xl bg-unbuilt/35" />
         <div className="mt-7 h-16 max-w-2xl bg-unbuilt/20" />
-        <span className="sr-only">Đang chuẩn bị khai báo đặt hàng…</span>
+        <span className="sr-only">Đang chuẩn bị đơn hàng…</span>
       </div>
     </CheckoutShell>
   )
@@ -189,9 +189,9 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
     <section aria-labelledby="checkout-transaction-heading" data-testid="checkout-transaction-evidence">
       <div className="flex flex-col gap-2 border-b-2 border-foreground pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">Khai báo đang đề nghị</p>
-          <h2 id="checkout-transaction-heading" className="mt-1 font-display text-[clamp(1.65rem,3vw,2.35rem)] leading-tight text-foreground">
-            Những gì đơn hàng sẽ ghi nhận
+          <p className="text-sm text-muted-foreground">Đơn hàng của bạn</p>
+          <h2 id="checkout-transaction-heading" className="mt-1  text-[clamp(1.65rem,3vw,2.35rem)] leading-tight text-foreground">
+            Sản phẩm bạn đã chọn
           </h2>
         </div>
         <p className="shrink-0 text-sm text-muted-foreground">{totalQuantity} sản phẩm</p>
@@ -216,7 +216,7 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
                   className="rounded-none"
                 />
                 <div className="min-w-0">
-                  <p className="font-display text-lg leading-snug text-foreground sm:text-xl">{name}</p>
+                  <p className="text-lg font-medium leading-snug text-foreground sm:text-xl">{name}</p>
                   {detail && <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{detail}</p>}
                   {attributes.length > 0 && (
                     <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -233,14 +233,14 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
                   </p>
                 </div>
                 <div className="col-start-2 min-w-0 sm:col-start-3 sm:row-start-1 sm:text-right">
-                  <p className="text-xs text-muted-foreground">Hệ quả dòng</p>
+                  <p className="text-xs text-muted-foreground">Tạm tính</p>
                   <p className="mt-1 font-medium tabular-nums text-foreground">{formatPrice(item.subtotal)}</p>
                 </div>
               </div>
               {(itemStockShortfall || hasCreationConflict) && (
                 <FactStatus className="mt-4">
                   {itemStockShortfall
-                    ? `Số lượng ${item.quantity} hiện vượt mức kho quan sát được (${itemStockShortfall.available}). Chưa có hàng nào được giữ.`
+                    ? `Bạn đã chọn ${item.quantity}, nhưng số lượng hiện có là ${itemStockShortfall.available}. Chưa có sản phẩm nào được giữ.`
                     : 'Kho đã thay đổi khi tạo đơn. Dòng sản phẩm này cần được điều chỉnh trong giỏ hàng.'}
                 </FactStatus>
               )}
@@ -251,12 +251,12 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
 
       <div className="border-t-2 border-foreground py-5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-8">
         <div>
-          <p className="text-sm text-muted-foreground">Hệ quả hàng hóa hiện tại</p>
+          <p className="text-sm text-muted-foreground">Tổng thanh toán</p>
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
             Giá trị từ Cart đã tải gần nhất; chưa phải xác nhận thanh toán hay số tiền cuối cùng có phí chưa được cung cấp.
           </p>
         </div>
-        <p className="mt-4 font-display text-[clamp(1.7rem,3.2vw,2.4rem)] tabular-nums text-foreground sm:mt-0">
+        <p className="mt-4  text-[clamp(1.7rem,3.2vw,2.4rem)] tabular-nums text-foreground sm:mt-0">
           {formatPrice(goodsTotal)}
         </p>
       </div>
@@ -291,7 +291,7 @@ function AddressClause({
           <p className="font-medium text-foreground">{selectedAddress?.recipient_name} · {selectedAddress?.phone}</p>
           <p className="mt-1 break-words text-muted-foreground">{addressText(selectedAddress)}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Đang chọn; chỉ thành snapshot sau khi tạo đơn.
+            Địa chỉ này sẽ được dùng cho đơn hàng của bạn.
           </p>
         </div>
         {!editing && (
@@ -461,8 +461,8 @@ function VoucherClause({
                 <dd className="tabular-nums text-foreground">-{formatPrice(result.discount_amount)}</dd>
               </div>
               <div className="mt-3 flex items-baseline justify-between gap-6 border-t border-border/70 pt-3">
-                <dt className="text-foreground">Hệ quả xem trước</dt>
-                <dd className="font-display text-xl tabular-nums text-foreground">{formatPrice(result.final_total)}</dd>
+                <dt className="text-foreground">Giảm giá dự kiến</dt>
+                <dd className="text-xl font-semibold tabular-nums text-foreground">{formatPrice(result.final_total)}</dd>
               </div>
             </dl>
           )}
@@ -494,7 +494,7 @@ function CreatedOrderEvidence({ order }) {
       {order?.total != null && (
         <div className="mt-4 flex items-baseline justify-between gap-6 border-t border-foreground pt-4">
           <span className="text-sm text-muted-foreground">Tổng trên đơn đã tạo</span>
-          <span className="font-display text-2xl tabular-nums text-foreground">{formatPrice(order.total)}</span>
+          <span className="text-2xl font-semibold tabular-nums text-foreground">{formatPrice(order.total)}</span>
         </div>
       )}
     </div>
@@ -762,7 +762,7 @@ export function CheckoutPage() {
         <BackLink to="/cart">Quay lại giỏ hàng</BackLink>
         <h1 className="mt-4 font-display text-[clamp(1.9rem,4vw,2.75rem)] text-foreground">Thanh toán</h1>
         <LoadErrorState
-          title="Chưa thể chuẩn bị khai báo đặt hàng"
+          title="Chưa thể chuẩn bị đơn hàng"
           description="Chưa tải đủ giỏ hàng và địa chỉ. Chưa có đơn hay phiên thanh toán nào được tạo."
           onRetry={() => {
             if (cartUnavailable) cartQuery.refetch()
@@ -784,7 +784,7 @@ export function CheckoutPage() {
           </Link>
         )}
       >
-        Giỏ hàng đang trống. Chưa có khai báo nào để tạo thành đơn hàng.
+        Giỏ hàng đang trống. Hãy chọn sản phẩm trước khi thanh toán.
       </CheckoutBoundary>
     )
   }
@@ -795,7 +795,7 @@ export function CheckoutPage() {
         icon={MapPin}
         action={<Button type="button" onClick={openCreateAddress} className="mt-6">Thêm địa chỉ</Button>}
       >
-        Chưa có địa chỉ giao hàng để đưa vào khai báo. Thêm một địa chỉ trước khi tạo đơn.
+        Bạn chưa có địa chỉ giao hàng. Hãy thêm địa chỉ trước khi tạo đơn.
         <AddressFormModal open={addressModalOpen} onOpenChange={setAddressModalOpen} address={editingAddress} />
       </CheckoutBoundary>
     )
@@ -939,7 +939,7 @@ export function CheckoutPage() {
     <CheckoutShell>
       <BackLink to="/cart">Quay lại giỏ hàng</BackLink>
       <header className="mt-5 max-w-3xl">
-        <h1 className="text-lg font-medium text-foreground">Khai báo đặt hàng</h1>
+        <h1 className="text-lg font-medium text-foreground">Đơn hàng của bạn</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Xem lại đúng giao dịch và những gì còn có thể sửa trước khi tạo đơn.
         </p>
@@ -947,7 +947,7 @@ export function CheckoutPage() {
 
       {hasBackgroundError && (
         <LoadErrorState
-          title="Chưa cập nhật được khai báo mới nhất"
+          title="Chưa cập nhật được đơn hàng mới nhất"
           description="Bạn đang xem dữ liệu đã tải trước đó. Tạo đơn bị khóa cho tới khi Cart và địa chỉ được cập nhật lại."
           onRetry={() => {
             if (cartQuery.isError) cartQuery.refetch()
@@ -1019,21 +1019,21 @@ export function CheckoutPage() {
 
         <section aria-labelledby="checkout-certainty-heading" className="mt-4 max-w-5xl border-t-2 border-foreground pt-5">
           <div className="max-w-3xl">
-            <h2 id="checkout-certainty-heading" className="font-display text-xl text-foreground">Trước khi tạo đơn hàng</h2>
+            <h2 id="checkout-certainty-heading" className="text-xl font-semibold text-foreground">Trước khi tạo đơn hàng</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Chưa có phương thức/phí giao hàng hoặc thuế. Số đang thấy chỉ là hệ quả hàng hóa hay voucher xem trước. “Đặt hàng” tạo đơn; PayOS xác nhận thanh toán sau đó, còn COD ghi nhận đơn ở trạng thái xử lý.
+              Phí giao hàng và thuế chưa được cung cấp. Số tiền đang hiển thị gồm sản phẩm và mã giảm giá dự kiến. Với PayOS, thanh toán được xác nhận ở bước tiếp theo; với COD, đơn hàng được tiếp nhận để xử lý.
             </p>
           </div>
 
           {createOrder.isPending && (
             <FactStatus role="status" className="mt-5">
-              Đang tạo đơn từ đúng địa chỉ, phương thức và voucher hiển thị trong khai báo đã khóa. Các điều khoản không thể đổi trong lúc này.
+              Đang tạo đơn với địa chỉ, phương thức thanh toán và mã giảm giá bạn vừa kiểm tra. Bạn chưa thể thay đổi thông tin trong lúc này.
             </FactStatus>
           )}
 
           {stockBlocked && (
             <FactStatus className="mt-5">
-              Một số sản phẩm vượt mức kho hiện quan sát được. Chưa có hàng nào được giữ.{' '}
+              Một số sản phẩm vượt quá số lượng hiện có. Chưa có sản phẩm nào được giữ.{' '}
               <Link to="/cart" className="underline decoration-border-strong underline-offset-4">Quay lại giỏ hàng để điều chỉnh.</Link>
             </FactStatus>
           )}
@@ -1054,7 +1054,7 @@ export function CheckoutPage() {
               {createOrder.isPending
                 ? 'Đang tạo đơn…'
                 : orderUncertain
-                  ? 'Thử xác nhận lại khai báo này'
+                  ? 'Thử đặt lại đơn này'
                   : 'Đặt hàng'}
             </Button>
             {orderUncertain && declarationLocked && (

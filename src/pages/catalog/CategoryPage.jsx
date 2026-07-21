@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
-import { Spinner } from '../../components/Spinner'
+import { CatalogSkeleton } from '../../components/LoadingStates'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { useCategory, useCategories, useInfiniteProducts } from '../../features/catalog/hooks'
 import { Breadcrumb } from '../../components/Breadcrumb'
 import { findCategoryPath } from '../../lib/categoryPath'
-import { DiscoveryLens } from './DiscoveryLens'
 import { DiscoverProductUnit } from './DiscoverProductUnit'
+import { readCatalogUrlState, writeCatalogUrlState } from '../../lib/catalogUrlState'
+import { CatalogFilterDrawer, CatalogFilterFields } from './CatalogFilterDrawer'
+import { FeedbackState } from '../../components/FeedbackState'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Mặc định' },
@@ -31,15 +33,11 @@ const PRICE_RANGES = [
 export function CategoryPage() {
   const { categorySlug } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const isAll = categorySlug === 'all'
-
-  const [search, setSearch] = useState('')
-  const [priceKey, setPriceKey] = useState('')
-  const [sort, setSort] = useState('')
+  const { search, price: priceKey, sort } = readCatalogUrlState(searchParams)
   const [lensOpen, setLensOpen] = useState(false)
-  const [heldProductId, setHeldProductId] = useState(null)
   // Remount the internally controlled search input when a constraint is cleared.
-  const [resetKey, setResetKey] = useState(0)
 
   const categoryQuery = useCategory(isAll ? undefined : categorySlug)
   const category = categoryQuery.data?.data
@@ -86,35 +84,24 @@ export function CategoryPage() {
   )
   const hasProductData = Boolean(productsQuery.data)
 
-  useEffect(() => {
-    setSearch('')
-    setPriceKey('')
-    setSort('')
-    setLensOpen(false)
-    setHeldProductId(null)
-    setResetKey((key) => key + 1)
-  }, [categorySlug])
-
-  useEffect(() => {
-    if (heldProductId == null) return
-    if (!products.some((product) => product.id === heldProductId)) setHeldProductId(null)
-  }, [heldProductId, products])
+  const updateUrlState = (updates) => setSearchParams(writeCatalogUrlState(searchParams, updates))
+  const setSearch = (value) => updateUrlState({ search: value })
+  const setPriceKey = (value) => updateUrlState({ price: value })
+  const setSort = (value) => updateUrlState({ sort: value })
 
   const clearAll = () => {
-    setSearch('')
-    setPriceKey('')
-    setSort('')
-    setHeldProductId(null)
-    setResetKey((key) => key + 1)
+    setSearchParams(writeCatalogUrlState(searchParams, { search: '', price: '', sort: '' }))
   }
 
   const clearSearch = () => {
     setSearch('')
-    setResetKey((key) => key + 1)
   }
 
   const currentCategoryValue = isAll ? 'all' : categorySlug
-  const handleCategoryChange = (value) => navigate(value === 'all' ? '/c/all' : `/c/${value}`)
+  const handleCategoryChange = (value) => {
+    const query = searchParams.toString()
+    navigate(`${value === 'all' ? '/c/all' : `/c/${value}`}${query ? `?${query}` : ''}`)
+  }
   const sortLabel = SORT_OPTIONS.find((option) => option.value === sort)?.label
   const hasCategoryFallback =
     !isAll && !flatCategories.some((item) => item.slug === categorySlug) && categorySlug
@@ -135,7 +122,7 @@ export function CategoryPage() {
     ? 'Đang mở các khả năng…'
     : productsQuery.isError && !hasProductData
       ? 'Chưa tải được sản phẩm'
-      : `${products.length}${productsQuery.hasNextPage ? '+' : ''} sản phẩm`
+      : productsQuery.hasNextPage ? `${products.length} sản phẩm đã tải` : `${products.length} sản phẩm`
 
   const pageTitle = isAll ? 'Tất cả sản phẩm' : (category?.name ?? 'Danh mục')
 
@@ -146,7 +133,7 @@ export function CategoryPage() {
           <div className="mb-4 hidden sm:block">
             <Breadcrumb items={breadcrumbItems} />
           </div>
-          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-ink/55">Khám phá</p>
+          <p className="text-sm font-medium text-ink/55">Khám phá</p>
           <h1 className="mt-1.5 font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-ink">
             {pageTitle}
           </h1>
@@ -194,27 +181,13 @@ export function CategoryPage() {
           />
         )}
 
-        <DiscoveryLens
-          open={lensOpen}
-          onToggle={() => setLensOpen((current) => !current)}
-          resultLabel={resultLabel}
-          activeConstraints={activeConstraints}
-          onClearAll={clearAll}
-          resetKey={resetKey}
-          onSearchChange={setSearch}
-          currentCategoryValue={currentCategoryValue}
-          onCategoryChange={handleCategoryChange}
-          categories={flatCategories}
-          categoryFallback={
-            hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null
-          }
-          priceKey={priceKey}
-          onPriceChange={setPriceKey}
-          priceOptions={PRICE_RANGES}
-          sort={sort}
-          onSortChange={setSort}
-          sortOptions={SORT_OPTIONS}
-        />
+        <div className="mt-7 flex items-center justify-between gap-4 border-y border-unbuilt py-3"><p role="status" aria-live="polite" className="text-sm text-ink/65">{resultLabel}</p><CatalogFilterDrawer open={lensOpen} onOpenChange={setLensOpen} activeCount={activeConstraints.length}><CatalogFilterFields search={search} onSearchChange={setSearch} currentCategoryValue={currentCategoryValue} onCategoryChange={handleCategoryChange} categories={flatCategories} categoryFallback={hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null} priceKey={priceKey} onPriceChange={setPriceKey} priceOptions={PRICE_RANGES} sort={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} /></CatalogFilterDrawer></div>
+
+        {activeConstraints.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-2">{activeConstraints.map((constraint) => <button key={constraint.key} type="button" aria-label={`Bỏ lọc ${constraint.label}`} onClick={constraint.onRemove} className="rounded-full border border-unbuilt px-3 py-1 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{constraint.label} <span aria-hidden="true">×</span></button>)}<button type="button" onClick={clearAll} className="text-xs text-ink/65 underline underline-offset-4">Xóa tất cả</button></div>}
+
+        <div className="mt-6 grid items-start gap-8 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
+          <aside aria-label="Lọc và sắp xếp sản phẩm" className="sticky top-28 hidden md:block"><CatalogFilterFields search={search} onSearchChange={setSearch} currentCategoryValue={currentCategoryValue} onCategoryChange={handleCategoryChange} categories={flatCategories} categoryFallback={hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null} priceKey={priceKey} onPriceChange={setPriceKey} priceOptions={PRICE_RANGES} sort={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} /></aside>
+          <div className="min-w-0">
 
         {productsQuery.isError && hasProductData && (
           <LoadErrorState
@@ -229,9 +202,7 @@ export function CategoryPage() {
         )}
 
         {productsQuery.isLoading ? (
-          <div className="mt-16 flex justify-center">
-            <Spinner />
-          </div>
+          <CatalogSkeleton />
         ) : productsQuery.isError && !hasProductData ? (
           <LoadErrorState
             title="Chưa thể tải sản phẩm"
@@ -241,14 +212,7 @@ export function CategoryPage() {
             className="mt-10"
           />
         ) : products.length === 0 ? (
-          <section className="mt-10 max-w-md border-l-2 border-unbuilt pl-5">
-            <h2 className="font-display text-xl text-ink">Chưa có khả năng nào trong trường nhìn này.</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink/65">
-              {activeConstraints.length > 0
-                ? 'Thử nới một điều kiện để mở lại trường sản phẩm.'
-                : 'Danh mục này hiện chưa có sản phẩm để khám phá.'}
-            </p>
-            {activeConstraints.length > 0 ? (
+          <FeedbackState title="Chưa tìm thấy sản phẩm phù hợp" description={activeConstraints.length > 0 ? 'Thử nới một điều kiện để xem thêm lựa chọn.' : 'Danh mục này hiện chưa có sản phẩm.'} action={activeConstraints.length > 0 ? (
               <button
                 type="button"
                 onClick={clearAll}
@@ -263,27 +227,14 @@ export function CategoryPage() {
               >
                 Xem tất cả sản phẩm
               </Link>
-            )}
-          </section>
+            )} />
         ) : (
           <section
             aria-label="Trường sản phẩm"
-            className="mt-5 grid grid-cols-2 gap-x-2 gap-y-9 sm:mt-6 sm:gap-x-3 sm:gap-y-12 md:grid-cols-3"
+            className="grid grid-cols-2 gap-x-3 gap-y-10 lg:grid-cols-3 xl:grid-cols-4"
           >
             {products.map((product) => (
-              <DiscoverProductUnit
-                key={product.id}
-                product={product}
-                held={heldProductId === product.id}
-                fieldHasHeld={heldProductId != null}
-                onHold={() => setHeldProductId(product.id)}
-                onRelease={() =>
-                  setHeldProductId((current) => (current === product.id ? null : current))
-                }
-                onToggle={() =>
-                  setHeldProductId((current) => (current === product.id ? null : product.id))
-                }
-              />
+              <DiscoverProductUnit key={product.id} product={product} />
             ))}
           </section>
         )}
@@ -299,6 +250,8 @@ export function CategoryPage() {
             </Button>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   )

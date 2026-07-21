@@ -26,7 +26,7 @@ export function CartDrawer() {
             subtree to document.body, so it can't inherit the app-tree scope. */}
         <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex h-full w-full max-w-md flex-col bg-surface text-ink shadow-card">
           <div className="flex items-center justify-between border-b border-border px-6 py-5">
-            <Dialog.Title className="font-display text-xl text-foreground">Giỏ hàng</Dialog.Title>
+            <Dialog.Title className="text-xl font-semibold text-foreground">Giỏ hàng</Dialog.Title>
             <Dialog.Description className="sr-only">
               Danh sách sản phẩm trong giỏ hàng của bạn.
             </Dialog.Description>

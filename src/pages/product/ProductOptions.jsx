@@ -30,7 +30,7 @@ export function ProductOptions({ options, variants, selected, onSelect }) {
     <div className="flex flex-col gap-5">
       {options.map((option) => (
         <div key={option.name}>
-          <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{option.name}</p>
+          <p className="mb-2 text-sm font-medium text-muted-foreground">{option.name}</p>
           <div className="flex flex-wrap gap-2">
             {option.values.map((v) => {
               const active = selected[option.name] === v.label
@@ -41,10 +41,9 @@ export function ProductOptions({ options, variants, selected, onSelect }) {
                   type="button"
                   aria-label={v.label}
                   aria-pressed={active}
-                  title={v.label}
                   disabled={!available}
                   onClick={() => onSelect(option.name, v.label)}
-                  className={`h-9 w-9 rounded-full border-2 transition disabled:cursor-not-allowed disabled:opacity-30 ${
+                  className={`h-11 w-11 rounded-full border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30 ${
                     active ? 'border-foreground ring-2 ring-ring ring-offset-2' : 'border-border'
                   }`}
                   style={{ backgroundColor: v.hex }}

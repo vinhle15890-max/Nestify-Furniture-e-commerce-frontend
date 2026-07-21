@@ -8,10 +8,12 @@ import { useAuthStore } from '../../store/authStore'
 import * as authApi from '../../features/auth/api'
 import * as ordersApi from '../../features/orders/api'
 import * as addressesApi from '../../features/addresses/api'
+import * as roomPlannerApi from '../../features/roomPlanner/api'
 
 vi.mock('../../features/auth/api')
 vi.mock('../../features/orders/api')
 vi.mock('../../features/addresses/api')
+vi.mock('../../features/roomPlanner/api')
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -30,6 +32,7 @@ describe('AccountPage', () => {
     authApi.logout.mockResolvedValue(undefined)
     ordersApi.getOrders.mockResolvedValue({ data: [] })
     addressesApi.getAddresses.mockResolvedValue({ data: [] })
+    roomPlannerApi.listScenes.mockResolvedValue({ data: [], meta: { pagination: { total: 0, page: 1, last_page: 1, per_page: 12 } } })
   })
 
   it('shows the profile fetched from GET /api/auth/me and syncs the auth store', async () => {

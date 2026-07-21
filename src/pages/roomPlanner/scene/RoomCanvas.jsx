@@ -6,6 +6,7 @@ import { RoomEditOverlay } from './RoomEditOverlay'
 import { useEditorStore } from '../../../features/roomPlanner/editorStore'
 import { findOverlaps } from '../../../features/roomPlanner/collision'
 import { registerPlannerCanvas, unregisterPlannerCanvas } from '../../../features/roomPlanner/canvasCapture'
+import { DimensionComparisonFallback } from '../DimensionComparisonFallback'
 
 const observeModelError = (error) => console.error('Planner furniture model failed to render', error)
 
@@ -62,6 +63,7 @@ export function RoomCanvas() {
   return (
     <SceneStage
       room={room}
+      fallback={<DimensionComparisonFallback room={room} items={items} />}
       orbitEnabled={orbitEnabled}
       topDown={topDown}
       onRendererReady={(gl) => { canvasElRef.current = gl.domElement; registerPlannerCanvas(gl.domElement) }}

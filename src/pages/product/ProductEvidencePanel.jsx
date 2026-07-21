@@ -1,16 +1,18 @@
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { describeModelFidelity } from '../../features/roomPlanner/modelFidelity'
 
 function EvidenceRow({ label, children }) {
   return (
     <div className="grid grid-cols-[minmax(4.75rem,0.55fr)_minmax(0,1.45fr)] gap-3 border-t border-unbuilt/70 py-2.5">
-      <dt className="text-xs font-medium uppercase tracking-[0.14em] text-ink/55">{label}</dt>
+      <dt className="text-sm font-medium text-ink/55">{label}</dt>
       <dd className="text-sm leading-6 text-ink">{children}</dd>
     </div>
   )
 }
 
 export function ProductEvidencePanel({ product, selectedVariant, activeMedia, outOfStock }) {
+  const modelFidelity = describeModelFidelity(selectedVariant)
   const variantAttributes = Object.entries(selectedVariant?.attributes ?? {})
   const mediaMatchesVariant = Boolean(
     activeMedia?.variant_id != null && selectedVariant?.id === activeMedia.variant_id,
@@ -30,7 +32,7 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
       aria-labelledby="measured-suitability-title"
       className="border-t-2 border-emerging/45 pt-7 lg:border-l-2 lg:border-t-0 lg:pl-9 lg:pt-1 xl:pl-12"
     >
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerging">
+      <p className="text-sm font-medium text-emerging">
         Sự phù hợp đã biết
       </p>
       <h2
@@ -57,6 +59,9 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
             </span>
           )}
         </EvidenceRow>
+        <EvidenceRow label="Mô hình 3D">
+          {selectedVariant ? modelFidelity.text : 'Cần chọn phiên bản để kiểm tra.'}
+        </EvidenceRow>
         <EvidenceRow label="Khả dụng">
           {selectedVariant ? (outOfStock ? 'Tạm hết hàng' : 'Có thể đặt hàng') : 'Cần chọn phiên bản'}
         </EvidenceRow>
@@ -79,7 +84,7 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
         {plannerHref ? (
           <Link
             to={plannerHref}
-            className="inline-flex items-center gap-3 rounded-control bg-ink px-5 py-3 text-sm font-medium text-canvas transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
+            className="inline-flex items-center gap-3 rounded-control border border-ink px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-unbuilt/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
           >
             Thử trong Room Planner
             <ArrowRight size={16} aria-hidden="true" />

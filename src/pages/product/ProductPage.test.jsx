@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -121,6 +121,38 @@ describe('ProductPage', () => {
     expect(await screen.findByText('Rất hài lòng với sản phẩm')).toBeInTheDocument()
   })
 
+  it('keeps product-specific trust facts beside the decisions they support', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        attributes: {
+          'Thời gian giao hàng': 'Giao trong 3–5 ngày làm việc',
+          'Chính sách đổi trả': 'Đổi trong 14 ngày nếu sản phẩm chưa sử dụng',
+          'Lắp ráp': 'Có đội ngũ lắp ráp khi giao',
+          'Bảo hành': '24 tháng',
+        },
+        variants: productResponse.data.variants.map((variant, index) => ({
+          ...variant,
+          model_3d_url: index === 0 ? 'https://example.com/sofa.glb' : null,
+        })),
+        media: [
+          { ...productResponse.data.media[0], variant_id: 1 },
+          productResponse.data.media[1],
+        ],
+      },
+    })
+
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getAllByText('Giao trong 3–5 ngày làm việc')).toHaveLength(2)
+    expect(screen.getByText('Đổi trong 14 ngày nếu sản phẩm chưa sử dụng')).toBeInTheDocument()
+    expect(screen.getByText('Có đội ngũ lắp ráp khi giao')).toBeInTheDocument()
+    expect(screen.getByText('24 tháng')).toBeInTheDocument()
+    expect(screen.getByText('Mô hình chưa được xác nhận đúng tỉ lệ thực.')).toBeInTheDocument()
+    expect(screen.getByText('Bộ ảnh có hình được gắn đúng với phiên bản này.')).toBeInTheDocument()
+  })
+
   it('sets SEO document title, meta description, and Product JSON-LD', async () => {
     catalogApi.getProduct.mockResolvedValue({
       data: {
@@ -228,6 +260,13 @@ describe('ProductPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Xám' }))
     expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/xam.jpg')
     expect(screen.getAllByRole('button', { name: /Xem ảnh/ })).toHaveLength(2)
+  })
+
+  it('exposes each gallery thumbnail as one named control with decorative nested media', async () => {
+    renderPage()
+    const thumbnail = await screen.findByRole('button', { name: 'Xem ảnh 1' })
+    expect(thumbnail).not.toHaveAttribute('title')
+    expect(within(thumbnail).queryByRole('img')).not.toBeInTheDocument()
   })
 
   it('identifies media that is verified for the selected variant', async () => {

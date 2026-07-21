@@ -1,36 +1,29 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Package, Heart, ChevronRight, ShoppingBag, Box } from 'lucide-react'
+import { Box, ChevronRight, Heart, MapPin, Package, UserRound } from 'lucide-react'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
-import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
-import { ProductThumb } from '../../components/ProductThumb'
 import { useLogout, useMe } from '../../features/auth/hooks'
 import { useOrders } from '../../features/orders/hooks'
-import { useAddresses } from '../../features/addresses/hooks'
+import { useScenes } from '../../features/roomPlanner/hooks'
 import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
 import { useAuthStore } from '../../store/authStore'
-import { formatPrice, formatDate } from '../../lib/format'
+import { formatDate, formatPrice, numericClassName } from '../../lib/format'
 import { ProfileForm } from './ProfileForm'
+import { AccountSkeleton } from '../../components/LoadingStates'
 
-const navItems = [
-  { to: '/account/rooms', label: 'Phòng của tôi', icon: Box },
-  { to: '/account/addresses', label: 'Sổ địa chỉ', icon: MapPin },
-  { to: '/orders', label: 'Đơn hàng của tôi', icon: Package },
-  { to: '/wishlist', label: 'Sản phẩm yêu thích', icon: Heart },
+const secondaryLinks = [
+  { to: '/account/addresses', label: 'Địa chỉ giao hàng', icon: MapPin },
+  { to: '/orders', label: 'Tất cả đơn hàng', icon: Package },
 ]
-
-const IN_PROGRESS_STATUSES = ['pending_payment', 'paid', 'processing', 'shipped']
-
-const cardClass = 'rounded-card border border-border bg-surface p-6'
 
 export function AccountPage() {
   const storedUser = useAuthStore((state) => state.user)
   const setUser = useAuthStore((state) => state.setUser)
   const meQuery = useMe()
   const ordersQuery = useOrders()
-  const addressesQuery = useAddresses()
+  const scenesQuery = useScenes(1)
   const logout = useLogout()
 
   useEffect(() => {
@@ -38,172 +31,86 @@ export function AccountPage() {
   }, [meQuery.data, setUser])
 
   const user = meQuery.data?.data ?? storedUser
-
   const orders = ordersQuery.data?.data ?? []
-  const addresses = addressesQuery.data?.data ?? []
-  const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0]
-  const recentOrders = orders.slice(0, 3)
-
-  const stats = [
-    { label: 'Tổng đơn hàng', value: ordersQuery.isError && !ordersQuery.data ? '—' : orders.length },
-    { label: 'Đang xử lý', value: ordersQuery.isError && !ordersQuery.data ? '—' : orders.filter((order) => IN_PROGRESS_STATUSES.includes(order.status)).length },
-    { label: 'Đã giao', value: ordersQuery.isError && !ordersQuery.data ? '—' : orders.filter((order) => order.status === 'delivered').length },
-  ]
-
-  const initial = (user?.name?.trim()?.[0] ?? '?').toUpperCase()
+  const currentOrder = orders.find((order) => ['pending_payment', 'paid', 'processing', 'shipped'].includes(order.status)) ?? orders[0]
+  const rooms = scenesQuery.data?.data ?? []
+  const latestRoom = rooms[0]
+  const orderStatus = currentOrder
+    ? (ORDER_STATUS_LABELS[currentOrder.status] ?? { label: currentOrder.status, tone: 'neutral' })
+    : null
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
-    <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground font-display text-2xl text-surface">
-            {initial}
-          </span>
+      <div className="mx-auto max-w-4xl px-6 py-16 md:py-20 lg:px-10">
+        {meQuery.isLoading && !user ? <AccountSkeleton /> : <>
+        <header className="flex flex-wrap items-start justify-between gap-5">
           <div>
-            <h1 className="font-display text-[clamp(1.6rem,3vw,2.4rem)] leading-tight text-foreground">
-              Xin chào, {user?.name ?? 'bạn'}
-            </h1>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
-          </div>
-        </div>
-        <Button variant="secondary" onClick={() => logout.mutate()}>
-          Đăng xuất
-        </Button>
-      </div>
-
-      {meQuery.isLoading && !user ? (
-        <div className="mt-10">
-          <Spinner label="Đang tải thông tin tài khoản..." />
-        </div>
-      ) : meQuery.isError && !user ? (
-        <LoadErrorState className="mt-10" title="Chưa thể tải thông tin tài khoản" description="Vui lòng thử lại để tiếp tục quản lý tài khoản." onRetry={meQuery.refetch} isRetrying={meQuery.isFetching} />
-      ) : (
-        <>
-          {meQuery.isError && user && (
-            <LoadErrorState className="mt-8" compact background title="Thông tin tài khoản có thể chưa mới nhất" description="Bạn vẫn có thể sử dụng dữ liệu đã lưu hoặc thử tải lại." onRetry={meQuery.refetch} isRetrying={meQuery.isFetching} />
-          )}
-          <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="eyebrow">Xác thực email</span>
-            <Badge tone={user?.email_verified_at ? 'in-stock' : 'out-of-stock'}>
-              {user?.email_verified_at ? 'Đã xác thực' : 'Chưa xác thực'}
-            </Badge>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {stats.map((stat) => (
-              <div key={stat.label} className={cardClass}>
-                <p className="font-display text-3xl text-foreground">{stat.value}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className={`mt-6 ${cardClass}`}>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-display text-xl text-foreground">Địa chỉ mặc định</h2>
-              <Link to="/account/addresses" className="text-sm text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent">
-                Quản lý
-              </Link>
+            <h1 className="font-display text-[clamp(1.8rem,3vw,2.5rem)] text-foreground">Xin chào, {user?.name ?? 'bạn'}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>{user?.email}</span>
+              <Badge tone={user?.email_verified_at ? 'in-stock' : 'out-of-stock'}>{user?.email_verified_at ? 'Đã xác thực' : 'Chưa xác thực'}</Badge>
             </div>
-            {addressesQuery.isError && !addressesQuery.data ? (
-              <LoadErrorState className="mt-4" compact title="Chưa thể tải địa chỉ mặc định" description="Địa chỉ của bạn chưa bị thay đổi. Hãy thử tải lại." onRetry={addressesQuery.refetch} isRetrying={addressesQuery.isFetching} />
-            ) : defaultAddress ? (
-              <div className="mt-3 text-sm">
-                <p className="font-medium text-foreground">
-                  {defaultAddress.recipient_name} · {defaultAddress.phone}
-                </p>
-                <p className="mt-1 text-muted-foreground">
-                  {[defaultAddress.address_line1, defaultAddress.address_line2, defaultAddress.city, defaultAddress.province]
-                    .filter(Boolean)
-                    .join(', ')}
-                </p>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted-foreground">
-                Bạn chưa có địa chỉ.{' '}
-                <Link to="/account/addresses" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
-                  Thêm địa chỉ
-                </Link>
-              </p>
-            )}
           </div>
+          <Button variant="secondary" onClick={() => logout.mutate()}>Đăng xuất</Button>
+        </header>
 
-          <div className={`mt-6 ${cardClass}`}>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-display text-xl text-foreground">Đơn hàng gần đây</h2>
-              <Link to="/orders" className="text-sm text-foreground underline decoration-accent underline-offset-4 transition-colors hover:text-accent">
-                Xem tất cả
-              </Link>
-            </div>
-            {ordersQuery.isError && !ordersQuery.data ? (
-              <LoadErrorState className="mt-4" compact title="Chưa thể tải đơn hàng" description="Số liệu và đơn hàng gần đây chưa thể hiển thị. Hãy thử tải lại." onRetry={ordersQuery.refetch} isRetrying={ordersQuery.isFetching} />
-            ) : recentOrders.length > 0 ? (
-              <ul className="mt-4 flex flex-col divide-y divide-border">
-                {recentOrders.map((order) => {
-                  const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
-                  const firstItem = order.items?.[0]
-                  return (
-                    <li key={order.id} className="first:pt-0 last:pb-0">
-                      <Link
-                        to={`/orders/${order.id}`}
-                        className="group flex items-center gap-4 py-3 transition-colors focus-visible:outline-none"
-                      >
-                        <ProductThumb
-                          src={firstItem?.variant_snapshot?.thumbnail}
-                          alt={firstItem?.variant_snapshot?.product_name}
-                          size="h-12 w-12"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-foreground group-hover:text-accent">Đơn hàng #{order.id}</p>
-                          <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
-                        </div>
-                        <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
-                        <p className="hidden shrink-0 font-medium text-foreground sm:block">{formatPrice(order.total)}</p>
-                        <ChevronRight size={16} className="shrink-0 text-border-strong transition-transform group-hover:translate-x-1" />
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <div className="mt-4 flex flex-col items-center py-6 text-center">
-                <ShoppingBag size={28} className="text-border-strong" />
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Bạn chưa có đơn hàng nào.{' '}
-                  <Link to="/c/all" className="text-foreground underline decoration-accent underline-offset-4 hover:text-accent">
-                    Mua sắm ngay
+        {meQuery.isError && !user ? (
+          <LoadErrorState className="mt-10" title="Chưa thể tải thông tin tài khoản" description="Hãy thử lại để tiếp tục." onRetry={meQuery.refetch} isRetrying={meQuery.isFetching} />
+        ) : (
+          <>
+            <section aria-labelledby="account-continue" className="mt-10 grid gap-5 md:grid-cols-[1.25fr_0.75fr]">
+              <div className="min-w-0 border-y-2 border-foreground py-7">
+                <h2 id="account-continue" className="text-xl font-semibold text-foreground">Tiếp tục không gian của bạn</h2>
+                {scenesQuery.isError && !scenesQuery.data ? (
+                  <LoadErrorState className="mt-5" compact title="Chưa thể tải phòng đã lưu" description="Các phòng của bạn vẫn được giữ nguyên." onRetry={scenesQuery.refetch} isRetrying={scenesQuery.isFetching} />
+                ) : latestRoom ? (
+                  <div className="mt-5 flex items-center gap-4">
+                    <div className="h-24 w-32 shrink-0 overflow-hidden rounded-control bg-unbuilt/35">
+                      {latestRoom.preview_url && <img src={latestRoom.preview_url} alt={`Ảnh phòng ${latestRoom.name}`} className="h-full w-full object-cover" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-medium text-foreground">{latestRoom.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Mở lại đúng nơi bạn đã dừng.</p>
+                      <Link to={`/room-planner/${latestRoom.id}`} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tiếp tục thiết kế <ChevronRight size={15} aria-hidden="true" /></Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-5"><p className="text-sm text-muted-foreground">Bạn chưa có phòng nào được lưu.</p><Link to="/room-planner" className="mt-3 inline-block text-sm font-medium text-foreground underline underline-offset-4">Tạo phòng đầu tiên</Link></div>
+                )}
+              </div>
+
+              <div className="border-y border-border py-7">
+                <h2 className="text-xl font-semibold text-foreground">Đơn hàng hiện tại</h2>
+                {currentOrder ? (
+                  <Link to={`/orders/${currentOrder.id}`} className="mt-5 block rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <div className="flex items-center justify-between gap-3"><span className="font-medium text-foreground">Đơn #{currentOrder.id}</span><Badge tone={orderStatus.tone}>{orderStatus.label}</Badge></div>
+                    <p className="mt-2 text-sm text-muted-foreground">{formatDate(currentOrder.created_at)}</p>
+                    <p className={`mt-3 font-semibold text-foreground ${numericClassName}`}>{formatPrice(currentOrder.total)}</p>
                   </Link>
-                </p>
+                ) : <p className="mt-5 text-sm text-muted-foreground">Bạn chưa có đơn hàng đang xử lý.</p>}
               </div>
-            )}
-          </div>
+            </section>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                className="group flex items-center justify-between gap-3 rounded-card border border-border bg-surface p-5 transition-colors duration-200 hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <span className="flex items-center gap-3">
-                  <Icon size={20} className="text-accent" />
-                  <span className="text-sm font-medium text-foreground">{label}</span>
-                </span>
-                <ChevronRight size={16} className="text-border-strong transition-transform duration-200 group-hover:translate-x-1" />
-              </Link>
-            ))}
-          </div>
+            <section aria-labelledby="saved-index-title" className="mt-10 border-t border-border pt-7">
+              <h2 id="saved-index-title" className="text-lg font-medium text-foreground">Những điều bạn đang giữ lại</h2>
+              <div className="mt-4 divide-y divide-unbuilt border-y border-unbuilt">
+                <Link to="/account/rooms" className="group flex items-center justify-between py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Box size={19} aria-hidden="true" /><span>Phòng đã lưu</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
+                <Link to="/wishlist" className="group flex items-center justify-between py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Heart size={19} aria-hidden="true" /><span>Sản phẩm yêu thích</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
+              </div>
+            </section>
 
-          {user && (
-            <div className={`mt-6 ${cardClass}`}>
-              <h2 className="mb-5 font-display text-xl text-foreground">Thông tin cá nhân</h2>
-              <ProfileForm user={user} />
-            </div>
-          )}
-        </>
-      )}
-    </div>
+            <nav aria-label="Quản lý tài khoản" className="mt-12">
+              <p className="text-sm text-muted-foreground">Thông tin tài khoản</p>
+              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
+                {secondaryLinks.map(({ to, label, icon: Icon }) => <Link key={to} to={to} className="inline-flex items-center gap-2 text-sm text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon size={16} aria-hidden="true" />{label}</Link>)}
+              </div>
+            </nav>
+
+            {user && <details className="mt-8 border-t border-border pt-6"><summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><UserRound size={17} aria-hidden="true" />Thông tin cá nhân</summary><div className="mt-6 max-w-2xl"><ProfileForm user={user} /></div></details>}
+          </>
+        )}
+        </>}
+      </div>
     </div>
   )
 }

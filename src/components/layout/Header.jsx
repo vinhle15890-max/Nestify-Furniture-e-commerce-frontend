@@ -6,6 +6,7 @@ import { useUiStore } from '../../store/uiStore'
 import { useCart } from '../../features/cart/hooks'
 import { isStaff } from '../../lib/roles'
 import { Logo } from '../Logo'
+import { GlobalSearch } from './GlobalSearch'
 
 const focusRing =
   'rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
@@ -53,12 +54,12 @@ export function Header() {
 
   return (
     <header className={headerClass}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5 lg:px-10">
+      <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-5 px-4 py-4 sm:px-6 lg:px-10">
         <Link to="/" aria-label="Nestify — trang chủ" className={`flex items-center ${focusRing}`}>
           <Logo className="h-10 w-auto" />
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav aria-label="Điều hướng chính" className="hidden items-center justify-center gap-7 md:flex">
           <NavLink to="/" className={navLinkClass} end>
             Trang chủ
           </NavLink>
@@ -66,7 +67,7 @@ export function Header() {
             Sản phẩm
           </NavLink>
           <NavLink to="/room-planner" className={navLinkClass}>
-            Thiết kế phòng 3D
+            Phòng của bạn
           </NavLink>
           {isAdmin && (
             <NavLink to="/admin" className={navLinkClass}>
@@ -75,7 +76,8 @@ export function Header() {
           )}
         </nav>
 
-        <div className={`flex items-center gap-4 ${tone}`}>
+        <div className={`flex items-center justify-end gap-3 ${tone}`}>
+          <div className="hidden lg:block"><GlobalSearch /></div>
           <button
             type="button"
             aria-label={cartCount > 0 ? `Giỏ hàng, ${cartCount} sản phẩm` : 'Giỏ hàng'}
@@ -112,6 +114,7 @@ export function Header() {
           <button
             type="button"
             aria-label="Mở menu"
+            aria-haspopup="dialog"
             className={`cursor-pointer ${interactive} ${focusRing} md:hidden`}
             onClick={toggleMobileNav}
           >

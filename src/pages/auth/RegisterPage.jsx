@@ -2,9 +2,10 @@ import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
 import { Input } from '../../components/Input'
+import { PasswordInput } from '../../components/auth/PasswordInput'
 import { Button } from '../../components/Button'
 import { useRegister } from '../../features/auth/hooks'
 import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
@@ -24,6 +25,7 @@ const schema = yup.object({
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const registerUser = useRegister()
   const [formError, setFormError] = useState(null)
   const formRef = useRef(null)
@@ -42,7 +44,8 @@ export function RegisterPage() {
     setFormError(null)
     try {
       await registerUser.mutateAsync(values)
-      navigate('/account', { replace: true })
+      const from = location.state?.from
+      navigate(from ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}` : '/account', { replace: true })
     } catch (error) {
       if (applyServerErrors(error, setError)) {
         focusFirstError(formRef.current)
@@ -56,7 +59,7 @@ export function RegisterPage() {
   return (
     <AuthLayout
       title="Đăng ký"
-      subtitle="Tạo tài khoản để bắt đầu mua sắm cùng Nestify."
+      subtitle="Lưu phòng, giữ lại lựa chọn và tiếp tục khi bạn sẵn sàng."
       footer={
         <p className="text-muted-foreground">
           Đã có tài khoản?{' '}
@@ -81,18 +84,17 @@ export function RegisterPage() {
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
+        <PasswordInput
           label="Mật khẩu"
           id="password"
-          type="password"
+          guidance="Dùng ít nhất 10 ký tự. Một cụm từ dài sẽ dễ nhớ và khó đoán hơn."
           autoComplete="new-password"
           error={errors.password?.message}
           {...register('password')}
         />
-        <Input
+        <PasswordInput
           label="Xác nhận mật khẩu"
           id="password_confirmation"
-          type="password"
           autoComplete="new-password"
           error={errors.password_confirmation?.message}
           {...register('password_confirmation')}

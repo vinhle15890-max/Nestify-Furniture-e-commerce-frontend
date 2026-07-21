@@ -12,6 +12,7 @@ import { VerifyEmailGate } from '../../components/VerifyEmailGate'
 import { formatPrice } from '../../lib/format'
 import { isStaff } from '../../lib/roles'
 import { stockShortfall, cartHasStockShortfall } from '../../lib/stock'
+import { FeedbackState } from '../../components/FeedbackState'
 
 const MAX_QUANTITY = 100
 
@@ -46,6 +47,16 @@ function attributeLabel(key) {
 
 function mutationMessage(error, fallback) {
   return error?.message || fallback
+}
+
+function groupCartItems(items) {
+  const groups = new Map()
+  items.forEach((item) => {
+    const key = item.room?.id ? `room-${item.room.id}` : 'individual'
+    if (!groups.has(key)) groups.set(key, { key, room: item.room ?? null, items: [] })
+    groups.get(key).items.push(item)
+  })
+  return [...groups.values()]
 }
 
 function CartBoundary({ title = 'Giỏ hàng', children, action }) {
@@ -236,7 +247,7 @@ function CartLineItem({
 
       <div className="border-l-2 border-foreground/25 py-5 pl-5 md:pl-7 md:text-right lg:py-6">
         <p className="text-sm text-muted-foreground">Thành tiền dòng</p>
-        <p className="mt-2 font-display text-xl tabular-nums text-foreground lg:text-2xl">
+        <p className="mt-2  text-xl tabular-nums text-foreground lg:text-2xl">
           {formatPrice(item.subtotal)}
         </p>
       </div>
@@ -349,6 +360,7 @@ export function CartPage() {
 
   const cart = data?.data
   const items = cart?.items ?? []
+  const itemGroups = groupCartItems(items)
   const checkoutBlocked = cartHasStockShortfall(items)
   const mutationPending = Object.keys(pendingQuantities).length > 0 || Object.keys(pendingRemovals).length > 0
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
@@ -495,22 +507,21 @@ export function CartPage() {
         )}
 
         {items.length === 0 ? (
-          <section className="mt-10 max-w-3xl border-t-2 border-foreground py-8">
-            <h2 className="font-display text-2xl text-foreground">Chưa có lựa chọn nào để xác nhận.</h2>
-            <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
-              Giỏ hàng đang trống. Bạn có thể quay lại danh sách sản phẩm để tiếp tục khám phá.
-            </p>
-            <Link
+          <FeedbackState className="mt-10 max-w-3xl" title="Giỏ hàng đang trống" description="Bạn có thể quay lại danh sách sản phẩm để tiếp tục khám phá." action={<Link
               to="/c/all"
               className="mt-6 inline-flex items-center gap-2 border-b-2 border-foreground pb-1 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             >
               Xem sản phẩm <ArrowRight size={16} />
-            </Link>
-          </section>
+            </Link>} />
         ) : (
-          <div className="mt-5 border-b-2 border-foreground/40">
-            <ul aria-label="Các lựa chọn trong giỏ hàng" className="space-y-2">
-              {items.map((item) => (
+          <div className="mt-5 space-y-10 border-b-2 border-foreground/40 pb-8">
+            {itemGroups.map((group) => <section key={group.key} aria-labelledby={`cart-group-${group.key}`}>
+              <div className="mb-3 flex items-center gap-4 border-b-2 border-foreground/40 pb-4">
+                {group.room?.preview_url && <img src={group.room.preview_url} alt={`Ảnh phòng ${group.room.name}`} className="h-20 w-28 shrink-0 object-cover" />}
+                <div><h2 id={`cart-group-${group.key}`} className="text-lg font-medium text-foreground">{group.room ? group.room.name : 'Sản phẩm chọn riêng'}</h2>{group.room && <p className="mt-1 text-sm text-muted-foreground">Các món được thêm cùng nhau từ phòng đã lưu này.</p>}</div>
+              </div>
+            <ul aria-label={group.room ? `Sản phẩm từ phòng ${group.room.name}` : 'Các lựa chọn riêng trong giỏ hàng'} className="space-y-2">
+              {group.items.map((item) => (
                 <CartLineItem
                   key={item.id}
                   item={item}
@@ -525,6 +536,7 @@ export function CartPage() {
                 />
               ))}
             </ul>
+            </section>)}
 
             <section
               aria-labelledby="cart-consequence-title"
@@ -541,7 +553,7 @@ export function CartPage() {
 
               <div className="border-l-2 border-foreground/25 py-5 pl-5 md:pl-7 md:text-right">
                 <p className="text-sm text-muted-foreground">Tổng tiền hàng</p>
-                <p className="mt-2 font-display text-2xl tabular-nums text-foreground lg:text-3xl">
+                <p className="mt-2  text-2xl tabular-nums text-foreground lg:text-3xl">
                   {formatPrice(cart.total)}
                 </p>
 

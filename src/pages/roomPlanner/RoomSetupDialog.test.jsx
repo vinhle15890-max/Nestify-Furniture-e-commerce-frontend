@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { RoomSetupDialog } from './RoomSetupDialog'
 
 describe('RoomSetupDialog', () => {
+  it('stacks dimension fields below the medium breakpoint and explains each axis', () => {
+    render(<RoomSetupDialog open onOpenChange={vi.fn()} initialRoom={{ width: 4, depth: 5, height: 2.8 }} onSubmit={vi.fn()} />)
+    expect(screen.getByTestId('room-dimension-fields')).toHaveClass('grid-cols-1', 'md:grid-cols-3')
+    expect(screen.getByText('Cách đo phòng')).toBeInTheDocument()
+  })
   it('submits positive dimensions', async () => {
     const onSubmit = vi.fn()
     render(<RoomSetupDialog open onOpenChange={() => {}} initialRoom={{ width: 4, depth: 5, height: 2.8 }} onSubmit={onSubmit} />)

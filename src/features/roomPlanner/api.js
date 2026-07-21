@@ -8,6 +8,10 @@ export function getScene(id) {
   return apiClient.get(`/room-scenes/${id}`)
 }
 
+export function reviewScene(id) {
+  return apiClient.get(`/room-scenes/${id}/review`)
+}
+
 export function deleteScene(id) {
   return apiClient.delete(`/room-scenes/${id}`)
 }
@@ -36,4 +40,20 @@ export function uploadScenePreview(id, file) {
 
 export function addSceneToCart(id) {
   return apiClient.post(`/room-scenes/${id}/add-to-cart`)
+}
+
+export function createRoomDraft(payload) {
+  return apiClient.post('/room-drafts', payload)
+}
+
+export function updateRoomDraft(token, payload) {
+  return apiClient.put('/room-drafts/current', payload, { headers: { 'X-Room-Draft-Token': token } })
+}
+
+export function getRoomDraft(token) {
+  return apiClient.get('/room-drafts/current', { headers: { 'X-Room-Draft-Token': token } })
+}
+
+export function claimRoomDraft(token) {
+  return apiClient.post('/room-drafts/claim', null, { headers: { 'X-Room-Draft-Token': token } })
 }

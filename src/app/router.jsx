@@ -96,10 +96,14 @@ export const routes = [
     ],
   },
   {
+    // A guest can begin and keep a room; persisted rooms remain account-owned.
+    path: '/room-planner',
+    element: lazyPage(<RoomPlannerPage />),
+  },
+  {
     // Full-screen 3D planner — standalone chrome, logged-in only.
     element: <ProtectedRoute />,
     children: [
-      { path: '/room-planner', element: lazyPage(<RoomPlannerPage />) },
       { path: '/room-planner/:id', element: lazyPage(<RoomPlannerPage />) },
     ],
   },

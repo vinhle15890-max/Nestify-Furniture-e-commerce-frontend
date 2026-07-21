@@ -4,7 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
-import { Input } from '../../components/Input'
+import { PasswordInput } from '../../components/auth/PasswordInput'
 import { Button } from '../../components/Button'
 import { useResetPassword } from '../../features/auth/hooks'
 import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
@@ -86,18 +86,17 @@ export function ResetPasswordPage() {
               {formError}
             </p>
           )}
-          <Input
+          <PasswordInput
             label="Mật khẩu mới"
             id="password"
-            type="password"
+            guidance="Dùng ít nhất 10 ký tự. Một cụm từ dài sẽ dễ nhớ và khó đoán hơn."
             autoComplete="new-password"
             error={errors.password?.message}
             {...register('password')}
           />
-          <Input
+          <PasswordInput
             label="Xác nhận mật khẩu mới"
             id="password_confirmation"
-            type="password"
             autoComplete="new-password"
             error={errors.password_confirmation?.message}
             {...register('password_confirmation')}

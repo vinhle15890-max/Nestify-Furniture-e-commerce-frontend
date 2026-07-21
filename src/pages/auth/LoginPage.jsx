@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout, authLink } from '../../components/auth/AuthLayout'
 import { Input } from '../../components/Input'
+import { PasswordInput } from '../../components/auth/PasswordInput'
 import { Button } from '../../components/Button'
 import { useLogin } from '../../features/auth/hooks'
 import { applyServerErrors, focusFirstError, formLevelMessage } from '../../lib/formErrors'
@@ -32,7 +33,8 @@ export function LoginPage() {
     setFormError(null)
     try {
       await login.mutateAsync(values)
-      navigate(location.state?.from?.pathname ?? '/account', { replace: true })
+      const from = location.state?.from
+      navigate(from ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}` : '/account', { replace: true })
     } catch (error) {
       if (applyServerErrors(error, setError)) {
         focusFirstError(formRef.current)
@@ -53,7 +55,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="Đăng nhập"
-      subtitle="Chào mừng trở lại Nestify."
+      subtitle="Mở lại những căn phòng và lựa chọn bạn đang giữ."
       footer={
         <>
           <Link to="/forgot-password" className={authLink}>
@@ -82,10 +84,9 @@ export function LoginPage() {
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
+        <PasswordInput
           label="Mật khẩu"
           id="password"
-          type="password"
           autoComplete="current-password"
           error={errors.password?.message}
           {...register('password')}

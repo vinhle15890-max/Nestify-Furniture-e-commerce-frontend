@@ -8,6 +8,7 @@ import * as roomPlannerApi from '../../features/roomPlanner/api'
 import * as catalogApi from '../../features/catalog/api'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 import { ApiError } from '../../lib/errors'
+import { useAuthStore } from '../../store/authStore'
 
 // The 3D canvas can't run in jsdom — replace it with a marker.
 vi.mock('./scene/RoomCanvas', () => ({ RoomCanvas: () => <div data-testid="room-canvas" /> }))
@@ -57,7 +58,7 @@ function renderPage(path = '/room-planner') {
 // Echoes the current URL so redirects and param-clearing are observable.
 function LocationProbe() {
   const loc = useLocation()
-  return <div data-testid="loc">{loc.pathname + loc.search}</div>
+  return <><div data-testid="loc">{loc.pathname + loc.search}</div><div data-testid="hash">{loc.hash}</div></>
 }
 
 // Deep-link variant of renderPage: adds product-page / home landing routes so
@@ -80,12 +81,16 @@ function renderDeepLink(path) {
 }
 
 const PRODUCT = { data: { slug: 'ghe-sofa', name: 'Ghế sofa', variants: [{ id: 11, name: 'Đỏ' }] } }
+const DRAFT_TOKEN = 'A'.repeat(64)
 
 describe('RoomPlannerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.localStorage.clear()
+    window.sessionStorage.clear()
     installMatchMedia(true)
     useEditorStore.getState().reset()
+    useAuthStore.setState({ token: 'customer-token', user: { id: 1 } })
     catalogApi.getProducts.mockResolvedValue({
       data: [{ id: 1, name: 'Sofa', thumbnail: null, variants: [{ id: 11, sku: 'A', name: 'Đỏ', model_3d_url: 'a.glb', price: 100 }] }],
       meta: { pagination: { has_more: false, next_cursor: null } },
@@ -93,12 +98,37 @@ describe('RoomPlannerPage', () => {
     roomPlannerApi.getScene.mockResolvedValue({
       data: { id: 55, name: 'Phòng của tôi', width: '4', depth: '5', height: '2.8', items: [] },
     })
+    roomPlannerApi.getRoomDraft.mockResolvedValue({ data: null })
+    roomPlannerApi.reviewScene.mockResolvedValue({ data: { scene_id: 55, can_continue: true, items: [{ placement_id: 1, product_name: 'Sofa', variant_name: 'Đỏ', price: 100, available_stock: 2, purchasable: true, reason: null }] } })
   })
 
   it('shows the setup dialog for a new room, then the canvas', async () => {
     renderPage('/room-planner')
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
     expect(await screen.findByTestId('room-canvas')).toBeInTheDocument()
+  })
+
+  it('stores a guest room and surfaces a fragment-based continuation link', async () => {
+    useAuthStore.setState({ token: null, user: null })
+    roomPlannerApi.createRoomDraft.mockResolvedValue({ data: { token: DRAFT_TOKEN } })
+    renderDeepLink('/room-planner')
+
+    await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
+    await userEvent.type(screen.getByLabelText('Tên phòng'), ' khách')
+    await userEvent.click(screen.getByRole('button', { name: /lưu/i }))
+
+    await waitFor(() => expect(roomPlannerApi.createRoomDraft).toHaveBeenCalledTimes(1))
+    expect(await screen.findByLabelText('Liên kết tiếp tục')).toHaveValue(`${window.location.origin}/room-planner#draft=${DRAFT_TOKEN}`)
+    expect(screen.getByTestId('loc')).toHaveTextContent('/room-planner')
+  })
+
+  it('captures and strips a cross-device fragment before claiming the draft', async () => {
+    roomPlannerApi.claimRoomDraft.mockResolvedValue({ data: { id: 77, name: 'Phòng tiếp tục' } })
+    renderDeepLink(`/room-planner#draft=${DRAFT_TOKEN}`)
+
+    await waitFor(() => expect(roomPlannerApi.claimRoomDraft).toHaveBeenCalledWith(DRAFT_TOKEN, expect.anything()))
+    expect(screen.getByTestId('loc')).toHaveTextContent('/room-planner/77')
+    expect(screen.getByTestId('hash')).toBeEmptyDOMElement()
   })
 
   it('adds a tray item then saves via create and shows the saved state', async () => {
@@ -132,7 +162,9 @@ describe('RoomPlannerPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
     await userEvent.click(await screen.findByRole('button', { name: /Sofa.*Đỏ/s }))
-    await userEvent.click(screen.getByRole('button', { name: /thêm vào giỏ/i }))
+    await userEvent.click(screen.getByRole('button', { name: /xem lại phòng/i }))
+    expect(await screen.findByRole('dialog', { name: /xem lại phòng/i })).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: /tiếp tục đến giỏ hàng/i }))
 
     // Unsaved room is persisted first, then its saved id drives the cart handoff.
     await waitFor(() => expect(roomPlannerApi.createScene).toHaveBeenCalled())
@@ -140,31 +172,34 @@ describe('RoomPlannerPage', () => {
     expect(await screen.findByTestId('cart-page')).toBeInTheDocument()
   })
 
-  it('orders the whole room: saves, adds the scene to cart, and navigates to /checkout', async () => {
-    roomPlannerApi.createScene.mockResolvedValue({ data: { id: 55, name: 'Phòng của tôi' } })
-    roomPlannerApi.addSceneToCart.mockResolvedValue({ data: { id: 1, items: [] }, meta: { skipped: [] } })
+  it('removes a blocked placement from the room history, persists it, and retries review', async () => {
+    const scene = {
+      id: 9,
+      name: 'Phòng khách',
+      width: '4',
+      depth: '5',
+      height: '2.8',
+      items: [{ id: 501, variant: { id: 11, name: 'Đỏ', model_3d_url: 'a.glb', price: 100 }, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } }],
+    }
+    roomPlannerApi.getScene.mockResolvedValue({ data: scene })
+    roomPlannerApi.reviewScene
+      .mockResolvedValueOnce({ data: { scene_id: 9, can_continue: false, items: [{ placement_id: 501, product_name: 'Sofa', variant_name: 'Đỏ', price: 100, available_stock: 0, purchasable: false, reason: 'out_of_stock' }] } })
+      .mockResolvedValueOnce({ data: { scene_id: 9, can_continue: true, items: [] } })
+    roomPlannerApi.updateScene.mockResolvedValue({ data: { ...scene, items: [] } })
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/room-planner']}>
-          <Routes>
-            <Route path="/room-planner" element={<RoomPlannerPage />} />
-            <Route path="/room-planner/:id" element={<RoomPlannerPage />} />
-            <Route path="/checkout" element={<div data-testid="checkout-page">checkout</div>} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    )
+    renderPage('/room-planner/9')
+    await userEvent.click(await screen.findByRole('button', { name: /xem lại phòng/i }))
+    expect(await screen.findByRole('button', { name: /tiếp tục đến giỏ hàng/i })).toBeDisabled()
 
-    await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
-    await userEvent.click(await screen.findByRole('button', { name: /Sofa.*Đỏ/s }))
-    await userEvent.click(screen.getByRole('button', { name: /đặt cả phòng/i }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa Sofa khỏi phòng' }))
 
-    // Unsaved room is persisted first, then its saved id drives the cart handoff, then checkout.
-    await waitFor(() => expect(roomPlannerApi.createScene).toHaveBeenCalled())
-    await waitFor(() => expect(roomPlannerApi.addSceneToCart).toHaveBeenCalledWith(55))
-    expect(await screen.findByTestId('checkout-page')).toBeInTheDocument()
+    await waitFor(() => expect(roomPlannerApi.updateScene).toHaveBeenCalledWith(9, expect.objectContaining({ items: [] })))
+    expect(await screen.findByRole('button', { name: /tiếp tục đến giỏ hàng/i })).toBeEnabled()
+    expect(useEditorStore.getState().items).toHaveLength(0)
+    expect(useEditorStore.getState().past.length).toBeGreaterThan(0)
+
+    act(() => useEditorStore.getState().undo())
+    expect(useEditorStore.getState().items).toHaveLength(1)
   })
 
   it('loads an existing scene by id without the setup dialog', async () => {

@@ -24,7 +24,7 @@ export function ProductCard({ product }) {
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 pt-4">
-        <h3 className="font-display text-lg leading-snug text-ink transition-colors duration-200 group-hover:text-ink/60">
+        <h3 className="text-lg font-medium leading-snug text-ink transition-colors duration-200 group-hover:text-ink/60">
           {product.name}
         </h3>
         <p className="mt-auto pt-1 text-base font-medium text-ink">{formatPrice(product.base_price)}</p>
