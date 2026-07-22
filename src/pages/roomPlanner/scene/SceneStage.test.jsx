@@ -142,7 +142,8 @@ describe('SceneStage top-down "Chỉnh phòng" mode', () => {
 
     const props = orbitControlsSpy.mock.calls.at(-1)[0]
     expect(props.enableRotate).toBe(true)
-    expect(props.minPolarAngle).toBeUndefined()
+    expect(props.minPolarAngle).toBe(0)
+    expect(props.maxPolarAngle).toBe(Math.PI)
   })
 
   test('topDown true → OrbitControls rotation locked + camera moved overhead', () => {
@@ -154,6 +155,23 @@ describe('SceneStage top-down "Chỉnh phòng" mode', () => {
     const props = orbitControlsSpy.mock.calls.at(-1)[0]
     expect(props.enableRotate).toBe(false)
     expect(props.minPolarAngle).toBe(0)
+    expect(props.maxPolarAngle).toBe(0.0001)
     expect(mockCamera.position.set).toHaveBeenCalledWith(0, expect.any(Number), 0.001)
+  })
+
+  test('keeps OrbitControls angle props defined when leaving room edit mode', () => {
+    const { ctx } = mockContext()
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx)
+
+    const { rerender } = render(<SceneStage room={room} topDown />)
+    rerender(<SceneStage room={{ ...room, width: 3, depth: 4 }} topDown />)
+    rerender(<SceneStage room={{ ...room, width: 3, depth: 4 }} topDown={false} />)
+
+    const props = orbitControlsSpy.mock.calls.at(-1)[0]
+    expect(props).toMatchObject({
+      enableRotate: true,
+      minPolarAngle: 0,
+      maxPolarAngle: Math.PI,
+    })
   })
 })

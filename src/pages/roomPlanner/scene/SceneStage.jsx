@@ -108,7 +108,11 @@ export function SceneStage({ room, orbitEnabled = true, topDown = false, onRende
           enabled={orbitEnabled}
           enableRotate={!topDown}
           target={topDown ? [0, 0, 0] : [0, room.height / 4, 0]}
-          {...(topDown ? { minPolarAngle: 0, maxPolarAngle: 0.0001 } : {})}
+          // Keep both props present across mode changes. Removing a prop from a
+          // Three primitive makes R3F construct a blank instance to discover its
+          // default; OrbitControls cannot be constructed without a camera.
+          minPolarAngle={0}
+          maxPolarAngle={topDown ? 0.0001 : Math.PI}
         />
       </Canvas>
       {contextLost && <ContextLostOverlay />}
