@@ -73,9 +73,10 @@ function ResolvedOrbitControls({ topDown, room, orbitEnabled }) {
       enabled={orbitEnabled}
       enableRotate={!topDown}
       target={topDown ? [0, 0, 0] : [0, room.height / 4, 0]}
-      // These props must stay defined across mode changes. R3F resets a removed
-      // primitive prop by calling the instance constructor with no arguments;
-      // three-stdlib OrbitControls is not safe to construct without a camera.
+      // Decision log (OrbitControls generic-reset crash): change angle-limit
+      // VALUES per view mode, but never conditionally remove either prop. R3F
+      // resets an absent primitive prop via a no-argument constructor, while
+      // three-stdlib OrbitControls requires a camera and reads camera.position.
       minPolarAngle={0}
       maxPolarAngle={topDown ? 0.0001 : Math.PI}
     />
