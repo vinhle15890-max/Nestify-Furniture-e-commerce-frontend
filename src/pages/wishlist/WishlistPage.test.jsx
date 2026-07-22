@@ -18,8 +18,8 @@ const sampleWishlist = {
         variant: {
           id: 1,
           sku: 'SOFA-NAU',
-          name: 'Nâu',
-          attributes: {},
+          name: 'Nâu / 2 chỗ',
+          attributes: { 'Màu sắc': 'Nâu', 'Kích thước': '2 chỗ' },
           price: 5000000,
           available_stock: 5,
           model_3d_url: null,
@@ -52,9 +52,17 @@ describe('WishlistPage', () => {
   it('renders wishlist items', async () => {
     renderPage()
 
-    expect(await screen.findByText('Nâu')).toBeInTheDocument()
+    expect(await screen.findByText('Nâu / 2 chỗ')).toBeInTheDocument()
     expect(screen.getByText(/SOFA-NAU/)).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Báo khi còn hàng' })).not.toBeChecked()
+  })
+
+  it('shows the distinguishing attributes of the variant stored on the wishlist item', async () => {
+    renderPage()
+
+    const savedVariant = await screen.findByLabelText('Biến thể đã lưu')
+    expect(savedVariant).toHaveTextContent('Màu sắc: Nâu')
+    expect(savedVariant).toHaveTextContent('Kích thước: 2 chỗ')
   })
 
   it('shows a retryable failure instead of an empty wishlist', async () => {
@@ -67,7 +75,7 @@ describe('WishlistPage', () => {
     expect(screen.queryByText(/Chưa có món nào được lưu/)).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
-    expect(await screen.findByText('Nâu')).toBeInTheDocument()
+    expect(await screen.findByText('Nâu / 2 chỗ')).toBeInTheDocument()
     expect(wishlistApi.getWishlist).toHaveBeenCalledTimes(2)
   })
 
@@ -75,7 +83,7 @@ describe('WishlistPage', () => {
     wishlistApi.updateItem.mockResolvedValue({ data: { ...sampleWishlist.data.items[0], notify_on_restock: true } })
     renderPage()
 
-    await screen.findByText('Nâu')
+    await screen.findByText('Nâu / 2 chỗ')
     await userEvent.click(screen.getByRole('checkbox', { name: 'Báo khi còn hàng' }))
 
     expect(wishlistApi.updateItem).toHaveBeenCalledWith(20, { notify_on_restock: true })
@@ -85,7 +93,7 @@ describe('WishlistPage', () => {
     wishlistApi.removeItem.mockResolvedValue({})
     renderPage()
 
-    await screen.findByText('Nâu')
+    await screen.findByText('Nâu / 2 chỗ')
     await userEvent.click(screen.getByRole('button', { name: 'Xóa' }))
 
     expect(wishlistApi.removeItem).toHaveBeenCalledWith(20)
@@ -95,7 +103,7 @@ describe('WishlistPage', () => {
     wishlistApi.moveToCart.mockResolvedValue({ data: { message: 'OK' } })
     renderPage()
 
-    await screen.findByText('Nâu')
+    await screen.findByText('Nâu / 2 chỗ')
     await userEvent.click(screen.getByRole('button', { name: 'Chuyển vào giỏ' }))
 
     await waitFor(() => expect(wishlistApi.moveToCart).toHaveBeenCalledWith(20))
@@ -107,10 +115,10 @@ describe('WishlistPage', () => {
     )
     renderPage()
 
-    await screen.findByText('Nâu')
+    await screen.findByText('Nâu / 2 chỗ')
     await userEvent.click(screen.getByRole('button', { name: 'Chuyển vào giỏ' }))
 
     expect(await screen.findByText('Chỉ còn 0 sản phẩm trong kho')).toBeInTheDocument()
-    expect(screen.getByText('Nâu')).toBeInTheDocument()
+    expect(screen.getByText('Nâu / 2 chỗ')).toBeInTheDocument()
   })
 })
