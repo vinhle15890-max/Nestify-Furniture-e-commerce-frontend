@@ -4,9 +4,10 @@
 > teammate đọc, hiểu hệ thống, **phản biện** (trả lời câu hỏi hội đồng), đồng thời **chia việc cho 4 FE**.
 > **Cách đọc mỗi mục:** *Actor → Entry (route/page) → Luồng qua các tầng (page → hooks → api → apiClient) →
 > Side-effect (cache/store/toast) → Lỗi → **Điểm phản biện*** (vì sao thiết kế thế, câu hỏi hay bị hỏi).
-> **Last reconciled with code:** 2026-07-17 · **See also:** `AGENTS.md` (convention + stack),
+> **Last reconciled with code:** 2026-07-22 (sửa mâu thuẫn giá checkout & trạng thái hủy) · **See also:** `AGENTS.md` (convention + stack),
 > `docs/CURRENT-STATE-MECHANISMS.md` (cơ chế, enforcement gap và edge case chi tiết), BE
-> `docs/FE_AI_CONTEXT.md` (request/response contract) và BE `docs/14-workflows.md` (luồng server).
+> `docs/FE_AI_CONTEXT.md` (request/response contract), BE `docs/14-workflows.md` (luồng server),
+> `../../Nestify-Furniture-e-commerce-backend/docs/defense-question-bank.md` (ngân hàng câu hỏi phản biện).
 > Dated specs/plans và `TASKS.md` là work records, không cần đọc để hiểu current state trong tài liệu này.
 
 ---
@@ -48,34 +49,127 @@ Laravel API (api.nestify.asia)
 **Actor:** Guest → Customer. **Entry:** `pages/auth/*` (`/login`, `/register`, `/forgot-password`, `/reset-password`,
 `/verify-email`), `pages/account/*`. **Feature:** `features/auth`, `features/addresses`.
 
-- **Đăng nhập:** `LoginPage` → `useLogin` → lưu `{token, user(+roles)}` vào `authStore` (persist). Token gắn vào mọi
-  request qua interceptor của `apiClient`.
-- **Đăng ký → verify email:** sau đăng ký, tài khoản **chưa verify**; route cần xác thực bị chặn → màn "xác thực email".
-- **Account & sổ địa chỉ:** CRUD địa chỉ + đặt mặc định (`features/addresses`); đổi mật khẩu cần `current_password`.
-- **Side-effect:** login/logout đổi `authStore` → `Header`, route guard, nút mua re-render ngay.
-- **Lỗi:** `401` (sai/đăng nhập lại) vs `403 ACCOUNT_INACTIVE` (khoá) — phân biệt khi hiển thị; `VALIDATION_FAILED` →
-  map về lỗi từng field (`lib/formErrors.js`).
+### 1.1 Đăng ký (`RegisterPage`)
+- **Trigger:** Form submit sau khi Yup validation pass (email format, password min:10, password_confirmation match).
+- **Hook:** `useRegister()` (mutation, `features/auth/hooks.js`).
+- **API:** `POST /auth/register {name, email, password, password_confirmation}`, bọc trong `throttle:auth` (BE).
+- **Response:** `{token, user{id, name, email, roles}}` → `authStore.setState({token, user})`. Token persist vào localStorage key `nestify-auth`.
+- **State update:** `authStore` re-render `Header` (đổi nút Đăng nhập → Tài khoản), bật các route `ProtectedRoute`.
+- **Lưu ý:** User có token ngay nhưng `email_verified_at = null` → bị chặn ở route `verified` (giỏ, đặt hàng, wishlist, review). FE hiện `VerifyEmailPage` nếu chưa verify.
+- **Error:** `422 VALIDATION_FAILED` → `applyServerErrors` map về field (email/name/password). `429` rate limit.
 
-> **Phản biện:** Vòng đời token nằm ở `authStore` (persist key `nestify-auth`), interceptor đọc ra gắn Bearer; logout
-> xoá store. Guard 2 lớp: `ProtectedRoute` (đã đăng nhập) + `AdminRoute` (`isStaff`). Map lỗi field giúp form hiện đúng
-> chỗ sai thay vì 1 toast chung.
+### 1.2 Đăng nhập (`LoginPage`)
+- **Trigger:** Form submit email + password.
+- **Hook:** `useLogin()` (mutation).
+- **API:** `POST /auth/login {email, password}`, `throttle:auth`.
+- **Response:** `{token, user{id, name, email, roles, permissions}}` → `authStore.setState(...)`.
+- **Error path:**
+  - `401 UNAUTHENTICATED` → toast "Email hoặc mật khẩu không đúng" (không phân biệt sai email/password để tránh enumeration).
+  - `403 ACCOUNT_INACTIVE` → toast "Tài khoản đã bị vô hiệu hóa" (tài khoản bị khóa).
+  - `429` rate limit → toast chung.
+- **State update:** `authStore` persist → tất cả component dùng `useAuthStore` re-render.
+
+### 1.3 Verify email (`VerifyEmailPage`)
+- **Trigger:** User bấm link trong email → FE đọc query params `id`, `expires`, `signature` → `Object.fromEntries(new URLSearchParams(...))` → POST params lên BE.
+- **Route:** `POST /auth/verify-email {id, expires, signature}`, public (không cần auth), `throttle:auth`.
+- **Response:** 200 `{message: "Email xác thực thành công."}` → redirect `/login`.
+- **Error:** `403 LINK_EXPIRED` → hiện nút "Gửi lại". `403 INVALID_LINK` → hiện cảnh báo link không hợp lệ.
+
+### 1.4 Resend verification (`VerifyEmailPage`)
+- **Trigger:** User bấm nút "Gửi lại email xác thực".
+- **Hook:** `useResendVerification()` (mutation).
+- **API:** `POST /auth/email/verification-notification`, auth:sanctum (cần token), `throttle:6,1`.
+- **Response:** 200 `{message: "Đã gửi lại..."}` → toast thành công. No-op nếu đã verify.
+
+### 1.5 Quên / đặt lại mật khẩu (`ForgotPasswordPage`, `ResetPasswordPage`)
+- **Forgot:** Form email → `useForgotPassword()` → `POST /auth/forgot-password {email}` → luôn 200 (không tiết lộ email tồn tại).
+- **Reset:** Đọc token từ query param → form password mới + confirm → `useResetPassword()` → `POST /auth/reset-password {email, token, password, password_confirmation}` → thành công redirect `/login`.
+- **Lưu ý:** BE xoá toàn bộ Sanctum token của user sau reset → mọi phiên cũ bị đăng xuất.
+
+### 1.6 Profile (`ProfileForm` trong `AccountPage`)
+- **Trigger:** Form name + current_password + new_password (optional).
+- **Hook:** `useUpdateProfile()` (mutation).
+- **API:** `PATCH /auth/profile {name, current_password, password?, password_confirmation?}`.
+- **Validation FE:** `current_password` bắt buộc. `password` min:10 + confirmed nếu có.
+- **State update:** `authStore.user.name` cập nhật ngay.
+
+### 1.7 Đăng xuất
+- **Hook:** `useLogout()` → `POST /auth/logout` → xoá `authStore` (reset toàn bộ) → xoá token khỏi localStorage → redirect `/login`.
+- **BE:** `$user->currentAccessToken()->delete()` — chỉ huỷ token hiện tại, các thiết bị khác vẫn đăng nhập.
 
 ---
 
-## 2. Catalog (trang chủ · danh mục · breadcrumb)
+## 2. Catalog (trang chủ · danh mục · breadcrumb) — CHI TIẾT
 
 **Actor:** Guest+. **Entry:** `pages/home`, `pages/catalog/CategoryPage` (`/c/:categorySlug`, `/c/all`).
 **Feature:** `features/catalog`.
 
-- **Cây danh mục:** `useCategories()` (cache `['categories']`, tải sẵn cho `CategoryNav` mega-menu nested `children`).
-- **Listing:** `CategoryPage` → `useInfiniteProducts` (**cursor pagination**, "Tải thêm") + lọc `brand`/`sort`.
-- **Breadcrumb (đa cấp + SEO):** `components/Breadcrumb` nhận `items`; `lib/categoryPath.findCategoryPath(tree, slug)` dò
-  chuỗi tổ tiên từ cây danh mục → `Trang chủ > cha > con > SP`. Gập `…` khi > 4 cấp; phát `BreadcrumbList` JSON-LD.
-  Suy biến mềm khi cây chưa tải / slug lạ → 1 cấp danh mục, không vỡ.
+### 2.1 Cây danh mục (L4)
+- **Hook:** `useCategories()` (query, `queryKey: ['categories']`, stale 60s).
+- **API:** `GET /categories` (public) → `CategoryService::allWithChildren` → `Category::root()->with(['asset', 'children.asset'])`.
+- **Render:** `CategoryNav` mega-menu — root làm hàng ngang, children lồng dropdown.
+- **Cache:** `queryKey` cố định → TanStack cache dùng chung cho tất cả component.
 
-> **Phản biện:** (1) **Cursor vs offset:** listing dùng cursor (`useInfiniteQuery`) cho cuộn vô hạn — ổn định khi dữ liệu
-> chèn/xoá; admin dùng offset (`<Pagination>`). (2) Breadcrumb phản ánh **cấu trúc danh mục** (không phải lịch sử điều
-> hướng); JSON-LD luôn phát đầy đủ dù UI gập. (3) `queryKey` đổi theo filter → Query tự refetch & cache riêng từng filter.
+### 2.2 Danh sách sản phẩm (L1)
+- **Hook:** `useInfiniteProducts(filters)` → `useCursorQuery` từ `lib/pagination.js`.
+- **API:** `GET /products?filter[category]=&filter[brand]=&filter[wood_type]=&filter[price_min]=&filter[price_max]=&filter[search]=&sort=&cursor=&limit=`.
+- **FE filters:** `filter[category]` lấy từ route param `:categorySlug`. `filter[brand]`, `sort` từ UI select/dropdown. `filter[search]` từ search input.
+- **Cursor:** Mỗi page trả `next_cursor` → FE gửi cursor để lấy page tiếp (infinite scroll). TanStack `useInfiniteQuery` nối page into `data.pages[]`.
+- **Loading:** Skeleton cards. **Empty:** "Không tìm thấy sản phẩm phù hợp".
+- **Error:** Retry 1 lần (TanStack default). Toast nếu network error persistent.
+- **queryKey:** `['products', filters]` — thay đổi filter → tự reset cursor + refetch.
+
+### 2.3 Best sellers (L2)
+- **Hook:** `useBestSellers(limit=8)` (query, `queryKey: ['products', 'best-sellers', limit]`).
+- **API:** `GET /products/best-sellers?limit=`. Limit clamp 1–24.
+- **Render:** `HomePage` → `ProductCard[]` trong grid. Không pagination. Auto-hide nếu empty.
+
+### 2.4 Chi tiết sản phẩm (L3)
+- **Hook:** `useProduct(slug)` (query, `queryKey: ['products', slug]`, enabled khi slug có).
+- **API:** `GET /products/{slug}` (public). `getProduct(slug, config)` — hỗ trợ timeout per-request (Room Planner preload).
+- **Render:** `ProductPage` →
+  - Gallery ảnh/video từ `media[]` sắp xếp theo `sort_order`.
+  - Variant selector: nếu có `variant_options` → `ProductOptions` component (Shopify-style: mỗi option 1 hàng, color swatch hex, text button). Chọn đủ option → `resolveVariant(selected, variants, options)` → variant cụ thể.
+  - `available_stock = 0` → disable nút Add-to-cart, badge "Hết hàng".
+  - Description HTML sanitized bằng `DOMPurify` (allow-list tags).
+  - SEO: `<title>`, `<meta name="description">`, `<meta property="og:*">`, Product JSON-LD.
+- **Error:** 404 → "Sản phẩm không tồn tại". Network → retry 1 lần.
+- **Gate mua hàng:** `token && isStaff(user)` → hiện "Tài khoản quản trị không mua được". Chưa login → nút "Đăng nhập để mua".
+
+### 2.5 Product reviews list (L6)
+- **Hook:** `useProductReviews(slug)` → `useCursorQuery`.
+- **API:** `GET /products/{slug}/reviews?cursor=&limit=`. Chỉ `status=approved`.
+- **Render:** `ProductPage` → danh sách review với `user.name`, `rating` (sao), `body`, `created_at`, `comments[]`. Cursor pagination "Xem thêm".
+
+### 2.6 Breadcrumb
+- **Component:** `components/Breadcrumb` — nhận `items[]`. `lib/categoryPath.findCategoryPath(tree, slug)` dò tổ tiên từ cây danh mục → `Trang chủ > Cha > Con > SP`.
+- **Gập `…`** khi > 4 cấp. Phát `BreadcrumbList` JSON-LD.
+- **Suy biến mềm:** cây chưa tải / slug lạ → 1 cấp danh mục.
+
+### 2.7 Variant resolve (FE logic)
+- `lib/variantOptions.resolveVariant(selected, variants, options)`:
+  - Duyệt `variants[].attributes` → so khớp từng option đã chọn.
+  - Tổ hợp hết hàng / không tồn tại → disabled.
+  - Chỉ enable option value nếu còn ít nhất 1 variant có `available_stock > 0` khớp value giả định + mọi lựa chọn hiện tại.
+  - Resolve thành công → trả variant với `id`, `price`, `available_stock`, `model_3d_url`.
+
+---
+
+## 2b. Địa chỉ (AddressesPage / AddressFormModal)
+
+**Actor:** Customer. **Entry:** `pages/account/AddressesPage.jsx`, `AddressFormModal.jsx`. **Feature:** `features/addresses`.
+
+### Liệt kê địa chỉ
+- **Hook:** `useAddresses()` (query, `queryKey: ['addresses']`, enabled khi có token).
+- **API:** `GET /addresses` (auth:sanctum + verified) → `AddressService::list` → sắp xếp `is_default` DESC.
+- **Empty state:** Hiện prompt tạo địa chỉ đầu tiên.
+
+### Tạo / Sửa / Xoá địa chỉ
+- **Trigger:** Bấm "Thêm địa chỉ" → mở `AddressFormModal` (React Hook Form + Yup).
+- **Hook:** `useCreateAddress()`, `useUpdateAddress()`, `useDeleteAddress()`, `useSetDefaultAddress()`.
+- **API:** `POST /addresses`, `PATCH /addresses/{id}`, `DELETE /addresses/{id}`, `PATCH /addresses/{id}/default`.
+- **State update:** `invalidateQueries(['addresses'])`.
+- **Lưu ý:** Client KHÔNG gửi `is_default` — BE tự set nếu là địa chỉ đầu tiên. Set default dùng transaction: clear all → set one. Partial unique index `WHERE is_default=true` là invariant cuối.
 
 ---
 
@@ -106,8 +200,11 @@ Laravel API (api.nestify.asia)
 - **Side-effect:** mutation thành công → invalidate `['cart']` → giỏ + badge header cập nhật; mở drawer giỏ.
 - **Lỗi:** `409 INSUFFICIENT_STOCK` (kèm `available`) → chỉnh số lượng về mức còn lại; mã voucher sai/hết lượt → toast.
 
-> **Phản biện:** Giá hiển thị minh bạch theo snapshot lúc thêm, nhưng **giá thanh toán = giá hiện tại lúc đặt** (không khoá
-> giá). Chống race khi nhiều người dùng cùng voucher → BE atomic consume lúc đặt (FE chỉ preview).
+> **Phản biện:** Giá hiển thị minh bạch theo snapshot lúc thêm; **giá thanh toán = `unit_price_snapshot` trong cart**
+> (BE `OrderService::create` dòng 108 tính subtotal từ snapshot của cart, không đọc lại giá variant hiện hành).
+> Vì vậy thay đổi giá sau khi item vào cart không tự đổi số tiền — đây là cơ chế snapshot giá, không phải khóa giá.
+> Chống race khi nhiều người dùng cùng voucher → BE atomic consume lúc đặt (FE chỉ preview).
+> *Sửa ngày 2026-07-22: tài liệu cũ ghi "giá thanh toán = giá hiện tại lúc đặt" — đã xác minh code và sửa lại.*
 
 ---
 
@@ -147,7 +244,8 @@ Laravel API (api.nestify.asia)
 **Actor:** Customer. **Entry:** `pages/orders/OrdersPage` (`/orders`), `OrderDetailPage` (`/orders/:id`). **Feature:** `features/orders`.
 
 - Danh sách đơn (**offset pagination**, mới nhất trước); chi tiết đọc từ **`variant_snapshot`** (bất biến) + địa chỉ snapshot +
-  lịch sử thanh toán. **Hủy / Thanh toán lại** chỉ khi `pending_payment`.
+  lịch sử thanh toán. **Hủy đơn** khi `pending_payment` / `paid` / `processing` (chặn từ `shipped`); **Thanh toán lại** chỉ khi `pending_payment`.
+  *Sửa ngày 2026-07-22: tài liệu cũ ghi "chỉ khi pending_payment" cho hủy — đã xác minh code `OrderService::cancel` cho phép pending_payment/paid/processing.*
 
 > **Phản biện:** Chi tiết đơn đọc snapshot (không join lại variant) → đơn cũ không sai khi shop đổi giá/xoá variant. Nút
 > hành động render theo trạng thái (state machine) — chỉ hiện bước hợp lệ.
