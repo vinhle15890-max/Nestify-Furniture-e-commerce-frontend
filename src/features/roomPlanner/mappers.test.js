@@ -38,6 +38,7 @@ describe('roomPlanner/mappers', () => {
     expect(payload).toEqual({
       name: 'Phòng khách',
       description: 'Bản nháp',
+      room_type: 'other',
       width: 4,
       depth: 5,
       height: 2.8,

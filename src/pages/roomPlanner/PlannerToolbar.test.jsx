@@ -9,8 +9,7 @@ const base = {
   onGizmoModeChange: vi.fn(), onSave: vi.fn(), saving: false, dirty: true,
   onReview: vi.fn(), reviewing: false,
   onUndo: vi.fn(), onRedo: vi.fn(), canUndo: true, canRedo: true,
-  snap: false, onToggleSnap: vi.fn(),
-  wallSnap: false, onToggleWallSnap: vi.fn(),
+  viewMode: 'perspective', onViewModeChange: vi.fn(),
   showScaleRef: false, onToggleScaleRef: vi.fn(),
   itemCount: 2, onExit: vi.fn(),
   onEnterRoomEdit: vi.fn(),
@@ -26,10 +25,10 @@ describe('PlannerToolbar', () => {
       { role: 'button', name: 'Làm lại', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Di chuyển. Phím tắt 1', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Xoay. Phím tắt 2', focusClass: 'focus-visible:ring-2' },
-      { role: 'button', name: 'Snap', focusClass: 'focus-visible:ring-2' },
-      { role: 'button', name: 'Bắt tường', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Góc nhìn 3D', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Nhìn từ trên', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Hiện mốc tỉ lệ người và cửa', focusClass: 'focus-visible:ring-2' },
-      { role: 'button', name: 'Chỉnh phòng', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Chỉnh kích thước phòng', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Chia sẻ', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Lưu', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Xem lại phòng', focusClass: 'focus-visible:ring-2' },
@@ -87,22 +86,16 @@ describe('PlannerToolbar', () => {
     expect(screen.getByRole('button', { name: /làm lại/i })).toBeDisabled()
   })
 
-  it('toggles snap', async () => {
-    const onToggleSnap = vi.fn()
-    render(<PlannerViewMenu {...base} onToggleSnap={onToggleSnap} snap={false} />)
-    const btn = screen.getByRole('button', { name: /^snap$/i })
-    expect(btn).toHaveAttribute('aria-pressed', 'false')
-    await userEvent.click(btn)
-    expect(onToggleSnap).toHaveBeenCalled()
-  })
-
-  it('toggles wall-snap', async () => {
-    const onToggleWallSnap = vi.fn()
-    render(<PlannerViewMenu {...base} onToggleWallSnap={onToggleWallSnap} wallSnap={false} />)
-    const btn = screen.getByRole('button', { name: /bắt tường/i })
-    expect(btn).toHaveAttribute('aria-pressed', 'false')
-    await userEvent.click(btn)
-    expect(onToggleWallSnap).toHaveBeenCalled()
+  it('switches between perspective and top views', async () => {
+    const onViewModeChange = vi.fn()
+    render(<PlannerViewMenu {...base} onViewModeChange={onViewModeChange} />)
+    expect(screen.getByRole('button', { name: 'Góc nhìn 3D' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Nhìn từ trên' }))
+    expect(onViewModeChange).toHaveBeenCalledWith('top')
+    await userEvent.click(screen.getByRole('button', { name: 'Góc nhìn 3D' }))
+    expect(onViewModeChange).toHaveBeenCalledWith('perspective')
+    expect(screen.queryByRole('button', { name: /^snap$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /bắt tường/i })).not.toBeInTheDocument()
   })
 
   it('toggles scale reference', async () => {
@@ -114,10 +107,10 @@ describe('PlannerToolbar', () => {
     expect(onToggleScaleRef).toHaveBeenCalled()
   })
 
-  it('calls onEnterRoomEdit when "Chỉnh phòng" is clicked', async () => {
+  it('opens room dimensions', async () => {
     const onEnterRoomEdit = vi.fn()
     render(<PlannerViewMenu {...base} onEnterRoomEdit={onEnterRoomEdit} />)
-    await userEvent.click(screen.getByRole('button', { name: /chỉnh phòng/i }))
+    await userEvent.click(screen.getByRole('button', { name: /chỉnh kích thước phòng/i }))
     expect(onEnterRoomEdit).toHaveBeenCalled()
   })
 })

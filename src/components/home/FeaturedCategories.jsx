@@ -1,21 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, ImageOff } from 'lucide-react'
 import { SectionHeading } from './SectionHeading'
 import { Reveal } from '../Reveal'
 import { useCategories } from '../../features/catalog/hooks'
 
-// Home = "Not Yet Seen / Possibility" (State 1). Outline-stage tokens only
-// (canvas / ink / unbuilt) — no warm imagined/confirmed colors here. A category
-// with no image falls back to the unbuilt placeholder tile (the same "not-yet-
-// decided" treatment ProductCard uses), which reads as a temporary image rather
-// than a broken one.
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
+
+const CHILD_PREVIEW_LIMIT = 4
+
+// Home = "Not Yet Seen / Possibility" (State 1). Parent categories remain the
+// visual entry points; child categories are quieter, explicit paths so the
+// complete catalog is visible without flattening its hierarchy.
 function CategoryVisual({ category }) {
   const hasImage = Boolean(category.image_url)
 
   return (
     <>
-      <div className="flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-unbuilt/40">
+      <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-unbuilt/40">
         {hasImage ? (
           <img
             src={category.image_url}
@@ -28,121 +30,203 @@ function CategoryVisual({ category }) {
         )}
       </div>
       {hasImage && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
       )}
-      <div className="absolute inset-x-0 bottom-0 p-5">
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
         <h3 className={`font-display text-2xl ${hasImage ? 'text-white' : 'text-ink'}`}>
           {category.name}
         </h3>
+        <ArrowUpRight
+          size={20}
+          className={hasImage ? 'shrink-0 text-white' : 'shrink-0 text-ink'}
+          aria-hidden="true"
+        />
       </div>
     </>
   )
 }
 
-const CARD_CLASS =
-  'group relative block overflow-hidden rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
+const PARENT_LINK_CLASS =
+  'group relative block overflow-hidden rounded-card active:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
 
-// ≤ 4 categories: the original full-width editorial grid.
-function CategoryGrid({ items }) {
+function CategoryGroup({ category, index }) {
+  const children = category.children ?? []
+  const [isExpanded, setIsExpanded] = useState(false)
+  const childListId = useId()
+  const hasMoreChildren = children.length > CHILD_PREVIEW_LIMIT
+  const visibleChildren = isExpanded ? children : children.slice(0, CHILD_PREVIEW_LIMIT)
+  const hiddenCount = children.length - CHILD_PREVIEW_LIMIT
+
   return (
-    <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((category, index) => (
-        <Reveal
-          key={category.id}
-          as={Link}
-          to={`/c/${category.slug}`}
-          delay={index * 80}
-          className={CARD_CLASS}
-        >
-          <CategoryVisual category={category} />
-        </Reveal>
-      ))}
-    </div>
+    <Reveal as="article" delay={index * 80} className="min-w-0">
+      <Link to={`/c/${category.slug}`} className={PARENT_LINK_CLASS}>
+        <CategoryVisual category={category} />
+      </Link>
+
+      {children.length > 0 && (
+        <>
+          <div className="mt-4 flex items-center justify-between gap-4 px-1">
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-ink/50">
+              {children.length} loại nội thất
+            </p>
+          </div>
+
+          <ul
+            id={childListId}
+            aria-label={`Danh mục con của ${category.name}`}
+            className="mt-1 divide-y divide-unbuilt/70"
+          >
+            {visibleChildren.map((child) => (
+              <li key={child.id}>
+                <Link
+                  to={`/c/${child.slug}`}
+                  className="group/child flex min-h-12 items-center justify-between gap-4 rounded-sm px-1 py-3 text-sm font-medium text-ink/75 transition-colors hover:text-ink active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                >
+                  <span>{child.name}</span>
+                  <ArrowUpRight
+                    size={16}
+                    className="shrink-0 text-unbuilt transition-transform group-hover/child:-translate-y-0.5 group-hover/child:translate-x-0.5 group-hover/child:text-ink"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          {hasMoreChildren && (
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              aria-controls={childListId}
+              onClick={() => setIsExpanded((current) => !current)}
+              className="mt-2 flex min-h-12 w-full items-center justify-between gap-4 rounded-sm px-1 text-sm font-medium text-ink transition-colors hover:text-ink/65 active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+            >
+              <span>{isExpanded ? 'Thu gọn' : `Xem thêm ${hiddenCount} danh mục`}</span>
+              <ChevronDown
+                size={17}
+                className={`shrink-0 transition-transform duration-200 ${
+                  isExpanded ? 'rotate-180' : ''
+                }`}
+                aria-hidden="true"
+              />
+            </button>
+          )}
+        </>
+      )}
+    </Reveal>
   )
 }
 
-// > 4 categories: a scroll-snap carousel with prev/next buttons. Buttons hide
-// themselves at each end (and on touch-first small screens, where swiping is
-// the natural gesture).
-function CategoryCarousel({ items }) {
+function CategorySlider({ items }) {
   const trackRef = useRef(null)
   const [canPrev, setCanPrev] = useState(false)
   const [canNext, setCanNext] = useState(true)
 
-  const updateArrows = useCallback(() => {
-    const el = trackRef.current
-    if (!el) return
-    const { scrollLeft, scrollWidth, clientWidth } = el
-    setCanPrev(scrollLeft > 4)
-    setCanNext(scrollLeft + clientWidth < scrollWidth - 4)
+  const updateControls = useCallback(() => {
+    const track = trackRef.current
+    if (!track) return
+
+    setCanPrev(track.scrollLeft > 4)
+    setCanNext(track.scrollLeft + track.clientWidth < track.scrollWidth - 4)
   }, [])
 
   useEffect(() => {
-    updateArrows()
-    const el = trackRef.current
-    if (!el) return
-    el.addEventListener('scroll', updateArrows, { passive: true })
-    window.addEventListener('resize', updateArrows)
-    return () => {
-      el.removeEventListener('scroll', updateArrows)
-      window.removeEventListener('resize', updateArrows)
-    }
-  }, [updateArrows])
+    const track = trackRef.current
+    if (!track) return
 
-  const scrollByDir = (dir) => {
-    const el = trackRef.current
-    if (!el || typeof el.scrollBy !== 'function') return
-    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
+    updateControls()
+    track.addEventListener('scroll', updateControls, { passive: true })
+    window.addEventListener('resize', updateControls)
+
+    return () => {
+      track.removeEventListener('scroll', updateControls)
+      window.removeEventListener('resize', updateControls)
+    }
+  }, [updateControls])
+
+  const move = (direction) => {
+    const track = trackRef.current
+    if (!track || typeof track.scrollBy !== 'function') return
+
+    track.scrollBy({
+      left: direction * track.clientWidth * 0.82,
+      behavior: 'smooth',
+    })
   }
 
-  const arrowClass =
-    'absolute top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border border-unbuilt bg-canvas/90 p-3 text-ink shadow-sm backdrop-blur transition hover:bg-canvas disabled:pointer-events-none disabled:opacity-0 sm:flex'
+  const controlClass =
+    'flex size-12 items-center justify-center rounded-full border border-unbuilt text-ink transition-colors hover:bg-unbuilt/20 active:opacity-70 disabled:pointer-events-none disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
 
   return (
-    <div className="relative mt-14">
-      <div
-        ref={trackRef}
-        aria-label="Danh sách danh mục"
-        className="flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {items.map((category) => (
-          <Link
-            key={category.id}
-            to={`/c/${category.slug}`}
-            className={`${CARD_CLASS} w-[72%] flex-none snap-start sm:w-[calc(50%-0.625rem)] lg:w-[calc(25%-0.9375rem)]`}
+    <nav aria-label="Toàn bộ danh mục sản phẩm" className="mt-10">
+      <div className="mb-5 flex items-center justify-between gap-6">
+        <p className="text-sm text-ink/55">
+          {items.length} không gian để khám phá
+        </p>
+        <div className="flex items-center gap-2" aria-label="Điều khiển danh mục">
+          <button
+            type="button"
+            onClick={() => move(-1)}
+            disabled={!canPrev}
+            aria-label="Xem danh mục trước"
+            className={controlClass}
           >
-            <CategoryVisual category={category} />
-          </Link>
-        ))}
+            <ArrowLeft size={19} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => move(1)}
+            disabled={!canNext}
+            aria-label="Xem danh mục tiếp theo"
+            className={controlClass}
+          >
+            <ArrowRight size={19} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => scrollByDir(-1)}
-        disabled={!canPrev}
-        aria-label="Xem danh mục trước"
-        className={`${arrowClass} left-0 -translate-x-1/2`}
+      <div
+        ref={trackRef}
+        className="flex snap-x snap-mandatory items-start gap-6 overflow-x-auto scroll-smooth pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <ChevronLeft size={20} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        onClick={() => scrollByDir(1)}
-        disabled={!canNext}
-        aria-label="Xem danh mục tiếp theo"
-        className={`${arrowClass} right-0 translate-x-1/2`}
-      >
-        <ChevronRight size={20} aria-hidden="true" />
-      </button>
-    </div>
+        {items.map((category, index) => (
+          <div
+            key={category.id}
+            className="w-[86%] min-w-0 flex-none snap-start sm:w-[calc(50%-0.75rem)] lg:w-[calc((100%-3rem)/3)]"
+          >
+            <CategoryGroup category={category} index={index} />
+          </div>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+function CategoryDirectory({ items }) {
+  if (items.length > 3) {
+    return <CategorySlider items={items} />
+  }
+
+  return (
+    <nav aria-label="Toàn bộ danh mục sản phẩm" className="mt-14">
+      <div className="grid items-start gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((category, index) => (
+          <CategoryGroup key={category.id} category={category} index={index} />
+        ))}
+      </div>
+    </nav>
   )
 }
 
 function CategorySkeleton() {
   return (
-    <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="aspect-[3/4] w-full animate-pulse rounded-card bg-unbuilt/40" />
+    <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i}>
+          <div className="aspect-[4/3] w-full animate-pulse rounded-card bg-unbuilt/40" />
+          <div className="mt-3 h-12 animate-pulse rounded-sm bg-unbuilt/25" />
+          <div className="mt-px h-12 animate-pulse rounded-sm bg-unbuilt/25" />
+        </div>
       ))}
     </div>
   )
@@ -153,22 +237,16 @@ export function FeaturedCategories() {
   const items = data?.data ?? []
 
   // Failure Behavior: on error or an empty catalog, drop the section entirely so
-  // the homepage keeps flowing — never a heading over an empty/broken grid.
+  // the homepage keeps flowing — never a heading over an empty/broken directory.
   if (isError || (!isLoading && items.length === 0)) return null
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
       <SectionHeading
         title="Bắt đầu từ căn phòng bạn đang nghĩ tới"
-        intro="Một vài lối vào rõ ràng, thay vì bắt bạn xem toàn bộ cửa hàng cùng lúc."
+        intro="Chọn một căn phòng, rồi đi thẳng đến loại nội thất bạn đang tìm."
       />
-      {isLoading ? (
-        <CategorySkeleton />
-      ) : items.length > 4 ? (
-        <CategoryCarousel items={items} />
-      ) : (
-        <CategoryGrid items={items} />
-      )}
+      {isLoading ? <CategorySkeleton /> : <CategoryDirectory items={items} />}
     </section>
   )
 }

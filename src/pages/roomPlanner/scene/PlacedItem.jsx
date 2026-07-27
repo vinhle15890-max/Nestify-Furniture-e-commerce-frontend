@@ -6,7 +6,7 @@ import { projectTransform } from '../../../features/roomPlanner/collision'
 // `interactive = false` renders the model only — no click-to-select, no
 // TransformControls gizmo — used for the "Chỉnh phòng" (top-down room-edit)
 // mode where furniture is shown for reference but can't be manipulated.
-export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, conflict, onSelect, onTransform, onDragChange, onMeasure, onModelError, onModelStateChange, interactive = true }) {
+export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled = true, conflict, onSelect, onTransform, onDragChange, onMeasure, onModelError, onModelStateChange, interactive = true }) {
   const groupRef = useRef()
   const tcRef = useRef()
   const { position, rotation, scale } = item
@@ -29,7 +29,7 @@ export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, co
     const projected = projectTransform(item, {
       position: { x: rawX, y: rawY, z: rawZ },
       rotation: { x: node.rotation.x, y: node.rotation.y, z: node.rotation.z },
-    }, room, wallSnap)
+    }, room, alignmentEnabled)
     node.position.set(projected.position.x, projected.position.y, projected.position.z)
     node.rotation.set(projected.rotation.x, projected.rotation.y, projected.rotation.z)
     node.scale.set(projected.scale.x, projected.scale.y, projected.scale.z)
@@ -86,8 +86,8 @@ export function PlacedItem({ item, room, selected, gizmoMode, snap, wallSnap, co
       ref={tcRef}
       object={groupRef}
       mode={gizmoMode === 'rotate' ? 'rotate' : 'translate'}
-      translationSnap={snap ? 0.25 : null}
-      rotationSnap={snap ? Math.PI / 12 : null}
+      translationSnap={alignmentEnabled ? 0.1 : null}
+      rotationSnap={alignmentEnabled ? Math.PI / 12 : null}
       showY={gizmoMode !== 'translate'}
       onObjectChange={projectLive}
       onMouseUp={commit}

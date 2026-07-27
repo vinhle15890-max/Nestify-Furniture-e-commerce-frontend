@@ -44,17 +44,30 @@ export function RoomCanvas() {
   const selectedId = useEditorStore((s) => s.selectedId)
   const gizmoMode = useEditorStore((s) => s.gizmoMode)
   const editMode = useEditorStore((s) => s.editMode)
+  const viewMode = useEditorStore((s) => s.viewMode)
   const selectItem = useEditorStore((s) => s.selectItem)
   const updateTransform = useEditorStore((s) => s.updateTransform)
-  const snap = useEditorStore((s) => s.snap)
-  const wallSnap = useEditorStore((s) => s.wallSnap)
   const showScaleRef = useEditorStore((s) => s.showScaleRef)
+  const [alignmentBypassed, setAlignmentBypassed] = useState(false)
   const [orbitEnabled, setOrbitEnabled] = useState(true)
   const canvasElRef = useRef(null)
-  const topDown = editMode === 'room'
+  const topDown = editMode === 'room' || viewMode === 'top'
 
   // Huỷ đăng ký canvas khi editor unmount (để capturePlannerPreview không trỏ canvas cũ).
   useEffect(() => () => { if (canvasElRef.current) unregisterPlannerCanvas(canvasElRef.current) }, [])
+
+  useEffect(() => {
+    const updateBypass = (event) => setAlignmentBypassed(event.altKey)
+    const clearBypass = () => setAlignmentBypassed(false)
+    window.addEventListener('keydown', updateBypass)
+    window.addEventListener('keyup', updateBypass)
+    window.addEventListener('blur', clearBypass)
+    return () => {
+      window.removeEventListener('keydown', updateBypass)
+      window.removeEventListener('keyup', updateBypass)
+      window.removeEventListener('blur', clearBypass)
+    }
+  }, [])
 
   // Which items overlap another (top-down footprints). Recomputes when items move
   // OR when their footprints get measured — both live in `items`.
@@ -69,7 +82,7 @@ export function RoomCanvas() {
       onRendererReady={(gl) => { canvasElRef.current = gl.domElement; registerPlannerCanvas(gl.domElement) }}
     >
       {/* Click empty space → deselect. Hidden in room mode: nothing to select there. */}
-      {!topDown && (
+      {editMode !== 'room' && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} onClick={() => selectItem(null)} visible={false}>
           <planeGeometry args={[room.width, room.depth]} />
         </mesh>
@@ -80,15 +93,14 @@ export function RoomCanvas() {
           item={item}
           setOrbitEnabled={setOrbitEnabled}
           room={room}
-          selected={!topDown && item.localId === selectedId}
+          selected={editMode !== 'room' && item.localId === selectedId}
           gizmoMode={gizmoMode}
-          snap={snap}
-          wallSnap={wallSnap}
+          alignmentEnabled={!alignmentBypassed}
           conflict={conflictSet.has(item.localId)}
-          onSelect={topDown ? undefined : selectItem}
+          onSelect={editMode === 'room' ? undefined : selectItem}
           onTransform={updateTransform}
           onModelError={observeModelError}
-          interactive={!topDown}
+          interactive={editMode !== 'room'}
         />
       ))}
       {topDown && <RoomEditOverlay room={room} onDragChange={(d) => setOrbitEnabled(!d)} />}

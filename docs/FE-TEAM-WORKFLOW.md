@@ -693,6 +693,11 @@ token/quyền thật).
   `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
   TransformControls chỉ di chuyển/xoay; customer scale bị loại khỏi gizmo và store). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
   (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
+- **Phạm vi căn hộ:** một account là một căn hộ, tối đa 8 `room_scene`; mỗi
+  scene là một phòng chữ nhật có `room_type`. `GET /room-scenes` trả
+  `meta.limits`; `/account/rooms` dùng metadata này để hiện tổng quan và khóa
+  “Thêm phòng” khi hết quota. Guest chỉ giữ một draft. Không có nhiều project
+  hoặc wall-drawing/CAD.
 - **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
   payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
 - **Hiệu ứng phụ:** lần lưu đầu chuyển hướng `/room-planner` → `/room-planner/:id` (replace). Có **`beforeunload`** + chặn lúc

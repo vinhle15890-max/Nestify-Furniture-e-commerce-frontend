@@ -7,6 +7,7 @@ export function editorStateToDraftSnapshot(state) {
     id: null,
     name: state.name,
     description: state.description ?? '',
+    room_type: state.roomType ?? 'other',
     width: state.room.width,
     depth: state.room.depth,
     height: state.room.height,
