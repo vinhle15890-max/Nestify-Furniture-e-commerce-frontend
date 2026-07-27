@@ -15,12 +15,12 @@ describe('RoomSetupDialog', () => {
     expect(screen.getByText('Nhập kích thước để dựng căn phòng theo đúng tỷ lệ.')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /tạo phòng/i }))
     expect(onSubmit).toHaveBeenCalledWith({
-      name: 'Phòng khách',
-      roomType: 'living_room',
+      name: 'Phòng mới',
       width: 4,
       depth: 5,
       height: 2.8,
     })
+    expect(screen.queryByLabelText('Loại phòng')).not.toBeInTheDocument()
   })
 
   it('rejects non-positive dimensions', async () => {

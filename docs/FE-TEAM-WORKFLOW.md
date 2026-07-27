@@ -464,11 +464,12 @@ tự lọc pending như một biện pháp bảo mật vì pending vốn không 
 
 **Actor:** Customer verified. **Entry:** floating bubble `ChatWidget`/`ChatPanel`. **Feature:** `features/chat`, `store/chatStore`.
 
-### 9.1 Gửi một message
+### 9.1 Gửi message có ngữ cảnh
 
-`ChatPanel` → `useSendMessage()` → `POST /ai/chat {message}`. Thành công append reply và sources vào
-`chatStore`; source có `product_slug` được biến thành link nội bộ `/p/:slug`. Lịch sử chỉ thuộc phiên, không persist và
-không được gửi như conversation history trừ khi API contract sau này thay đổi.
+`ChatPanel` → `useSendMessage()` → `POST /ai/chat {message, history}`; `history` lấy tối đa 6 lượt user/assistant
+gần nhất trong `chatStore`, không persist ngoài phiên. Thành công append reply và sources vào store.
+Source sản phẩm có slug, tên, giá thấp nhất và thumbnail được dựng thành card nội bộ `/p/:slug`; tối đa 3 card
+trên mỗi câu trả lời. AI có thể hỗ trợ bố trí, tỷ lệ, phối màu và cách đo, không chỉ tìm sản phẩm.
 
 ### 9.2 Gate và failure
 
@@ -477,8 +478,8 @@ Widget chỉ hiện cho customer verified. Đây là giảm request sai; endpoin
 Message đang soạn là local state; transcript hiển thị là `chatStore`; dữ liệu catalog nguồn thuộc response server, không
 đưa vào Query cache vì operation là mutation hội thoại.
 
-> **Phản biện:** BE **stateless** (mỗi câu độc lập) → FE giữ ngữ cảnh hiển thị trong phiên; nguồn trả lời kèm link sản phẩm
-> là điểm tin cậy (truy nguồn được).
+> **Phản biện:** BE không lưu transcript nhưng nhận cửa sổ 6 lượt từ FE để hiểu câu nối tiếp; nguồn trả lời kèm card/link
+> sản phẩm là điểm tin cậy để khách tự kiểm tra.
 
 **Security boundary:** source/link là dữ liệu ngoài component; render dưới dạng text/link React, không dùng
 `dangerouslySetInnerHTML`. FE không được tuyên bố RAG “đúng tuyệt đối”; citations chỉ giúp truy nguồn để người dùng kiểm tra.
@@ -694,7 +695,8 @@ token/quyền thật).
   TransformControls chỉ di chuyển/xoay; customer scale bị loại khỏi gizmo và store). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
   (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
 - **Phạm vi căn hộ:** một account là một căn hộ, tối đa 8 `room_scene`; mỗi
-  scene là một phòng chữ nhật có `room_type`. `GET /room-scenes` trả
+  scene là một phòng chữ nhật do người dùng tự đặt tên. `room_type` còn được gửi giá trị `other` để tương thích
+  contract BE cũ nhưng không hiển thị thành một lựa chọn trùng nghĩa trong UI. `GET /room-scenes` trả
   `meta.limits`; `/account/rooms` dùng metadata này để hiện tổng quan và khóa
   “Thêm phòng” khi hết quota. Guest chỉ giữ một draft. Không có nhiều project
   hoặc wall-drawing/CAD.

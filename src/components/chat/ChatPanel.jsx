@@ -8,9 +8,9 @@ import { ChatMessage } from './ChatMessage'
 const MAX_LENGTH = 1000
 
 const SUGGESTIONS = [
-  'Gợi ý ghế sofa cho phòng khách nhỏ',
-  'Bàn ăn gỗ nào bền và đẹp?',
-  'Tủ quần áo nào nhiều ngăn chứa?',
+  'Bố trí phòng khách 4 × 4 m thế nào cho thoáng?',
+  'Giúp mình phối màu gỗ với tường kem',
+  'Cần đo những gì trước khi mua sofa?',
 ]
 
 function errorText(error) {
@@ -42,7 +42,11 @@ export function ChatPanel() {
     setInput('')
 
     try {
-      const response = await mutateAsync(trimmed)
+      const history = messages
+        .filter((message) => message.role === 'user' || message.role === 'assistant')
+        .slice(-6)
+        .map((message) => ({ role: message.role, text: message.text }))
+      const response = await mutateAsync({ message: trimmed, history })
       addMessage({
         role: 'assistant',
         text: response.data.reply,
@@ -62,7 +66,7 @@ export function ChatPanel() {
     <section
       role="dialog"
       aria-label="Trợ lý mua sắm AI"
-      className="flex h-[28rem] w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-card border border-border bg-surface shadow-soft"
+      className="flex h-[min(38rem,calc(100dvh-7rem))] w-[26rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-card border border-border bg-surface shadow-soft"
     >
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-base font-semibold text-foreground">Trợ lý mua sắm</h2>
@@ -80,7 +84,7 @@ export function ChatPanel() {
         {messages.length === 0 ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Xin chào! Mình có thể giúp bạn tìm nội thất phù hợp. Thử hỏi:
+              Mình có thể cùng bạn tính kích thước, bố trí, phối màu, so sánh lựa chọn hoặc tìm món phù hợp.
             </p>
             <div className="flex flex-col gap-2">
               {SUGGESTIONS.map((suggestion) => (

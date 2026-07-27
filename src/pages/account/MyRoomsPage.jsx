@@ -12,17 +12,6 @@ import { formatDate } from '../../lib/format'
 
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
 
-const ROOM_TYPE_LABELS = {
-  living_room: 'Phòng khách',
-  bedroom: 'Phòng ngủ',
-  dining_room: 'Phòng ăn',
-  kitchen: 'Nhà bếp',
-  workspace: 'Phòng làm việc',
-  nursery: 'Phòng trẻ em',
-  entryway: 'Lối vào',
-  other: 'Không gian khác',
-}
-
 function RoomCard({ scene }) {
   const rename = useRenameScene()
   const remove = useDeleteScene()
@@ -86,7 +75,7 @@ function RoomCard({ scene }) {
         )}
       </div>
       <p className="text-sm text-muted-foreground">
-        {ROOM_TYPE_LABELS[scene.room_type] ?? ROOM_TYPE_LABELS.other} · {dims}
+        {dims}
       </p>
       <p className="text-xs text-muted-foreground">
         {scene.items?.length ?? 0} món đang cân nhắc · cập nhật {formatDate(scene.created_at)}

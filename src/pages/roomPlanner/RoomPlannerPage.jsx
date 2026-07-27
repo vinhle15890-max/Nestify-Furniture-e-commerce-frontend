@@ -28,8 +28,7 @@ import { useAuthStore } from '../../store/authStore'
 import { buildRoomDraftResumeUrl, clearLocalRoomDraft, clearRoomDraftToken, editorStateToDraftSnapshot, readLocalRoomDraft, readSessionRoomDraftToken, rememberRoomDraftToken, roomDraftTokenFromHash, writeLocalRoomDraft } from '../../features/roomPlanner/guestDraft'
 
 const DEFAULT_ROOM = {
-  name: 'Phòng khách',
-  roomType: 'living_room',
+  name: 'Phòng mới',
   width: 4,
   depth: 5,
   height: 2.8,
@@ -258,8 +257,8 @@ export function RoomPlannerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productQuery.isError, productQuery.isSuccess, productQuery.data, productQuery.error, variantId, store.dirty])
 
-  const handleCreateRoom = ({ name, roomType, ...room }) => {
-    store.initNew(room, { name, roomType })
+  const handleCreateRoom = ({ name, ...room }) => {
+    store.initNew(room, { name })
     setSetupOpen(false)
   }
 

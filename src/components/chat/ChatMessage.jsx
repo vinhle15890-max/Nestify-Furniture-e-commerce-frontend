@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { ArrowUpRight, Image as ImageIcon } from 'lucide-react'
+import { formatPrice } from '../../lib/format'
 
 // A single chat bubble. `onNavigate` fires when a source chip is clicked so the
 // panel can close itself as the user leaves for a product page.
@@ -10,7 +12,7 @@ export function ChatMessage({ message, onNavigate }) {
     ? 'bg-primary text-surface'
     : isError
       ? 'bg-destructive/10 text-destructive'
-      : 'bg-background text-foreground'
+      : 'text-foreground'
 
   const sources = (message.sources ?? []).filter(
     (source) => source.entity_type === 'product' && source.product_slug,
@@ -18,19 +20,37 @@ export function ChatMessage({ message, onNavigate }) {
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[85%] rounded-card px-3 py-2 text-sm ${bubbleClass}`}>
-        <p className="whitespace-pre-wrap break-words">{message.text}</p>
+      <div className={`${isUser ? 'max-w-[85%] rounded-card px-3 py-2' : 'w-full py-1'} text-sm ${bubbleClass}`}>
+        <p className="whitespace-pre-wrap break-words leading-6">{message.text}</p>
 
         {sources.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {sources.map((source) => (
+          <div className="mt-3 grid gap-2" aria-label="Sản phẩm được nhắc đến">
+            {sources.slice(0, 3).map((source) => (
               <Link
                 key={`${source.entity_type}-${source.entity_id}`}
                 to={`/p/${source.product_slug}`}
                 onClick={onNavigate}
-                className="rounded-full border border-border bg-surface px-2 py-0.5 text-xs text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group grid grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-control border border-border bg-surface p-2 text-foreground transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {source.product_name}
+                <span className="flex size-16 items-center justify-center overflow-hidden rounded-control bg-surface-alt">
+                  {source.product_thumbnail ? (
+                    <img
+                      src={source.product_thumbnail}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <ImageIcon size={20} className="text-muted-foreground" aria-hidden="true" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{source.product_name}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {source.product_price != null ? `Từ ${formatPrice(source.product_price)}` : 'Xem thông tin sản phẩm'}
+                  </span>
+                </span>
+                <ArrowUpRight size={16} className="text-muted-foreground group-hover:text-foreground" aria-hidden="true" />
               </Link>
             ))}
           </div>
