@@ -28,12 +28,35 @@ describe('VariantMatrixGenerator', () => {
     api.bulkCreateVariants.mockResolvedValue({ data: [] })
     renderGen()
 
-    await userEvent.type(screen.getByLabelText('Giá gốc'), '1500')
-    await userEvent.click(screen.getByRole('button', { name: /Tạo .* biến thể/ }))
+    await userEvent.type(screen.getByLabelText('Giá áp dụng chung'), '1500')
+    await userEvent.clear(screen.getByLabelText('Tồn kho áp dụng chung'))
+    await userEvent.type(screen.getByLabelText('Tồn kho áp dụng chung'), '4')
+    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng cho tất cả' }))
+    await userEvent.click(screen.getByRole('button', { name: /Lưu và tạo .* biến thể/ }))
 
     expect(api.bulkCreateVariants).toHaveBeenCalledWith(7, [
-      { attributes: { 'Màu sắc': 'Đỏ', 'Kích thước': 'S' }, price: 1500, stock_quantity: 0 },
-      { attributes: { 'Màu sắc': 'Đỏ', 'Kích thước': 'M' }, price: 1500, stock_quantity: 0 },
+      { attributes: { 'Màu sắc': 'Đỏ', 'Kích thước': 'S' }, price: 1500, stock_quantity: 4 },
+      { attributes: { 'Màu sắc': 'Đỏ', 'Kích thước': 'M' }, price: 1500, stock_quantity: 4 },
     ])
+  })
+
+  it('lưu cấu hình trước khi tạo biến thể', async () => {
+    api.bulkCreateVariants.mockResolvedValue({ data: [] })
+    const onBeforeGenerate = vi.fn().mockResolvedValue(true)
+    renderGen({ onBeforeGenerate })
+
+    await userEvent.click(screen.getByRole('button', { name: /Lưu và tạo .* biến thể/ }))
+
+    expect(onBeforeGenerate).toHaveBeenCalledOnce()
+    expect(api.bulkCreateVariants).toHaveBeenCalledOnce()
+  })
+
+  it('không tạo biến thể khi lưu cấu hình thất bại', async () => {
+    const onBeforeGenerate = vi.fn().mockResolvedValue(false)
+    renderGen({ onBeforeGenerate })
+
+    await userEvent.click(screen.getByRole('button', { name: /Lưu và tạo .* biến thể/ }))
+
+    expect(api.bulkCreateVariants).not.toHaveBeenCalled()
   })
 })

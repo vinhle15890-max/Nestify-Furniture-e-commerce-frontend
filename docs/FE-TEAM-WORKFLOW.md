@@ -1,13 +1,38 @@
-# FE — Workflow các chức năng & phân công nhóm (tài liệu học & phản biện)
+#npm FE — Workflow các chức năng & phân công nhóm (tài liệu học & phản biện)
 
 > **Mục đích:** 1 tài liệu duy nhất mô tả **luồng end-to-end phía Frontend** của từng chức năng để
 > teammate đọc, hiểu hệ thống, **phản biện** (trả lời câu hỏi hội đồng), đồng thời **chia việc cho 4 FE**.
 > **Cách đọc mỗi mục:** *Actor → Entry (route/page) → Luồng qua các tầng (page → hooks → api → apiClient) →
 > Side-effect (cache/store/toast) → Lỗi → **Điểm phản biện*** (vì sao thiết kế thế, câu hỏi hay bị hỏi).
-> **Last reconciled with code:** 2026-07-17 · **See also:** `AGENTS.md` (convention + stack),
+> **Last reconciled with code:** 2026-07-27 (bổ sung operation, failure boundary, code evidence và khoảng hở để phản biện) · **See also:** `AGENTS.md` (convention + stack),
 > `docs/CURRENT-STATE-MECHANISMS.md` (cơ chế, enforcement gap và edge case chi tiết), BE
-> `docs/FE_AI_CONTEXT.md` (request/response contract) và BE `docs/14-workflows.md` (luồng server).
+> `docs/FE_AI_CONTEXT.md` (request/response contract), BE `docs/14-workflows.md` (luồng server),
+> `../../Nestify-Furniture-e-commerce-backend/docs/defense-question-bank.md` (ngân hàng câu hỏi phản biện).
 > Dated specs/plans và `TASKS.md` là work records, không cần đọc để hiểu current state trong tài liệu này.
+
+### Bản đồ nối với kịch bản và Backend
+
+Tài liệu này là lớp giải thích **phía giao diện**. Thứ tự nói/demo nằm trong
+[Kịch bản bảo vệ 6 thành viên](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md); transaction, concurrency và
+DB invariant nằm trong [BE `14-workflows.md`](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md).
+
+| Mã | Hành trình | Kịch bản | Mục FE hiện tại | Mục BE đào sâu |
+|---|---|---|---|---|
+| `J1` | Auth và phân quyền | Chương 2, 4B | §1, §10–§11 | BE §1, §12, §13b |
+| `J2` | Catalog và variant | Chương 2, 4A | §2–§3 | BE §2 |
+| `J3` | Personalization | Chương 4A | §9b | BE §10b |
+| `J4` | AI Chatbot | Chương 4B, 5 | §9 | BE §10 |
+| `J5` | Room Planner | Chương 3, 4B, 5 | §10b | BE §9 |
+| `J6` | Admin product/variant/media/model | Chương 3 | §10, §10c | BE §10d–§10e, §11.11–§11.12 |
+| `J7` | Cart và voucher | Chương 2, 6 | §4 | BE §3 |
+| `J8` | Checkout và create order | Chương 5–6 | §6.1–§6.2 | BE §4.1 |
+| `J9` | PayOS và reconcile | Chương 5–6 | §6.3–§6.5 | BE §5 |
+| `J10` | Order, cancel và inventory | Chương 5–6 | §7 | BE §4b, §13 |
+| `J11` | Review và moderation | Chương 2, hậu demo | §8 | BE §8 |
+| `J12` | Admin, RBAC và audit | Chương 2–3 | §10–§10a | BE §11–§12, §14 |
+
+> Trong mỗi dòng “Liên kết bảo vệ” bên dưới: **FE** chịu trách nhiệm presentation/state/feedback; **BE/DB**
+> chịu trách nhiệm authorization, transaction và invariant nghiệp vụ.
 
 ---
 
@@ -41,41 +66,179 @@ Laravel API (api.nestify.asia)
 > không đụng UI. **TanStack Query thay cho `useEffect`+`fetch`:** có cache, dedupe request, tự quản loading/error,
 > invalidation sau mutation → không tự đồng bộ state thủ công.
 
+### 0.1 Khung đọc bắt buộc cho từng operation
+
+Tài liệu này dùng cùng tinh thần với BE `14-workflows.md`: không dừng ở “màn hình gọi endpoint nào”. Khi học hoặc
+phản biện một operation, phải chỉ ra đủ các lớp sau:
+
+| Lớp cần trả lời | Câu hỏi kiểm tra |
+|---|---|
+| **Actor / gate** | Ai nhìn thấy nút/route? FE ẩn bằng điều kiện nào? BE còn chốt lại bằng middleware/policy nào? |
+| **Trigger / entry** | Route, page, thao tác người dùng hoặc lifecycle nào khởi phát request? |
+| **Data path** | `Page/Component → hook → api.js → apiClient → endpoint` chính xác là gì? |
+| **Request / response** | Payload nào do FE tạo, field nào chỉ để render, field nào là snapshot/derived? |
+| **State ownership** | Dữ liệu thuộc Query cache, Zustand persisted, Zustand tạm, hay local component state? |
+| **Success side-effect** | Cache nào invalidate/update, store nào đổi, toast/redirect nào xảy ra? |
+| **Failure boundary** | Lỗi mạng, 401/403/409/422/429/503 được biểu diễn thế nào; có retry hay không? |
+| **Concurrency / idempotency** | FE chỉ hỗ trợ UX hay thực sự đảm bảo? Chốt chống race nằm ở client, server hay DB? |
+| **Security / trust boundary** | Kiểm tra FE nào chỉ là presentation; dữ liệu nào phải sanitize; điều gì tuyệt đối không tin client? |
+| **Evidence / limitation** | File nào chứng minh; current state còn khoảng hở gì phải nói thật? |
+
+> **Quy tắc phản biện:** FE có thể ẩn nút, disable form, debounce hoặc giữ idempotency key để giảm lỗi thao tác, nhưng
+> không được nhận công trạng cho invariant nghiệp vụ. Quyền, tồn kho, voucher, trạng thái đơn và uniqueness vẫn phải
+> được BE/DB enforce. Khi hai phía có vai trò khác nhau, câu trả lời phải nêu rõ cả hai.
+
+### 0.2 Cơ chế xuyên suốt và failure boundary
+
+- Request interceptor đọc token hiện thời bằng `useAuthStore.getState()` và gắn `Authorization: Bearer …`; component
+  không tự truyền token. Response interceptor trả thẳng `response.data`, nên `query.data` chính là envelope API đã
+  unwrap một lớp axios.
+- Lỗi có `response.data.error` được chuẩn hóa thành `ApiError(code, message, details, status)`. Không có envelope
+  (mất mạng/CORS/timeout) trở thành `NETWORK_ERROR`; đây không đồng nghĩa server trả 500.
+- `401` ở endpoint ngoài `/auth/*` làm `authStore.logout()` ngay trong interceptor. `401` của login/register không
+  auto-logout để form còn phân biệt lỗi xác thực của chính thao tác đó.
+- `ProtectedRoute`/`AdminRoute`/`RequirePermission` là gate điều hướng và UX. Chúng không thay thế
+  `auth:sanctum`, `verified`, `isStaff` hay permission middleware của BE.
+- Mutation mặc định không optimistic update: phần lớn operation chờ server thành công rồi invalidate prefix cache.
+  Đổi lại UI có thêm một round-trip nhưng tránh rollback phức tạp với tồn kho, voucher và state machine.
+
+> **Khoảng hở phải nói thật:** `normalizeError` dùng `error.message` cho `NETWORK_ERROR`; page/toast không được show
+> nguyên chuỗi kỹ thuật này cho người dùng. `lib/queryClient.js` hiện cấu hình query retry 1 lần, stale 60 giây và
+> không refetch khi focus; mutation không tự retry. Operation nào override (ví dụ payment reconcile `gcTime:0`) phải
+> nói theo override đó, không suy từ tên thư viện.
+
 ---
 
 ## 1. Tài khoản & xác thực
 
+> **Liên kết bảo vệ `J1`:** [Kịch bản Chương 2 và 4B](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-2--ai-tham-gia-và-hệ-thống-ghi-nhớ-gì) · [BE §1, §12, §13b](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#1-tài-khoản--xác-thực--chi-tiết) · Tài/BE2 ↔ FE3/FE4.
+
 **Actor:** Guest → Customer. **Entry:** `pages/auth/*` (`/login`, `/register`, `/forgot-password`, `/reset-password`,
 `/verify-email`), `pages/account/*`. **Feature:** `features/auth`, `features/addresses`.
 
-- **Đăng nhập:** `LoginPage` → `useLogin` → lưu `{token, user(+roles)}` vào `authStore` (persist). Token gắn vào mọi
-  request qua interceptor của `apiClient`.
-- **Đăng ký → verify email:** sau đăng ký, tài khoản **chưa verify**; route cần xác thực bị chặn → màn "xác thực email".
-- **Account & sổ địa chỉ:** CRUD địa chỉ + đặt mặc định (`features/addresses`); đổi mật khẩu cần `current_password`.
-- **Side-effect:** login/logout đổi `authStore` → `Header`, route guard, nút mua re-render ngay.
-- **Lỗi:** `401` (sai/đăng nhập lại) vs `403 ACCOUNT_INACTIVE` (khoá) — phân biệt khi hiển thị; `VALIDATION_FAILED` →
-  map về lỗi từng field (`lib/formErrors.js`).
+### 1.1 Đăng ký (`RegisterPage`)
+- **Trigger:** Form submit sau khi Yup validation pass (email format, password min:10, password_confirmation match).
+- **Hook:** `useRegister()` (mutation, `features/auth/hooks.js`).
+- **API:** `POST /auth/register {name, email, password, password_confirmation}`, bọc trong `throttle:auth` (BE).
+- **Response:** `{token, user{id, name, email, roles}}` → `authStore.setState({token, user})`. Token persist vào localStorage key `nestify-auth`.
+- **State update:** `authStore` re-render `Header` (đổi nút Đăng nhập → Tài khoản), bật các route `ProtectedRoute`.
+- **Lưu ý:** User có token ngay nhưng `email_verified_at = null` → bị chặn ở route `verified` (giỏ, đặt hàng, wishlist, review). FE hiện `VerifyEmailPage` nếu chưa verify.
+- **Error:** `422 VALIDATION_FAILED` → `applyServerErrors` map về field (email/name/password). `429` rate limit.
 
-> **Phản biện:** Vòng đời token nằm ở `authStore` (persist key `nestify-auth`), interceptor đọc ra gắn Bearer; logout
-> xoá store. Guard 2 lớp: `ProtectedRoute` (đã đăng nhập) + `AdminRoute` (`isStaff`). Map lỗi field giúp form hiện đúng
-> chỗ sai thay vì 1 toast chung.
+### 1.2 Đăng nhập (`LoginPage`)
+- **Trigger:** Form submit email + password.
+- **Hook:** `useLogin()` (mutation).
+- **API:** `POST /auth/login {email, password}`, `throttle:auth`.
+- **Response:** `{token, user{id, name, email, roles, permissions}}` → `authStore.setState(...)`.
+- **Error path:**
+  - `401 UNAUTHENTICATED` → toast "Email hoặc mật khẩu không đúng" (không phân biệt sai email/password để tránh enumeration).
+  - `403 ACCOUNT_INACTIVE` → toast "Tài khoản đã bị vô hiệu hóa" (tài khoản bị khóa).
+  - `429` rate limit → toast chung.
+- **State update:** `authStore` persist → tất cả component dùng `useAuthStore` re-render.
+
+### 1.3 Verify email (`VerifyEmailPage`)
+- **Trigger:** User bấm link trong email → FE đọc query params `id`, `expires`, `signature` → `Object.fromEntries(new URLSearchParams(...))` → POST params lên BE.
+- **Route:** `POST /auth/verify-email {id, expires, signature}`, public (không cần auth), `throttle:auth`.
+- **Response:** 200 `{message: "Email xác thực thành công."}` → redirect `/login`.
+- **Error:** `403 LINK_EXPIRED` → hiện nút "Gửi lại". `403 INVALID_LINK` → hiện cảnh báo link không hợp lệ.
+
+### 1.4 Resend verification (`VerifyEmailPage`)
+- **Trigger:** User bấm nút "Gửi lại email xác thực".
+- **Hook:** `useResendVerification()` (mutation).
+- **API:** `POST /auth/email/verification-notification`, auth:sanctum (cần token), `throttle:6,1`.
+- **Response:** 200 `{message: "Đã gửi lại..."}` → toast thành công. No-op nếu đã verify.
+
+### 1.5 Quên / đặt lại mật khẩu (`ForgotPasswordPage`, `ResetPasswordPage`)
+- **Forgot:** Form email → `useForgotPassword()` → `POST /auth/forgot-password {email}` → luôn 200 (không tiết lộ email tồn tại).
+- **Reset:** Đọc token từ query param → form password mới + confirm → `useResetPassword()` → `POST /auth/reset-password {email, token, password, password_confirmation}` → thành công redirect `/login`.
+- **Lưu ý:** BE xoá toàn bộ Sanctum token của user sau reset → mọi phiên cũ bị đăng xuất.
+
+### 1.6 Profile (`ProfileForm` trong `AccountPage`)
+- **Trigger:** Form name + current_password + new_password (optional).
+- **Hook:** `useUpdateProfile()` (mutation).
+- **API:** `PATCH /auth/profile {name, current_password, password?, password_confirmation?}`.
+- **Validation FE:** `current_password` bắt buộc. `password` min:10 + confirmed nếu có.
+- **State update:** `authStore.user.name` cập nhật ngay.
+
+### 1.7 Đăng xuất
+- **Hook:** `useLogout()` → `POST /auth/logout` → xoá `authStore` (reset toàn bộ) → xoá token khỏi localStorage → redirect `/login`.
+- **BE:** `$user->currentAccessToken()->delete()` — chỉ huỷ token hiện tại, các thiết bị khác vẫn đăng nhập.
 
 ---
 
-## 2. Catalog (trang chủ · danh mục · breadcrumb)
+## 2. Catalog (trang chủ · danh mục · breadcrumb) — CHI TIẾT
+
+> **Liên kết bảo vệ `J2`:** [Kịch bản Chương 2 và 4A](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4a--an-khám-phá) · [BE §2](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#2-catalog-duyệt-sản-phẩm--chi-tiết-từng-operation) · Tài/BE2 ↔ FE1.
 
 **Actor:** Guest+. **Entry:** `pages/home`, `pages/catalog/CategoryPage` (`/c/:categorySlug`, `/c/all`).
 **Feature:** `features/catalog`.
 
-- **Cây danh mục:** `useCategories()` (cache `['categories']`, tải sẵn cho `CategoryNav` mega-menu nested `children`).
-- **Listing:** `CategoryPage` → `useInfiniteProducts` (**cursor pagination**, "Tải thêm") + lọc `brand`/`sort`.
-- **Breadcrumb (đa cấp + SEO):** `components/Breadcrumb` nhận `items`; `lib/categoryPath.findCategoryPath(tree, slug)` dò
-  chuỗi tổ tiên từ cây danh mục → `Trang chủ > cha > con > SP`. Gập `…` khi > 4 cấp; phát `BreadcrumbList` JSON-LD.
-  Suy biến mềm khi cây chưa tải / slug lạ → 1 cấp danh mục, không vỡ.
+### 2.1 Cây danh mục (L4)
+- **Hook:** `useCategories()` (query, `queryKey: ['categories']`, stale 60s).
+- **API:** `GET /categories` (public) → `CategoryService::allWithChildren` → `Category::root()->with(['asset', 'children.asset'])`.
+- **Render:** `CategoryNav` mega-menu — root làm hàng ngang, children lồng dropdown.
+- **Cache:** `queryKey` cố định → TanStack cache dùng chung cho tất cả component.
 
-> **Phản biện:** (1) **Cursor vs offset:** listing dùng cursor (`useInfiniteQuery`) cho cuộn vô hạn — ổn định khi dữ liệu
-> chèn/xoá; admin dùng offset (`<Pagination>`). (2) Breadcrumb phản ánh **cấu trúc danh mục** (không phải lịch sử điều
-> hướng); JSON-LD luôn phát đầy đủ dù UI gập. (3) `queryKey` đổi theo filter → Query tự refetch & cache riêng từng filter.
+### 2.2 Danh sách sản phẩm (L1)
+- **Hook:** `useInfiniteProducts(filters)` → `useCursorQuery` từ `lib/pagination.js`.
+- **API:** `GET /products?filter[category]=&filter[brand]=&filter[wood_type]=&filter[price_min]=&filter[price_max]=&filter[search]=&sort=&cursor=&limit=`.
+- **FE filters:** `filter[category]` lấy từ route param `:categorySlug`. `filter[brand]`, `sort` từ UI select/dropdown. `filter[search]` từ search input.
+- **Cursor:** Mỗi page trả `next_cursor` → FE gửi cursor để lấy page tiếp (infinite scroll). TanStack `useInfiniteQuery` nối page into `data.pages[]`.
+- **Loading:** Skeleton cards. **Empty:** "Không tìm thấy sản phẩm phù hợp".
+- **Error:** Retry 1 lần (TanStack default). Toast nếu network error persistent.
+- **queryKey:** `['products', filters]` — thay đổi filter → tự reset cursor + refetch.
+
+### 2.3 Best sellers (L2)
+- **Hook:** `useBestSellers(limit=8)` (query, `queryKey: ['products', 'best-sellers', limit]`).
+- **API:** `GET /products/best-sellers?limit=`. Limit clamp 1–24.
+- **Render:** `HomePage` → `ProductCard[]` trong grid. Không pagination. Auto-hide nếu empty.
+
+### 2.4 Chi tiết sản phẩm (L3)
+- **Hook:** `useProduct(slug)` (query, `queryKey: ['products', slug]`, enabled khi slug có).
+- **API:** `GET /products/{slug}` (public). `getProduct(slug, config)` — hỗ trợ timeout per-request (Room Planner preload).
+- **Render:** `ProductPage` →
+  - Gallery ảnh/video từ `media[]` sắp xếp theo `sort_order`.
+  - Variant selector: nếu có `variant_options` → `ProductOptions` component (Shopify-style: mỗi option 1 hàng, color swatch hex, text button). Chọn đủ option → `resolveVariant(selected, variants, options)` → variant cụ thể.
+  - `available_stock = 0` → disable nút Add-to-cart, badge "Hết hàng".
+  - Description HTML sanitized bằng `DOMPurify` (allow-list tags).
+  - SEO: `<title>`, `<meta name="description">`, `<meta property="og:*">`, Product JSON-LD.
+- **Error:** 404 → "Sản phẩm không tồn tại". Network → retry 1 lần.
+- **Gate mua hàng:** `token && isStaff(user)` → hiện "Tài khoản quản trị không mua được". Chưa login → nút "Đăng nhập để mua".
+
+### 2.5 Product reviews list (L6)
+- **Hook:** `useProductReviews(slug)` → `useCursorQuery`.
+- **API:** `GET /products/{slug}/reviews?cursor=&limit=`. Chỉ `status=approved`.
+- **Render:** `ProductPage` → danh sách review với `user.name`, `rating` (sao), `body`, `created_at`, `comments[]`. Cursor pagination "Xem thêm".
+
+### 2.6 Breadcrumb
+- **Component:** `components/Breadcrumb` — nhận `items[]`. `lib/categoryPath.findCategoryPath(tree, slug)` dò tổ tiên từ cây danh mục → `Trang chủ > Cha > Con > SP`.
+- **Gập `…`** khi > 4 cấp. Phát `BreadcrumbList` JSON-LD.
+- **Suy biến mềm:** cây chưa tải / slug lạ → 1 cấp danh mục.
+
+### 2.7 Variant resolve (FE logic)
+- `lib/variantOptions.resolveVariant(selected, variants, options)`:
+  - Duyệt `variants[].attributes` → so khớp từng option đã chọn.
+  - Tổ hợp hết hàng / không tồn tại → disabled.
+  - Chỉ enable option value nếu còn ít nhất 1 variant có `available_stock > 0` khớp value giả định + mọi lựa chọn hiện tại.
+  - Resolve thành công → trả variant với `id`, `price`, `available_stock`, `model_3d_url`.
+
+---
+
+## 2b. Địa chỉ (AddressesPage / AddressFormModal)
+
+**Actor:** Customer. **Entry:** `pages/account/AddressesPage.jsx`, `AddressFormModal.jsx`. **Feature:** `features/addresses`.
+
+### Liệt kê địa chỉ
+- **Hook:** `useAddresses()` (query, `queryKey: ['addresses']`, enabled khi có token).
+- **API:** `GET /addresses` (auth:sanctum + verified) → `AddressService::list` → sắp xếp `is_default` DESC.
+- **Empty state:** Hiện prompt tạo địa chỉ đầu tiên.
+
+### Tạo / Sửa / Xoá địa chỉ
+- **Trigger:** Bấm "Thêm địa chỉ" → mở `AddressFormModal` (React Hook Form + Yup).
+- **Hook:** `useCreateAddress()`, `useUpdateAddress()`, `useDeleteAddress()`, `useSetDefaultAddress()`.
+- **API:** `POST /addresses`, `PATCH /addresses/{id}`, `DELETE /addresses/{id}`, `PATCH /addresses/{id}/default`.
+- **State update:** `invalidateQueries(['addresses'])`.
+- **Lưu ý:** Client KHÔNG gửi `is_default` — BE tự set nếu là địa chỉ đầu tiên. Set default dùng transaction: clear all → set one. Partial unique index `WHERE is_default=true` là invariant cuối.
 
 ---
 
@@ -99,15 +262,44 @@ Laravel API (api.nestify.asia)
 
 ## 4. Giỏ hàng & Voucher
 
+> **Liên kết bảo vệ `J7`:** [Kịch bản Chương 6](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-6--từ-căn-phòng-đến-đơn-hàng) · [BE §3](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#3-giỏ-hàng--voucher) · Tài/BE2 ↔ FE2.
+
 **Actor:** Customer. **Entry:** `pages/cart/CartPage` + drawer giỏ (`uiStore.openCart`). **Feature:** `features/cart`.
 
-- Thêm/sửa số lượng/xoá item; **xem trước voucher** (áp mã → BE trả `discount` preview). Item lưu theo `unit_price_snapshot`
-  của BE; nếu giá đổi → hiện badge "Giá thay đổi".
-- **Side-effect:** mutation thành công → invalidate `['cart']` → giỏ + badge header cập nhật; mở drawer giỏ.
-- **Lỗi:** `409 INSUFFICIENT_STOCK` (kèm `available`) → chỉnh số lượng về mức còn lại; mã voucher sai/hết lượt → toast.
+### 4.1 Đọc giỏ — `GET /cart`
 
-> **Phản biện:** Giá hiển thị minh bạch theo snapshot lúc thêm, nhưng **giá thanh toán = giá hiện tại lúc đặt** (không khoá
-> giá). Chống race khi nhiều người dùng cùng voucher → BE atomic consume lúc đặt (FE chỉ preview).
+**Trigger:** `CartPage`, cart drawer hoặc badge cần dữ liệu. **Path:** component → `useCart()` →
+`cartApi.getCart()` → `GET /cart`. Query key `['cart']`, chỉ enabled khi có token.
+
+**Render:** dòng hàng dùng variant, quantity, `unit_price_snapshot`, giá hiện hành và tồn khả dụng do resource trả.
+Giá/tồn ở UI là tín hiệu để giải thích và disable sớm; không phải lock. Empty cart là trạng thái hợp lệ, không phải lỗi.
+
+### 4.2 Thêm / đổi số lượng / xóa item
+
+| Operation | Hook → API | Payload | Success side-effect |
+|---|---|---|---|
+| Add | `useAddCartItem` → `POST /cart/items` | `{variant_id, quantity}` | invalidate `['cart']`; caller có thể mở drawer |
+| Update | `useUpdateCartItem` → `PATCH /cart/items/{itemId}` | `{quantity}` | invalidate `['cart']` |
+| Remove | `useRemoveCartItem` → `DELETE /cart/items/{itemId}` | path param | invalidate `['cart']` |
+
+FE không tự cộng/trừ cache trước response. Nếu hai tab cùng sửa hoặc tồn kho đổi giữa lúc render và submit, response BE
+mới quyết định. `409 INSUFFICIENT_STOCK` cùng `details.available` phải được dùng để giải thích mức còn lại; `422` map
+về input nếu payload sai; `401` đi qua interceptor và xóa phiên.
+
+### 4.3 Xem trước voucher — `POST /cart/apply-voucher`
+
+**Path:** `CartPage` → `useApplyVoucher()` → `cartApi.applyVoucher(code)` → `{code}`. Mutation này **không
+invalidate cart**, vì response chỉ là phép tính preview; voucher chưa được gắn bền vững/consume ở bước này. Checkout
+vẫn gửi code và BE kiểm tra lại trong transaction tạo order.
+
+> **Phản biện:** Giá hiển thị minh bạch theo snapshot lúc thêm; **giá thanh toán = `unit_price_snapshot` trong cart**
+> (BE `OrderService::create` dòng 108 tính subtotal từ snapshot của cart, không đọc lại giá variant hiện hành).
+> Vì vậy thay đổi giá sau khi item vào cart không tự đổi số tiền — đây là cơ chế snapshot giá, không phải khóa giá.
+> Chống race khi nhiều người dùng cùng voucher → BE atomic consume lúc đặt (FE chỉ preview).
+> *Sửa ngày 2026-07-22: tài liệu cũ ghi "giá thanh toán = giá hiện tại lúc đặt" — đã xác minh code và sửa lại.*
+
+**Code evidence:** `features/cart/{api,hooks}.js`, `pages/cart/CartPage.jsx`, `components/layout/CartDrawer.jsx`,
+`lib/apiClient.js`; invariant server xem BE `14-workflows.md` §3, §4.1 và §13.
 
 ---
 
@@ -115,70 +307,190 @@ Laravel API (api.nestify.asia)
 
 **Actor:** Customer. **Entry:** `pages/wishlist/WishlistPage`. **Feature:** `features/wishlist`.
 
-- Thêm được cả khi **hết hàng** (khác cart). **Move-to-cart** validate còn hàng trước. Toggle `notify_on_restock` (báo khi về hàng).
-- **Side-effect:** invalidate `['wishlist']` (+ `['cart']` khi move-to-cart).
+### 5.1 Danh sách và bốn mutation
+
+| Operation | Data path | Cache sau thành công |
+|---|---|---|
+| List | `useWishlist` → `GET /wishlist` | query `['wishlist']` |
+| Add | `useAddWishlistItem` → `POST /wishlist/items {variant_id, notify_on_restock}` | invalidate wishlist |
+| Remove | `useRemoveWishlistItem` → `DELETE /wishlist/items/{id}` | invalidate wishlist |
+| Toggle báo hàng | `useUpdateWishlistItem` → `PATCH /wishlist/items/{id}` | invalidate wishlist |
+| Move to cart | `useMoveToCart` → `POST /wishlist/items/{id}/move-to-cart` | invalidate cả wishlist và cart |
+
+Wishlist cho lưu variant hết hàng vì mục tiêu là theo dõi lâu dài. Move-to-cart là boundary khác: BE kiểm tra lại variant
+và stock; thành công mới làm hai cache hội tụ. Nếu move thất bại, item vẫn ở wishlist và cart cache không bị invalidate
+bởi hook thành công.
 
 > **Phản biện:** Wishlist là "theo dõi lâu dài" nên cho thêm hàng hết; move-to-cart mới chặn tồn kho. Báo hàng về do BE
-> phát qua Observer/Event — FE chỉ bật cờ.
+> phát qua Observer/Event — FE chỉ bật cờ. FE không gửi email, không quyết định thời điểm “restock”, và toggle ở client
+> không chứng minh notification đã được giao.
+
+**Code evidence:** `features/wishlist/{api,hooks}.js`, `pages/wishlist/WishlistPage.jsx`; BE `14-workflows.md` §7.
 
 ---
 
 ## 6. Thanh toán (Checkout) & trang trả về
 
+> **Liên kết bảo vệ `J8–J9`:** [Kịch bản Chương 5–6](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-5--quyết-định-được-bảo-vệ) · [BE §4.1 create order](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#41-create-order) · [BE §5 PayOS](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#5-thanh-toán-payos--callback) · Bảo/BE1 ↔ FE2.
+
 **Actor:** Customer. **Entry:** `pages/checkout/CheckoutPage` (`/checkout`), `CheckoutReturnPage` (`/checkout/return`).
 **Feature:** `features/checkout`, `features/orders`.
 
-- **Luồng:** chọn địa chỉ (mặc định trước) → voucher → **phương thức** `cod` | `payos` → tạo đơn (`useCreateOrder`) → nếu
-  `payos`: tạo phiên thanh toán → **redirect** sang cổng PayOS; nếu `cod`: đơn `processing` ngay.
-- **Idempotency:** mỗi lần checkout gắn **Idempotency-Key** (`lib/idempotency.js`), giữ qua reload cùng tab bằng `sessionStorage`; BE persist key + fingerprint cùng transaction order → bấm 2 lần / mất response không lặp side-effect. Key chỉ rotate sau khi BE trả order.
-- **Sau khi order đã tạo:** Checkout chuyển sang state mở PayOS riêng. Lỗi session giữ nguyên order ID, có retry session + link chi tiết và tuyệt đối không gọi `createOrder` lần hai.
-- **Trang trả về `/checkout/return`:** gọi reconcile tối đa 10 lần/cycle; phân biệt `success|pending|failed`, dừng khi gateway/API lỗi và có retry rõ ràng. `503 GATEWAY_UNAVAILABLE` không bị hiển thị như pending giả.
-- **Gate staff:** staff vào `/checkout` → `CheckoutNotice` (không mua được).
-- **Lỗi:** `409 INSUFFICIENT_STOCK`, `409 ORDER_ALREADY_PAID`, `429 RATE_LIMITED` → thông báo & điều hướng phù hợp.
+### 6.1 Chuẩn bị checkout
+
+`CheckoutPage` kết hợp `useCart()` và `useAddresses()`: chọn địa chỉ mặc định trước nếu có, nhận voucher code và phương
+thức `cod|payos`. State lựa chọn thuộc page; cart/address vẫn thuộc Query cache. Guest bị `ProtectedRoute` chặn; staff
+vào bề mặt mua hàng nhận `CheckoutNotice`. Đây là UX gate, BE vẫn phải enforce customer-only.
+
+### 6.2 Tạo order — `POST /orders`
+
+**Path:** submit → `useCreateOrder()` → `createOrder(payload, getCheckoutIdempotencyKey())` → header
+`Idempotency-Key`. Thành công invalidate `['cart']` vì server đã clear cart trong cùng transaction.
+
+`getCheckoutIdempotencyKey()` ưu tiên key trong `uiStore`, sau đó restore `sessionStorage`
+`nestify.checkout.idempotency-key`, cuối cùng mới `crypto.randomUUID()`. Nếu storage bị chặn, nó suy biến về key
+in-memory của tab hiện tại. Cùng key + cùng fingerprint cho phép BE replay order; cùng key + payload khác phải bị 409.
+FE không tự đảm bảo exactly-once: unique index/transaction ở BE mới là invariant.
+
+### 6.3 Tạo payment session — `POST /orders/{id}/payment-session`
+
+Sau khi đã có order PayOS, page chuyển sang state theo `orderId` và gọi `useCreatePaymentSession()` với
+`{gateway, return_url}`. Thành công redirect đến checkout URL. Nếu request này lỗi, order **đã tồn tại**: UI phải giữ
+order ID, cho retry tạo session hoặc mở chi tiết đơn, tuyệt đối không quay lại gọi create-order với key mới.
+
+COD không cần redirect gateway; trạng thái do response BE quyết định, FE không tự set order thành processing.
+
+### 6.4 Return và reconcile — `POST /orders/{id}/payment/reconcile`
+
+`CheckoutReturnPage` đọc `order_id`, dùng `useReconcilePayment`. Query key `['payment-reconcile', orderId]`,
+`refetchOnWindowFocus:false`, `gcTime:0`; page điều khiển chu kỳ poll tối đa 10 lần. Response
+`meta.payment_status=success|pending|failed` quyết định UI. `503 GATEWAY_UNAVAILABLE` là lỗi xác minh, không được
+ngụy trang thành pending; user có nút retry rõ ràng.
+
+### 6.5 Failure và trạng thái không chắc chắn
+
+- `409 INSUFFICIENT_STOCK`: quay về cart/giải thích item thiếu; FE không tự reserve.
+- Mất response create-order: retry **cùng key**, không sinh key mới.
+- Payment session lỗi: giữ order, retry session.
+- Return URL nói success nhưng reconcile còn pending: tin reconcile/webhook, không tin query string.
+- `429`: ngừng spam retry, hiển thị message tiếng Việt; `401`: interceptor kết thúc phiên.
 
 > **Phản biện:** (1) **Idempotency-Key** là điểm chí mạng xuyên FE/BE — FE giữ cùng key khi retry, BE mới là nơi enforce unique + replay. (2) Trang return poll + reconcile vì
 > webhook là nguồn sự thật nhưng có thể trễ → tránh kẹt "pending_payment" giả. (3) COD vs PayOS: COD xác nhận đơn ngay,
 > PayOS giữ chỗ kho tới khi trả tiền (khớp BE §4–§5).
 
+**Code evidence:** `pages/checkout/{CheckoutPage,CheckoutReturnPage}.jsx`, `features/checkout/{api,hooks}.js`,
+`lib/idempotency.js`, `store/uiStore.js`; BE `14-workflows.md` §4–§5, §13.
+
 ---
 
 ## 7. Đơn hàng (lịch sử & chi tiết)
 
+> **Liên kết bảo vệ `J10`:** [Kịch bản Chương 5–6](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-5--quyết-định-được-bảo-vệ) · [BE §4b cancel và §13 inventory](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#4b-khách-tự-hủy-đơn-trước-khi-giao-orderservicecancelid-user-reason) · Bảo/BE1 ↔ FE2.
+
 **Actor:** Customer. **Entry:** `pages/orders/OrdersPage` (`/orders`), `OrderDetailPage` (`/orders/:id`). **Feature:** `features/orders`.
 
-- Danh sách đơn (**offset pagination**, mới nhất trước); chi tiết đọc từ **`variant_snapshot`** (bất biến) + địa chỉ snapshot +
-  lịch sử thanh toán. **Hủy / Thanh toán lại** chỉ khi `pending_payment`.
+### 7.1 List và detail
+
+- `OrdersPage` → `useOrders()` → `GET /orders`, query key `['orders']`. Hook hiện không nhận `page`; phân trang thực tế
+  chỉ đầy đủ khi page/component hoặc contract được nối thêm. Không được trình bày rằng FE đã điều khiển offset page nếu
+  code chưa gửi query param.
+- `OrderDetailPage` → `useOrder(id)` → `GET /orders/{id}`, key `['orders', id]`, enabled khi có id. UI đọc
+  `variant_snapshot`, địa chỉ snapshot và payment history từ order resource; không ghép lại catalog live để dựng lịch sử.
+
+### 7.2 Hủy đơn — `POST /orders/{id}/cancel`
+
+Nút chỉ hiện khi status thuộc `pending_payment|paid|processing`; modal nhận `reason` optional rồi
+`useCancelOrder()` gửi `{reason}`. Thành công invalidate cả prefix `['orders']` và detail `['orders', id]`.
+BE mới kiểm owner, trạng thái hiện thời, release/restock và refund record trong transaction. Nếu trạng thái đổi sau lúc
+nút được render, 422 của BE thắng; FE đóng/disable nút không phải concurrency control.
+
+Đơn đã trả online cần copy giải thích rằng “refund được ghi nhận, admin chuyển tiền thủ công” theo current contract;
+không hứa hoàn tự động qua PayOS.
+
+### 7.3 Hành động theo state machine
+
+**Hủy** cho pending/paid/processing, chặn từ shipped. **Thanh toán lại** chỉ có ý nghĩa với pending_payment và đi qua
+payment-session, không tạo order mới. Các nút là projection của state machine để giảm thao tác sai; server transition
+vẫn là nguồn chân lý.
 
 > **Phản biện:** Chi tiết đơn đọc snapshot (không join lại variant) → đơn cũ không sai khi shop đổi giá/xoá variant. Nút
 > hành động render theo trạng thái (state machine) — chỉ hiện bước hợp lệ.
+> *Sửa ngày 2026-07-22: tài liệu cũ ghi chỉ pending_payment được hủy; code BE cho phép pending/paid/processing.*
+
+**Khoảng hở hiện tại:** `getOrders()` chưa truyền `page`; nếu API trả trang 1 mặc định thì FE chưa có offset pagination
+hoàn chỉnh dù resource có `meta`. Đây là gap cần sửa hoặc phải demo đúng giới hạn.
+
+**Code evidence:** `features/orders/{api,hooks}.js`, `pages/orders/{OrdersPage,OrderDetailPage}.jsx`; BE
+`14-workflows.md` §4.0–§4b.
 
 ---
 
 ## 8. Đánh giá (Review)
 
+> **Liên kết bảo vệ `J11`:** [Kịch bản Chương 2](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-2--ai-tham-gia-và-hệ-thống-ghi-nhớ-gì) · [BE §8](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#8-review--moderation) · Tài/BE2 ↔ FE2/FE4.
+
 **Actor:** Customer (đã mua). **Entry:** form ở `ProductPage` (`/p/:slug`). **Feature:** `features/reviews`.
 
-- Chỉ user **đã mua** mới thấy form (verified purchase, 1 review/sản phẩm); comment trả lời 1 cấp. Review `approved` mới hiện public.
+### 8.1 Tạo review
+
+`ProductPage`/review form → `useCreateReview()` → `POST /products/{productId}/reviews` với phần payload còn lại
+(rating/body theo form). “Đã mua”, verified và uniqueness một review/sản phẩm phải do BE kiểm tra; việc FE ẩn form chỉ
+là affordance. Hook hiện **không invalidate** product-review query sau success: UI phải dựa vào copy “chờ duyệt” hoặc
+refetch chủ động, không được giả định review vừa tạo sẽ xuất hiện public.
+
+### 8.2 Bình luận review
+
+`useCreateComment(productSlug)` → `POST /reviews/{reviewId}/comments {body}`. Thành công invalidate
+`['products', productSlug, 'reviews']`, đúng key của danh sách public. Comment một cấp là contract dữ liệu/server, không
+phải do DOM nesting quyết định.
+
+### 8.3 Moderation boundary
+
+Public list chỉ nhận approved review. Admin approve/reject dùng domain `features/admin/reviews`; storefront không được
+tự lọc pending như một biện pháp bảo mật vì pending vốn không nên được API public serialize.
 
 > **Phản biện:** Form review nằm ở `/p/:slug` **không** ở `/orders/:id` vì `variant_snapshot` của đơn không mang `product_id`
 > Đây là lý do response review cần kèm `product`: danh sách moderation phải gắn review với đúng sản phẩm.
+
+**Code evidence:** `features/reviews/{api,hooks}.js`, `features/catalog/hooks.js`, Product review components,
+`features/admin/reviews/{api,hooks}.js`; BE `14-workflows.md` §8.
 
 ---
 
 ## 9. AI Chatbot (RAG) — phía FE
 
+> **Liên kết bảo vệ `J4`:** [Kịch bản Chương 4B–5](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4b--an-tìm-hiểu-và-thử-nghiệm) · [BE §10](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10-ai-chatbot-rag-tính-năng-phân-biệt-2) · Bảo/BE1 ↔ FE3.
+
 **Actor:** Customer verified. **Entry:** floating bubble `ChatWidget`/`ChatPanel`. **Feature:** `features/chat`, `store/chatStore`.
 
-- Chỉ hiện cho user **verified**; gửi câu hỏi → BE trả `reply` + `sources` (có `product_slug` → FE link `/p/:slug`). Lịch sử giữ
-  trong `chatStore` (**chỉ trong phiên**, không persist).
-- **Lỗi:** `429 AI_TOKEN_BUDGET_EXCEEDED` (hết hạn mức) · `503` (Gemini lỗi) → thông báo nhẹ, không phá UI.
+### 9.1 Gửi một message
+
+`ChatPanel` → `useSendMessage()` → `POST /ai/chat {message}`. Thành công append reply và sources vào
+`chatStore`; source có `product_slug` được biến thành link nội bộ `/p/:slug`. Lịch sử chỉ thuộc phiên, không persist và
+không được gửi như conversation history trừ khi API contract sau này thay đổi.
+
+### 9.2 Gate và failure
+
+Widget chỉ hiện cho customer verified. Đây là giảm request sai; endpoint vẫn phải auth/verified và enforce token budget.
+`429 AI_TOKEN_BUDGET_EXCEEDED` cần copy riêng; `503` là upstream unavailable và không được biến thành câu trả lời rỗng.
+Message đang soạn là local state; transcript hiển thị là `chatStore`; dữ liệu catalog nguồn thuộc response server, không
+đưa vào Query cache vì operation là mutation hội thoại.
 
 > **Phản biện:** BE **stateless** (mỗi câu độc lập) → FE giữ ngữ cảnh hiển thị trong phiên; nguồn trả lời kèm link sản phẩm
 > là điểm tin cậy (truy nguồn được).
 
+**Security boundary:** source/link là dữ liệu ngoài component; render dưới dạng text/link React, không dùng
+`dangerouslySetInnerHTML`. FE không được tuyên bố RAG “đúng tuyệt đối”; citations chỉ giúp truy nguồn để người dùng kiểm tra.
+
+**Code evidence:** `features/chat/{api,hooks}.js`, `components/chat/{ChatWidget,ChatPanel}.jsx`, `store/chatStore.js`;
+BE `14-workflows.md` §10.
+
 ---
 
 ## 9b. Personalization (cá nhân hoá — recently viewed & suggestions)
+
+> **Liên kết bảo vệ `J3`:** [Kịch bản Chương 4A](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4a--an-khám-phá) · [BE §10b](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10b-personalization--recently-viewed-tính-năng-cá-nhân-hoá) · Tài/BE2 ↔ FE1.
 
 **Actor:** Customer (logged-in + verified only). **Entry:** `ProductPage` → ghi xem + hiện "Bạn vừa xem"; `HomePage` → `PersonalizedSection` giữa Hero và Featured Categories.
 
@@ -225,6 +537,8 @@ Laravel API (api.nestify.asia)
 ---
 
 ## 10. Khu vực Admin (back-office)
+
+> **Liên kết bảo vệ `J6`, `J12`:** [Kịch bản Chương 2–3](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-3--một-khả-năng-được-chuẩn-bị) · [BE §10d–§10e và §11–§12](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10d-media-library-thư-viện-ảnh-dùng-chung--đã-build-2026-07-08) · Tài/BE2 ↔ FE4.
 
 **Actor:** Staff (role ≠ customer). **Entry:** `/admin/*` sau `AdminRoute`. **Feature:** `features/admin/*`, `pages/admin/*`.
 
@@ -368,6 +682,8 @@ token/quyền thật).
 
 ## 10b. Thiết kế phòng 3D (Room Planner) — chức năng nâng cao
 
+> **Liên kết bảo vệ `J5`:** [Kịch bản Chương 3–5](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4b--an-tìm-hiểu-và-thử-nghiệm) · [BE §9](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#9-3d-room-planner-be-persistenceorder-bridge--chi-tiết-từng-operation) · Bảo/BE1 ↔ FE3/FE4.
+
 **Actor:** Customer (đã đăng nhập). **Entry:** link header "Thiết kế phòng 3D" → `/room-planner` (tạo mới) và
 `/room-planner/:id` (mở scene đã lưu), **sau `ProtectedRoute`**, route **top-level đứng riêng** (KHÔNG nằm trong storefront
 `Layout` → toàn màn hình, không Header/Footer). **Feature:** `features/roomPlanner`, `pages/roomPlanner/*`.
@@ -474,32 +790,13 @@ không thêm `.ts/.tsx`, không hex thô, UI tiếng Việt · page vẫn "mỏn
 
 ---
 
-## 14. Bài học từ sự cố thật (case study để phản biện)
-
-> 23/06/2026: production FE **mọi deep-link 404** + **UI mới không lên production** dù code đã có trên repo. 5 bài học:
-
-1. **Đừng revert một merge rồi merge lại nhánh cũ** — git thấy commit "đã reachable" nên không khôi phục nội dung đã revert →
-   mất nguyên mảng UI. *Đúng:* `git revert <sha-của-commit-revert>`, KHÔNG merge lại nhánh.
-2. **Resolve conflict cẩn thận** — trộn 2 phiên bản làm rớt import / nhân đôi JSX → build fail / crash. Sau resolve **luôn**
-   `npm run build` + `npm test`.
-3. **`npm run build` KHÔNG bắt mọi lỗi** — `X is not defined` là ReferenceError lúc chạy; bundler vẫn "build thành công" nhưng
-   trang trắng. Phải chạy **cả test** (Vitest render trang) mới lộ.
-4. **Hiểu cổng deploy Vercel** — production build từ Production Branch = `dev`; build fail thì Vercel **giữ bản cũ** → tưởng
-   "đã cập nhật mà không đổi". Luôn xem tab Deployments (Ready/Error + build từ commit nào).
-5. **`vercel.json` phải nằm trên nhánh production** — thiếu rewrite SPA `{"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}`
-   thì mọi refresh/deep-link/link email 404.
-
-**Kết luận:** mọi thay đổi vào production đi qua **PR → chủ project review & merge → Vercel deploy**; build + test xanh là điều kiện cứng.
-
----
-
-## 15. Chuẩn bị phản biện (study & defense)
+## 14. Chuẩn bị phản biện (study & defense)
 
 **Mỗi thành viên trình bày được:** (1) Tổng thể §0 (stack, 4 tầng, luồng dữ liệu, phân vùng). (2) Phần của mình (§chức năng):
 mỗi màn hình làm gì, gọi API nào, xử lý lỗi/edge-case ra sao. (3) ≥ 2 quyết định/deviation để bảo vệ.
 
 **Câu hỏi hay gặp:** vì sao tách `api.js`/`hooks.js` khỏi page · TanStack Query giải quyết gì so với `useEffect`+`fetch` ·
-chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail hydrate cache · quy trình chặn bug lên production (§13–§14).
+chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail hydrate cache · quy trình chặn bug lên production (§13).
 
 ---
 
@@ -521,4 +818,4 @@ chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail 
 
 ---
 
-_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-10._
+_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-27._

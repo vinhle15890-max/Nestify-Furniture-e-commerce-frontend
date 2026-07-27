@@ -16,6 +16,7 @@ import { ScaleLegend } from './ScaleLegend'
 import { useEditorShortcuts } from './useEditorShortcuts'
 import { SmallScreenNotice } from './SmallScreenNotice'
 import { PlannerGeometryPlaceholder } from '../../components/LoadingStates'
+import { PlannerCanvasErrorBoundary } from './PlannerCanvasErrorBoundary'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 import { useScene, useSceneReview, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview, useRoomDraft, useSaveRoomDraft, useClaimRoomDraft } from '../../features/roomPlanner/hooks'
 import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
@@ -447,9 +448,11 @@ export function RoomPlannerPage() {
           <main className="relative min-w-0 flex-1 bg-surface">
             <PlannerViewMenu snap={store.snap} onToggleSnap={store.toggleSnap} wallSnap={store.wallSnap} onToggleWallSnap={store.toggleWallSnap} showScaleRef={store.showScaleRef} onToggleScaleRef={store.toggleScaleRef} onEnterRoomEdit={() => store.setEditMode('room')} />
             {selectedItem && store.editMode === 'furnish' && <PlannerContextControls gizmoMode={store.gizmoMode} onGizmoModeChange={store.setGizmoMode} />}
-            {store.status === 'ready' && <RoomCanvas />}
-            {store.status === 'ready' && store.editMode === 'room' && <RoomEditPanel />}
-            {store.status === 'ready' && store.editMode === 'furnish' && <ScaleLegend room={store.room} />}
+            <PlannerCanvasErrorBoundary sceneKey={id ?? 'new'} onLeaveRoomEdit={() => store.setEditMode('furnish')}>
+              {store.status === 'ready' && <RoomCanvas />}
+              {store.status === 'ready' && store.editMode === 'room' && <RoomEditPanel />}
+              {store.status === 'ready' && store.editMode === 'furnish' && <ScaleLegend room={store.room} />}
+            </PlannerCanvasErrorBoundary>
           </main>
           <aside aria-label="Thông tin phòng" className="flex w-72 shrink-0 flex-col border-l border-border bg-surface">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">

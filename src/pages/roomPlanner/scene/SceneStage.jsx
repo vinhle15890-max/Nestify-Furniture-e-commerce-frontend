@@ -46,6 +46,7 @@ function CameraRig({ topDown, room, camDistance }) {
   const { camera } = useThree()
 
   useEffect(() => {
+    if (!camera) return undefined
     if (topDown) {
       const overheadY = Math.max(room.width, room.depth) * 1.4 + room.height
       camera.position.set(0, overheadY, 0.001) // tiny Z offset avoids the lookAt gimbal singularity
@@ -55,9 +56,31 @@ function CameraRig({ topDown, room, camDistance }) {
       camera.lookAt(0, room.height / 4, 0)
     }
     camera.updateProjectionMatrix()
+    return undefined
   }, [topDown, room.width, room.depth, room.height, camDistance, camera])
 
   return null
+}
+
+function ResolvedOrbitControls({ topDown, room, orbitEnabled }) {
+  const camera = useThree((state) => state.camera)
+  if (!camera) return null
+
+  return (
+    <OrbitControls
+      camera={camera}
+      makeDefault
+      enabled={orbitEnabled}
+      enableRotate={!topDown}
+      target={topDown ? [0, 0, 0] : [0, room.height / 4, 0]}
+      // Decision log (OrbitControls generic-reset crash): change angle-limit
+      // VALUES per view mode, but never conditionally remove either prop. R3F
+      // resets an absent primitive prop via a no-argument constructor, while
+      // three-stdlib OrbitControls requires a camera and reads camera.position.
+      minPolarAngle={0}
+      maxPolarAngle={topDown ? 0.0001 : Math.PI}
+    />
+  )
 }
 
 // Shared presentational stage for the room: the WebGL-support gate + <Canvas> +
@@ -103,13 +126,7 @@ export function SceneStage({ room, orbitEnabled = true, topDown = false, onRende
         <directionalLight position={[5, 8, 5]} intensity={1.1} castShadow />
         <Room width={room.width} depth={room.depth} height={room.height} walls={room.walls} />
         {children}
-        <OrbitControls
-          makeDefault
-          enabled={orbitEnabled}
-          enableRotate={!topDown}
-          target={topDown ? [0, 0, 0] : [0, room.height / 4, 0]}
-          {...(topDown ? { minPolarAngle: 0, maxPolarAngle: 0.0001 } : {})}
-        />
+        <ResolvedOrbitControls topDown={topDown} room={room} orbitEnabled={orbitEnabled} />
       </Canvas>
       {contextLost && <ContextLostOverlay />}
     </div>

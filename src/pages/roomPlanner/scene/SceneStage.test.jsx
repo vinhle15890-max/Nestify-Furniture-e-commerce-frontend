@@ -5,15 +5,19 @@ import { SceneStage } from './SceneStage'
 // Camera stub shared by the useThree mock below — asserted against in the
 // topDown test. Declared via vi.hoisted so it's initialized before the
 // hoisted vi.mock factories run.
-const { mockCamera, environmentSpy, orbitControlsSpy } = vi.hoisted(() => ({
-  mockCamera: {
+const { mockCamera, mockThreeState, environmentSpy, orbitControlsSpy } = vi.hoisted(() => {
+  const camera = {
     position: { set: vi.fn() },
     lookAt: vi.fn(),
     updateProjectionMatrix: vi.fn(),
-  },
-  environmentSpy: vi.fn(() => null),
-  orbitControlsSpy: vi.fn(() => null),
-}))
+  }
+  return {
+    mockCamera: camera,
+    mockThreeState: { camera },
+    environmentSpy: vi.fn(() => null),
+    orbitControlsSpy: vi.fn(() => null),
+  }
+})
 
 // Stub react-three-fiber's Canvas so the "supported" branch is observable in
 // jsdom without booting three.js. Renders a REAL <canvas> (marker testid) and
@@ -31,7 +35,7 @@ vi.mock('@react-three/fiber', () => ({
       {children}
     </canvas>
   ),
-  useThree: () => ({ camera: mockCamera }),
+  useThree: (selector) => selector ? selector(mockThreeState) : mockThreeState,
 }))
 
 vi.mock('@react-three/drei', () => ({
@@ -44,6 +48,7 @@ const realGetContext = HTMLCanvasElement.prototype.getContext
 
 afterEach(() => {
   HTMLCanvasElement.prototype.getContext = realGetContext
+  mockThreeState.camera = mockCamera
   cleanup()
 })
 
@@ -142,7 +147,8 @@ describe('SceneStage top-down "Chỉnh phòng" mode', () => {
 
     const props = orbitControlsSpy.mock.calls.at(-1)[0]
     expect(props.enableRotate).toBe(true)
-    expect(props.minPolarAngle).toBeUndefined()
+    expect(props.minPolarAngle).toBe(0)
+    expect(props.maxPolarAngle).toBe(Math.PI)
   })
 
   test('topDown true → OrbitControls rotation locked + camera moved overhead', () => {
@@ -154,6 +160,36 @@ describe('SceneStage top-down "Chỉnh phòng" mode', () => {
     const props = orbitControlsSpy.mock.calls.at(-1)[0]
     expect(props.enableRotate).toBe(false)
     expect(props.minPolarAngle).toBe(0)
+    expect(props.maxPolarAngle).toBe(0.0001)
     expect(mockCamera.position.set).toHaveBeenCalledWith(0, expect.any(Number), 0.001)
+  })
+
+  test('keeps a resolved camera and angle props on OrbitControls when leaving room edit mode', () => {
+    const { ctx } = mockContext()
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx)
+
+    const { rerender } = render(<SceneStage room={room} topDown />)
+    rerender(<SceneStage room={{ ...room, width: 3, depth: 4 }} topDown />)
+    rerender(<SceneStage room={{ ...room, width: 3, depth: 4 }} topDown={false} />)
+
+    expect(orbitControlsSpy).toHaveBeenCalled()
+    expect(orbitControlsSpy.mock.calls.every(([props]) => props.camera === mockCamera)).toBe(true)
+    const props = orbitControlsSpy.mock.calls.at(-1)[0]
+    expect(props).toMatchObject({
+      enableRotate: true,
+      minPolarAngle: 0,
+      maxPolarAngle: Math.PI,
+    })
+  })
+
+  test('does not construct OrbitControls while the R3F camera is unresolved', () => {
+    const { ctx } = mockContext()
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx)
+    orbitControlsSpy.mockClear()
+    mockThreeState.camera = null
+
+    render(<SceneStage room={room} topDown />)
+
+    expect(orbitControlsSpy).not.toHaveBeenCalled()
   })
 })

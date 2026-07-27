@@ -14,6 +14,20 @@ import { ProductThumb } from '../../components/ProductThumb'
 import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice } from '../../lib/format'
 
+function getSavedVariantDetails(variant) {
+  const attributes = variant?.attributes
+
+  if (attributes && typeof attributes === 'object' && !Array.isArray(attributes)) {
+    const details = Object.entries(attributes)
+      .filter(([name, value]) => name && value !== null && value !== undefined && value !== '')
+      .map(([name, value]) => `${name}: ${String(value)}`)
+
+    if (details.length > 0) return details
+  }
+
+  return variant?.name ? [variant.name] : []
+}
+
 export function WishlistPage() {
   const wishlistQuery = useWishlist()
   const { data, isLoading, isError, isFetching } = wishlistQuery
@@ -101,7 +115,10 @@ export function WishlistPage() {
         </div>
       ) : (
         <ul className="mt-10 flex flex-col divide-y divide-border">
-          {items.map((item) => (
+          {items.map((item) => {
+            const savedVariantDetails = getSavedVariantDetails(item.variant)
+
+            return (
             <li key={item.id} className="py-6 first:pt-0">
               <div className="flex flex-wrap items-center justify-between gap-5">
                 <div className="flex min-w-0 items-center gap-4">
@@ -123,7 +140,20 @@ export function WishlistPage() {
                     ) : (
                       <p className="text-lg font-medium text-foreground">{item.variant?.product_name ?? item.variant?.name}</p>
                     )}
-                    <p className="text-sm text-muted-foreground">{item.variant?.name} · {item.variant?.sku}</p>
+                    {savedVariantDetails.length > 0 && (
+                      <div aria-label="Biến thể đã lưu" className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">Biến thể đã lưu</span>
+                        {savedVariantDetails.map((detail) => (
+                          <span
+                            key={detail}
+                            className="rounded-control border border-border px-2 py-0.5 text-xs text-foreground"
+                          >
+                            {detail}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {item.variant?.sku && <p className="mt-1 text-xs text-muted-foreground">Mã: {item.variant.sku}</p>}
                     <p className="mt-1 text-sm text-foreground">{formatPrice(item.variant?.price)}</p>
                   </div>
                 </div>
@@ -161,7 +191,8 @@ export function WishlistPage() {
                 </p>
               )}
             </li>
-          ))}
+            )
+          })}
         </ul>
       )}
     </div>

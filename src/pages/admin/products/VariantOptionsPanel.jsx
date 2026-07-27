@@ -23,7 +23,18 @@ export function VariantOptionsPanel({ value, onChange }) {
     <div className="flex flex-col gap-5">
       {options.map((option, i) => (
         <div key={i} className="rounded-card border border-border bg-surface p-4">
-          <div className="flex items-end gap-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-foreground">Thuộc tính {i + 1}</p>
+            <button
+              type="button"
+              aria-label={`Xóa thuộc tính ${i + 1}`}
+              onClick={() => removeOption(i)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-control text-muted-foreground hover:bg-surface-alt hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
               <Input
                 label="Tên thuộc tính"
@@ -44,9 +55,6 @@ export function VariantOptionsPanel({ value, onChange }) {
                 <option value="color">Màu sắc</option>
               </select>
             </div>
-            <Button type="button" variant="secondary" aria-label="Xóa thuộc tính" onClick={() => removeOption(i)}>
-              <Trash2 size={16} />
-            </Button>
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
@@ -68,7 +76,12 @@ export function VariantOptionsPanel({ value, onChange }) {
                   placeholder="vd: Đỏ"
                   className="flex-1 rounded-control border border-border bg-surface px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
-                <button type="button" aria-label="Xóa giá trị" onClick={() => removeValue(i, j)} className="text-muted-foreground hover:text-destructive">
+                <button
+                  type="button"
+                  aria-label={`Xóa giá trị ${j + 1}`}
+                  onClick={() => removeValue(i, j)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-control text-muted-foreground hover:bg-surface-alt hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring"
+                >
                   <Trash2 size={16} />
                 </button>
               </div>
