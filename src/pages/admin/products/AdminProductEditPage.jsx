@@ -173,11 +173,21 @@ function ProductEditor({ initialProduct }) {
       })
       setProduct((current) => ({ ...current, ...response.data }))
       addToast({ title: 'Đã lưu sản phẩm.', variant: 'success' })
+      return true
     } catch (error) {
-      if (applyServerErrors(error, setError)) return
+      if (applyServerErrors(error, setError)) return false
       addToast({ title: 'Không thể lưu sản phẩm.', description: error.message, variant: 'error' })
+      return false
     }
   }
+
+  const saveBeforeGeneratingVariants = () =>
+    new Promise((resolve) => {
+      handleSubmit(
+        async (values) => resolve(await onSubmit(values)),
+        () => resolve(false),
+      )()
+    })
 
   const handleGenerateDescription = async () => {
     try {
@@ -519,21 +529,27 @@ function ProductEditor({ initialProduct }) {
             </Panel>
             <Panel padded={false}>
               <div className="border-b border-border px-5 py-4">
-                <h3 className="font-display text-lg text-foreground">Thuộc tính biến thể</h3>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-accent">Bước 1</p>
+                <h3 className="font-display text-lg text-foreground">Chọn cách khách hàng phân biệt sản phẩm</h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Định nghĩa các thuộc tính (màu sắc, kích thước…) rồi sinh tự động các biến thể tổ hợp.
+                  Ví dụ: Màu sắc, Kích thước hoặc Chất liệu. Bỏ qua bước này nếu sản phẩm chỉ có một phiên bản.
                 </p>
               </div>
               <div className="flex flex-col gap-6 p-5">
                 <VariantOptionsPanel value={variantOptions} onChange={setVariantOptions} />
-                <p className="text-xs text-muted-foreground">
-                  {`Lưu thuộc tính bằng nút "Lưu sản phẩm" ở trên, sau đó sinh biến thể bên dưới.`}
-                </p>
                 <div className="border-t border-border pt-5">
+                  <div className="mb-4">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-accent">Bước 2</p>
+                    <h4 className="font-display text-base text-foreground">Nhập giá và tồn kho cho từng tổ hợp</h4>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Điền một lần cho tất cả rồi chỉnh riêng những tổ hợp có giá hoặc tồn kho khác.
+                    </p>
+                  </div>
                   <VariantMatrixGenerator
                     productId={product.id}
                     options={variantOptions}
                     variants={allVariants}
+                    onBeforeGenerate={saveBeforeGeneratingVariants}
                     onCreated={(variants) => setProduct((current) => ({ ...current, variants }))}
                   />
                 </div>
