@@ -30,7 +30,8 @@ import { VariantFormModal } from './VariantFormModal'
 import { VariantOptionsPanel } from './VariantOptionsPanel'
 import { VariantMatrixGenerator } from './VariantMatrixGenerator'
 import { DescriptionSeoFields } from './DescriptionSeoFields'
-import { productSchema, flattenCategories, toProductPayload } from './productForm'
+import { ProductAttributesFields } from './ProductAttributesFields'
+import { productSchema, flattenCategories, toProductPayload, productAttributeDefaults } from './productForm'
 
 const STATUS_LABELS = {
   active: { label: 'Đang bán', tone: 'in-stock' },
@@ -51,8 +52,9 @@ const FIELD_TAB = {
   meta_title: 'mo-ta-seo',
   meta_description: 'mo-ta-seo',
   focus_keyword: 'mo-ta-seo',
+  product_attributes: 'thong-so',
 }
-const TAB_ORDER = ['thong-tin', 'bien-the', 'mo-ta-seo', 'hinh-anh']
+const TAB_ORDER = ['thong-tin', 'thong-so', 'bien-the', 'mo-ta-seo', 'hinh-anh']
 
 function findProductInCache(queryClient, productId) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['admin', 'products'] })
@@ -73,8 +75,13 @@ export function AdminProductEditPage() {
   const productId = Number(id)
 
   const seeded = location.state?.product ?? findProductInCache(queryClient, productId)
-  const query = useAdminProduct(productId, { enabled: !seeded })
-  const product = seeded ?? query.data?.data
+  // The list payload is intentionally lightweight and may omit variants/media.
+  // Only use a seed that already has both detail collections; otherwise wait
+  // for the detail endpoint so the UI never flashes a false empty state.
+  const query = useAdminProduct(productId)
+  const detailedProduct = query.data?.data
+  const seedIsDetailed = Array.isArray(seeded?.variants) && Array.isArray(seeded?.media)
+  const product = detailedProduct ?? (seedIsDetailed ? seeded : null)
 
   if (!product && query.isLoading) {
     return <p className="text-sm text-muted-foreground">Đang tải sản phẩm…</p>
@@ -141,6 +148,7 @@ function ProductEditor({ initialProduct }) {
           meta_title: product.meta_title ?? '',
           meta_description: product.meta_description ?? '',
           focus_keyword: product.focus_keyword ?? '',
+          product_attributes: productAttributeDefaults(product.attributes),
           status: product.status ?? 'active',
         }
       : undefined,
@@ -168,7 +176,7 @@ function ProductEditor({ initialProduct }) {
     try {
       const response = await updateProduct.mutateAsync({
         id: product.id,
-        ...toProductPayload(values),
+        ...toProductPayload(values, product.attributes),
         variant_options: variantOptions,
       })
       setProduct((current) => ({ ...current, ...response.data }))
@@ -320,13 +328,26 @@ function ProductEditor({ initialProduct }) {
   const handleTagMedia = async (media, value) => {
     const variantId = value === '' ? null : Number(value)
     try {
-      const response = await updateMedia.mutateAsync({ productId: product.id, mediaId: media.id, variantId })
+      const response = await updateMedia.mutateAsync({ productId: product.id, mediaId: media.id, variant_id: variantId })
       setProduct((current) => ({
         ...current,
         media: (current.media ?? []).map((item) => (item.id === media.id ? response.data : item)),
       }))
     } catch (error) {
       addToast({ title: 'Không thể gán ảnh cho phiên bản.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleSetThumbnail = async (media) => {
+    try {
+      await updateMedia.mutateAsync({ productId: product.id, mediaId: media.id, is_thumbnail: true })
+      setProduct((current) => ({
+        ...current,
+        thumbnail: media.url,
+        media: (current.media ?? []).map((item) => ({ ...item, is_thumbnail: item.id === media.id })),
+      }))
+    } catch (error) {
+      addToast({ title: 'Không thể đặt ảnh đại diện.', description: error.message, variant: 'error' })
     }
   }
 
@@ -369,6 +390,7 @@ function ProductEditor({ initialProduct }) {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabList ariaLabel="Cấu hình sản phẩm">
           <Tab value="thong-tin" hasError={erroredTabs.has('thong-tin')}>Thông tin</Tab>
+          <Tab value="thong-so" hasError={erroredTabs.has('thong-so')}>Thông số &amp; chính sách</Tab>
           <Tab value="bien-the">Biến thể</Tab>
           <Tab value="mo-ta-seo" hasError={erroredTabs.has('mo-ta-seo')}>Mô tả &amp; SEO</Tab>
           <Tab value="hinh-anh">Hình ảnh</Tab>
@@ -422,6 +444,20 @@ function ProductEditor({ initialProduct }) {
                   <option value="archived">Đã lưu trữ</option>
                 </select>
               </div>
+            </div>
+          </Panel>
+        </TabPanel>
+
+        <TabPanel value="thong-so">
+          <Panel padded={false}>
+            <div className="border-b border-border px-5 py-4">
+              <h3 className="font-display text-lg text-foreground">Thông số &amp; chính sách</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Dữ liệu ở đây được hiển thị thành từng module riêng trên trang sản phẩm.
+              </p>
+            </div>
+            <div className="p-5">
+              <ProductAttributesFields register={register} errors={errors.product_attributes} />
             </div>
           </Panel>
         </TabPanel>
@@ -594,6 +630,11 @@ function ProductEditor({ initialProduct }) {
             </div>
 
             <div className="p-5">
+              <div className="mb-5 rounded-card border border-border bg-surface-alt/50 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                <strong className="font-medium text-foreground">Phạm vi ảnh</strong> chỉ quyết định gallery: ảnh dùng chung xuất hiện
+                cùng ảnh riêng sau khi khách chọn phiên bản. <strong className="font-medium text-foreground">Ảnh đại diện</strong> là
+                lựa chọn độc lập dùng cho card sản phẩm và trạng thái chưa chọn.
+              </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                 {sortedMedia.map((media, index) => (
                   <div key={media.id} className="flex flex-col gap-2 rounded-card border border-border p-2">
@@ -607,15 +648,28 @@ function ProductEditor({ initialProduct }) {
                     <p className="text-xs text-muted-foreground">
                       {media.type === 'video' ? 'Video' : 'Ảnh'} · Thứ tự {media.sort_order}
                     </p>
+                    {media.is_thumbnail ? (
+                      <span className="w-fit rounded-full bg-foreground px-2.5 py-1 text-xs font-medium text-surface">
+                        Ảnh đại diện
+                      </span>
+                    ) : media.type === 'image' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSetThumbnail(media)}
+                        className="w-fit text-xs font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        Đặt làm ảnh đại diện
+                      </button>
+                    ) : null}
                     {product.variants?.length > 0 && (
                       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                        Áp dụng cho
+                        Phạm vi ảnh
                         <select
                           value={media.variant_id ?? ''}
                           onChange={(event) => handleTagMedia(media, event.target.value)}
                           className="rounded-control border border-border bg-background px-2 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          <option value="">Tất cả phiên bản</option>
+                          <option value="">Ảnh dùng chung</option>
                           {product.variants.map((variant) => (
                             <option key={variant.id} value={variant.id}>
                               {variant.name}

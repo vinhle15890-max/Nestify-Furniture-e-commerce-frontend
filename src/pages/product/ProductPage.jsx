@@ -346,12 +346,14 @@ export function ProductPage() {
     )
   }
 
-  // Gallery filters to the selected variant's media + agnostic (variant_id null)
-  // media; media tagged to OTHER variants is hidden. Untagged products (all
-  // agnostic) → visibleMedia === media, i.e. unchanged from before.
-  const visibleMedia = media.filter(
-    (item) => item.variant_id == null || item.variant_id === selectedVariant?.id,
-  )
+  // Before a variant is selected: explicit thumbnail + shared media. After
+  // selection: selected variant media + shared media; other variants stay hidden.
+  // Thumbnail is an independent role and never changes the attachment scope.
+  const visibleMedia = selectedVariant
+    ? media.filter((item) => item.variant_id == null || item.variant_id === selectedVariant.id)
+    : media
+        .filter((item) => item.variant_id == null || item.is_thumbnail)
+        .sort((a, b) => Number(b.is_thumbnail) - Number(a.is_thumbnail))
   const activeMedia = visibleMedia[selectedMediaIndex]
 
   const sanitizedDescription = enhanceDescriptionHtml(product.description)
@@ -420,7 +422,7 @@ export function ProductPage() {
             <p id="product-media-role" className="text-sm font-medium text-ink/60">
               {activeMedia?.variant_id === selectedVariant?.id && activeMedia?.variant_id != null
                 ? 'Ảnh sản phẩm theo phiên bản'
-                : 'Ảnh bối cảnh'}
+                : 'Ảnh dùng chung'}
             </p>
             <p className="text-ink/55">Không dùng để suy ra kích thước</p>
           </div>

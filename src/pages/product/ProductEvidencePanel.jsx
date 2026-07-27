@@ -20,7 +20,7 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
   const mediaRole = mediaMatchesVariant
     ? 'Ảnh theo phiên bản đã chọn'
     : activeMedia
-      ? 'Ảnh bối cảnh dùng chung'
+      ? 'Ảnh dùng chung'
       : 'Chưa có hình ảnh'
   const plannerHref = selectedVariant
     ? `/room-planner?product=${encodeURIComponent(product.slug)}&variant=${selectedVariant.id}`

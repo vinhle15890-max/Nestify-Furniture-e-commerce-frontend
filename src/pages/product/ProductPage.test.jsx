@@ -300,7 +300,7 @@ describe('ProductPage', () => {
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
     expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/shared.jpg')
-    expect(screen.getByText('Ảnh bối cảnh dùng chung')).toBeInTheDocument()
+    expect(screen.getAllByText('Ảnh dùng chung').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(/chưa xác minh riêng cho phiên bản Nâu/i)).toBeInTheDocument()
   })
 

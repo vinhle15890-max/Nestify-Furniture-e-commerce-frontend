@@ -2,6 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOffsetQuery } from '../../../lib/pagination'
 import * as productsApi from './api'
 
+function invalidateProductMedia(queryClient, productId) {
+  queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+  queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] })
+}
+
 export function useAdminProducts(page) {
   return useOffsetQuery({
     queryKey: ['admin', 'products'],
@@ -113,7 +118,7 @@ export function useReorderMedia() {
 
   return useMutation({
     mutationFn: ({ productId, ids }) => productsApi.reorderMedia(productId, ids),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+    onSuccess: (_response, { productId }) => invalidateProductMedia(queryClient, productId),
   })
 }
 
@@ -122,7 +127,7 @@ export function useDeleteMedia() {
 
   return useMutation({
     mutationFn: ({ productId, mediaId }) => productsApi.deleteMedia(productId, mediaId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+    onSuccess: (_response, { productId }) => invalidateProductMedia(queryClient, productId),
   })
 }
 
@@ -130,8 +135,8 @@ export function useUpdateMedia() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ productId, mediaId, variantId }) => productsApi.updateMedia(productId, mediaId, variantId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+    mutationFn: ({ productId, mediaId, ...payload }) => productsApi.updateMedia(productId, mediaId, payload),
+    onSuccess: (_response, { productId }) => invalidateProductMedia(queryClient, productId),
   })
 }
 
@@ -142,6 +147,6 @@ export function useAttachMedia() {
   return useMutation({
     mutationFn: ({ productId, mediaAssetIds, variantId = null }) =>
       productsApi.attachMedia(productId, { media_asset_ids: mediaAssetIds, variant_id: variantId }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+    onSuccess: (_response, { productId }) => invalidateProductMedia(queryClient, productId),
   })
 }
