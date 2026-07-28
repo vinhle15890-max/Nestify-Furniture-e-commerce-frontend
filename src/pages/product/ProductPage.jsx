@@ -7,12 +7,11 @@ import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
 import { ProductDetailSkeleton } from '../../components/LoadingStates'
 import { LoadErrorState } from '../../components/LoadErrorState'
-import { formatDate } from '../../lib/format'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
 import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../features/wishlist/hooks'
 import { useOrders } from '../../features/orders/hooks'
-import { useCreateReview, useCreateComment } from '../../features/reviews/hooks'
+import { useCreateReview } from '../../features/reviews/hooks'
 import { focusFirstError, formLevelMessage } from '../../lib/formErrors'
 import { useRecordProductView } from '../../features/personalization/hooks'
 import { RecentlyViewedStrip } from '../../components/personalization/RecentlyViewedStrip'
@@ -240,7 +239,6 @@ export function ProductPage() {
 
   const { data: ordersData } = useOrders({ enabled: !!token })
   const createReview = useCreateReview()
-  const createComment = useCreateComment(productSlug)
 
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewTitle, setReviewTitle] = useState('')
@@ -248,9 +246,6 @@ export function ProductPage() {
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [reviewError, setReviewError] = useState(null)
   const [reviewFieldErrors, setReviewFieldErrors] = useState({ rating: null, title: null, body: null })
-  const [commentDrafts, setCommentDrafts] = useState({})
-  const [commentErrors, setCommentErrors] = useState({})
-  const [commentSubmittingId, setCommentSubmittingId] = useState(null)
   const reviewFormRef = useRef(null)
 
   const variantIds = useMemo(() => new Set(variants.map((variant) => variant.id)), [variants])
@@ -285,27 +280,6 @@ export function ProductPage() {
         setReviewError(formLevelMessage(error))
       }
       focusFirstError(reviewFormRef.current)
-    }
-  }
-
-  async function handleSubmitComment(event, reviewId) {
-    event.preventDefault()
-    const body = (commentDrafts[reviewId] ?? '').trim()
-    if (!body) return
-    setCommentErrors((prev) => ({ ...prev, [reviewId]: {} }))
-    setCommentSubmittingId(reviewId)
-    try {
-      await createComment.mutateAsync({ reviewId, body })
-      setCommentDrafts((prev) => ({ ...prev, [reviewId]: '' }))
-    } catch (error) {
-      if (error?.code === 'VALIDATION_FAILED' && error.details?.fields) {
-        setCommentErrors((prev) => ({ ...prev, [reviewId]: { fields: error.details.fields } }))
-      } else {
-        setCommentErrors((prev) => ({ ...prev, [reviewId]: { message: formLevelMessage(error) } }))
-      }
-      focusFirstError(event.currentTarget)
-    } finally {
-      setCommentSubmittingId(null)
     }
   }
 
@@ -600,65 +574,6 @@ export function ProductPage() {
                 </div>
                 {review.title && <p className="mt-2 font-display text-lg text-foreground">{review.title}</p>}
                 <p className="mt-1.5 leading-relaxed text-foreground">{review.body}</p>
-
-                {review.comments?.length > 0 && (
-                  <ul className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
-                    {review.comments.map((comment) => (
-                      <li key={comment.id} className="border-l-2 border-border-strong pl-4 text-sm">
-                        <p className="font-medium text-foreground">
-                          {comment.user?.name}{' '}
-                          <span className="font-normal text-muted-foreground">· {formatDate(comment.created_at)}</span>
-                        </p>
-                        <p className="text-muted-foreground">{comment.body}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {token && (
-                  <form
-                    onSubmit={(event) => handleSubmitComment(event, review.id)}
-                    className="mt-4 flex flex-col gap-2 border-t border-border pt-4"
-                  >
-                    <label className="text-sm text-foreground" htmlFor={`comment-${review.id}`}>
-                      Bình luận
-                      <textarea
-                        id={`comment-${review.id}`}
-                        value={commentDrafts[review.id] ?? ''}
-                        onChange={(event) => {
-                          setCommentDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))
-                          if (commentErrors[review.id]) setCommentErrors((prev) => ({ ...prev, [review.id]: {} }))
-                        }}
-                        maxLength={2000}
-                        rows={2}
-                        aria-invalid={commentErrors[review.id]?.fields?.body ? 'true' : undefined}
-                        aria-describedby={commentErrors[review.id]?.fields?.body ? `comment-${review.id}-error` : undefined}
-                        className="mt-1.5 block w-full rounded-control border border-border-strong bg-surface px-4 py-2.5 text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                      />
-                    </label>
-                    {commentErrors[review.id]?.fields?.body && (
-                      <p id={`comment-${review.id}-error`} role="alert" className="text-sm text-destructive">
-                        {Array.isArray(commentErrors[review.id].fields.body)
-                          ? commentErrors[review.id].fields.body[0]
-                          : commentErrors[review.id].fields.body}
-                      </p>
-                    )}
-                    {commentErrors[review.id]?.message && (
-                      <p role="alert" className="text-sm text-destructive">
-                        {commentErrors[review.id].message}
-                      </p>
-                    )}
-                    <div>
-                      <Button
-                        type="submit"
-                        variant="secondary"
-                        disabled={!commentDrafts[review.id]?.trim() || commentSubmittingId === review.id}
-                      >
-                        {commentSubmittingId === review.id ? 'Đang gửi…' : 'Gửi bình luận'}
-                      </Button>
-                    </div>
-                  </form>
-                )}
               </li>
             ))}
           </ul>

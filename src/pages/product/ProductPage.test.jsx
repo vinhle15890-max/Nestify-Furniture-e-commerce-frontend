@@ -84,9 +84,6 @@ const reviewsResponse = {
       body: 'Rất hài lòng với sản phẩm',
       status: 'approved',
       user: { id: 1, name: 'Bao' },
-      comments: [
-        { id: 1, body: 'Đồng ý!', user: { id: 2, name: 'Lan' }, created_at: '2026-01-02T00:00:00Z' },
-      ],
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-01T00:00:00Z',
     },
@@ -460,21 +457,6 @@ describe('ProductPage', () => {
     expect(await screen.findByText(/đang chờ kiểm duyệt/)).toBeInTheDocument()
   })
 
-  it('renders existing comments and submits a new comment', async () => {
-    reviewsApi.createComment.mockResolvedValue({ data: { id: 2, body: 'Cảm ơn', user: { id: 1, name: 'Bao' }, created_at: '2026-01-03T00:00:00Z' } })
-
-    renderPage()
-    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
-
-    expect(await screen.findByText('Đồng ý!')).toBeInTheDocument()
-    expect(screen.getByText('Lan')).toBeInTheDocument()
-
-    await userEvent.type(screen.getByLabelText('Bình luận'), 'Cảm ơn')
-    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
-
-    expect(reviewsApi.createComment).toHaveBeenCalledWith(1, 'Cảm ơn')
-  })
-
   // A verified purchase unlocks the review form for these tests.
   function withVerifiedOrder() {
     ordersApi.getOrders.mockResolvedValue({
@@ -559,57 +541,6 @@ describe('ProductPage', () => {
 
     resolveReview({ data: { id: 10, status: 'pending' } })
     await screen.findByText(/đang chờ kiểm duyệt/)
-  })
-
-  it('does not let a comment fail silently — shows an inline alert and retains the draft on a 422', async () => {
-    reviewsApi.createComment.mockRejectedValue(
-      new ApiError('VALIDATION_FAILED', 'Dữ liệu không hợp lệ.', { fields: { body: ['Bình luận phải có ít nhất 3 ký tự.'] } }, 422),
-    )
-    renderPage()
-    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
-
-    const commentBox = await screen.findByLabelText('Bình luận')
-    await userEvent.type(commentBox, 'a')
-    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
-
-    expect(await screen.findByText('Bình luận phải có ít nhất 3 ký tự.')).toBeInTheDocument()
-    expect(commentBox).toHaveAttribute('aria-invalid', 'true')
-    expect(commentBox).toHaveValue('a')
-  })
-
-  it('does not let a comment fail silently — shows a friendly alert on a network error', async () => {
-    reviewsApi.createComment.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
-    renderPage()
-    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
-
-    const commentBox = await screen.findByLabelText('Bình luận')
-    await userEvent.type(commentBox, 'Cảm ơn')
-    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
-
-    expect(await screen.findByText('Đã có lỗi kết nối mạng. Vui lòng thử lại.')).toBeInTheDocument()
-    expect(screen.queryByText('Network Error')).not.toBeInTheDocument()
-    expect(commentBox).toHaveValue('Cảm ơn')
-  })
-
-  it('shows pending copy and blocks a duplicate comment submit while in flight', async () => {
-    let resolveComment
-    reviewsApi.createComment.mockReturnValue(
-      new Promise((resolve) => {
-        resolveComment = resolve
-      }),
-    )
-    renderPage()
-    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
-
-    const commentBox = await screen.findByLabelText('Bình luận')
-    await userEvent.type(commentBox, 'Cảm ơn')
-    await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
-
-    expect(await screen.findByRole('button', { name: 'Đang gửi…' })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: 'Đang gửi…' }))
-    expect(reviewsApi.createComment).toHaveBeenCalledTimes(1)
-
-    resolveComment({ data: { id: 2, body: 'Cảm ơn', user: { id: 1, name: 'Bao' }, created_at: '2026-01-03T00:00:00Z' } })
   })
 
   it('records a product view for a logged-in customer', async () => {

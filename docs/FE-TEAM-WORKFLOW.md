@@ -208,7 +208,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 ### 2.5 Product reviews list (L6)
 - **Hook:** `useProductReviews(slug)` → `useCursorQuery`.
 - **API:** `GET /products/{slug}/reviews?cursor=&limit=`. Chỉ `status=approved`.
-- **Render:** `ProductPage` → danh sách review với `user.name`, `rating` (sao), `body`, `created_at`, `comments[]`. Cursor pagination "Xem thêm".
+- **Render:** `ProductPage` → danh sách review với `user.name`, `rating` (sao), `body`, `created_at`. Cursor pagination "Xem thêm".
 
 ### 2.6 Breadcrumb
 - **Component:** `components/Breadcrumb` — nhận `items[]`. `lib/categoryPath.findCategoryPath(tree, slug)` dò tổ tiên từ cây danh mục → `Trang chủ > Cha > Con > SP`.
@@ -439,13 +439,7 @@ hoàn chỉnh dù resource có `meta`. Đây là gap cần sửa hoặc phải d
 là affordance. Hook hiện **không invalidate** product-review query sau success: UI phải dựa vào copy “chờ duyệt” hoặc
 refetch chủ động, không được giả định review vừa tạo sẽ xuất hiện public.
 
-### 8.2 Bình luận review
-
-`useCreateComment(productSlug)` → `POST /reviews/{reviewId}/comments {body}`. Thành công invalidate
-`['products', productSlug, 'reviews']`, đúng key của danh sách public. Comment một cấp là contract dữ liệu/server, không
-phải do DOM nesting quyết định.
-
-### 8.3 Moderation boundary
+### 8.2 Moderation boundary
 
 Public list chỉ nhận approved review. Admin approve/reject dùng domain `features/admin/reviews`; storefront không được
 tự lọc pending như một biện pháp bảo mật vì pending vốn không nên được API public serialize.
