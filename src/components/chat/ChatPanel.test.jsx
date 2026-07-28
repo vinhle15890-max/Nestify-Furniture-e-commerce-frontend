@@ -106,4 +106,16 @@ describe('ChatPanel', () => {
     renderPanel()
     expect(screen.getByRole('button', { name: 'Gửi' })).toBeDisabled()
   })
+
+  it('shows a meaningful, branded thinking state while waiting', async () => {
+    chatApi.sendChatMessage.mockImplementation(() => new Promise(() => {}))
+    renderPanel()
+
+    await userEvent.type(screen.getByLabelText('Nhập câu hỏi'), 'Tư vấn giúp mình')
+    await userEvent.click(screen.getByRole('button', { name: 'Gửi' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Đang cân nhắc cho không gian của bạn')
+    expect(screen.getByText('Đối chiếu dữ liệu trước khi trả lời…')).toBeInTheDocument()
+    expect(document.querySelector('.animate-spin')).not.toBeInTheDocument()
+  })
 })

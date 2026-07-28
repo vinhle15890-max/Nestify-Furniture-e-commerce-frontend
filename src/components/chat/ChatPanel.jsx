@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Send } from 'lucide-react'
 import { useChatStore } from '../../store/chatStore'
 import { useSendChatMessage } from '../../features/chat/hooks'
-import { Spinner } from '../Spinner'
 import { ChatMessage } from './ChatMessage'
 
 const MAX_LENGTH = 1000
@@ -18,6 +17,22 @@ function errorText(error) {
     return error.message ?? 'Bạn đã đạt giới hạn câu hỏi, vui lòng thử lại sau.'
   }
   return 'Trợ lý tạm thời không phản hồi được, vui lòng thử lại sau.'
+}
+
+function ChatThinkingState() {
+  return (
+    <div role="status" aria-live="polite" className="flex items-center gap-3 py-2 text-foreground">
+      <span aria-hidden="true" className="flex h-9 w-10 items-end gap-1 border-b border-accent/40 px-1 pb-1">
+        <span className="h-3 w-2 animate-pulse bg-accent/35 motion-reduce:animate-none" />
+        <span className="h-6 w-2 animate-pulse bg-accent/60 [animation-delay:180ms] motion-reduce:animate-none" />
+        <span className="h-4 w-2 animate-pulse bg-accent/40 [animation-delay:360ms] motion-reduce:animate-none" />
+      </span>
+      <span>
+        <span className="block text-sm font-medium">Đang cân nhắc cho không gian của bạn</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">Đối chiếu dữ liệu trước khi trả lời…</span>
+      </span>
+    </div>
+  )
 }
 
 export function ChatPanel() {
@@ -106,11 +121,7 @@ export function ChatPanel() {
         )}
 
         {isPending && (
-          <div className="flex justify-start">
-            <div className="rounded-card bg-background px-3 py-2">
-              <Spinner label="Đang trả lời..." />
-            </div>
-          </div>
+          <ChatThinkingState />
         )}
       </div>
 

@@ -5,7 +5,7 @@ import { formatPrice, numericClassName } from '../../lib/format'
 import { ProductOptions } from './ProductOptions'
 import { ProductEvidencePanel } from './ProductEvidencePanel'
 
-export function ProductDecisionRail({ product, variants, variantOptions, selectedOptions, onSelectOption, selectedVariant, onSelectVariant, activeMedia, visibleMedia, outOfStock, price, quantity, onQuantityChange, maxQuantity, token, staff, onAddToCart, adding, isWishlisted, onToggleWishlist, wishlistPending, stockError, deliveryFact, returnsFact }) {
+export function ProductDecisionRail({ product, variants, variantOptions, selectedOptions, onSelectOption, selectedVariant, onSelectVariant, visibleMedia, outOfStock, price, quantity, onQuantityChange, maxQuantity, token, staff, onAddToCart, adding, isWishlisted, onToggleWishlist, wishlistPending, stockError, deliveryFact, returnsFact }) {
   const hasOptions = variantOptions.length > 0
   return (
     <aside aria-label="Lựa chọn sản phẩm" className="space-y-6 lg:sticky lg:top-28">
@@ -15,7 +15,7 @@ export function ProductDecisionRail({ product, variants, variantOptions, selecte
         {selectedVariant && <p className="mt-3 text-sm leading-6 text-ink/65">{visibleMedia.some((item) => item.variant_id === selectedVariant.id) ? 'Bộ ảnh có hình được gắn đúng với phiên bản này.' : 'Bộ ảnh hiện là ảnh dùng chung, chưa xác nhận riêng cho phiên bản này.'}</p>}
       </div>
 
-      <ProductEvidencePanel product={product} selectedVariant={selectedVariant} activeMedia={activeMedia} outOfStock={outOfStock} />
+      <ProductEvidencePanel product={product} selectedVariant={selectedVariant} outOfStock={outOfStock} />
 
       <section data-testid="transaction-runway" aria-labelledby="transaction-runway-title" className="border-t-2 border-ink/15 pt-6">
         <h2 id="transaction-runway-title" className="sr-only">Mua sản phẩm</h2>

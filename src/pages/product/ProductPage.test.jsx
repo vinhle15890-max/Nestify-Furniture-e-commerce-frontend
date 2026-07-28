@@ -283,7 +283,8 @@ describe('ProductPage', () => {
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
     expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/nau.jpg')
-    expect(screen.getByText('Ảnh theo phiên bản đã chọn')).toBeInTheDocument()
+    expect(screen.getByText('Bộ ảnh có hình được gắn đúng với phiên bản này.')).toBeInTheDocument()
+    expect(screen.queryByText('Ảnh theo phiên bản đã chọn')).not.toBeInTheDocument()
     expect(screen.queryByText(/chưa xác minh riêng cho phiên bản/i)).not.toBeInTheDocument()
   })
 
@@ -300,8 +301,8 @@ describe('ProductPage', () => {
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
     expect(screen.getByAltText('Ghế sofa da')).toHaveAttribute('src', 'https://example.com/shared.jpg')
-    expect(screen.getAllByText('Ảnh dùng chung').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText(/chưa xác minh riêng cho phiên bản Nâu/i)).toBeInTheDocument()
+    expect(screen.getByText('Bộ ảnh hiện là ảnh dùng chung, chưa xác nhận riêng cho phiên bản này.')).toBeInTheDocument()
+    expect(screen.queryByText(/Ảnh chưa xác minh riêng cho phiên bản Nâu/i)).not.toBeInTheDocument()
   })
 
   it('exposes the real-Planner handoff to guests while keeping purchase behind login', async () => {
