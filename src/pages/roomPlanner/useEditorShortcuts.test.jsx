@@ -64,7 +64,6 @@ describe('useEditorShortcuts', () => {
 
   it('clamps keyboard movement at the same room boundary as pointer transforms', () => {
     render(<Harness />)
-    expect(useEditorStore.getState().wallSnap).toBe(false)
 
     for (let index = 0; index < 3; index += 1) {
       fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
@@ -72,22 +71,23 @@ describe('useEditorShortcuts', () => {
     expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1.5)
 
     // The next candidate center is x=2.0, which would put the item's right
-    // edge at x=2.5 beyond the room wall at x=2.0. With wall snap disabled,
-    // remaining at x=1.5 can only come from the shared boundary projection.
+    // edge at x=2.5 beyond the room wall at x=2.0. Remaining at x=1.5
+    // confirms that keyboard and pointer transforms share the same boundary.
     fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
     expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1.5)
   })
 
   it('applies wall snap when keyboard movement enters the pointer snap range', () => {
-    useEditorStore.getState().toggleWallSnap()
     render(<Harness />)
     fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
     expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(0.5)
 
     fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true })
     expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1)
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
-    // x=1.1 m enters the shared strict <0.5 m threshold and snaps flush.
+    for (let index = 0; index < 4; index += 1) {
+      fireEvent.keyDown(window, { key: 'ArrowRight' })
+    }
+    // x=1.4 m enters the shared strict <0.2 m threshold and snaps flush.
     expect(useEditorStore.getState().items[0].position.x).toBeCloseTo(1.5)
   })
 

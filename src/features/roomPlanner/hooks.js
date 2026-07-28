@@ -65,6 +65,7 @@ export function useCreateScene() {
     mutationFn: (payload) => roomPlannerApi.createScene(payload),
     onSuccess: (response) => {
       queryClient.setQueryData(['roomScene', response.data.id], response)
+      queryClient.invalidateQueries({ queryKey: ['roomScenes'] })
     },
   })
 }
@@ -75,6 +76,7 @@ export function useUpdateScene() {
     mutationFn: ({ id, payload }) => roomPlannerApi.updateScene(id, payload),
     onSuccess: (response) => {
       queryClient.setQueryData(['roomScene', response.data.id], response)
+      queryClient.invalidateQueries({ queryKey: ['roomScenes'] })
     },
   })
 }

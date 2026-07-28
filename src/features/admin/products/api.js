@@ -72,8 +72,8 @@ export function reorderMedia(productId, ids) {
 }
 
 // Tag a media item to a variant (variantId) or back to agnostic (null).
-export function updateMedia(productId, mediaId, variantId) {
-  return apiClient.patch(`/admin/products/${productId}/media/${mediaId}`, { variant_id: variantId })
+export function updateMedia(productId, mediaId, payload) {
+  return apiClient.patch(`/admin/products/${productId}/media/${mediaId}`, payload)
 }
 
 export function deleteMedia(productId, mediaId) {

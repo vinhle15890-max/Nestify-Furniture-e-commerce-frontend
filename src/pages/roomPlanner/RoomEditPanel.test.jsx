@@ -4,40 +4,43 @@ import { RoomEditPanel } from './RoomEditPanel'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 
 describe('RoomEditPanel', () => {
-  it('names icon-only height controls and gives them visible keyboard focus styles', () => {
-    render(<RoomEditPanel />)
-    for (const name of ['Giảm chiều cao', 'Tăng chiều cao']) {
-      const control = screen.getByRole('button', { name })
-      expect(control).toHaveClass('focus-visible:ring-2')
-      expect(control).not.toHaveAttribute('title')
-    }
-  })
-
   beforeEach(() => {
     useEditorStore.getState().initNew({ width: 4, depth: 5, height: 3, walls: { back: true, left: true, right: true } })
     useEditorStore.getState().setEditMode('room')
   })
 
-  it('hiện kích thước phòng live', () => {
+  it('hiện đầy đủ kích thước hiện tại trong form', () => {
     render(<RoomEditPanel />)
-    expect(screen.getByText(/4 × 5 × 3 m/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Chiều rộng (m)')).toHaveValue(4)
+    expect(screen.getByLabelText('Chiều sâu (m)')).toHaveValue(5)
+    expect(screen.getByLabelText('Chiều cao (m)')).toHaveValue(3)
   })
 
-  it('stepper + tăng chiều cao gọi resizeRoom', () => {
+  it('chỉ đổi kích thước sau khi áp dụng', () => {
     render(<RoomEditPanel />)
-    fireEvent.click(screen.getByLabelText('Tăng chiều cao'))
-    expect(useEditorStore.getState().room.height).toBeCloseTo(3.1, 5)
+    fireEvent.change(screen.getByLabelText('Chiều rộng (m)'), { target: { value: '6.5' } })
+    fireEvent.change(screen.getByLabelText('Chiều cao (m)'), { target: { value: '3.2' } })
+    expect(useEditorStore.getState().room.width).toBe(4)
+    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+    expect(useEditorStore.getState().room.width).toBe(6.5)
+    expect(useEditorStore.getState().room.height).toBe(3.2)
+    expect(useEditorStore.getState().editMode).toBe('furnish')
   })
 
-  it('toggle tường trái', () => {
+  it('chặn kích thước ngoài giới hạn', () => {
     render(<RoomEditPanel />)
-    fireEvent.click(screen.getByLabelText('Bật/tắt tường trái'))
-    expect(useEditorStore.getState().room.walls.left).toBe(false)
+    fireEvent.change(screen.getByLabelText('Chiều cao (m)'), { target: { value: '9' } })
+    fireEvent.submit(screen.getByRole('form', { name: 'Chỉnh kích thước phòng' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Chiều cao phải nằm trong khoảng 2–5 m.')
+    expect(useEditorStore.getState().room.height).toBe(3)
+    expect(useEditorStore.getState().editMode).toBe('room')
   })
 
-  it('nút Xong về furnish', () => {
+  it('huỷ bỏ thay đổi nháp và trở về furnish', () => {
     render(<RoomEditPanel />)
-    fireEvent.click(screen.getByRole('button', { name: 'Xong' }))
+    fireEvent.change(screen.getByLabelText('Chiều sâu (m)'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Huỷ' }))
+    expect(useEditorStore.getState().room.depth).toBe(5)
     expect(useEditorStore.getState().editMode).toBe('furnish')
   })
 })

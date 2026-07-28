@@ -13,13 +13,17 @@ const page1 = {
     {
       id: 7,
       name: 'Phòng khách',
+      room_type: 'living_room',
       width: 4, depth: 5, height: 2.8,
       is_public: false,
       items: [{ id: 1, variant: { id: 1, sku: 'SOFA', model_3d_url: 'a.glb' } }],
       created_at: '2026-07-01T10:00:00Z',
     },
   ],
-  meta: { pagination: { total: 1, page: 1, last_page: 1, per_page: 10 } },
+  meta: {
+    limits: { max_rooms: 8, remaining_rooms: 7 },
+    pagination: { total: 1, page: 1, last_page: 1, per_page: 10 },
+  },
 }
 
 function renderPage() {
@@ -44,6 +48,8 @@ describe('MyRoomsPage', () => {
     expect(await screen.findByText('Phòng khách')).toBeInTheDocument()
     expect(screen.getByText(/4 × 5 × 2\.8 m/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Mở/ })).toHaveAttribute('href', '/room-planner/7')
+    expect(screen.getByText('1/8')).toBeInTheDocument()
+    expect(screen.getByText('7')).toBeInTheDocument()
   })
 
   it('card hiện ảnh preview khi có preview_url', async () => {
@@ -60,13 +66,27 @@ describe('MyRoomsPage', () => {
   })
 
   it('shows an empty state when there are no rooms', async () => {
-    roomPlannerApi.listScenes.mockResolvedValue({ data: [], meta: { pagination: { total: 0, page: 1, last_page: 1, per_page: 10 } } })
+    roomPlannerApi.listScenes.mockResolvedValue({ data: [], meta: { limits: { max_rooms: 8, remaining_rooms: 8 }, pagination: { total: 0, page: 1, last_page: 1, per_page: 10 } } })
     renderPage()
-    expect(await screen.findByText(/Chưa có phòng nào/)).toBeInTheDocument()
+    expect(await screen.findByText(/Căn hộ chưa có phòng nào/)).toBeInTheDocument()
     // Two entry points to the same action (header + empty-state CTA) both point at the planner.
-    const createLinks = screen.getAllByRole('link', { name: /Tạo phòng mới/ })
+    const createLinks = screen.getAllByRole('link', { name: /Thêm phòng/ })
     expect(createLinks.length).toBeGreaterThan(0)
     createLinks.forEach((link) => expect(link).toHaveAttribute('href', '/room-planner'))
+  })
+
+  it('prevents creating a ninth room when the home is full', async () => {
+    roomPlannerApi.listScenes.mockResolvedValue({
+      ...page1,
+      meta: {
+        limits: { max_rooms: 8, remaining_rooms: 0 },
+        pagination: { total: 8, page: 1, last_page: 1, per_page: 10 },
+      },
+    })
+    renderPage()
+
+    expect(await screen.findByText(/Căn hộ đã đủ 8 phòng/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Thêm phòng' })).not.toBeInTheDocument()
   })
 
   it('deletes a room after confirmation', async () => {

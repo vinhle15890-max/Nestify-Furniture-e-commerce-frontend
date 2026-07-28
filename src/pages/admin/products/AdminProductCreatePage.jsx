@@ -15,7 +15,8 @@ import { applyServerErrors } from '../../../lib/formErrors'
 import { Tabs, TabList, Tab, TabPanel } from '../../../components/admin/Tabs'
 import { slugify } from '../../../lib/slugify'
 import { DescriptionSeoFields } from './DescriptionSeoFields'
-import { productSchema, flattenCategories, toProductPayload } from './productForm'
+import { ProductAttributesFields } from './ProductAttributesFields'
+import { productSchema, flattenCategories, toProductPayload, emptyProductAttributes } from './productForm'
 
 const emptyValues = {
   name: '',
@@ -25,6 +26,7 @@ const emptyValues = {
   meta_title: '',
   meta_description: '',
   focus_keyword: '',
+  product_attributes: emptyProductAttributes,
   status: 'active',
 }
 
@@ -79,7 +81,7 @@ export function AdminProductCreatePage() {
         name: watch('name'),
         category: categoryName,
         keyword: watch('focus_keyword') || null,
-        attributes: {},
+        attributes: toProductPayload(watch()).attributes,
         tone,
         count: 2,
       })
@@ -106,7 +108,7 @@ export function AdminProductCreatePage() {
         name: watch('name'),
         category: categoryName,
         keyword: watch('focus_keyword') || null,
-        attributes: {},
+        attributes: toProductPayload(watch()).attributes,
         description: watch('description') || null,
         tone,
         field,
@@ -144,6 +146,7 @@ export function AdminProductCreatePage() {
       <Tabs defaultValue="thong-tin">
         <TabList ariaLabel="Cấu hình sản phẩm">
           <Tab value="thong-tin">Thông tin</Tab>
+          <Tab value="thong-so">Thông số &amp; chính sách</Tab>
           <Tab value="bien-the" disabled>Biến thể</Tab>
           <Tab value="mo-ta-seo">Mô tả &amp; SEO</Tab>
           <Tab value="hinh-anh" disabled>Hình ảnh</Tab>
@@ -215,6 +218,20 @@ export function AdminProductCreatePage() {
                 </Button>
               </div>
             </form>
+          </Panel>
+        </TabPanel>
+
+        <TabPanel value="thong-so">
+          <Panel padded={false}>
+            <div className="border-b border-border px-5 py-4">
+              <h3 className="font-display text-lg text-foreground">Thông số &amp; chính sách</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Chuyển dữ liệu có cấu trúc thành các trường hiển thị riêng trên storefront.
+              </p>
+            </div>
+            <div className="p-5">
+              <ProductAttributesFields register={register} errors={errors.product_attributes} />
+            </div>
           </Panel>
         </TabPanel>
 

@@ -10,15 +10,23 @@ const FIELDS = [
 ]
 
 export function RoomSetupDialog({ open, onOpenChange, initialRoom, onSubmit }) {
-  const [values, setValues] = useState(initialRoom)
+  const [values, setValues] = useState(() => ({
+    ...initialRoom,
+    name: initialRoom.name ?? 'Phòng mới',
+  }))
   const [error, setError] = useState('')
 
   const submit = (event) => {
     event.preventDefault()
     const parsed = {
+      name: values.name?.trim() ?? '',
       width: Number(values.width),
       depth: Number(values.depth),
       height: Number(values.height),
+    }
+    if (!parsed.name) {
+      setError('Vui lòng đặt tên cho phòng.')
+      return
     }
     if (![parsed.width, parsed.depth, parsed.height].every((n) => Number.isFinite(n) && n > 0)) {
       setError('Kích thước phải lớn hơn 0.')
@@ -35,6 +43,15 @@ export function RoomSetupDialog({ open, onOpenChange, initialRoom, onSubmit }) {
       description="Nhập kích thước để dựng căn phòng theo đúng tỷ lệ."
     >
       <form onSubmit={submit} className="flex flex-col gap-4">
+        <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor="room-name">
+            Tên để bạn dễ nhận biết
+            <Input
+              id="room-name"
+              value={values.name}
+              maxLength={255}
+              onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))}
+            />
+        </label>
         <figure aria-labelledby="room-dimension-guide" className="rounded-card border border-unbuilt bg-canvas p-4">
           <figcaption id="room-dimension-guide" className="mb-3 text-sm font-medium text-foreground">Cách đo phòng</figcaption>
           <div className="relative mx-auto aspect-[2/1] max-w-sm" aria-hidden="true">

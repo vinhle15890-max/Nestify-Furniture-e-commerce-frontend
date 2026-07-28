@@ -50,6 +50,7 @@ const categoriesResponse = {
 }
 
 function renderPage(product = baseProduct) {
+  productsApi.getProduct.mockResolvedValue({ data: product })
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -106,6 +107,28 @@ describe('AdminProductEditPage', () => {
     )
 
     expect(await screen.findByLabelText('Tên sản phẩm')).toHaveValue('Ghế Sofa')
+    expect(productsApi.getProduct).toHaveBeenCalledWith(1)
+  })
+
+  it('hydrates media from product detail when the list seed omits media', async () => {
+    const listSeed = { ...baseProduct }
+    delete listSeed.media
+    productsApi.getProduct.mockResolvedValue({ data: baseProduct })
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[{ pathname: '/admin/products/1', state: { product: listSeed } }]}>
+          <Routes>
+            <Route path="/admin/products/:id" element={<AdminProductEditPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh' }))
+    expect(await screen.findByText('Ảnh · Thứ tự 1')).toBeInTheDocument()
+    expect(screen.getByText('Ảnh · Thứ tự 2')).toBeInTheDocument()
     expect(productsApi.getProduct).toHaveBeenCalledWith(1)
   })
 
@@ -417,10 +440,24 @@ describe('AdminProductEditPage', () => {
 
     await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
 
-    const selects = screen.getAllByLabelText('Áp dụng cho')
+    const selects = screen.getAllByLabelText('Phạm vi ảnh')
     await userEvent.selectOptions(selects[0], '100')
 
-    await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, 100))
+    await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, { variant_id: 100 }))
+  })
+
+  it('sets the product thumbnail independently from the media variant scope', async () => {
+    productsApi.updateMedia.mockResolvedValue({
+      data: { ...baseProduct.media[0], variant_id: null, is_thumbnail: true },
+    })
+    renderPage()
+    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh' }))
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Đặt làm ảnh đại diện' })[0])
+
+    await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, { is_thumbnail: true }))
+    expect((await screen.findAllByText('Ảnh đại diện')).length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByLabelText('Phạm vi ảnh')[0]).toHaveValue('')
   })
 
   it('switches to the info tab and flags it when a required field is missing on submit', async () => {

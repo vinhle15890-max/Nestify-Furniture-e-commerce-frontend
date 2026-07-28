@@ -29,6 +29,15 @@ security boundary. Tương tự, FE ẩn purchase với staff nhưng backend m�
 
 ## Room Planner Interaction Model
 
+### Căn hộ và giới hạn phạm vi
+
+Một tài khoản tương ứng một căn hộ; mỗi `room_scene` là một phòng độc lập trong
+căn hộ đó. Backend giới hạn tối đa 8 phòng bằng transaction + user row lock và
+`GET /room-scenes` trả `meta.limits`. `/account/rooms` là tổng quan căn hộ:
+hiển thị số phòng, số món đang cân nhắc, số phòng còn có thể thêm và khóa entry
+tạo mới khi đạt giới hạn. Guest vẫn chỉ có một draft room. Không có project
+thứ hai, polygon hay trình vẽ tường tự do.
+
 ### Hệ tọa độ và room shell
 
 Phòng đặt tâm `(0,0,0)`: X=rộng, Z=sâu, Y=hướng lên, sàn Y=0. UI giới hạn rộng/sâu 2–30 m và cao
@@ -36,7 +45,7 @@ Phòng đặt tâm `(0,0,0)`: X=rộng, Z=sâu, Y=hướng lên, sàn Y=0. UI gi
 định mặt nào được render; tắt wall không mở miền kéo.
 
 Store load API resource qua mapper thành item có `localId`, variant, transform và footprint. Selection,
-gizmo/snap/edit mode và scale reference là state phiên xem, không serialize. `dirty` chỉ đánh dấu dữ liệu cần
+gizmo/view/edit mode và scale reference là state phiên xem, không serialize. `dirty` chỉ đánh dấu dữ liệu cần
 lưu.
 
 ### Kéo, xoay, snap và clamp
@@ -50,12 +59,17 @@ Mỗi `onObjectChange` đọc transform sống rồi gọi `projectTransform`:
    `hx'=hx|cosθ|+hz|sinθ|`, `hz'=hx|sinθ|+hz|cosθ|`.
 3. Clamp tâm vào biên trừ nửa footprint. Nếu món lớn hơn phòng trên một trục, tâm về 0; món vẫn xuyên hai
    tường vì không có vị trí hợp lệ và code không tự thu nhỏ.
-4. Wall snap (nếu bật) chạy sau clamp, từng trục độc lập, nhảy cạnh món áp tường khi cách dưới 0.5 m.
+4. Wall snap chạy tự động sau clamp, từng trục độc lập, nhảy cạnh món áp tường khi cách dưới 0.2 m.
 
 Vì projection chạy mỗi frame, đồ **dừng/clamp ngay tại tường**, không đi xuyên rồi sửa lúc thả. Code dịch
 `TransformControls.positionStart` theo clamp delta để gizmo không tách model; helper distance line có thể bị
 nén gần tường và pointer-up reset anchor. Mouse-up commit state; store chạy cùng projection lần nữa. Grid snap
-là 0.25 m, rotation snap 15°. Xoay sát tường có thể đẩy tâm vào vì AABB thay đổi.
+là 0.1 m, rotation snap 15°. Người dùng giữ `Alt` trong lúc kéo/xoay để tạm bỏ cả grid snap và wall snap.
+Xoay sát tường có thể đẩy tâm vào vì AABB thay đổi.
+
+Thanh công cụ canvas chỉ giữ bốn ý định có nghĩa trực tiếp: góc nhìn 3D, nhìn từ trên, chỉnh kích thước và
+mốc người/cửa. Snap và bắt tường không còn là hai công tắc bắt người dùng tự quản lý. Form kích thước dùng
+giá trị nháp và chỉ gọi `resizeRoom` khi bấm **Áp dụng**, nên đóng/huỷ không làm biến đổi phòng.
 
 **Enforcement gap:** backend chỉ kiểm position/rotation là số; không bounds-check, clamp, ép Y=0 hay kiểm
 overlap. Direct API có thể lưu đồ ngoài phòng. Đây là client-only constraint.
@@ -119,7 +133,7 @@ automated visual regression).
 ### Contract đầy đủ của editor store
 
 - `reset` về idle; `initNew` gắn room/default walls và ready; `loadScene` cấp `localId` mới, xóa selection,
-  history và dirty. `setName`/`setRoom` dirty; edit/gizmo/snap/wall-snap/scale-reference là state phiên xem.
+  history và dirty. `setName`/`setRoom` dirty; edit/gizmo/view/scale-reference là state phiên xem.
 - `addVariant` tạo transform identity + footprint tạm 1 m, ghi history, add/select/dirty. `duplicateSelected`
   deep-clone, ID mới, offset 0.3 m X/Z rồi clamp. Không có selection hợp lệ thì action phụ thuộc selection
   no-op.

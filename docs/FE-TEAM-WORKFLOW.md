@@ -208,7 +208,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 ### 2.5 Product reviews list (L6)
 - **Hook:** `useProductReviews(slug)` → `useCursorQuery`.
 - **API:** `GET /products/{slug}/reviews?cursor=&limit=`. Chỉ `status=approved`.
-- **Render:** `ProductPage` → danh sách review với `user.name`, `rating` (sao), `body`, `created_at`, `comments[]`. Cursor pagination "Xem thêm".
+- **Render:** `ProductPage` → danh sách review với `user.name`, `rating` (sao), `body`, `created_at`. Cursor pagination "Xem thêm".
 
 ### 2.6 Breadcrumb
 - **Component:** `components/Breadcrumb` — nhận `items[]`. `lib/categoryPath.findCategoryPath(tree, slug)` dò tổ tiên từ cây danh mục → `Trang chủ > Cha > Con > SP`.
@@ -439,13 +439,7 @@ hoàn chỉnh dù resource có `meta`. Đây là gap cần sửa hoặc phải d
 là affordance. Hook hiện **không invalidate** product-review query sau success: UI phải dựa vào copy “chờ duyệt” hoặc
 refetch chủ động, không được giả định review vừa tạo sẽ xuất hiện public.
 
-### 8.2 Bình luận review
-
-`useCreateComment(productSlug)` → `POST /reviews/{reviewId}/comments {body}`. Thành công invalidate
-`['products', productSlug, 'reviews']`, đúng key của danh sách public. Comment một cấp là contract dữ liệu/server, không
-phải do DOM nesting quyết định.
-
-### 8.3 Moderation boundary
+### 8.2 Moderation boundary
 
 Public list chỉ nhận approved review. Admin approve/reject dùng domain `features/admin/reviews`; storefront không được
 tự lọc pending như một biện pháp bảo mật vì pending vốn không nên được API public serialize.
@@ -464,11 +458,12 @@ tự lọc pending như một biện pháp bảo mật vì pending vốn không 
 
 **Actor:** Customer verified. **Entry:** floating bubble `ChatWidget`/`ChatPanel`. **Feature:** `features/chat`, `store/chatStore`.
 
-### 9.1 Gửi một message
+### 9.1 Gửi message có ngữ cảnh
 
-`ChatPanel` → `useSendMessage()` → `POST /ai/chat {message}`. Thành công append reply và sources vào
-`chatStore`; source có `product_slug` được biến thành link nội bộ `/p/:slug`. Lịch sử chỉ thuộc phiên, không persist và
-không được gửi như conversation history trừ khi API contract sau này thay đổi.
+`ChatPanel` → `useSendMessage()` → `POST /ai/chat {message, history}`; `history` lấy tối đa 6 lượt user/assistant
+gần nhất trong `chatStore`, không persist ngoài phiên. Thành công append reply và sources vào store.
+Source sản phẩm có slug, tên, giá thấp nhất và thumbnail được dựng thành card nội bộ `/p/:slug`; tối đa 3 card
+trên mỗi câu trả lời. AI có thể hỗ trợ bố trí, tỷ lệ, phối màu và cách đo, không chỉ tìm sản phẩm.
 
 ### 9.2 Gate và failure
 
@@ -477,8 +472,8 @@ Widget chỉ hiện cho customer verified. Đây là giảm request sai; endpoin
 Message đang soạn là local state; transcript hiển thị là `chatStore`; dữ liệu catalog nguồn thuộc response server, không
 đưa vào Query cache vì operation là mutation hội thoại.
 
-> **Phản biện:** BE **stateless** (mỗi câu độc lập) → FE giữ ngữ cảnh hiển thị trong phiên; nguồn trả lời kèm link sản phẩm
-> là điểm tin cậy (truy nguồn được).
+> **Phản biện:** BE không lưu transcript nhưng nhận cửa sổ 6 lượt từ FE để hiểu câu nối tiếp; nguồn trả lời kèm card/link
+> sản phẩm là điểm tin cậy để khách tự kiểm tra.
 
 **Security boundary:** source/link là dữ liệu ngoài component; render dưới dạng text/link React, không dùng
 `dangerouslySetInnerHTML`. FE không được tuyên bố RAG “đúng tuyệt đối”; citations chỉ giúp truy nguồn để người dùng kiểm tra.
@@ -693,6 +688,12 @@ token/quyền thật).
   `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
   TransformControls chỉ di chuyển/xoay; customer scale bị loại khỏi gizmo và store). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
   (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
+- **Phạm vi căn hộ:** một account là một căn hộ, tối đa 8 `room_scene`; mỗi
+  scene là một phòng chữ nhật do người dùng tự đặt tên. `room_type` còn được gửi giá trị `other` để tương thích
+  contract BE cũ nhưng không hiển thị thành một lựa chọn trùng nghĩa trong UI. `GET /room-scenes` trả
+  `meta.limits`; `/account/rooms` dùng metadata này để hiện tổng quan và khóa
+  “Thêm phòng” khi hết quota. Guest chỉ giữ một draft. Không có nhiều project
+  hoặc wall-drawing/CAD.
 - **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
   payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
 - **Hiệu ứng phụ:** lần lưu đầu chuyển hướng `/room-planner` → `/room-planner/:id` (replace). Có **`beforeunload`** + chặn lúc

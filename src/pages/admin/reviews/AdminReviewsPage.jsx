@@ -88,20 +88,6 @@ export function AdminReviewsPage() {
 
                   {review.title && <p className="font-medium text-foreground">{review.title}</p>}
                   <p className="text-sm text-foreground">{review.body}</p>
-
-                  {review.comments?.length > 0 && (
-                    <ul className="flex flex-col gap-2 border-t border-border pt-3">
-                      {review.comments.map((comment) => (
-                        <li key={comment.id} className="pl-4 text-sm">
-                          <p className="font-medium text-foreground">
-                            {comment.user?.name}{' '}
-                            <span className="font-normal text-muted-foreground">· {formatDate(comment.created_at)}</span>
-                          </p>
-                          <p className="text-muted-foreground">{comment.body}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </Card>
               </li>
             ))}

@@ -8,6 +8,8 @@ export function ProductSpecifications({ product, selectedVariant, delivery, asse
   const rows = [
     ['Kích thước', valueFor(attributes, ['kích thước', 'dimensions', 'dimension'])],
     ['Vật liệu', valueFor(attributes, ['vật liệu', 'chất liệu', 'material'])],
+    ['Phong cách', valueFor(attributes, ['phong cách', 'style'])],
+    ['Xuất xứ', valueFor(attributes, ['xuất xứ', 'origin'])],
     ['Giao hàng', delivery ?? 'Chưa được cung cấp'],
     ['Chăm sóc', valueFor(attributes, ['chăm sóc', 'hướng dẫn chăm sóc', 'care', 'care instructions'])],
     ['Lắp ráp', assembly ?? 'Chưa được cung cấp'],

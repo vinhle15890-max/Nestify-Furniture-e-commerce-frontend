@@ -148,10 +148,9 @@ as each phase lands rather than creating duplicates.
 
 **Folders:** `src/features/reviews/`, integrates into `pages/orders/` and `pages/product/`
 
-- [x] `features/reviews/api.js` + `hooks.js` — `createReview(productId, payload)`, `createComment(reviewId, body)`
+- [x] `features/reviews/api.js` + `hooks.js` — `createReview(productId, payload)`
 - [x] Review form on `/p/:productSlug` — scoped to delivered orders' line items, `order_id` passed automatically (verified purchase)
 - [x] "Submitted, awaiting approval" confirmation after submit (new reviews are `pending`, not shown immediately)
-- [x] Comments UI on `/p/:productSlug` review list — 1-level only (no nested replies)
 - [x] Tests: review form only renders for a verified (delivered) purchase, submit shows pending confirmation
 
 **Deviation from spec wording:** the review-submission form lives on `/p/:productSlug`, not

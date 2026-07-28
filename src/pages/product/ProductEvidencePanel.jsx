@@ -11,17 +11,9 @@ function EvidenceRow({ label, children }) {
   )
 }
 
-export function ProductEvidencePanel({ product, selectedVariant, activeMedia, outOfStock }) {
+export function ProductEvidencePanel({ product, selectedVariant, outOfStock }) {
   const modelFidelity = describeModelFidelity(selectedVariant)
   const variantAttributes = Object.entries(selectedVariant?.attributes ?? {})
-  const mediaMatchesVariant = Boolean(
-    activeMedia?.variant_id != null && selectedVariant?.id === activeMedia.variant_id,
-  )
-  const mediaRole = mediaMatchesVariant
-    ? 'Ảnh theo phiên bản đã chọn'
-    : activeMedia
-      ? 'Ảnh bối cảnh dùng chung'
-      : 'Chưa có hình ảnh'
   const plannerHref = selectedVariant
     ? `/room-planner?product=${encodeURIComponent(product.slug)}&variant=${selectedVariant.id}`
     : null
@@ -48,14 +40,6 @@ export function ProductEvidencePanel({ product, selectedVariant, activeMedia, ou
           {variantAttributes.length > 0 && (
             <span className="mt-1 block text-xs text-ink/60">
               {variantAttributes.map(([name, value]) => `${name}: ${value}`).join(' · ')}
-            </span>
-          )}
-        </EvidenceRow>
-        <EvidenceRow label="Hình ảnh">
-          <span className="block">{mediaRole}</span>
-          {!mediaMatchesVariant && activeMedia && selectedVariant && (
-            <span className="mt-1 block text-xs text-ink/60">
-              Ảnh chưa xác minh riêng cho phiên bản {selectedVariant.name}.
             </span>
           )}
         </EvidenceRow>

@@ -28,18 +28,20 @@ const emptyState = {
   id: null,
   name: 'Phòng của tôi',
   description: '',
+  roomType: 'other',
   room: { width: 0, depth: 0, height: 0, walls: { back: true, left: true, right: true } },
   items: [],
   selectedId: null,
   pendingPlacementId: null,
   gizmoMode: 'translate',
   editMode: 'furnish', // 'furnish' | 'room'
+  viewMode: 'perspective', // 'perspective' | 'top'
   dirty: false,
   status: 'idle', // 'idle' | 'ready'
   past: [],
   future: [],
-  snap: false,
-  wallSnap: false,
+  snap: true,
+  wallSnap: true,
   showScaleRef: false,
   scaleRefPos: { x: 0, z: 0 },
 }
@@ -49,7 +51,13 @@ export const useEditorStore = create((set, get) => ({
 
   reset: () => set({ ...emptyState }),
 
-  initNew: (room) => set({ ...emptyState, room: { ...room, walls: room.walls ?? { back: true, left: true, right: true } }, status: 'ready' }),
+  initNew: (room, details = {}) => set({
+    ...emptyState,
+    name: details.name ?? emptyState.name,
+    roomType: details.roomType ?? 'other',
+    room: { ...room, walls: room.walls ?? { back: true, left: true, right: true } },
+    status: 'ready',
+  }),
 
   loadScene: (resource) => set({ ...sceneToEditorState(resource), selectedId: null, gizmoMode: 'translate', dirty: false, status: 'ready', past: [], future: [] }),
 
@@ -58,7 +66,15 @@ export const useEditorStore = create((set, get) => ({
   // NOTE: does not re-clamp existing items; the next updateTransform re-clamps them to the new room.
   setRoom: (room) => set({ room, dirty: true }),
 
-  setEditMode: (editMode) => set({ editMode }),
+  setEditMode: (editMode) => set({
+    editMode,
+    viewMode: editMode === 'room' ? 'top' : 'perspective',
+  }),
+
+  setViewMode: (viewMode) => set({
+    viewMode: viewMode === 'top' ? 'top' : 'perspective',
+    editMode: 'furnish',
+  }),
 
   // Kéo đổi kích thước vỏ phòng. Kẹp min/max, RE-CLAMP mọi item vào phòng mới
   // (sửa bug cũ: setRoom không re-clamp → thu nhỏ phòng thì đồ lọt ra ngoài tường).

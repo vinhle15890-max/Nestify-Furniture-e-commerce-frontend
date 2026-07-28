@@ -27,7 +27,12 @@ import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useAuthStore } from '../../store/authStore'
 import { buildRoomDraftResumeUrl, clearLocalRoomDraft, clearRoomDraftToken, editorStateToDraftSnapshot, readLocalRoomDraft, readSessionRoomDraftToken, rememberRoomDraftToken, roomDraftTokenFromHash, writeLocalRoomDraft } from '../../features/roomPlanner/guestDraft'
 
-const DEFAULT_ROOM = { width: 4, depth: 5, height: 2.8 }
+const DEFAULT_ROOM = {
+  name: 'Phòng mới',
+  width: 4,
+  depth: 5,
+  height: 2.8,
+}
 const PLANNER_DESKTOP_QUERY = '(min-width: 64rem)'
 
 export function RoomPlannerPage() {
@@ -252,8 +257,8 @@ export function RoomPlannerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productQuery.isError, productQuery.isSuccess, productQuery.data, productQuery.error, variantId, store.dirty])
 
-  const handleCreateRoom = (room) => {
-    store.initNew(room)
+  const handleCreateRoom = ({ name, ...room }) => {
+    store.initNew(room, { name })
     setSetupOpen(false)
   }
 
@@ -446,7 +451,15 @@ export function RoomPlannerPage() {
             <CatalogTray onAdd={store.addVariant} />
           </aside>
           <main className="relative min-w-0 flex-1 bg-surface">
-            <PlannerViewMenu snap={store.snap} onToggleSnap={store.toggleSnap} wallSnap={store.wallSnap} onToggleWallSnap={store.toggleWallSnap} showScaleRef={store.showScaleRef} onToggleScaleRef={store.toggleScaleRef} onEnterRoomEdit={() => store.setEditMode('room')} />
+            {store.editMode === 'furnish' && (
+              <PlannerViewMenu
+                viewMode={store.viewMode}
+                onViewModeChange={store.setViewMode}
+                showScaleRef={store.showScaleRef}
+                onToggleScaleRef={store.toggleScaleRef}
+                onEnterRoomEdit={() => store.setEditMode('room')}
+              />
+            )}
             {selectedItem && store.editMode === 'furnish' && <PlannerContextControls gizmoMode={store.gizmoMode} onGizmoModeChange={store.setGizmoMode} />}
             <PlannerCanvasErrorBoundary sceneKey={id ?? 'new'} onLeaveRoomEdit={() => store.setEditMode('furnish')}>
               {store.status === 'ready' && <RoomCanvas />}
@@ -456,7 +469,7 @@ export function RoomPlannerPage() {
           </main>
           <aside aria-label="Thông tin phòng" className="flex w-72 shrink-0 flex-col border-l border-border bg-surface">
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-              <ObjectInspector item={selectedItem} onTransform={store.updateTransform} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
+              <ObjectInspector item={selectedItem} room={store.room} onTransform={store.updateTransform} onDelete={store.deleteSelected} onResetTransform={store.resetSelectedTransform} onDuplicate={store.duplicateSelected} />
               <OverlapNotice items={store.items} />
               <RoomSummary items={store.items} />
             </div>

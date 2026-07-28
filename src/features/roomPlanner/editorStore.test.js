@@ -142,9 +142,9 @@ describe('roomPlanner/editorStore', () => {
   it('toggleWallSnap / toggleScaleRef lật cờ', () => {
     const g = () => useEditorStore.getState()
     g().initNew({ width: 4, depth: 4, height: 2.8 })
-    expect(g().wallSnap).toBe(false)
-    g().toggleWallSnap()
     expect(g().wallSnap).toBe(true)
+    g().toggleWallSnap()
+    expect(g().wallSnap).toBe(false)
     expect(g().showScaleRef).toBe(false)
     g().toggleScaleRef()
     expect(g().showScaleRef).toBe(true)
@@ -166,7 +166,6 @@ describe('roomPlanner/editorStore', () => {
     g().initNew({ width: 4, depth: 4, height: 2.8 })
     g().addVariant({ id: 1, model_3d_url: null }) // footprint 1×1 → nửa 0.5, flush ±1.5
     const id = g().items[0].localId
-    g().toggleWallSnap()
     g().updateTransform(id, { position: { x: 1.42, y: 0, z: 0 } }) // cách flush 0.08 < 0.2
     expect(g().items[0].position.x).toBeCloseTo(1.5)
   })
@@ -176,6 +175,7 @@ describe('roomPlanner/editorStore', () => {
     g().initNew({ width: 4, depth: 4, height: 2.8 })
     g().addVariant({ id: 1, model_3d_url: null })
     const id = g().items[0].localId
+    g().toggleWallSnap()
     g().updateTransform(id, { position: { x: 1.42, y: 0, z: 0 } })
     expect(g().items[0].position.x).toBeCloseTo(1.42)
   })
@@ -293,9 +293,9 @@ describe('roomPlanner/editorStore', () => {
 
   it('toggleSnap flips the snap flag without touching history', () => {
     useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
-    expect(useEditorStore.getState().snap).toBe(false)
-    useEditorStore.getState().toggleSnap()
     expect(useEditorStore.getState().snap).toBe(true)
+    useEditorStore.getState().toggleSnap()
+    expect(useEditorStore.getState().snap).toBe(false)
     expect(useEditorStore.getState().past).toEqual([])
   })
 

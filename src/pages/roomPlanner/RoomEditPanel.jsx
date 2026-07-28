@@ -1,64 +1,101 @@
-import { Minus, Plus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, X } from 'lucide-react'
+import { Button } from '../../components/Button'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 
-const WALLS = [
-  { side: 'back', label: 'Lưng' },
-  { side: 'left', label: 'Trái' },
-  { side: 'right', label: 'Phải' },
+const DIMENSIONS = [
+  { key: 'width', label: 'Chiều rộng', min: 2, max: 30 },
+  { key: 'depth', label: 'Chiều sâu', min: 2, max: 30 },
+  { key: 'height', label: 'Chiều cao', min: 2, max: 5 },
 ]
 
-export function RoomEditPanel() {
-  const room = useEditorStore((s) => s.room)
-  const resizeRoom = useEditorStore((s) => s.resizeRoom)
-  const toggleWall = useEditorStore((s) => s.toggleWall)
-  const setEditMode = useEditorStore((s) => s.setEditMode)
+const fieldClass =
+  'mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-sm tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-  const round1 = (v) => Math.round(v * 10) / 10
+export function RoomEditPanel() {
+  const room = useEditorStore((state) => state.room)
+  const itemCount = useEditorStore((state) => state.items.length)
+  const resizeRoom = useEditorStore((state) => state.resizeRoom)
+  const setEditMode = useEditorStore((state) => state.setEditMode)
+  const [values, setValues] = useState(room)
+  const [error, setError] = useState('')
+
+  useEffect(() => setValues(room), [room])
+
+  const close = () => setEditMode('furnish')
+  const apply = (event) => {
+    event.preventDefault()
+    const dimensions = Object.fromEntries(
+      DIMENSIONS.map(({ key }) => [key, Number(values[key])]),
+    )
+    const invalid = DIMENSIONS.find(
+      ({ key, min, max }) =>
+        !Number.isFinite(dimensions[key]) || dimensions[key] < min || dimensions[key] > max,
+    )
+    if (invalid) {
+      setError(`${invalid.label} phải nằm trong khoảng ${invalid.min}–${invalid.max} m.`)
+      return
+    }
+    resizeRoom(dimensions)
+    close()
+  }
 
   return (
-    <div className="absolute left-4 top-4 flex flex-col gap-3 rounded-control border border-border bg-surface/95 p-3 text-sm text-foreground backdrop-blur-sm">
-      <div className="font-medium">Đang chỉnh phòng</div>
-      <div className="text-xs text-muted-foreground">
-        Phòng {round1(room.width)} × {round1(room.depth)} × {round1(room.height)} m
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Chiều cao</span>
-        <button type="button" aria-label="Giảm chiều cao" onClick={() => resizeRoom({ height: round1(room.height - 0.1) })} className="rounded-control border border-border p-1 hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <Minus size={14} aria-hidden="true" />
-        </button>
-        <span className="w-10 text-center tabular-nums">{round1(room.height)}m</span>
-        <button type="button" aria-label="Tăng chiều cao" onClick={() => resizeRoom({ height: round1(room.height + 0.1) })} className="rounded-control border border-border p-1 hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <Plus size={14} aria-hidden="true" />
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <span className="text-xs text-muted-foreground">Tường</span>
-        <div className="flex gap-1">
-          {WALLS.map(({ side, label }) => {
-            const on = room.walls?.[side] ?? true
-            return (
-              <button
-                key={side}
-                type="button"
-                aria-label={`Bật/tắt tường ${label.toLowerCase()}`}
-                aria-pressed={on}
-                onClick={() => toggleWall(side)}
-                className={`flex-1 rounded-control border px-2 py-1 text-xs transition-colors ${
-                  on ? 'border-border-strong bg-surface-alt text-foreground' : 'border-border text-muted-foreground'
-                }`}
-              >
-                {label}
-              </button>
-            )
-          })}
+    <form
+      aria-label="Chỉnh kích thước phòng"
+      onSubmit={apply}
+      className="absolute right-4 top-4 z-10 w-72 border border-border bg-surface/95 p-4 shadow-sm backdrop-blur-sm"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">Kích thước phòng</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Nhập kích thước thực tế theo mét.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Đóng chỉnh kích thước"
+          className="flex size-9 shrink-0 items-center justify-center rounded-control text-muted-foreground hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
       </div>
 
-      <button type="button" onClick={() => setEditMode('furnish')} className="rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium hover:bg-surface-alt">
-        Xong
-      </button>
-    </div>
+      <div className="mt-4 grid gap-3">
+        {DIMENSIONS.map(({ key, label, min, max }) => (
+          <label key={key} className="text-xs font-medium text-muted-foreground" htmlFor={`edit-room-${key}`}>
+            {label} (m)
+            <input
+              id={`edit-room-${key}`}
+              type="number"
+              step="0.1"
+              min={min}
+              max={max}
+              value={values[key]}
+              onChange={(event) => {
+                setError('')
+                setValues((current) => ({ ...current, [key]: event.target.value }))
+              }}
+              className={fieldClass}
+            />
+          </label>
+        ))}
+      </div>
+
+      {itemCount > 0 && (
+        <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+          <AlertCircle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+          Nếu phòng nhỏ lại, những món nằm sát mép sẽ được đưa vào trong để không xuyên tường.
+        </p>
+      )}
+      {error && <p role="alert" className="mt-3 text-xs text-destructive">{error}</p>}
+
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        <Button type="button" variant="secondary" onClick={close}>Huỷ</Button>
+        <Button type="submit">Áp dụng</Button>
+      </div>
+    </form>
   )
 }

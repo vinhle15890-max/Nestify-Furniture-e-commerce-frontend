@@ -18,6 +18,7 @@ export function sceneToEditorState(resource) {
     id: r.id ?? null,
     name: r.name ?? 'Phòng của tôi',
     description: r.description ?? '',
+    roomType: r.room_type ?? 'other',
     room: {
       width: num(r.width),
       depth: num(r.depth),
@@ -55,6 +56,7 @@ export function editorStateToPayload(state) {
   return {
     name: state.name,
     description: state.description ?? '',
+    room_type: state.roomType ?? 'other',
     width: state.room.width,
     depth: state.room.depth,
     height: state.room.height,

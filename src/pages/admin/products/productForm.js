@@ -1,5 +1,25 @@
 import * as yup from 'yup'
 
+export const PRODUCT_ATTRIBUTE_FIELDS = [
+  { key: 'dimensions', label: 'Kích thước tổng thể', placeholder: 'Ví dụ: 210 × 88 × 78 cm', group: 'specification' },
+  { key: 'material', label: 'Vật liệu', placeholder: 'Ví dụ: Khung gỗ cao su, vải dệt, đệm mút', group: 'specification' },
+  { key: 'style', label: 'Phong cách', placeholder: 'Ví dụ: Hiện đại tối giản', group: 'specification' },
+  { key: 'origin', label: 'Xuất xứ', placeholder: 'Ví dụ: Việt Nam', group: 'specification' },
+  { key: 'delivery', label: 'Giao hàng', placeholder: 'Ví dụ: 3–5 ngày tại TP.HCM', group: 'policy', multiline: true },
+  { key: 'returns', label: 'Đổi trả và hủy đơn', placeholder: 'Điều kiện, thời hạn và chi phí áp dụng', group: 'policy', multiline: true },
+  { key: 'care', label: 'Chăm sóc', placeholder: 'Cách vệ sinh và bảo quản sản phẩm', group: 'policy', multiline: true },
+  { key: 'assembly', label: 'Lắp ráp', placeholder: 'Sản phẩm giao nguyên kiện hay cần lắp ráp', group: 'policy', multiline: true },
+  { key: 'warranty', label: 'Bảo hành', placeholder: 'Ví dụ: 24 tháng cho khung sản phẩm', group: 'policy', multiline: true },
+]
+
+export const emptyProductAttributes = Object.fromEntries(PRODUCT_ATTRIBUTE_FIELDS.map(({ key }) => [key, '']))
+
+export function productAttributeDefaults(attributes = {}) {
+  return Object.fromEntries(
+    PRODUCT_ATTRIBUTE_FIELDS.map(({ key }) => [key, attributes?.[key] == null ? '' : String(attributes[key])]),
+  )
+}
+
 // Shared validation for the product create + edit forms (same fields).
 export const productSchema = yup.object({
   name: yup.string().required('Vui lòng nhập tên sản phẩm.').max(255, 'Tối đa 255 ký tự.'),
@@ -13,6 +33,9 @@ export const productSchema = yup.object({
   meta_title: yup.string().max(70, 'Tối đa 70 ký tự.'),
   meta_description: yup.string().max(300, 'Tối đa 300 ký tự.'),
   focus_keyword: yup.string().max(100, 'Tối đa 100 ký tự.'),
+  product_attributes: yup.object(
+    Object.fromEntries(PRODUCT_ATTRIBUTE_FIELDS.map(({ key }) => [key, yup.string().max(1000, 'Tối đa 1000 ký tự.')])),
+  ),
   status: yup.string().oneOf(['active', 'archived']),
 })
 
@@ -32,7 +55,14 @@ export function flattenCategories(tree) {
 }
 
 // Builds the PATCH/POST payload from validated form values.
-export function toProductPayload(values) {
+export function toProductPayload(values, existingAttributes = {}) {
+  const attributes = { ...existingAttributes }
+  for (const { key } of PRODUCT_ATTRIBUTE_FIELDS) {
+    const value = values.product_attributes?.[key]?.trim()
+    if (value) attributes[key] = value
+    else delete attributes[key]
+  }
+
   return {
     name: values.name,
     slug: values.slug,
@@ -41,6 +71,7 @@ export function toProductPayload(values) {
     meta_title: values.meta_title || null,
     meta_description: values.meta_description || null,
     focus_keyword: values.focus_keyword || null,
+    attributes,
     status: values.status,
   }
 }
