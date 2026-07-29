@@ -88,7 +88,9 @@ export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled =
       mode={gizmoMode === 'rotate' ? 'rotate' : 'translate'}
       translationSnap={alignmentEnabled ? 0.1 : null}
       rotationSnap={alignmentEnabled ? Math.PI / 12 : null}
+      showX={false}
       showY={gizmoMode !== 'translate'}
+      showZ={false}
       onObjectChange={projectLive}
       onMouseUp={commit}
       onDraggingChanged={(e) => onDragChange(Boolean(e?.value))}

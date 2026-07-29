@@ -117,7 +117,11 @@ export function snapToWalls(position, room, halfExtents, threshold) {
 // is shared by the live Three object and the persisted editor store so neither
 // can represent a different validity rule.
 export function projectTransform(item, patch, room, wallSnap = false) {
-  const rotation = patch.rotation ? { ...patch.rotation } : { ...item.rotation }
+  const requestedRotation = patch.rotation ? patch.rotation : item.rotation
+  // Furniture is placed on the floor: only heading (Y) is meaningful.
+  // Normalising here keeps pointer, keyboard, inspector and restored scenes
+  // on the same invariant instead of relying on the visible gizmo alone.
+  const rotation = { x: 0, y: requestedRotation?.y ?? 0, z: 0 }
   const scale = patch.scale ? { ...patch.scale } : { ...item.scale }
   const candidate = patch.position ? { ...patch.position } : { ...item.position }
   const halfExtents = rotatedHalfExtents(item.footprint, scale, rotation.y)

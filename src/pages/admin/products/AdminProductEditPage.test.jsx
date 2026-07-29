@@ -221,7 +221,16 @@ describe('AdminProductEditPage', () => {
         ],
       },
     })
-    renderPage()
+    renderPage({
+      ...baseProduct,
+      media: Array.from({ length: 6 }, (_, index) => ({
+        id: index + 1,
+        product_id: 1,
+        url: `https://example.com/${index + 1}.jpg`,
+        type: 'image',
+        sort_order: index + 1,
+      })),
+    })
     await screen.findByLabelText('Tên sản phẩm')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Mô tả & SEO' }))
@@ -231,7 +240,12 @@ describe('AdminProductEditPage', () => {
       expect(productsApi.generateProductDescription).toHaveBeenCalledWith(
         expect.objectContaining({
           count: 2,
-          image_urls: ['https://example.com/1.jpg', 'https://example.com/2.jpg'],
+          image_urls: [
+            'https://example.com/1.jpg',
+            'https://example.com/2.jpg',
+            'https://example.com/3.jpg',
+            'https://example.com/4.jpg',
+          ],
         }),
       ),
     )

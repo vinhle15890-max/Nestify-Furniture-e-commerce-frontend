@@ -50,16 +50,8 @@ describe('VariantModelScaleFlow', () => {
     }))
     expect(measureAsync).toHaveBeenCalledWith({ variantId: 12, stagingToken: 'stage-token' })
 
-    const widthAxis = screen.getByLabelText('Trục cho Chiều rộng')
-    expect(widthAxis).toHaveValue('z')
-    expect(screen.getByText('Xoay để xem rõ hướng trục trước khi chọn.')).toBeInTheDocument()
-
-    await userEvent.click(widthAxis)
-    expect(screen.getByLabelText('Xem trước mô hình 3D và các trục X Y Z')).toHaveAttribute('data-active-axis', 'z')
-
-    await userEvent.selectOptions(widthAxis, 'z')
-    await userEvent.selectOptions(screen.getByLabelText('Trục cho Chiều cao'), 'y')
-    await userEvent.selectOptions(screen.getByLabelText('Trục cho Chiều sâu'), 'x')
+    expect(screen.getByText('Quy ước mặc định: Z là rộng, Y là cao, X là sâu.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Trục cho Chiều rộng')).not.toBeInTheDocument()
     await userEvent.clear(screen.getByLabelText('Số đo thật (cm)'))
     await userEvent.type(screen.getByLabelText('Số đo thật (cm)'), '250')
     await userEvent.click(screen.getByRole('button', { name: 'Tính toán' }))
@@ -77,5 +69,27 @@ describe('VariantModelScaleFlow', () => {
 
     await waitFor(() => expect(onConfirmed).toHaveBeenCalledWith(expect.objectContaining({ id: 12, width_cm: 250 })))
     expect(confirmAsync).toHaveBeenLastCalledWith(expect.objectContaining({ confirmed: true }))
+  })
+
+  it('reveals axis remapping only when the source model uses a different orientation', async () => {
+    render(<VariantModelScaleFlow variant={{ id: 12 }} />)
+
+    await userEvent.upload(
+      screen.getByLabelText('Tải lên mô hình 3D'),
+      new File(['glb'], 'sofa.glb', { type: 'model/gltf-binary' }),
+    )
+    await screen.findByText('1.0000 units')
+
+    const toggle = screen.getByRole('button', { name: 'Đổi hướng trục' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await userEvent.click(toggle)
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    const widthAxis = screen.getByLabelText('Trục cho Chiều rộng')
+    await userEvent.selectOptions(widthAxis, 'x')
+    expect(screen.getByLabelText('Trục cho Chiều sâu')).toHaveValue('z')
+
+    await userEvent.click(widthAxis)
+    expect(screen.getByLabelText('Xem trước mô hình 3D và các trục X Y Z')).toHaveAttribute('data-active-axis', 'x')
   })
 })

@@ -22,10 +22,10 @@ const groups = [
   {
     title: 'Hỗ trợ',
     links: [
-      { label: 'Giao hàng', href: 'mailto:support@nestify.vn?subject=H%E1%BB%97%20tr%E1%BB%A3%20giao%20h%C3%A0ng' },
-      { label: 'Đổi trả và hủy đơn', href: 'mailto:support@nestify.vn?subject=H%E1%BB%97%20tr%E1%BB%A3%20%C4%91%E1%BB%95i%20tr%E1%BA%A3' },
-      { label: 'Quyền riêng tư', href: 'mailto:support@nestify.vn?subject=Quy%E1%BB%81n%20ri%C3%AAng%20t%C6%B0' },
-      { label: 'Liên hệ', href: 'mailto:support@nestify.vn' },
+      { label: 'Giao hàng', to: '/shipping' },
+      { label: 'Đổi trả và hủy đơn', to: '/returns' },
+      { label: 'Quyền riêng tư', to: '/privacy' },
+      { label: 'Liên hệ', to: '/contact' },
     ],
   },
 ]
@@ -51,11 +51,7 @@ export function Footer() {
                 <ul className="mt-4 space-y-3">
                   {group.links.map((item) => (
                     <li key={item.label}>
-                      {item.to ? (
-                        <Link to={item.to} className={`text-sm text-foreground transition-colors hover:text-muted-foreground ${focusRing}`}>{item.label}</Link>
-                      ) : (
-                        <a href={item.href} className={`text-sm text-foreground transition-colors hover:text-muted-foreground ${focusRing}`}>{item.label}</a>
-                      )}
+                      <Link to={item.to} className={`whitespace-nowrap text-sm text-foreground transition-colors hover:text-muted-foreground ${focusRing}`}>{item.label}</Link>
                     </li>
                   ))}
                 </ul>

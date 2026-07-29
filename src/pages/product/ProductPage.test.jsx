@@ -315,15 +315,13 @@ describe('ProductPage', () => {
     expect(screen.getByRole('link', { name: 'Đăng nhập để mua hàng' })).toBeInTheDocument()
   })
 
-  it('shows unavailable verified evidence without estimating from product imagery', async () => {
+  it('does not duplicate unavailable specifications in the decision rail', async () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByRole('heading', { name: 'Bằng chứng chưa có', level: 3 })).toBeInTheDocument()
-    expect(screen.getByText(/Kích thước W \/ D \/ H/)).toBeInTheDocument()
-    expect(screen.getByText(/vật liệu và hoàn thiện/i)).toBeInTheDocument()
-    expect(screen.getByText('Nestify không ước tính từ hình ảnh hoặc nội dung mô tả.')).toBeInTheDocument()
-    expect(screen.queryByText(/cm|mm|m²/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Bằng chứng chưa có' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Nestify không ước tính từ hình ảnh hoặc nội dung mô tả.')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Thông số sản phẩm', level: 2 })).toBeInTheDocument()
   })
 
   it('orders identity, media, evidence, Planner, and transaction for narrow reflow', async () => {

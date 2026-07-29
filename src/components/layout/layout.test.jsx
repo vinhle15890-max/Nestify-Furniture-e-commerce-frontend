@@ -83,7 +83,10 @@ describe('Footer', () => {
   it('states the clarity promise and exposes practical support paths', () => {
     render(<MemoryRouter><Footer /></MemoryRouter>)
     expect(screen.getByText(/Thấy rõ món đồ/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Giao hàng' })).toHaveAttribute('href', expect.stringContaining('mailto:'))
+    expect(screen.getByRole('link', { name: 'Giao hàng' })).toHaveAttribute('href', '/shipping')
+    expect(screen.getByRole('link', { name: 'Đổi trả và hủy đơn' })).toHaveAttribute('href', '/returns')
+    expect(screen.getByRole('link', { name: 'Quyền riêng tư' })).toHaveAttribute('href', '/privacy')
+    expect(screen.getByRole('link', { name: 'Liên hệ' })).toHaveAttribute('href', '/contact')
     expect(screen.queryByText('Tham gia Nestify Journal')).not.toBeInTheDocument()
   })
 })

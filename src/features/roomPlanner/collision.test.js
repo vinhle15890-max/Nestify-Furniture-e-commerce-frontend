@@ -24,6 +24,19 @@ describe('rotatedHalfExtents', () => {
   })
 })
 
+describe('projectTransform floor rotation', () => {
+  it('discards X/Z tilt from every transform patch', () => {
+    const source = item()
+    const projected = projectTransform(
+      source,
+      { rotation: { x: 0.4, y: Math.PI / 2, z: -0.2 } },
+      { width: 4, depth: 4, height: 3 },
+      false,
+    )
+    expect(projected.rotation).toEqual({ x: 0, y: Math.PI / 2, z: 0 })
+  })
+})
+
 describe('overlaps (SAT OBB)', () => {
   it('hai hộp chồng nhau → true', () => {
     expect(overlaps(itemRect(item()), itemRect(item({ localId: 2, position: { x: 1, y: 0, z: 0 } })))).toBe(true)

@@ -153,8 +153,8 @@ automated visual regression).
    đây; UI toast chung, không phân loại CORS.
 4. Measure API xác minh token đúng variant/chưa hết hạn, copy về temp, kiểm GLB header, chạy Node script
    timeout 120 s, yêu cầu bounds dương/hữu hạn, mark measured, luôn xóa temp.
-5. Admin map width/height/depth vào ba axis duy nhất, chọn một dimension/reference cm. Axis lớn nhất chỉ là
-   gợi ý width.
+5. UI mặc định quy ước Z=width, Y=height, X=depth; admin chỉ mở “Đổi hướng trục” khi GLB nguồn không đúng
+   quy ước, rồi chọn một dimension/reference cm.
 6. `confirmed=false` tính uniform factor và dimensions/warnings, không ghi DB/consume token.
 7. `confirmed=true` khóa variant, đọc lại measured token, bake, re-measure với tolerance max(0.1%,1 mm),
    hash SHA-256, PUT immutable object, cập nhật URL/key/bounds/map/reference/factor/dimensions transactionally,
@@ -168,9 +168,10 @@ cập nhật variant.
 
 Client check `.glb` và `accept` chỉ là UX. Nó tạo `blob:` preview trước upload, revoke URL cũ/unmount; nếu
 presign/PUT/measure lỗi thì progress về 0 và toast gộp, preview local có thể vẫn còn nhưng không có token dùng
-để confirm. PUT dùng Axios độc lập, không bearer, normalize signed header array và ép MIME GLB. UI gợi ý
-width=trục bounds lớn nhất, để height/depth trống; dropdown không cho dùng một axis hai lần. Calculate chỉ bật
-khi ba axis unique và reference >0; đổi mapping/reference xóa calculation+acknowledgement. Confirm chỉ bật
+để confirm. PUT dùng Axios độc lập, không bearer, normalize signed header array và ép MIME GLB. UI gửi sẵn
+map Z=width, Y=height, X=depth và ẩn dropdown khỏi luồng chính; phần “Đổi hướng trục” hoán đổi axis đang dùng
+thay vì buộc admin bỏ chọn thủ công. Calculate chỉ bật khi ba axis unique và reference >0; đổi
+mapping/reference xóa calculation+acknowledgement. Confirm chỉ bật
 sau checkbox thủ công. Preview là kiểm tra thị giác, không phải validator; CORS/signature fail xảy ra trực
 tiếp giữa browser–R2 nên Laravel không thể trả field error chuẩn.
 
@@ -258,8 +259,8 @@ product thật sự nằm trong order và chưa review trùng. Review chưa appr
 
 ### AI description và RAG boundary
 
-Product create/edit gửi product context, tone và optional image URLs tới endpoint generate-description rồi cho
-admin chọn variation để điền form; không variation nào tự persist cho tới khi admin save product. Query hook
+Product create/edit gửi product context, tone và tối đa bốn image URL đầu tiên theo thứ tự media tới endpoint
+generate-description rồi cho admin chọn variation để điền form; không variation nào tự persist cho tới khi admin save product. Query hook
 không retry mutation mặc định, nên Vertex/rate-limit/token-budget lỗi giữ form hiện tại và cần thao tác lại.
 Customer chatbot nằm ngoài các thư mục inventory của tài liệu frontend nhưng runtime contract vẫn là: FE chỉ
 gửi message hiện tại, giữ history trong memory và render source links; retrieval, ADC, distance threshold và

@@ -89,30 +89,11 @@ Do not extract a candidate into a shared component before a second genuine consu
 
 | Field | Detail |
 |---|---|
-| **Classification** | Semantic pattern: B — Surface-family candidate. Component implementation: E — Page-local. |
-| **Current owner** | `src/pages/product/ProductEvidencePanel.jsx:65–76` ("Bằng chứng chưa có" section) |
-| **Current consumers** | 1 — ProductEvidencePanel within `ProductPage.jsx:491` |
-
-### Semantic contract (reusable candidate)
-
-| Field | Detail |
-|---|---|
-| **Semantic behavior** | For a given context, enumerate expected evidence fields. For each field: show the value if known, explicitly name it as unknown if not. State a refusal to infer from indirect sources (images, descriptions, names). |
-| **State/narrative dependency** | Any state where the user needs to judge suitability based on partial data. Currently: Exploratory Commitment. Potentially: Transactional Commitment (Cart scene evidence), Mentally Real (Planner item evidence). |
-| **Data assumptions** | Requires knowledge of which fields *should* exist for a given context and which are actually present in the API response. The expected-field schema is context-specific. |
-| **Known failure boundaries** | Tested: panel renders with correct heading, lists missing fields, states refusal, no fabricated units (`ProductPage.test.jsx:281–289`). |
-| **Missing evidence** | No second consumer. No evidence the enumeration/refusal structure works for non-product data (scene thumbnails, room measurements, decision history). |
-
-### Component implementation (page-local)
-
-| Field | Detail |
-|---|---|
-| **Visual behavior that must remain local** | `bg-unbuilt/20` panel background, `font-display text-lg` heading, hardcoded field list ("Kích thước W / D / H, khoảng hở, vật liệu và hoàn thiện"), refusal statement ("Nestify không ước tính từ hình ảnh hoặc nội dung mô tả"). |
-| **Interaction assumptions** | None — static disclosure. |
-
-| **Promotion gates** | The semantic contract requires a second genuine consumer that enumerates known/unknown fields for a different data context. The component implementation is not a promotion candidate. |
-|---|---|
-| **Status** | Semantic candidate — awaiting second consumer. Component is page-local. |
+| **Classification** | Retired candidate. |
+| **Former owner** | `ProductEvidencePanel` on Product Detail. |
+| **Reason retired** | The page-local implementation duplicated the dedicated Product Specifications section and listed missing fields from hardcoded copy rather than the API response. It could therefore contradict available product attributes without giving the customer a recovery action. |
+| **Current behavior** | Product specifications remain authoritative for dimensions and material. The decision rail retains selected variant, 3D-model fidelity, availability, and the context-preserving Planner handoff. |
+| **Status** | Retired on 2026-07-29; no current consumers. |
 
 ---
 
@@ -121,7 +102,7 @@ Do not extract a candidate into a shared component before a second genuine consu
 | Field | Detail |
 |---|---|
 | **Classification** | Semantic contract: B — Surface-family candidate. CTA styling: E — Page-local. |
-| **Current owner** | `src/pages/product/ProductEvidencePanel.jsx:78–99` (handoff with context) |
+| **Current owner** | `src/pages/product/ProductEvidencePanel.jsx:54–75` (handoff with context) |
 | **Current consumers** | 1 as a context-carrying handoff — ProductEvidencePanel. See §9 for the full Planner deep-link protocol audit. |
 
 ### Semantic contract (reusable candidate)
@@ -172,7 +153,7 @@ Do not extract a candidate into a shared component before a second genuine consu
 | Field | Detail |
 |---|---|
 | **Classification** | D — Composition-local pattern |
-| **Current owner** | Inline in `ProductPage.jsx:502` and `ProductEvidencePanel.jsx:78` |
+| **Current owner** | Inline in `ProductPage.jsx:502` and `ProductEvidencePanel.jsx:54` |
 | **Current consumers** | 2 — ProductPage transaction runway, ProductEvidencePanel Planner handoff |
 | **Semantic behavior** | A low-contrast horizontal rule that separates a secondary action group from primary content above. Communicates "this section is secondary to what came before." |
 | **Visual behavior that must remain local** | `border-t-2 border-ink/15`, `pt-8` or `pt-3` padding. The specific `ink/15` opacity and `border-t-2` weight are calibrated for the Product Detail canvas background. |
@@ -212,7 +193,7 @@ No exceptions. A candidate that satisfies gates 1–7 but fails gate 8 is not pr
 
 | Consumer | File | URL shape | Context passed |
 |---|---|---|---|
-| Product Detail handoff | `ProductEvidencePanel.jsx:24` | `/room-planner?product=<slug>&variant=<id>` | Product slug + variant ID |
+| Product Detail handoff | `ProductEvidencePanel.jsx:18` | `/room-planner?product=<slug>&variant=<id>` | Product slug + variant ID |
 | Home PlannerInvite | `PlannerInvite.jsx:29` → `data/home.js:68` | `/room-planner` | None |
 | Header navigation | `Header.jsx:69` | `/room-planner` | None |
 | MyRoomsPage re-entry | `MyRoomsPage.jsx:80` | `/room-planner/<id>` | Scene ID |
@@ -231,7 +212,7 @@ No exceptions. A candidate that satisfies gates 1–7 but fails gate 8 is not pr
 ### Failure boundaries
 
 - Deep-link preload timeout: 10-second request-scoped timeout (`RoomPlannerPage.jsx:59`)
-- Missing variant: Planner handoff disabled with reason (`ProductEvidencePanel.jsx:88–93`)
+- Missing variant: Planner handoff disabled with reason (`ProductEvidencePanel.jsx:63–69`)
 - Small screen: Capability Boundary redirects with preserved URL (`SmallScreenNotice.jsx`)
 - WebGL unavailable: Capability Boundary with alternative path (`useWebGLSupport.js`)
 
