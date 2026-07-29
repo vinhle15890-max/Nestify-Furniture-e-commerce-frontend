@@ -104,6 +104,33 @@ describe('PlacedItem đo footprint', () => {
 })
 
 describe('PlacedItem live valid-position projection', () => {
+  it('only exposes floor rotation and removes stale tilt while rotating', () => {
+    render(
+      <PlacedItem
+        item={baseItem}
+        room={{ width: 4, depth: 4, height: 3 }}
+        selected
+        gizmoMode="rotate"
+        alignmentEnabled
+        conflict={false}
+        onSelect={() => {}}
+        onTransform={() => {}}
+        onDragChange={() => {}}
+        onMeasure={() => {}}
+      />,
+    )
+
+    expect(controlsProps).toMatchObject({ mode: 'rotate', showX: false, showY: true, showZ: false })
+    const node = controlsProps.object.current
+    node.position = new Vector3(0, 0, 0)
+    node.rotation = new Euler(0.4, Math.PI / 2, -0.2)
+    node.scale = new Vector3(1, 1, 1)
+    act(() => controlsProps.onObjectChange())
+    expect(node.rotation.x).toBe(0)
+    expect(node.rotation.y).toBeCloseTo(Math.PI / 2)
+    expect(node.rotation.z).toBe(0)
+  })
+
   it('disables the Y handle and projects every live object change before one final commit', () => {
     const onTransform = vi.fn()
     render(

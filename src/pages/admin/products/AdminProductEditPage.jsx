@@ -222,7 +222,10 @@ function ProductEditor({ initialProduct }) {
     addToast({ title: 'Đã áp dụng phương án. Kiểm tra và lưu lại.', variant: 'success' })
   }
 
-  const productImageUrls = (product.media ?? []).filter((item) => item.type === 'image').map((item) => item.url)
+  const productImageUrls = (product.media ?? [])
+    .filter((item) => item.type === 'image')
+    .slice(0, 4)
+    .map((item) => item.url)
 
   const handleGenerateFromImages = async () => {
     try {

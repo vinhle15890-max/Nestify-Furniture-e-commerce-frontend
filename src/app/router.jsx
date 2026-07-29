@@ -13,6 +13,10 @@ const named = (loader, name) => lazy(() => loader().then((module) => ({ default:
 
 const HomePage = named(() => import('../pages/home/HomePage'), 'HomePage')
 const AboutPage = named(() => import('../pages/about/AboutPage'), 'AboutPage')
+const ShippingPage = named(() => import('../pages/support/SupportPages'), 'ShippingPage')
+const ReturnsPage = named(() => import('../pages/support/SupportPages'), 'ReturnsPage')
+const PrivacyPage = named(() => import('../pages/support/SupportPages'), 'PrivacyPage')
+const ContactPage = named(() => import('../pages/support/SupportPages'), 'ContactPage')
 const CategoryPage = named(() => import('../pages/catalog/CategoryPage'), 'CategoryPage')
 const ProductPage = named(() => import('../pages/product/ProductPage'), 'ProductPage')
 const CartPage = named(() => import('../pages/cart/CartPage'), 'CartPage')
@@ -71,6 +75,10 @@ export const routes = [
     children: [
       { index: true, element: lazyPage(<HomePage />) },
       { path: 'about', element: lazyPage(<AboutPage />) },
+      { path: 'shipping', element: lazyPage(<ShippingPage />) },
+      { path: 'returns', element: lazyPage(<ReturnsPage />) },
+      { path: 'privacy', element: lazyPage(<PrivacyPage />) },
+      { path: 'contact', element: lazyPage(<ContactPage />) },
       { path: 'c/:categorySlug', element: lazyPage(<CategoryPage />) },
       { path: 'p/:productSlug', element: lazyPage(<ProductPage />) },
       { path: 'cart', element: lazyPage(<CartPage />) },

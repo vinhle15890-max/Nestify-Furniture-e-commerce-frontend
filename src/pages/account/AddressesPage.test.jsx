@@ -45,6 +45,14 @@ function renderPage() {
   )
 }
 
+async function chooseRegion(label, search, option) {
+  const combobox = screen.getByRole('combobox', { name: label })
+  await userEvent.click(combobox)
+  await userEvent.clear(combobox)
+  await userEvent.type(combobox, search)
+  await userEvent.click(await screen.findByRole('option', { name: option }))
+}
+
 describe('AddressesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -87,9 +95,8 @@ describe('AddressesPage', () => {
     // VN address (post Nghị quyết 202/2025): two-tier cascading dropdowns
     // (Tỉnh/Thành phố → Phường/Xã), populated from the bundled 34-province dataset
     // that loads when the modal opens.
-    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
-    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
-    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã/Thị trấn'), 'Phường Ba Đình')
+    await chooseRegion('Tỉnh/Thành phố', 'ha noi', 'Thành phố Hà Nội')
+    await chooseRegion('Phường/Xã/Thị trấn', 'ba dinh', 'Phường Ba Đình')
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
 
@@ -128,6 +135,29 @@ describe('AddressesPage', () => {
     )
   })
 
+  it('searches without accents and selects an administrative unit with the keyboard', async () => {
+    renderPage()
+    await screen.findByText('Bao Le · 0900000000')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ mới' }))
+
+    const province = screen.getByRole('combobox', { name: 'Tỉnh/Thành phố' })
+    await userEvent.type(province, 'ha noi')
+    expect(await screen.findByRole('option', { name: 'Thành phố Hà Nội' })).toBeInTheDocument()
+    await userEvent.keyboard('{Enter}')
+
+    expect(province).toHaveValue('Thành phố Hà Nội')
+    const ward = screen.getByRole('combobox', { name: 'Phường/Xã/Thị trấn' })
+    expect(ward).toBeEnabled()
+
+    await userEvent.type(ward, 'p')
+    expect(screen.getByText('Nhập ít nhất 2 ký tự của tên địa phương.')).toBeInTheDocument()
+    expect(screen.queryByRole('option')).not.toBeInTheDocument()
+
+    await userEvent.clear(ward)
+    await userEvent.type(ward, 'ba dinh')
+    expect(await screen.findByRole('option', { name: 'Phường Ba Đình' })).toBeInTheDocument()
+  })
+
   it('deletes an address after confirmation', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     addressesApi.deleteAddress.mockResolvedValue({})
@@ -158,9 +188,8 @@ describe('AddressesPage', () => {
     await userEvent.type(screen.getByLabelText('Tên người nhận'), 'Tan Pham')
     await userEvent.type(screen.getByLabelText('Số điện thoại'), '0922222222')
     await userEvent.type(screen.getByLabelText('Số nhà, tên đường'), '789 Đường C')
-    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
-    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
-    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã/Thị trấn'), 'Phường Ba Đình')
+    await chooseRegion('Tỉnh/Thành phố', 'ha noi', 'Thành phố Hà Nội')
+    await chooseRegion('Phường/Xã/Thị trấn', 'ba dinh', 'Phường Ba Đình')
     await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Đã có lỗi kết nối mạng. Vui lòng thử lại.')
@@ -180,9 +209,8 @@ describe('AddressesPage', () => {
     await userEvent.type(screen.getByLabelText('Tên người nhận'), 'Tan Pham')
     await userEvent.type(screen.getByLabelText('Số điện thoại'), 'abc')
     await userEvent.type(screen.getByLabelText('Số nhà, tên đường'), '789 Đường C')
-    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
-    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
-    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã/Thị trấn'), 'Phường Ba Đình')
+    await chooseRegion('Tỉnh/Thành phố', 'ha noi', 'Thành phố Hà Nội')
+    await chooseRegion('Phường/Xã/Thị trấn', 'ba dinh', 'Phường Ba Đình')
     await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
 
     expect(await screen.findByText('Số điện thoại không hợp lệ.')).toBeInTheDocument()
@@ -203,9 +231,8 @@ describe('AddressesPage', () => {
     await userEvent.type(screen.getByLabelText('Tên người nhận'), 'Tan Pham')
     await userEvent.type(screen.getByLabelText('Số điện thoại'), '0922222222')
     await userEvent.type(screen.getByLabelText('Số nhà, tên đường'), '789 Đường C')
-    await screen.findByRole('option', { name: 'Thành phố Hà Nội' })
-    await userEvent.selectOptions(screen.getByLabelText('Tỉnh/Thành phố'), 'Thành phố Hà Nội')
-    await userEvent.selectOptions(screen.getByLabelText('Phường/Xã/Thị trấn'), 'Phường Ba Đình')
+    await chooseRegion('Tỉnh/Thành phố', 'ha noi', 'Thành phố Hà Nội')
+    await chooseRegion('Phường/Xã/Thị trấn', 'ba dinh', 'Phường Ba Đình')
     await userEvent.click(screen.getByRole('button', { name: 'Thêm địa chỉ' }))
 
     const pendingButton = await screen.findByRole('button', { name: 'Đang thêm…' })

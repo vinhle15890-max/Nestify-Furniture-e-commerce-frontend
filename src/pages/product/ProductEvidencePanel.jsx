@@ -51,19 +51,6 @@ export function ProductEvidencePanel({ product, selectedVariant, outOfStock }) {
         </EvidenceRow>
       </dl>
 
-      <section className="mt-3 bg-unbuilt/20 px-4 py-3.5" aria-labelledby="missing-evidence-title">
-        <h3 id="missing-evidence-title" className="font-display text-lg text-ink">
-          Bằng chứng chưa có
-        </h3>
-        <p className="mt-2 text-sm leading-5 text-ink/75">
-          Kích thước W / D / H, khoảng hở, vật liệu và hoàn thiện
-          {!selectedVariant?.model_3d_url && ', cùng mô hình 3D đã xác minh'}.
-        </p>
-        <p className="mt-2 text-xs leading-4 text-ink">
-          Nestify không ước tính từ hình ảnh hoặc nội dung mô tả.
-        </p>
-      </section>
-
       <div data-testid="planner-handoff" className="mt-3 border-t-2 border-ink/15 pt-3">
         {plannerHref ? (
           <Link
