@@ -63,7 +63,7 @@ describe('App routes', () => {
   it('renders the home page at "/"', async () => {
     renderAt('/')
     expect(
-      await screen.findByRole('heading', { name: 'Điều gì có thể bắt đầu ở đây?', level: 1 }),
+      await screen.findByRole('heading', { name: 'Điều gì phù hợp với căn phòng của bạn?', level: 1 }),
     ).toBeInTheDocument()
   })
 
@@ -126,7 +126,7 @@ describe('App routes', () => {
   it('redirects /admin to home for a non-admin user', async () => {
     renderAt('/admin', { id: 1, name: 'Bao', roles: ['customer'] })
     expect(
-      await screen.findByRole('heading', { name: 'Điều gì có thể bắt đầu ở đây?', level: 1 }),
+      await screen.findByRole('heading', { name: 'Điều gì phù hợp với căn phòng của bạn?', level: 1 }),
     ).toBeInTheDocument()
   })
 

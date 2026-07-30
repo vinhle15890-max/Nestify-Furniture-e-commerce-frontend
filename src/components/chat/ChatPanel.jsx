@@ -7,7 +7,7 @@ import { ChatMessage } from './ChatMessage'
 const MAX_LENGTH = 1000
 
 const SUGGESTIONS = [
-  'Bố trí phòng khách 4 × 4 m thế nào cho thoáng?',
+  'Sắp xếp phòng khách 4 × 4 m thế nào cho thoáng?',
   'Giúp mình phối màu gỗ với tường kem',
   'Cần đo những gì trước khi mua sofa?',
 ]
@@ -99,7 +99,7 @@ export function ChatPanel() {
         {messages.length === 0 ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Mình có thể cùng bạn tính kích thước, bố trí, phối màu, so sánh lựa chọn hoặc tìm món phù hợp.
+              Mình có thể cùng bạn xem kích thước, sắp xếp không gian, phối màu, so sánh lựa chọn hoặc tìm món phù hợp.
             </p>
             <div className="flex flex-col gap-2">
               {SUGGESTIONS.map((suggestion) => (

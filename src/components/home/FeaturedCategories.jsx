@@ -241,8 +241,9 @@ export function FeaturedCategories() {
   if (isError || (!isLoading && items.length === 0)) return null
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
+    <section data-home-section="categories" className="mx-auto max-w-7xl px-6 py-20 md:py-24 lg:px-10">
       <SectionHeading
+        eyebrow="Mua theo không gian"
         title="Bắt đầu từ căn phòng bạn đang nghĩ tới"
         intro="Chọn một căn phòng, rồi đi thẳng đến loại nội thất bạn đang tìm."
       />

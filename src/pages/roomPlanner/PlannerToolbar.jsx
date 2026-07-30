@@ -6,7 +6,7 @@ export function PlannerToolbar({ name, onNameChange, onSave, saving, dirty, onUn
   return (
     <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border bg-surface px-4 py-3">
       <div className="flex min-w-0 items-center gap-3">
-        <button type="button" onClick={onExit} aria-label="Thoát Room Planner" className="shrink-0 rounded-control p-2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X size={20} aria-hidden="true" /></button>
+        <button type="button" onClick={onExit} aria-label="Rời căn phòng" className="shrink-0 rounded-control p-2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X size={20} aria-hidden="true" /></button>
         <label className="min-w-0">
           <span className="sr-only">Tên phòng</span>
           <input aria-label="Tên phòng" value={name} onChange={(event) => onNameChange(event.target.value)} className="w-full min-w-0 rounded-control border border-transparent bg-transparent px-2 py-1 text-base font-medium text-foreground hover:border-border focus-visible:border-border-strong focus-visible:outline-none" />

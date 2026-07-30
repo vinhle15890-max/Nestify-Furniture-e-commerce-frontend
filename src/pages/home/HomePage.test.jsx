@@ -44,10 +44,10 @@ describe('HomePage', () => {
     renderPage()
 
     expect(
-      screen.getByRole('heading', { name: 'Điều gì có thể bắt đầu ở đây?', level: 1 }),
+      screen.getByRole('heading', { name: 'Điều gì phù hợp với căn phòng của bạn?', level: 1 }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'Một trường sản phẩm được chọn lọc' }),
+      screen.getByRole('heading', { name: 'Những thiết kế đáng để bắt đầu' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Bắt đầu từ căn phòng bạn đang nghĩ tới' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(4)
@@ -55,6 +55,22 @@ describe('HomePage', () => {
     // Lookbook-specific CTA remains absent.
     expect(screen.queryByRole('link', { name: 'Xem Lookbook' })).not.toBeInTheDocument()
     expect(await screen.findByText('Ghế sofa da')).toBeInTheDocument()
+  })
+
+  it('puts products before the story payoff and planner invitation', () => {
+    catalogApi.getBestSellers.mockResolvedValue({ data: [] })
+
+    const { container } = renderPage()
+    const sectionNames = [...container.querySelectorAll('section[data-home-section]')]
+      .map((section) => section.getAttribute('data-home-section'))
+
+    expect(sectionNames).toEqual([
+      'hero',
+      'categories',
+      'products',
+      'clarity',
+      'planner',
+    ])
   })
 
   it('shows an empty state in best sellers when there are no products', async () => {

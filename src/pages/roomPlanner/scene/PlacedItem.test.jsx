@@ -148,7 +148,7 @@ describe('PlacedItem live valid-position projection', () => {
         onMeasure={() => {}}
       />,
     )
-    expect(controlsProps.showY).toBe(false)
+    expect(controlsProps).toMatchObject({ showX: true, showY: false, showZ: true })
     const node = controlsProps.object.current
     node.position = new Vector3(50, 7, -50)
     node.rotation = new Euler(0, 0, 0)
@@ -166,6 +166,37 @@ describe('PlacedItem live valid-position projection', () => {
     expect(onTransform).toHaveBeenCalledOnce()
     expect(onTransform.mock.calls[0][1].position).toEqual({ x: 1.5, y: 0, z: -1.5 })
     expect(onTransform.mock.calls[0][1]).not.toHaveProperty('scale')
+  })
+
+  it('locks orbit while dragging and restores it after the final commit', () => {
+    const onDragChange = vi.fn()
+    const onTransform = vi.fn()
+    render(
+      <PlacedItem
+        item={baseItem}
+        room={{ width: 4, depth: 4, height: 3 }}
+        selected
+        gizmoMode="translate"
+        alignmentEnabled
+        conflict={false}
+        onSelect={() => {}}
+        onTransform={onTransform}
+        onDragChange={onDragChange}
+        onMeasure={() => {}}
+      />,
+    )
+
+    const node = controlsProps.object.current
+    node.position = new Vector3(0, 0, 0)
+    node.rotation = new Euler(0, 0, 0)
+    act(() => controlsProps.onMouseDown())
+    expect(onDragChange).toHaveBeenLastCalledWith(true)
+    expect(onTransform).not.toHaveBeenCalled()
+
+    act(() => controlsProps.onMouseUp())
+    expect(onTransform).toHaveBeenCalledOnce()
+    expect(onDragChange).toHaveBeenLastCalledWith(false)
+    expect(controlsProps.onDraggingChanged).toBeUndefined()
   })
 
   it('normalizes a stale scale gizmo value before it reaches TransformControls', () => {

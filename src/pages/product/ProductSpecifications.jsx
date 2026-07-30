@@ -14,7 +14,7 @@ export function ProductSpecifications({ product, selectedVariant, delivery, asse
     ['Chăm sóc', valueFor(attributes, ['chăm sóc', 'hướng dẫn chăm sóc', 'care', 'care instructions'])],
     ['Lắp ráp', assembly ?? 'Chưa được cung cấp'],
     ['Bảo hành', warranty ?? 'Chưa được cung cấp'],
-    ['Mô hình 3D', selectedVariant?.model_3d_url ? 'Khớp với phiên bản đã chọn' : 'Phiên bản này chưa có mô hình 3D'],
+    ['Thử trong phòng', selectedVariant?.model_3d_url ? 'Có thể xem trong không gian của bạn' : 'Phiên bản này chưa thể thử trong phòng'],
   ]
   return <section aria-labelledby="specifications-title" className="mt-14 border-t border-border pt-10"><h2 id="specifications-title" className="text-2xl font-medium text-ink">Thông số sản phẩm</h2><dl className="mt-6 divide-y divide-unbuilt border-y border-unbuilt">{rows.map(([label, value]) => <div key={label} className="grid gap-1 py-4 sm:grid-cols-[12rem_minmax(0,1fr)]"><dt className="text-sm font-medium text-ink/60">{label}</dt><dd className="text-sm leading-6 text-ink">{value}</dd></div>)}</dl></section>
 }

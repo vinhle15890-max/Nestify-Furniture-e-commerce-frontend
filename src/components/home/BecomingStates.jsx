@@ -15,20 +15,23 @@ import { becomingSteps } from '../../data/home'
  */
 export function BecomingStates() {
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
+    <section data-home-section="clarity" className="mx-auto max-w-7xl px-6 py-24 md:py-32 lg:px-10">
       <SectionHeading
+        eyebrow="Lý do để chọn chắc hơn"
         title="Thấy trước khi quyết định"
-        intro="Đặt sản phẩm vào đúng kích thước phòng để so sánh bố cục trước khi bạn chọn mua."
+        intro="Khi một món đồ giữ sự chú ý của bạn, hãy đặt nó vào đúng kích thước phòng để so sánh bố cục trước khi chọn mua."
       />
 
       <ol className="mt-14 grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-3">
         {becomingSteps.map((step, index) => (
           <Reveal as="li" key={step.n} delay={index * 90} className="flex flex-col">
-            <div className="overflow-hidden rounded-card border border-border bg-canvas">
+            <div className={`overflow-hidden rounded-card border bg-canvas ${
+              step.level === 3 ? 'border-imagined/60 bg-imagined/10' : 'border-border'
+            }`}>
               <BecomingRoomArt level={step.level} />
             </div>
             <div className="mt-6 flex items-baseline gap-3">
-              <span className="text-sm font-medium text-emerging">{step.n}</span>
+              <span className={`text-sm font-medium ${step.level === 3 ? 'text-imagined' : 'text-emerging'}`}>{step.n}</span>
               <span className="text-sm text-ink/55">{step.chapter}</span>
             </div>
             <h3 className="mt-3 text-xl font-medium leading-tight text-foreground">{step.title}</h3>

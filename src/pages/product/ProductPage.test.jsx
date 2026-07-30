@@ -146,7 +146,7 @@ describe('ProductPage', () => {
     expect(screen.getByText('Đổi trong 14 ngày nếu sản phẩm chưa sử dụng')).toBeInTheDocument()
     expect(screen.getByText('Có đội ngũ lắp ráp khi giao')).toBeInTheDocument()
     expect(screen.getByText('24 tháng')).toBeInTheDocument()
-    expect(screen.getByText('Mô hình chưa được xác nhận đúng tỉ lệ thực.')).toBeInTheDocument()
+    expect(screen.getByText('Bạn có thể xem thử, nhưng kích thước hiển thị chỉ mang tính tham khảo.')).toBeInTheDocument()
     expect(screen.getByText('Bộ ảnh có hình được gắn đúng với phiên bản này.')).toBeInTheDocument()
   })
 
@@ -216,10 +216,10 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    const handoff = screen.getByRole('link', { name: 'Thử trong Room Planner' })
+    const handoff = screen.getByRole('link', { name: 'Thử trong phòng của bạn' })
     expect(handoff).toHaveAttribute('href', '/room-planner?product=ghe-sofa-da&variant=1')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Thử trong Room Planner' })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: 'Thử trong phòng của bạn' })).toHaveLength(1)
   })
 
   it('keeps the real-Planner handoff available for a single implicit variant', async () => {
@@ -229,7 +229,7 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByRole('link', { name: 'Thử trong Room Planner' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Thử trong phòng của bạn' })).toHaveAttribute(
       'href',
       '/room-planner?product=ghe-sofa-da&variant=1',
     )
@@ -307,7 +307,7 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByRole('link', { name: 'Thử trong Room Planner' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Thử trong phòng của bạn' })).toHaveAttribute(
       'href',
       '/room-planner?product=ghe-sofa-da&variant=1',
     )

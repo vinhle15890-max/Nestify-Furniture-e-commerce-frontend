@@ -19,13 +19,13 @@ describe('PlannerToolbar', () => {
   it('exposes a name and visible keyboard focus style for every toolbar control', () => {
     render(<><PlannerToolbar {...base} /><PlannerViewMenu {...base} /><PlannerContextControls {...base} /><PlannerCompletionArea {...base} /></>)
     const controls = [
-      { role: 'button', name: 'Thoát Room Planner', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Rời căn phòng', focusClass: 'focus-visible:ring-2' },
       { role: 'textbox', name: 'Tên phòng', focusClass: 'focus-visible:border-border-strong' },
       { role: 'button', name: 'Hoàn tác', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Làm lại', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Di chuyển. Phím tắt 1', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Xoay. Phím tắt 2', focusClass: 'focus-visible:ring-2' },
-      { role: 'button', name: 'Góc nhìn 3D', focusClass: 'focus-visible:ring-2' },
+      { role: 'button', name: 'Góc nhìn trong phòng', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Nhìn từ trên', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Hiện mốc tỉ lệ người và cửa', focusClass: 'focus-visible:ring-2' },
       { role: 'button', name: 'Chỉnh kích thước phòng', focusClass: 'focus-visible:ring-2' },
@@ -89,10 +89,10 @@ describe('PlannerToolbar', () => {
   it('switches between perspective and top views', async () => {
     const onViewModeChange = vi.fn()
     render(<PlannerViewMenu {...base} onViewModeChange={onViewModeChange} />)
-    expect(screen.getByRole('button', { name: 'Góc nhìn 3D' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Góc nhìn trong phòng' })).toHaveAttribute('aria-pressed', 'true')
     await userEvent.click(screen.getByRole('button', { name: 'Nhìn từ trên' }))
     expect(onViewModeChange).toHaveBeenCalledWith('top')
-    await userEvent.click(screen.getByRole('button', { name: 'Góc nhìn 3D' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Góc nhìn trong phòng' }))
     expect(onViewModeChange).toHaveBeenCalledWith('perspective')
     expect(screen.queryByRole('button', { name: /^snap$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /bắt tường/i })).not.toBeInTheDocument()

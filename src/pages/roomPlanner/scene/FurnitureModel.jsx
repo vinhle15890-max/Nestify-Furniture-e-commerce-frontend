@@ -31,9 +31,9 @@ export function FurnitureModel({ url, onMeasure, onReady }) {
 }
 
 const STATE_LABEL = {
-  [MODEL_STATE.NO_MODEL]: 'Chưa có mô hình 3D',
-  [MODEL_STATE.LOADING]: 'Đang tải mô hình',
-  [MODEL_STATE.LOAD_FAILED]: 'Đang dùng khối thay thế',
+  [MODEL_STATE.NO_MODEL]: 'Chưa thể hiển thị món đồ',
+  [MODEL_STATE.LOADING]: 'Đang chuẩn bị món đồ',
+  [MODEL_STATE.LOAD_FAILED]: 'Đang hiển thị kích thước tham khảo',
 }
 
 export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange }) {

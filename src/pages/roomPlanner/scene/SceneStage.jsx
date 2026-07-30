@@ -13,7 +13,7 @@ function ContextLostOverlay() {
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas/85 px-8 text-center backdrop-blur-sm">
       <MonitorX size={36} className="text-muted-foreground" aria-hidden="true" />
       <p className="text-base font-medium text-foreground">Mất kết nối đồ hoạ tạm thời</p>
-      <p className="max-w-sm text-sm text-muted-foreground">Đang khôi phục hiển thị 3D…</p>
+      <p className="max-w-sm text-sm text-muted-foreground">Đang mở lại căn phòng của bạn…</p>
     </div>
   )
 }
@@ -25,10 +25,10 @@ function WebGLUnsupportedFallback({ room }) {
     <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
       <MonitorOff size={40} className="text-muted-foreground" aria-hidden="true" />
       <p className="text-lg font-medium text-foreground">
-        Trình duyệt hoặc thiết bị này không hỗ trợ hiển thị 3D
+        Thiết bị này chưa thể mở căn phòng trực quan
       </p>
       <p className="max-w-sm text-sm text-muted-foreground">
-        Xem phòng trong không gian 3D cần WebGL. Vui lòng thử trình duyệt hoặc thiết bị khác.
+        Hãy thử mở lại trên máy tính hoặc một trình duyệt khác để tiếp tục sắp xếp nội thất.
       </p>
       {hasDims && (
         <p className="text-sm text-muted-foreground">

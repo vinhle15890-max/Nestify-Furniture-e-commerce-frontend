@@ -20,26 +20,26 @@ export function CatalogTray({ onAdd }) {
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <SearchInput placeholder="Tìm nội thất 3D..." onDebouncedChange={setSearch} />
-      <p className="text-xs leading-5 text-muted-foreground">Chọn một sản phẩm để đặt vào giữa phòng. Dùng phím mũi tên để di chuyển, [ hoặc ] để xoay, Enter để xác nhận, Escape để hủy.</p>
+      <SearchInput placeholder="Tìm món đồ cho căn phòng..." onDebouncedChange={setSearch} />
+      <p className="text-xs leading-5 text-muted-foreground">Chọn một món để đặt thử vào phòng. Bạn có thể di chuyển, xoay hoặc bỏ món đó bất cứ lúc nào.</p>
       <p role="status" aria-live="polite" className="sr-only">{placementMessage}</p>
       {query.isLoading ? (
-        <div role="status" aria-label="Đang tải nội thất 3D" className="space-y-2 py-1">
+        <div role="status" aria-label="Đang chuẩn bị nội thất" className="space-y-2 py-1">
           {Array.from({ length: 5 }, (_, index) => (
             <div key={index} aria-hidden="true" className="flex animate-pulse items-center gap-3 rounded-card border border-border p-2 motion-reduce:animate-none">
               <span className="h-12 w-12 shrink-0 bg-unbuilt/35" />
               <span className="h-4 w-2/3 rounded-control bg-unbuilt/35" />
             </div>
           ))}
-          <span className="sr-only">Đang tải nội thất 3D</span>
+          <span className="sr-only">Đang chuẩn bị nội thất</span>
         </div>
       ) : query.isError && !query.data ? (
-        <LoadErrorState compact title="Chưa thể tải nội thất 3D" description="Tìm kiếm hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
+        <LoadErrorState compact title="Chưa thể mở danh sách nội thất" description="Tìm kiếm hiện tại vẫn được giữ nguyên. Hãy thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
       ) : placeable.length === 0 ? (
         <EmptyState
           icon={Box}
-          title="Chưa có sản phẩm 3D"
-          description="Chưa có sản phẩm nào có mô hình 3D (.glb) để thêm vào phòng."
+          title="Chưa có món nào để thử trong phòng"
+          description="Các sản phẩm phù hợp với căn phòng này sẽ xuất hiện tại đây."
         />
       ) : (
         <ul className="flex flex-col gap-2 overflow-y-auto">
