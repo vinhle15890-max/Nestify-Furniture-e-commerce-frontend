@@ -28,8 +28,8 @@ describe('ChatPanel', () => {
 
   it('shows the welcome state with suggestions when empty', () => {
     renderPanel()
-    expect(screen.getByText(/tính kích thước, bố trí, phối màu/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Bố trí phòng khách 4 × 4 m thế nào cho thoáng?' })).toBeInTheDocument()
+    expect(screen.getByText(/xem kích thước, sắp xếp không gian, phối màu/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sắp xếp phòng khách 4 × 4 m thế nào cho thoáng?' })).toBeInTheDocument()
   })
 
   it('sends a message and renders the reply with a linked product source', async () => {

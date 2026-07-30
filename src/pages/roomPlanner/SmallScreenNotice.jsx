@@ -26,8 +26,8 @@ export function SmallScreenNotice({ continueUrl, hasUnsavedChanges = false, onEx
       <div className="flex max-w-md flex-col gap-2">
         <h1 className="font-display text-2xl text-foreground">Tiếp tục thiết kế trên máy tính</h1>
         <p className="text-sm leading-6 text-muted-foreground">
-          Trình chỉnh sửa 3D cần màn hình lớn hơn. Liên kết này sẽ đưa bạn trở lại đúng phòng hoặc món
-          đồ đang xem khi mở trên máy tính.
+          Không gian thử nội thất cần màn hình lớn hơn để bạn dễ quan sát và sắp xếp. Liên kết này sẽ
+          đưa bạn trở lại đúng căn phòng hoặc món đồ đang xem khi mở trên máy tính.
         </p>
         {hasUnsavedChanges && (
           <p className="text-sm leading-6 text-foreground">

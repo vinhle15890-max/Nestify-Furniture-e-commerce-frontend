@@ -4,23 +4,21 @@ import { BecomingStates } from '../../components/home/BecomingStates'
 import { BestSellers } from '../../components/home/BestSellers'
 import { PlannerInvite } from '../../components/home/PlannerInvite'
 
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
+
 /**
- * Home — a compressed walk through the whole "Becoming" arc (Story Bible). The
- * same signature room becomes more complete as you scroll, from an empty
- * outline (Hero) to a warm future home (BecomingStates / PlannerInvite):
+ * Home — commerce-first, story-supported. The Threshold opens the visit without
+ * pressure, then the page moves quickly into catalog discovery. The Becoming
+ * arc follows as evidence for why buying through Nestify feels clearer:
  *
  *   Hero (Threshold, pre-arc — empty room)
  *   → FeaturedCategories (Chapter 1 — Possibility)
- *   → BecomingStates     (Chapter 3→4 — the climax: empty → +1 piece → Future Home)
- *   → CuratedCollections (Chapter 2 — Discover)
- *   → PersonalizedSection (conditional echo of Discover, logged-in only)
  *   → BestSellers        (Chapter 2 — Discover, reframed away from social proof)
- *   → BrandPromise       (Chapter 5 — Ownership echo: the manifesto breath)
- *   → Lookbook           (Chapter 2 — Discover, editorial inspiration)
+ *   → BecomingStates     (Chapter 3→4 — clarity proof after products)
  *   → PlannerInvite      (Chapter 4 pointer — closes the arc: Home → Planner)
  *
- * Section-background rhythm: CuratedCollections / BrandPromise / PlannerInvite
- * sit on a gentle `unbuilt` band; the rest read as one `canvas` surface.
+ * Section-background rhythm: BestSellers introduces an `emerging` discovery
+ * band; PlannerInvite earns a restrained `imagined` band at Future Home.
  *
  * Relocated out of Home: MaterialStory + BrandStory → About (Brand Layer);
  * Newsletter → site footer. Deliberately NOT on Home: Testimonials (Ch2 is
@@ -33,8 +31,8 @@ export function HomePage() {
     <div className="bg-canvas text-ink">
       <Hero />
       <FeaturedCategories />
-      <BecomingStates />
       <BestSellers />
+      <BecomingStates />
       <PlannerInvite />
     </div>
   )

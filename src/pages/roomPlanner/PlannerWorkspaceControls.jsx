@@ -8,7 +8,7 @@ const controlClass = 'flex w-full items-center gap-2 rounded-control px-3 py-2 t
 export function PlannerViewMenu({ viewMode, onViewModeChange, showScaleRef, onToggleScaleRef, onEnterRoomEdit }) {
   return (
     <section aria-label="Công cụ xem phòng" className="absolute left-4 top-4 z-10 flex max-w-[calc(100%-2rem)] items-center gap-1 overflow-x-auto border border-border bg-surface/95 p-1 shadow-sm">
-      <button type="button" onClick={() => onViewModeChange('perspective')} aria-pressed={viewMode === 'perspective'} aria-label="Góc nhìn 3D" className={`${controlClass} w-auto whitespace-nowrap ${viewMode === 'perspective' ? 'bg-primary text-surface' : 'hover:bg-surface-alt'}`}><Box size={15} aria-hidden="true" /> 3D</button>
+      <button type="button" onClick={() => onViewModeChange('perspective')} aria-pressed={viewMode === 'perspective'} aria-label="Góc nhìn trong phòng" className={`${controlClass} w-auto whitespace-nowrap ${viewMode === 'perspective' ? 'bg-primary text-surface' : 'hover:bg-surface-alt'}`}><Box size={15} aria-hidden="true" /> Trong phòng</button>
       <button type="button" onClick={() => onViewModeChange('top')} aria-pressed={viewMode === 'top'} aria-label="Nhìn từ trên" className={`${controlClass} w-auto whitespace-nowrap ${viewMode === 'top' ? 'bg-primary text-surface' : 'hover:bg-surface-alt'}`}><Square size={15} aria-hidden="true" /> Từ trên</button>
       <span className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
       <button type="button" onClick={onEnterRoomEdit} aria-label="Chỉnh kích thước phòng" className={`${controlClass} w-auto whitespace-nowrap hover:bg-surface-alt`}><Scan size={15} aria-hidden="true" /> Kích thước</button>
@@ -29,7 +29,7 @@ export function PlannerContextControls({ gizmoMode, onGizmoModeChange }) {
 export function PlannerCompletionArea({ onShare, sharing, onReview, reviewing, saving, itemCount }) {
   return (
     <section aria-label="Hoàn tất phòng" className="border-t border-border bg-surface p-4">
-      <p className="mb-3 text-xs leading-5 text-muted-foreground">Khi bố cục đã rõ, bạn có thể chia sẻ hoặc xem lại toàn bộ phòng trước khi sang giỏ hàng.</p>
+      <p className="mb-3 text-xs leading-5 text-muted-foreground">Khi căn phòng đã gần với điều bạn hình dung, hãy xem lại các món trước khi chuyển sang giỏ hàng.</p>
       <div className="grid gap-2">
         <Button type="button" variant="secondary" onClick={onShare} disabled={sharing || itemCount === 0}>
           {sharing ? <Spinner label="Đang tạo liên kết" /> : <><Share2 size={16} aria-hidden="true" /> Chia sẻ</>}

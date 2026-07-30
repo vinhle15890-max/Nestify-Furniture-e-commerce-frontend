@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Button } from './Button'
+import { MemoryRouter } from 'react-router-dom'
+import { Button, ButtonLink } from './Button'
 import { Input } from './Input'
 import { Card } from './Card'
 import { Badge } from './Badge'
@@ -20,12 +21,26 @@ describe('Button', () => {
 
   it('applies the primary variant by default', () => {
     render(<Button>Mua ngay</Button>)
-    expect(screen.getByRole('button')).toHaveClass('bg-primary')
+    expect(screen.getByRole('button')).toHaveClass('min-h-12', 'bg-primary')
   })
 
   it('can be disabled', () => {
     render(<Button disabled>Mua ngay</Button>)
     expect(screen.getByRole('button')).toBeDisabled()
+  })
+
+  it('gives links the same variants and geometry as buttons', () => {
+    render(
+      <MemoryRouter>
+        <ButtonLink to="/c/all" variant="secondary">Xem sản phẩm</ButtonLink>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Xem sản phẩm' })).toHaveClass(
+      'min-h-12',
+      'rounded-control',
+      'border',
+    )
   })
 })
 

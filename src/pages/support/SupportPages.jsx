@@ -118,7 +118,7 @@ const pages = {
       {
         title: 'Về sản phẩm hoặc phòng',
         body:
-          'Gửi tên hoặc đường dẫn sản phẩm; với Room Planner, mô tả căn phòng hoặc tên phòng đã lưu. Ảnh chụp màn hình có thể giúp làm rõ vị trí đang gặp vấn đề.',
+          'Gửi tên hoặc đường dẫn sản phẩm; nếu đang thử nội thất trong phòng, hãy mô tả căn phòng hoặc tên phòng đã lưu. Ảnh chụp màn hình có thể giúp làm rõ vị trí đang gặp vấn đề.',
       },
       {
         title: 'Về quyền riêng tư',

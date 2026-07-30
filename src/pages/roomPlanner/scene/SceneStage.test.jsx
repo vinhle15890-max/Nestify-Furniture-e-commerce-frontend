@@ -82,7 +82,7 @@ describe('SceneStage WebGL capability gate', () => {
 
     // Crash-prevention assertion: react-three-fiber Canvas must not be mounted.
     expect(screen.queryByTestId('r3f-canvas')).not.toBeInTheDocument()
-    expect(screen.getByText(/không hỗ trợ hiển thị 3D/i)).toBeInTheDocument()
+    expect(screen.getByText(/chưa thể mở căn phòng trực quan/i)).toBeInTheDocument()
     // Entered dimensions echoed as plain text.
     expect(screen.getByText(/4 × 5 × 2\.8 m/)).toBeInTheDocument()
   })
@@ -100,7 +100,7 @@ describe('SceneStage WebGL capability gate', () => {
     render(<SceneStage room={room} />)
 
     expect(screen.getByTestId('r3f-canvas')).toBeInTheDocument()
-    expect(screen.queryByText(/không hỗ trợ hiển thị 3D/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/chưa thể mở căn phòng trực quan/i)).not.toBeInTheDocument()
     expect(getContext).toHaveBeenNthCalledWith(1, 'webgl2')
     expect(getContext).toHaveBeenNthCalledWith(2, 'webgl')
     // Resource cleanup: the throwaway context was explicitly released.
@@ -115,7 +115,7 @@ describe('SceneStage WebGL capability gate', () => {
     render(<SceneStage room={room} />)
 
     expect(screen.getByTestId('r3f-canvas')).toBeInTheDocument()
-    expect(screen.queryByText(/không hỗ trợ hiển thị 3D/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/chưa thể mở căn phòng trực quan/i)).not.toBeInTheDocument()
     expect(getExtension).toHaveBeenCalledWith('WEBGL_lose_context')
     expect(loseContext).toHaveBeenCalledTimes(1)
   })

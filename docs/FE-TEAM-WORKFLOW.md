@@ -4,7 +4,7 @@
 > teammate đọc, hiểu hệ thống, **phản biện** (trả lời câu hỏi hội đồng), đồng thời **chia việc cho 4 FE**.
 > **Cách đọc mỗi mục:** *Actor → Entry (route/page) → Luồng qua các tầng (page → hooks → api → apiClient) →
 > Side-effect (cache/store/toast) → Lỗi → **Điểm phản biện*** (vì sao thiết kế thế, câu hỏi hay bị hỏi).
-> **Last reconciled with code:** 2026-07-27 (bổ sung operation, failure boundary, code evidence và khoảng hở để phản biện) · **See also:** `AGENTS.md` (convention + stack),
+> **Last reconciled with code:** 2026-07-29 (bổ sung route hỗ trợ công khai, operation, failure boundary, code evidence và khoảng hở để phản biện) · **See also:** `AGENTS.md` (convention + stack),
 > `docs/CURRENT-STATE-MECHANISMS.md` (cơ chế, enforcement gap và edge case chi tiết), BE
 > `docs/FE_AI_CONTEXT.md` (request/response contract), BE `docs/14-workflows.md` (luồng server),
 > `../../Nestify-Furniture-e-commerce-backend/docs/defense-question-bank.md` (ngân hàng câu hỏi phản biện).
@@ -106,6 +106,25 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 > nguyên chuỗi kỹ thuật này cho người dùng. `lib/queryClient.js` hiện cấu hình query retry 1 lần, stale 60 giây và
 > không refetch khi focus; mutation không tự retry. Operation nào override (ví dụ payment reconcile `gcTime:0`) phải
 > nói theo override đó, không suy từ tên thư viện.
+
+### 0.3 Trang hỗ trợ công khai
+
+**Actor:** Guest+. **Entry:** `/shipping`, `/returns`, `/privacy`, `/contact`. **Feature:** `pages/support/SupportPages.jsx`,
+được lazy-load từ `app/router.jsx`; các liên kết nằm trong `components/layout/Footer.jsx`.
+
+- Đây là bốn trang nội dung tĩnh, không có `features/api.js`, hook hoặc request server.
+- Trang giao hàng không tự ước tính thời gian/phí; nó hướng người dùng đến dữ liệu `delivery` đã xác nhận ở từng
+  sản phẩm và nói rõ checkout hiện chưa hiển thị phí giao hàng riêng.
+- Trang đổi trả phân biệt hủy trước khi `shipped` với đổi trả sau khi nhận. Điều kiện tự hủy và side effect hoàn
+  tiền vẫn do order state machine ở backend quyết định; frontend chỉ dẫn đến `/orders`.
+- Trang quyền riêng tư mô tả các nhóm dữ liệu tương ứng với chức năng hiện có, không tuyên bố retention hoặc
+  biện pháp pháp lý chưa có bằng chứng runtime.
+- Trang liên hệ dùng `mailto:support@nestify.vn`; không render form vì chưa có endpoint tiếp nhận. Đây là chủ ý
+  tránh một biểu mẫu có vẻ hoạt động nhưng không thể gửi.
+
+> **Phản biện:** Vì sao không lấy chính sách giao hàng chung từ ảnh/mô tả hoặc hard-code một con số? Vì dữ liệu
+> giao hàng/đổi trả hiện là thuộc tính cấp sản phẩm do quản trị viên xác nhận. Một chính sách tổng quát bịa thêm
+> sẽ mâu thuẫn với nguyên tắc “thấy rõ trước khi chọn” và dễ trở thành cam kết sai.
 
 ---
 

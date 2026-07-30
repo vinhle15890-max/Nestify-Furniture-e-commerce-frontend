@@ -17,6 +17,10 @@ security boundary. Tương tự, FE ẩn purchase với staff nhưng backend m�
 - Router lazy-load page. Storefront, planner toàn màn hình và admin là ba shell riêng. `/__dev/r2-model` chỉ
   tồn tại khi `import.meta.env.DEV`; shared-room public không cần auth. Account/wishlist/checkout/order/planner
   editor cần token và client thấy `email_verified_at`.
+- Storefront có bốn route hỗ trợ công khai lazy-loaded: `/shipping`, `/returns`, `/privacy`, `/contact`.
+  Footer điều hướng nội bộ đến các route này. Đây là nội dung tĩnh, không gọi API: giao hàng và đổi trả phải
+  nói theo dữ liệu cấp sản phẩm/current order state; trang liên hệ mở `mailto:support@nestify.vn`, không giả
+  lập form gửi khi chưa có endpoint tiếp nhận.
 - `apiClient` đọc token mới nhất từ Zustand trước từng request, unwrap response body và chuẩn hóa lỗi. 401
   ngoài `/auth/*` xóa auth persisted; lỗi 401 của login/register không tự logout để form giữ ngữ cảnh.
 - Auth persist token+user trong `localStorage` key `nestify-auth`. Chat, preview-role, toast và editor chỉ ở

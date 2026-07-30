@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { hero } from '../../data/home'
+import { ButtonLink } from '../Button'
 
 function HeroInterior() {
   return (
@@ -36,11 +36,11 @@ function HeroInterior() {
 
 export function Hero() {
   return (
-    <section className="relative w-full overflow-hidden bg-canvas text-ink">
+    <section data-home-section="hero" className="relative w-full overflow-hidden bg-canvas text-ink">
       <div className="relative mx-auto max-w-[1440px] overflow-hidden px-6 pb-16 pt-32 sm:px-10 sm:pb-20 lg:min-h-[86dvh] lg:px-14 lg:pb-24 lg:pt-0">
         {/* Proposition first. It is anchored to the near wall, not a column. */}
         <div className="relative z-20 max-w-[34rem] lg:ml-[clamp(0rem,2vw,2rem)] lg:pt-[clamp(10rem,22vh,13rem)]">
-          <h1 className="font-display text-[clamp(3rem,4.8vw,4.75rem)] font-normal leading-[1.02] tracking-[-0.035em]">
+          <h1 className="min-w-0 [overflow-wrap:anywhere] font-display text-[clamp(3rem,4.8vw,4.75rem)] font-normal leading-[1.02] tracking-[-0.035em]">
             {hero.title}
           </h1>
           <p className="mt-7 max-w-[30rem] text-[clamp(1rem,1.25vw,1.16rem)] leading-[1.75] text-ink/70 xl:max-w-[34rem]">
@@ -54,9 +54,9 @@ export function Hero() {
         </div>
 
         <div className="relative z-20 mt-8 lg:ml-[clamp(0rem,2vw,2rem)] lg:mt-10">
-          <Link
+          <ButtonLink
             to={hero.cta.to}
-            className="group inline-flex items-center gap-3 border-b border-ink/30 pb-2 text-sm font-medium tracking-wide text-ink transition-colors duration-200 ease-out hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
+            className="px-7"
           >
             {hero.cta.label}
             <ArrowRight
@@ -64,7 +64,7 @@ export function Hero() {
               aria-hidden="true"
               className="transition-transform duration-200 ease-out group-hover:translate-x-0.5"
             />
-          </Link>
+          </ButtonLink>
         </div>
       </div>
     </section>

@@ -15,9 +15,9 @@ export const img = (id, w = 1200) => `${UNSPLASH}/${id}?auto=format&fit=crop&w=$
 // mechanics. `cta` invites exploration; it never launches or demonstrates the
 // Planner. Scrolling past the Hero remains the canonical Entry Event.
 export const hero = {
-  title: 'Điều gì có thể bắt đầu ở đây?',
-  subtitle: 'Khám phá những lựa chọn để hình dung điều gì có thể phù hợp với không gian của bạn — trước khi quyết định.',
-  cta: { label: 'Khám phá không gian', to: '/c/all' },
+  title: 'Điều gì phù hợp với căn phòng của bạn?',
+  subtitle: 'Khám phá lựa chọn cho từng không gian — và nhìn thấy rõ hơn trước khi quyết định.',
+  cta: { label: 'Xem sản phẩm', to: '/c/all' },
 }
 
 // The Becoming, in three states — the homepage's compressed arc from an empty
@@ -62,10 +62,10 @@ export const brandPromise = {
 // pointer). This section is NOT the Threshold/Hero, so pointing straight to the
 // Planner is correct here. CTA stays `ink` (no `imagined` before visualization).
 export const plannerInvite = {
-  eyebrow: 'Điểm đến',
-  title: 'Bắt đầu trong chính căn phòng của bạn.',
-  intro: 'Nestify không bán món đồ trước — nó cho bạn thấy trước tổ ấm của mình. Bước vào không gian của bạn, thử bố trí, và nhìn thấy rõ.',
-  cta: { label: 'Mở không gian của bạn', to: '/room-planner' },
+  eyebrow: 'Thử trong phòng của bạn',
+  title: 'Chưa chắc món đồ có hợp với căn phòng?',
+  intro: 'Đặt thử món đồ vào căn phòng, xem nó chiếm bao nhiêu chỗ và chỉ tiếp tục khi bạn đã nhìn thấy đủ rõ.',
+  cta: { label: 'Thử trong phòng của bạn', to: '/room-planner' },
 }
 
 export const categories = [

@@ -49,7 +49,7 @@ describe('CatalogTray', () => {
       meta: { pagination: { has_more: false, next_cursor: null } },
     })
     renderTray()
-    expect(await screen.findByText(/^chưa có sản phẩm 3d$/i)).toBeInTheDocument()
+    expect(await screen.findByText(/^chưa có món nào để thử trong phòng$/i)).toBeInTheDocument()
   })
 
   it('marks keyboard activation as a reversible placement', async () => {

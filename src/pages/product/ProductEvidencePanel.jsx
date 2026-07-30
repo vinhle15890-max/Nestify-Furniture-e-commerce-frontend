@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { describeModelFidelity } from '../../features/roomPlanner/modelFidelity'
+import { ButtonLink } from '../../components/Button'
 
 function EvidenceRow({ label, children }) {
   return (
@@ -25,13 +25,13 @@ export function ProductEvidencePanel({ product, selectedVariant, outOfStock }) {
       className="border-t-2 border-emerging/45 pt-7 lg:border-l-2 lg:border-t-0 lg:pl-9 lg:pt-1 xl:pl-12"
     >
       <p className="text-sm font-medium text-emerging">
-        Sự phù hợp đã biết
+        Dễ hình dung hơn
       </p>
       <h2
         id="measured-suitability-title"
         className="mt-2 max-w-sm font-display text-[clamp(1.5rem,2vw,1.85rem)] leading-[1.1] text-ink"
       >
-        Dữ liệu đã xác minh
+        Món đồ này có hợp với phòng?
       </h2>
 
       <dl className="mt-4">
@@ -43,7 +43,7 @@ export function ProductEvidencePanel({ product, selectedVariant, outOfStock }) {
             </span>
           )}
         </EvidenceRow>
-        <EvidenceRow label="Mô hình 3D">
+        <EvidenceRow label="Thử trong phòng">
           {selectedVariant ? modelFidelity.text : 'Cần chọn phiên bản để kiểm tra.'}
         </EvidenceRow>
         <EvidenceRow label="Khả dụng">
@@ -53,24 +53,23 @@ export function ProductEvidencePanel({ product, selectedVariant, outOfStock }) {
 
       <div data-testid="planner-handoff" className="mt-3 border-t-2 border-ink/15 pt-3">
         {plannerHref ? (
-          <Link
+          <ButtonLink
             to={plannerHref}
-            className="inline-flex items-center gap-3 rounded-control border border-ink px-5 py-3 text-sm font-medium text-ink transition-colors hover:bg-unbuilt/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
+            variant="secondary"
           >
-            Thử trong Room Planner
+            Thử trong phòng của bạn
             <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          </ButtonLink>
         ) : (
           <span
             aria-disabled="true"
             className="inline-flex rounded-control bg-unbuilt px-5 py-3 text-sm font-medium text-ink/60"
           >
-            Chọn phiên bản để mở Planner
+            Chọn phiên bản để thử trong phòng
           </span>
         )}
         <p className="mt-2.5 text-xs leading-4 text-ink/60">
-          Bước tiếp theo có thể đảo ngược. Phiên bản này được mang theo; hình ảnh trong Planner
-          phụ thuộc dữ liệu 3D hiện có.
+          Phiên bản bạn chọn sẽ được mang theo. Bạn có thể thử, đổi vị trí hoặc quay lại bất cứ lúc nào.
         </p>
       </div>
     </aside>

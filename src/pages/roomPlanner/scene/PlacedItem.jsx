@@ -20,6 +20,12 @@ export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled =
     })
   }
 
+  const beginDrag = () => onDragChange?.(true)
+  const finishDrag = () => {
+    commit()
+    onDragChange?.(false)
+  }
+
   const projectLive = () => {
     const node = groupRef.current
     if (!node || !room) return
@@ -88,12 +94,12 @@ export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled =
       mode={gizmoMode === 'rotate' ? 'rotate' : 'translate'}
       translationSnap={alignmentEnabled ? 0.1 : null}
       rotationSnap={alignmentEnabled ? Math.PI / 12 : null}
-      showX={false}
-      showY={gizmoMode !== 'translate'}
-      showZ={false}
+      showX={gizmoMode === 'translate'}
+      showY={gizmoMode === 'rotate'}
+      showZ={gizmoMode === 'translate'}
       onObjectChange={projectLive}
-      onMouseUp={commit}
-      onDraggingChanged={(e) => onDragChange(Boolean(e?.value))}
+      onMouseDown={beginDrag}
+      onMouseUp={finishDrag}
     >
       {content}
     </TransformControls>
