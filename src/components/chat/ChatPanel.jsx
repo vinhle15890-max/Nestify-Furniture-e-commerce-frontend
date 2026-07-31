@@ -144,7 +144,7 @@ export function ChatPanel() {
           type="submit"
           aria-label="Gửi"
           disabled={isPending || input.trim().length === 0}
-          className="inline-flex items-center justify-center rounded-control bg-primary p-2 text-surface transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center justify-center rounded-control bg-primary p-2 text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Send size={18} />
         </button>

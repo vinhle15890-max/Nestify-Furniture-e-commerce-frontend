@@ -35,7 +35,7 @@ export function ChatWidget() {
         onClick={toggle}
         aria-expanded={isOpen}
         aria-label={isOpen ? 'Đóng trợ lý mua sắm' : 'Mở trợ lý mua sắm'}
-        className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-surface shadow-soft transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </button>

@@ -21,7 +21,11 @@ describe('Button', () => {
 
   it('applies the primary variant by default', () => {
     render(<Button>Mua ngay</Button>)
-    expect(screen.getByRole('button')).toHaveClass('min-h-12', 'bg-primary')
+    expect(screen.getByRole('button')).toHaveClass(
+      'min-h-12',
+      'bg-primary',
+      'text-primary-foreground',
+    )
   })
 
   it('can be disabled', () => {

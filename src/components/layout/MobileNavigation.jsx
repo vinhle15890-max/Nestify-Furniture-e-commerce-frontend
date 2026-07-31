@@ -106,7 +106,7 @@ export function MobileNavigation() {
           </nav>
 
           <div className="border-t border-border pt-5">
-            <button type="button" onClick={handleCart} className={`inline-flex items-center justify-center gap-2 rounded-control bg-primary px-4 py-3 text-sm font-medium text-surface ${focusRing}`}>
+            <button type="button" onClick={handleCart} className={`inline-flex items-center justify-center gap-2 rounded-control bg-primary px-4 py-3 text-sm font-medium text-primary-foreground ${focusRing}`}>
               <ShoppingCart size={17} aria-hidden="true" /> Giỏ hàng
             </button>
           </div>

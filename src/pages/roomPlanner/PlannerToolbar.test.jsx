@@ -56,6 +56,12 @@ describe('PlannerToolbar', () => {
     expect(onGizmoModeChange).toHaveBeenCalledWith('rotate')
   })
 
+  it('explains direct dragging and precision keyboard controls', () => {
+    render(<PlannerContextControls {...base} />)
+    expect(screen.getByText(/Kéo trực tiếp món đồ/)).toBeInTheDocument()
+    expect(screen.getByText(/Phím mũi tên/)).toBeInTheDocument()
+  })
+
   it('does not expose a customer scale mode', () => {
     render(<PlannerToolbar {...base} />)
     expect(screen.queryByRole('button', { name: /phóng to/i })).not.toBeInTheDocument()

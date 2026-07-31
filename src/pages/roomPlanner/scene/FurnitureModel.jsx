@@ -44,7 +44,7 @@ export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange }) 
     <group {...placeholderGroupProps(state)}>
       <mesh position={[0, 0.5, 0]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color={failed ? '#6E6861' : '#8A7C68'} transparent opacity={loading ? 0.35 : 0.6} wireframe={loading} />
+        <meshStandardMaterial color={failed ? '#6E6861' : '#A58B4C'} transparent opacity={loading ? 0.35 : 0.6} wireframe={loading} />
       </mesh>
       <Html center position={[0, 1.2, 0]}>
         <span role="status" data-model-state={state} className="whitespace-nowrap rounded-control border border-border bg-surface/95 px-2 py-1 text-xs text-foreground shadow-sm">

@@ -9,7 +9,7 @@ export function ChatMessage({ message, onNavigate }) {
   const isError = message.role === 'error'
 
   const bubbleClass = isUser
-    ? 'bg-primary text-surface'
+    ? 'bg-primary text-primary-foreground'
     : isError
       ? 'bg-destructive/10 text-destructive'
       : 'text-foreground'

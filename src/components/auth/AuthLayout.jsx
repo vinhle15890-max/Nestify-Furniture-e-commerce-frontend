@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Logo } from '../Logo'
 import { BecomingRoomArt } from '../BecomingRoomArt'
+import { SeoHead } from '../SeoHead'
 
 /**
  * Shared shell for auth screens. On desktop it is a split screen: a warm brand
@@ -11,6 +12,7 @@ import { BecomingRoomArt } from '../BecomingRoomArt'
 export function AuthLayout({ title, subtitle, children, footer }) {
   return (
     <div className="min-h-screen bg-canvas text-ink lg:grid lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)]">
+      <SeoHead title={`${title} | Nestify`} description={subtitle || 'Tài khoản Nestify.'} noindex />
       <aside className="hidden border-r border-unbuilt bg-unbuilt/10 lg:flex lg:flex-col lg:justify-end lg:px-12 lg:pb-20 lg:pt-28">
         <div className="ml-auto w-full max-w-sm">
           <p className="font-display text-[clamp(1.7rem,2.3vw,2.35rem)] leading-tight text-foreground [text-wrap:balance]">

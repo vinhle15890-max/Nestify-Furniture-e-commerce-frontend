@@ -1,38 +1,40 @@
 @theme {
-  /* ── Colors — "The Becoming Room" DNA is now the DEFAULT palette ──────────
+  /* ── Colors — "The Becoming Room" · Sunlit Amber palette ──────────────────
      (docs/nestify/03_Design_DNA.md). The storefront and Room Planner consume
      these `:root` defaults directly — no per-page wrapper needed. The legacy
      "Warm Luxury Editorial" palette survives ONLY for the admin back-office,
      restored via `[data-theme='legacy']` (globals.css), which AdminLayout
      stamps on <body> (so admin dialogs/portals inherit it too) + on its shell
-     root. Semantic tokens below mirror the remaps the old becoming scope did. */
-  --color-background: #F2F0EB;        /* canvas */
-  --color-surface: #F2F0EB;           /* canvas (Becoming has no separate raised surface) */
-  --color-surface-alt: #C9C4B8;       /* unbuilt */
-  --color-foreground: #26262B;        /* ink */
-  --color-muted-foreground: color-mix(in oklab, #26262B 70%, transparent); /* ink/70 — AA on canvas */
-  --color-border: #C9C4B8;            /* unbuilt */
-  --color-border-strong: #C9C4B8;     /* unbuilt */
+     root. Amber carries illumination and clarity; dark ink preserves the
+     restrained, non-sales-led voice. */
+  --color-background: #F7F7F3;        /* gallery white */
+  --color-surface: #FFFFFF;           /* raised surface */
+  --color-surface-alt: #FFF3CF;       /* sun wash */
+  --color-foreground: #292A20;        /* olive ink */
+  --color-muted-foreground: #69695D;  /* soft olive gray — AA on canvas */
+  --color-border: #E8E6DC;            /* warm mist */
+  --color-border-strong: #D8D8CE;     /* quiet outline */
 
-  --color-primary: #26262B;           /* ink — primary buttons/actions */
-  --color-primary-hover: #26262B;
-  --color-accent: #26262B;            /* ink (brass has no place in Becoming) */
-  --color-accent-hover: #26262B;
-  --color-secondary: #26262B;         /* ink (olive folded to ink) */
-  --color-secondary-hover: #26262B;
+  --color-primary: #E7B84B;           /* sunlit amber — use with primary-foreground */
+  --color-primary-hover: #C58D18;     /* deep amber */
+  --color-primary-foreground: #292A20;
+  --color-accent: #C58D18;
+  --color-accent-hover: #A56F0B;
+  --color-secondary: #7A6A3B;         /* golden olive; not the committed green */
+  --color-secondary-hover: #63552F;
   --color-destructive: #B4402C;       /* unchanged across both palettes */
-  --color-ring: #26262B;              /* ink focus ring */
+  --color-ring: #8A5A00;              /* amber focus ring with visible contrast */
 
-  /* Raw Becoming palette — the fixed targets, never remapped. `imagined` (peak
+  /* Raw Becoming palette — semantic targets, never remapped. `imagined` (peak
      "Mentally Real" CTA, e.g. Planner "Lưu") and `confirmed` (Committed-state
      moments only — Checkout confirm + order-success) keep their restricted
      roles regardless of default/legacy scope. */
-  --color-canvas: #F2F0EB;
-  --color-ink: #26262B;
-  --color-unbuilt: #C9C4B8;    /* outline / empty / not-yet-decided */
-  --color-emerging: #8A7C68;   /* being considered, not yet certain */
-  --color-imagined: #B5754A;   /* clearly imagined — warmest; restricted CTA */
-  --color-confirmed: #3D5A45;  /* Committed state (State 4) only */
+  --color-canvas: #F7F7F3;
+  --color-ink: #292A20;
+  --color-unbuilt: #D8D8CE;    /* outline / empty / not-yet-decided */
+  --color-emerging: #A58B4C;   /* being considered, not yet certain */
+  --color-imagined: #E7B84B;   /* clearly imagined — illuminated; restricted CTA */
+  --color-confirmed: #42644B;  /* Committed state (State 4) only */
 
   /* ── Typography ── */
   --font-display: "Fraunces Variable", "Fraunces", serif;
@@ -43,6 +45,6 @@
   --radius-card: 16px;
 
   /* ── Shadows — subtle, expensive ── */
-  --shadow-soft: 0 4px 24px rgba(31, 31, 29, 0.05);
-  --shadow-card: 0 18px 48px rgba(31, 31, 29, 0.09);
+  --shadow-soft: 0 4px 24px rgba(41, 42, 32, 0.06);
+  --shadow-card: 0 18px 48px rgba(41, 42, 32, 0.1);
 }

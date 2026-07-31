@@ -83,7 +83,7 @@ function RoomCard({ scene }) {
       <div className="mt-1 flex flex-wrap gap-2">
         <Link
           to={`/room-planner/${scene.id}`}
-          className="inline-flex items-center gap-1.5 rounded-control bg-primary px-3 py-1.5 text-sm font-medium text-surface transition-colors hover:bg-primary-hover"
+          className="inline-flex items-center gap-1.5 rounded-control bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
         >
           <Box size={15} aria-hidden="true" /> Mở
         </Link>
@@ -139,7 +139,7 @@ export function MyRoomsPage() {
           ) : (
             <Link
               to="/room-planner"
-              className="inline-flex min-h-11 items-center gap-2 rounded-control bg-primary px-4 py-2 text-sm font-medium text-surface transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex min-h-11 items-center gap-2 rounded-control bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus size={16} aria-hidden="true" /> Thêm phòng
             </Link>

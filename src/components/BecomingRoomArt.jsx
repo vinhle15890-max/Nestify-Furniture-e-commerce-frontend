@@ -8,7 +8,7 @@
  *   1 — Possibility (Chapter 1): bare outline, empty, coldest.
  *   2 — Experiment  (Chapter 3): + daylight wedge + one `emerging` chair.
  *   3 — Future Home (Chapter 4): + a few pieces and restrained `imagined`
- *       warmth. This is the ONLY place `imagined` #B5754A appears, and only as
+ *       warmth. This is the ONLY place `imagined` #E7B84B appears, and only as
  *       depiction of the Future-Home chapter — never as a CTA/interactive color.
  *
  * Flat fills only — no gradient/shadow (Visual Grammar). Purely decorative:

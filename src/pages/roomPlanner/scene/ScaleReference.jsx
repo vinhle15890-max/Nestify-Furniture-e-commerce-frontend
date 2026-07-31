@@ -28,18 +28,18 @@ export function ScaleReference({ room, onDragChange }) {
         <group ref={groupRef} position={[pos.x, 0, pos.z]}>
           <mesh position={[0, 0.85, 0]}>
             <capsuleGeometry args={[0.2, 1.3, 6, 12]} />
-            <meshStandardMaterial color="#8A7C68" transparent opacity={0.5} />
+            <meshStandardMaterial color="#A58B4C" transparent opacity={0.5} />
           </mesh>
           <mesh position={[0, 1.62, 0]}>
             <sphereGeometry args={[0.12, 16, 16]} />
-            <meshStandardMaterial color="#8A7C68" transparent opacity={0.5} />
+            <meshStandardMaterial color="#A58B4C" transparent opacity={0.5} />
           </mesh>
         </group>
       </TransformControls>
       {/* Cửa 0.9×2.0m trên tường sau — unbuilt mờ, lệch ε tránh z-fighting. */}
       <mesh position={[0, 1.0, -room.depth / 2 + 0.01]}>
         <planeGeometry args={[0.9, 2.0]} />
-        <meshStandardMaterial color="#C9C4B8" transparent opacity={0.4} />
+        <meshStandardMaterial color="#D8D8CE" transparent opacity={0.4} />
       </mesh>
     </group>
   )

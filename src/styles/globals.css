@@ -57,6 +57,7 @@ h1, h2, h3, h4 {
   --color-border-strong: rgba(31, 31, 29, 0.16);
   --color-primary: #1F1F1D;
   --color-primary-hover: #34322E;
+  --color-primary-foreground: #FAF8F3;
   --color-accent: #B08D57;            /* brushed brass */
   --color-accent-hover: #9A7A4A;
   --color-secondary: #6D7860;         /* olive */

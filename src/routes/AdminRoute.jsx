@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { isStaff } from '../lib/roles'
+import { SeoHead } from '../components/SeoHead'
 
 export function AdminRoute() {
   const token = useAuthStore((state) => state.token)
@@ -16,5 +17,5 @@ export function AdminRoute() {
     return <Navigate to="/" replace />
   }
 
-  return <Outlet />
+  return <><SeoHead title="Quản trị | Nestify" description="Khu vực quản trị Nestify." noindex /><Outlet /></>
 }

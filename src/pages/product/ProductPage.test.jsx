@@ -169,8 +169,13 @@ describe('ProductPage', () => {
     expect(ld).not.toBeNull()
     const data = JSON.parse(ld.textContent)
     expect(data['@type']).toBe('Product')
-    expect(data.offers.price).toBe(5000000)
+    expect(data.offers['@type']).toBe('AggregateOffer')
+    expect(data.offers.lowPrice).toBe(5000000)
+    expect(data.offers.highPrice).toBe(5500000)
+    expect(data.offers.offerCount).toBe(2)
+    expect(data.offers.availability).toBe('https://schema.org/InStock')
     expect(data.offers.priceCurrency).toBe('VND')
+    expect(new URL(document.querySelector('link[rel="canonical"]').href).pathname).toBe('/p/ghe-sofa-da')
   })
 
   it('updates the price, stock, and add-to-cart state when a different variant is selected', async () => {
