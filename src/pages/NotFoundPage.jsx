@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BecomingRoomArt } from '../components/BecomingRoomArt'
+import { SeoHead } from '../components/SeoHead'
 
 /**
  * 404 — reframed through the signature motif: a room that hasn't been built yet.
@@ -9,6 +10,7 @@ import { BecomingRoomArt } from '../components/BecomingRoomArt'
 export function NotFoundPage() {
   return (
     <div className="bg-canvas text-ink">
+      <SeoHead title="Không tìm thấy trang | Nestify" description="Trang bạn tìm không tồn tại." noindex />
       <div className="mx-auto flex max-w-2xl flex-col items-center px-6 py-24 text-center">
         <div className="pointer-events-none w-full max-w-[360px]">
           <BecomingRoomArt level={1} />

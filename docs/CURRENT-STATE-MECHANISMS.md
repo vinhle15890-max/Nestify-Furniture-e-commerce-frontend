@@ -54,8 +54,10 @@ lưu.
 
 ### Kéo, xoay, snap và clamp
 
-`PlacedItem` bọc Three group bằng drei `TransformControls`. Pointer handling nằm trong control này; bắt đầu
-drag tắt OrbitControls để camera không tranh gesture. Math dùng world coordinates, tương ứng mét của phòng.
+`PlacedItem` bọc Three group bằng drei `TransformControls`. Ở chế độ di chuyển, người dùng có thể kéo trực
+tiếp trên thân model theo mặt phẳng sàn; gizmo vẫn là chỉ báo trục và là tay nắm thay thế. Cả direct-drag lẫn
+gizmo-drag đều tắt OrbitControls để camera không tranh gesture, project live qua cùng snap/clamp và chỉ commit
+một lần khi thả. Math dùng world coordinates, tương ứng mét của phòng.
 Mỗi `onObjectChange` đọc transform sống rồi gọi `projectTransform`:
 
 1. Ép Y=0.
@@ -111,6 +113,9 @@ dưới 0.1 m (thảm) bị loại. Conflict chỉ tạo quầng/notice: không 
 
 `resizeRoom` clamp room (2–30/2–5) rồi re-clamp tất cả item ngay. `setRoom` thô không re-clamp cho tới lần
 transform sau. Scale reference là view aid, clamp tâm đơn giản, không dirty/history/backend.
+
+Inspector cung cấp bốn hướng tinh chỉnh theo bước 0.1 m và 0.5 m; nhập X/Z chính xác nằm trong disclosure nâng
+cao. Các nút này gọi cùng `updateTransform`, nên dùng cùng projection, bounds và history như pointer transform.
 
 Phím tắt chỉ chạy khi editor `ready` và bỏ qua input/textarea/contenteditable: `1` translate, `2` rotate,
 Delete/Backspace xóa, Escape bỏ chọn, Ctrl/Cmd+D duplicate, Ctrl/Cmd+Z undo, Shift+Ctrl/Cmd+Z hoặc Ctrl/Cmd+Y
@@ -180,6 +185,13 @@ sau checkbox thủ công. Preview là kiểm tra thị giác, không phải vali
 tiếp giữa browser–R2 nên Laravel không thể trả field error chuẩn.
 
 ## SEO score và draft workflow
+
+Storefront publish metadata qua `SeoHead`: title, description, canonical, robots, Open Graph, Twitter card và
+JSON-LD được quản lý theo lifecycle route. Product dùng `AggregateOffer` khi có nhiều active variant, tính
+low/high price và availability từ stock thật; auth/account/admin/404 dùng `noindex`. Laravel sinh sitemap từ
+category + active product và robots policy; Vercel proxy hai file về cùng storefront origin. Production build
+có `VITE_API_BASE_URL` sẽ prerender category/product thành HTML crawlable; build không có biến này bỏ qua và
+ghi thông báo rõ, phù hợp local/test nhưng không đạt SEO production gate.
 
 Live score client-side, deterministic: title length 20 (pass 50–60, warn 30–70); meta length 20 (pass
 140–160, warn 100–180); keyword trong title/meta/đoạn `<p>` đầu mỗi mục 15; H2+UL 15. Pass=full,

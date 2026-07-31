@@ -131,7 +131,7 @@ export function DescriptionSeoFields({
                   disabled={anyGenerating}
                   aria-pressed={tone === option.value}
                   className={`rounded-control px-2.5 py-1 text-xs transition-colors duration-200 disabled:opacity-40 ${
-                    tone === option.value ? 'bg-primary text-surface' : 'text-muted-foreground hover:text-foreground'
+                    tone === option.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {option.label}

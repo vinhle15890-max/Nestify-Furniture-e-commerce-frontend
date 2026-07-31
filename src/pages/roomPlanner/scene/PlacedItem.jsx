@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { TransformControls } from '@react-three/drei'
+import { Plane, Vector3 } from 'three'
 import { FurnitureModelRuntime } from './FurnitureModel'
 import { projectTransform } from '../../../features/roomPlanner/collision'
 
@@ -9,6 +10,9 @@ import { projectTransform } from '../../../features/roomPlanner/collision'
 export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled = true, conflict, onSelect, onTransform, onDragChange, onMeasure, onModelError, onModelStateChange, interactive = true }) {
   const groupRef = useRef()
   const tcRef = useRef()
+  const directDragRef = useRef(null)
+  const floorPlaneRef = useRef(new Plane(new Vector3(0, 1, 0), 0))
+  const floorPointRef = useRef(new Vector3())
   const { position, rotation, scale } = item
 
   const commit = () => {
@@ -61,16 +65,57 @@ export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled =
     }
   }
 
+  const beginDirectDrag = (event) => {
+    event.stopPropagation()
+    if (gizmoMode !== 'translate' || !event.ray?.intersectPlane(floorPlaneRef.current, floorPointRef.current)) {
+      onSelect(item.localId)
+      return
+    }
+    const node = groupRef.current
+    if (!node) return
+    directDragRef.current = {
+      pointerId: event.pointerId,
+      offsetX: node.position.x - floorPointRef.current.x,
+      offsetZ: node.position.z - floorPointRef.current.z,
+      moved: false,
+    }
+    event.target?.setPointerCapture?.(event.pointerId)
+    onDragChange?.(true)
+  }
+
+  const moveDirectDrag = (event) => {
+    const drag = directDragRef.current
+    const node = groupRef.current
+    if (!drag || !node || !event.ray?.intersectPlane(floorPlaneRef.current, floorPointRef.current)) return
+    event.stopPropagation()
+    drag.moved = true
+    node.position.x = floorPointRef.current.x + drag.offsetX
+    node.position.z = floorPointRef.current.z + drag.offsetZ
+    projectLive()
+  }
+
+  const finishDirectDrag = (event) => {
+    const drag = directDragRef.current
+    if (!drag) return
+    event.stopPropagation()
+    directDragRef.current = null
+    event.target?.releasePointerCapture?.(drag.pointerId)
+    if (drag.moved) commit()
+    onSelect(item.localId)
+    onDragChange?.(false)
+  }
+
   const content = (
     <group
       ref={groupRef}
       position={[position.x, position.y, position.z]}
       rotation={[rotation.x, rotation.y, rotation.z]}
       scale={[scale.x, scale.y, scale.z]}
-      onClick={interactive ? (event) => {
-        event.stopPropagation()
-        onSelect(item.localId)
-      } : undefined}
+      onClick={interactive ? (event) => { event.stopPropagation(); onSelect(item.localId) } : undefined}
+      onPointerDown={interactive ? beginDirectDrag : undefined}
+      onPointerMove={interactive ? moveDirectDrag : undefined}
+      onPointerUp={interactive ? finishDirectDrag : undefined}
+      onPointerCancel={interactive ? finishDirectDrag : undefined}
     >
       <FurnitureModelRuntime url={item.variant.model_3d_url} onMeasure={onMeasure} onError={onModelError} onStateChange={onModelStateChange} />
       {conflict && (
@@ -79,7 +124,7 @@ export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled =
         // nhắc trung tính khi chồng lấn, KHÔNG đỏ báo động.
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
           <planeGeometry args={[item.footprint.x * 1.4, item.footprint.z * 1.4]} />
-          <meshBasicMaterial color="#26262B" transparent opacity={0.22} depthWrite={false} />
+          <meshBasicMaterial color="#292A20" transparent opacity={0.22} depthWrite={false} />
         </mesh>
       )}
     </group>

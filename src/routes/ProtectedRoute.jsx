@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { VerifyEmailGate } from '../components/VerifyEmailGate'
+import { SeoHead } from '../components/SeoHead'
 
 export function ProtectedRoute() {
   const location = useLocation()
@@ -15,5 +16,5 @@ export function ProtectedRoute() {
     return <VerifyEmailGate />
   }
 
-  return <Outlet />
+  return <><SeoHead title="Khu vực tài khoản | Nestify" description="Khu vực riêng tư của tài khoản Nestify." noindex /><Outlet /></>
 }

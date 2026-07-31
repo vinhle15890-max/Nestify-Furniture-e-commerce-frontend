@@ -28,7 +28,7 @@ function EdgeHandle({ axis, sign, room, onDragChange }) {
     >
       <mesh ref={ref} position={pos}>
         <sphereGeometry args={[0.12, 16, 16]} />
-        <meshBasicMaterial color="#C9C4B8" />
+        <meshBasicMaterial color="#D8D8CE" />
       </mesh>
     </TransformControls>
   )
@@ -47,7 +47,7 @@ function WallEdge({ side, room }) {
   return (
     <mesh position={geo.pos} rotation={geo.rot} onClick={(e) => { e.stopPropagation(); toggleWall(side) }}>
       <planeGeometry args={geo.args} />
-      <meshBasicMaterial color="#C9C4B8" transparent opacity={on ? 0.9 : 0.35} />
+      <meshBasicMaterial color="#D8D8CE" transparent opacity={on ? 0.9 : 0.35} />
     </mesh>
   )
 }

@@ -1,17 +1,17 @@
 import { Link } from 'react-router-dom'
 
 const variantClasses = {
-  primary: 'bg-primary text-surface hover:bg-primary-hover',
+  primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
   secondary: 'border border-foreground/35 text-foreground hover:border-foreground hover:bg-unbuilt/20',
   ghost: 'text-foreground hover:bg-unbuilt/25',
   tertiary: 'px-0 text-foreground hover:text-foreground/65',
   destructive: 'bg-destructive text-surface hover:opacity-90',
   // State 4 "Committed" (Component Bible): the single final Checkout confirm.
-  // `confirmed` #3D5A45 must appear in EXACTLY one place site-wide — the
+  // `confirmed` #42644B must appear in EXACTLY one place site-wide — the
   // "Đặt hàng" button. Do not reuse this variant anywhere else.
   confirmed: 'bg-confirmed text-surface hover:bg-confirmed/90',
   // State 3 "Mentally Real" at its peak (Component Bible): the Room Planner
-  // "Lưu phòng" CTA is the one place `imagined` #B5754A is a valid button
+  // "Lưu phòng" CTA is the one place `imagined` #E7B84B is a valid button
   // colour. `text-ink` gives the best available contrast on this mid-tone
   // (~4:1). Do not reuse this variant elsewhere.
   imagined: 'bg-imagined text-ink hover:bg-imagined/90',

@@ -10,6 +10,7 @@ import { DiscoverProductUnit } from './DiscoverProductUnit'
 import { readCatalogUrlState, writeCatalogUrlState } from '../../lib/catalogUrlState'
 import { CatalogFilterDrawer, CatalogFilterFields } from './CatalogFilterDrawer'
 import { FeedbackState } from '../../components/FeedbackState'
+import { SeoHead } from '../../components/SeoHead'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Mặc định' },
@@ -128,6 +129,7 @@ export function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
+      <SeoHead title={`${pageTitle} | Nestify`} description={category?.description || `Khám phá ${pageTitle.toLocaleLowerCase('vi')} và xem sản phẩm trong không gian của bạn trước khi quyết định.`} canonicalPath={`/c/${categorySlug}`} />
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-10 lg:pb-24">
         <header>
           <div className="mb-4 hidden sm:block">

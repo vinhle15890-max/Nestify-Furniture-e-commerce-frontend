@@ -44,7 +44,7 @@ export function Newsletter() {
               />
               <button
                 type="submit"
-                className="cursor-pointer rounded-control bg-primary px-8 py-4 text-sm font-medium tracking-wide text-surface transition-colors duration-200 ease-out hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-alt"
+                className="cursor-pointer rounded-control bg-primary px-8 py-4 text-sm font-medium tracking-wide text-primary-foreground transition-colors duration-200 ease-out hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-alt"
               >
                 Đăng ký
               </button>

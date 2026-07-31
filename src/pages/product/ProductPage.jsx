@@ -25,6 +25,7 @@ import { findCategoryPath } from '../../lib/categoryPath'
 import { useCategories } from '../../features/catalog/hooks'
 import { useUiStore } from '../../store/uiStore'
 import { useToastStore } from '../../store/toastStore'
+import { SeoHead } from '../../components/SeoHead'
 
 // Tags the description editor is allowed to emit — keep the render surface tight.
 const DESCRIPTION_ALLOWED_TAGS = ['p', 'br', 'h2', 'h3', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li', 'a', 'img', 'blockquote']
@@ -47,16 +48,6 @@ function enhanceDescriptionHtml(html) {
   })
   doc.querySelectorAll('a[target="_blank"]').forEach((a) => a.setAttribute('rel', 'noopener noreferrer'))
   return doc.body.innerHTML
-}
-
-// Append a managed <meta> tag we can clean up later.
-function appendMeta(attr, key, content) {
-  const el = document.createElement('meta')
-  el.setAttribute(attr, key)
-  el.setAttribute('content', content ?? '')
-  el.setAttribute('data-nestify-seo', 'true')
-  document.head.appendChild(el)
-  return el
 }
 
 function findProductFact(attributes, aliases) {
@@ -138,58 +129,24 @@ export function ProductPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id, isCustomer, productSlug])
 
-  // SEO: drive <title>, meta description, Open Graph, and schema.org/Product
-  // JSON-LD from the product's editorial meta fields (falls back to name/desc).
-  useEffect(() => {
-    if (!product) return undefined
-
-    const title = product.meta_title?.trim() || `${product.name} | Nestify`
+  const seo = useMemo(() => {
+    if (!product) return null
+    const activeVariants = (product.variants ?? []).filter((variant) => variant.is_active !== false)
+    const prices = activeVariants.map((variant) => Number(variant.price)).filter(Number.isFinite)
+    const inStock = activeVariants.some((variant) => Number(variant.available_stock) > 0)
     const description = product.meta_description?.trim() || stripHtml(product.description).slice(0, 160)
     const image = product.media?.[0]?.url ?? product.thumbnail
-    const url = window.location.href
-    const lowestPrice = product.base_price ?? product.variants?.[0]?.price
-
-    const previousTitle = document.title
-    document.title = title
-
-    const metas = [
-      appendMeta('name', 'description', description),
-      appendMeta('property', 'og:title', title),
-      appendMeta('property', 'og:description', description),
-      appendMeta('property', 'og:type', 'product'),
-      appendMeta('property', 'og:url', url),
-    ]
-    if (image) metas.push(appendMeta('property', 'og:image', image))
-
-    const ld = document.createElement('script')
-    ld.type = 'application/ld+json'
-    ld.setAttribute('data-nestify-seo', 'true')
-    ld.textContent = JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: product.name,
-      description,
-      ...(image ? { image: [image] } : {}),
-      ...(product.variants?.[0]?.sku ? { sku: product.variants[0].sku } : {}),
-      ...(product.category?.name ? { category: product.category.name } : {}),
-      ...(lowestPrice != null
-        ? {
-            offers: {
-              '@type': 'Offer',
-              priceCurrency: 'VND',
-              price: lowestPrice,
-              availability: 'https://schema.org/InStock',
-              url,
-            },
-          }
-        : {}),
-    })
-    document.head.appendChild(ld)
-
-    return () => {
-      document.title = previousTitle
-      metas.forEach((el) => el.remove())
-      ld.remove()
+    const canonicalPath = `/p/${product.slug}`
+    return {
+      title: product.meta_title?.trim() || `${product.name} | Nestify`, description, image, canonicalPath,
+      jsonLd: {
+        '@context': 'https://schema.org', '@type': 'Product', name: product.name, description,
+        ...(image ? { image: [image] } : {}), ...(activeVariants[0]?.sku ? { sku: activeVariants[0].sku } : {}),
+        ...(product.category?.name ? { category: product.category.name } : {}),
+        ...(prices.length ? { offers: { '@type': prices.length > 1 ? 'AggregateOffer' : 'Offer', priceCurrency: 'VND',
+          ...(prices.length > 1 ? { lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: prices.length } : { price: prices[0] }),
+          availability: `https://schema.org/${inStock ? 'InStock' : 'OutOfStock'}`, url: new URL(canonicalPath, import.meta.env.VITE_SITE_URL || window.location.origin).toString() } } : {}),
+      },
     }
   }, [product])
 
@@ -362,6 +319,7 @@ export function ProductPage() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
+      {seo && <SeoHead {...seo} type="product" />}
     <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
       <Breadcrumb items={breadcrumbItems} />
 

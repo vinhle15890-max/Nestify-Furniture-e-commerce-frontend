@@ -118,7 +118,7 @@ export function CartDrawer() {
               <Link
                 to="/cart"
                 onClick={closeCart}
-                className="mt-4 flex w-full items-center justify-center rounded-control bg-primary px-4 py-3.5 text-sm font-medium text-surface transition-colors duration-200 ease-out hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                className="mt-4 flex w-full items-center justify-center rounded-control bg-primary px-4 py-3.5 text-sm font-medium text-primary-foreground transition-colors duration-200 ease-out hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 Xem giỏ hàng
               </Link>

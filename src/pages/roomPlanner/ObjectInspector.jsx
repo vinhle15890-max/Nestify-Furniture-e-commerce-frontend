@@ -1,4 +1,4 @@
-import { Copy, RotateCcw, RotateCw, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, RotateCcw, RotateCw, Trash2 } from 'lucide-react'
 import { formatDimension } from '../../lib/format'
 import { describeModelFidelity } from '../../features/roomPlanner/modelFidelity'
 import { rotatedHalfExtents } from '../../features/roomPlanner/collision'
@@ -6,7 +6,14 @@ import { rotatedHalfExtents } from '../../features/roomPlanner/collision'
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
 const fieldClass = 'w-full rounded-control border border-border bg-surface px-2 py-2 text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 const rotationButtonClass = 'flex min-h-11 items-center justify-center whitespace-nowrap rounded-control border border-border bg-surface px-2 text-sm tabular-nums transition-colors hover:bg-surface-alt active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const nudgeButtonClass = 'flex min-h-9 items-center justify-center rounded-control border border-border bg-surface transition-colors hover:bg-surface-alt active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 const CARDINAL_ANGLES = [0, 90, 180, 270]
+const NUDGE_DIRECTIONS = [
+  { label: 'sang trái', axis: 'x', direction: -1, Icon: ArrowLeft },
+  { label: 'ra trước', axis: 'z', direction: -1, Icon: ArrowUp },
+  { label: 'ra sau', axis: 'z', direction: 1, Icon: ArrowDown },
+  { label: 'sang phải', axis: 'x', direction: 1, Icon: ArrowRight },
+]
 
 export function ObjectInspector({ item, room, onTransform, onDelete, onResetTransform, onDuplicate }) {
   if (!item) return <p className="text-sm leading-6 text-muted-foreground">Chọn một món trong phòng để xem kích thước và chỉnh vị trí.</p>
@@ -38,6 +45,9 @@ export function ObjectInspector({ item, room, onTransform, onDelete, onResetTran
     if (Number.isFinite(degrees)) onTransform(item.localId, { rotation: { x: 0, y: degrees * Math.PI / 180, z: 0 } })
   }
   const rotateBy = (degrees) => commitRotation((item.rotation?.y ?? 0) * 180 / Math.PI + degrees)
+  const nudgeBy = (axis, amount) => onTransform(item.localId, {
+    position: { ...item.position, [axis]: (item.position?.[axis] ?? 0) + amount },
+  })
 
   return (
     <section aria-labelledby="object-inspector-title">
@@ -58,7 +68,24 @@ export function ObjectInspector({ item, room, onTransform, onDelete, onResetTran
           Kích thước món này lớn hơn mặt sàn phòng theo góc xoay hiện tại.
         </p>
       )}
-      <fieldset className="mt-4"><legend className="text-xs font-medium text-muted-foreground">Vị trí trong phòng (m)</legend><div className="mt-2 grid grid-cols-2 gap-2"><label className="text-xs text-muted-foreground">Ngang X<input aria-label="Vị trí ngang X" type="number" step="0.1" value={item.position.x} onChange={(event) => commitPosition('x', event.target.value)} className={fieldClass} /></label><label className="text-xs text-muted-foreground">Sâu Z<input aria-label="Vị trí sâu Z" type="number" step="0.1" value={item.position.z} onChange={(event) => commitPosition('z', event.target.value)} className={fieldClass} /></label></div></fieldset>
+      <fieldset className="mt-4">
+        <legend className="text-xs font-medium text-foreground">Tinh chỉnh vị trí</legend>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">Mỗi lần bấm dịch chuyển theo mặt sàn; giới hạn phòng vẫn được giữ.</p>
+        {[0.1, 0.5].map((step) => (
+          <div key={step} className="mt-2 grid grid-cols-[2.75rem_repeat(4,minmax(0,1fr))] items-center gap-1">
+            <span className="text-xs tabular-nums text-muted-foreground">{step * 100} cm</span>
+            {NUDGE_DIRECTIONS.map(({ label, axis, direction, Icon }) => (
+              <button key={`${step}-${label}`} type="button" aria-label={`Dịch ${label} ${step * 100} cm`} onClick={() => nudgeBy(axis, direction * step)} className={nudgeButtonClass}>
+                <Icon size={15} aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+        ))}
+        <details className="mt-3 text-xs text-muted-foreground">
+          <summary className="cursor-pointer rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Nhập tọa độ chính xác</summary>
+          <div className="mt-2 grid grid-cols-2 gap-2"><label>Ngang X<input aria-label="Vị trí ngang X" type="number" step="0.1" value={item.position.x} onChange={(event) => commitPosition('x', event.target.value)} className={fieldClass} /></label><label>Sâu Z<input aria-label="Vị trí sâu Z" type="number" step="0.1" value={item.position.z} onChange={(event) => commitPosition('z', event.target.value)} className={fieldClass} /></label></div>
+        </details>
+      </fieldset>
       <fieldset className="mt-4">
         <legend className="text-xs font-medium text-foreground">Hướng đặt</legend>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">Chỉ xoay trên mặt sàn</p>

@@ -27,4 +27,15 @@ describe('ObjectInspector', () => {
 
     expect(screen.getByText('Chỉ xoay trên mặt sàn')).toBeInTheDocument()
   })
+
+  it('offers directional position nudges without requiring coordinate input', async () => {
+    const onTransform = vi.fn()
+    render(<ObjectInspector item={item} onTransform={onTransform} onDelete={vi.fn()} onResetTransform={vi.fn()} onDuplicate={vi.fn()} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dịch sang phải 10 cm' }))
+    expect(onTransform).toHaveBeenLastCalledWith(7, { position: { x: 0.1, y: 0, z: 0 } })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dịch ra sau 50 cm' }))
+    expect(onTransform).toHaveBeenLastCalledWith(7, { position: { x: 0, y: 0, z: 0.5 } })
+  })
 })
