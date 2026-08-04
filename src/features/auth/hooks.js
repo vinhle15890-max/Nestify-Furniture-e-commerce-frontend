@@ -1,13 +1,17 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../../store/authStore'
 import * as authApi from './api'
+import { queryClient } from '../../lib/queryClient'
 
 export function useRegister() {
   const login = useAuthStore((state) => state.login)
 
   return useMutation({
     mutationFn: (payload) => authApi.register(payload),
-    onSuccess: ({ data }) => login(data.token, data.user),
+    onSuccess: ({ data }) => {
+      queryClient.clear()
+      login(data.token, data.user)
+    },
   })
 }
 
@@ -16,7 +20,10 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (payload) => authApi.login(payload),
-    onSuccess: ({ data }) => login(data.token, data.user),
+    onSuccess: ({ data }) => {
+      queryClient.clear()
+      login(data.token, data.user)
+    },
   })
 }
 
@@ -25,7 +32,10 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: () => authApi.logout(),
-    onSettled: () => logout(),
+    onSettled: () => {
+      queryClient.clear()
+      logout()
+    },
   })
 }
 

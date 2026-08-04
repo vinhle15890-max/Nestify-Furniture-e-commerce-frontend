@@ -44,7 +44,9 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthLayout
+      variant="recovery"
       title="Quên mật khẩu"
+      subtitle="Nhập email đã đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu cho bạn."
       footer={
         <Link to="/login" className={authLink}>
           Quay lại đăng nhập
@@ -57,9 +59,6 @@ export function ForgotPasswordPage() {
         </p>
       ) : (
         <form ref={formRef} onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Nhập email đã đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu cho bạn.
-          </p>
           {formError && (
             <p role="alert" tabIndex="-1" className="text-sm text-destructive">
               {formError}
@@ -70,10 +69,11 @@ export function ForgotPasswordPage() {
             id="email"
             type="email"
             autoComplete="email"
+            reserveMessageSpace
             error={errors.email?.message}
             {...register('email')}
           />
-          <Button type="submit" disabled={isSubmitting} className="mt-2 py-3.5">
+          <Button type="submit" disabled={isSubmitting} className="mt-3 w-full py-3.5 sm:w-auto">
             {isSubmitting ? 'Đang gửi…' : 'Gửi liên kết đặt lại'}
           </Button>
         </form>

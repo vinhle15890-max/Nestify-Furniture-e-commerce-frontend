@@ -450,14 +450,37 @@ describe('ProductPage', () => {
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
     await userEvent.click(await screen.findByRole('button', { name: 'Đánh giá 5 sao' }))
+    await userEvent.selectOptions(screen.getByLabelText('Màu sắc so với ảnh'), 'accurate')
+    await userEvent.selectOptions(screen.getByLabelText('Kích thước trong không gian'), 'as_expected')
     await userEvent.type(screen.getByLabelText('Nội dung đánh giá'), 'Rất tốt')
     await userEvent.click(screen.getByRole('button', { name: 'Gửi đánh giá' }))
 
     expect(reviewsApi.createReview).toHaveBeenCalledWith(
       1,
-      expect.objectContaining({ order_id: 55, rating: 5, body: 'Rất tốt' }),
+      expect.objectContaining({ order_id: 55, rating: 5, body: 'Rất tốt', color_accuracy: 'accurate', size_fit: 'as_expected' }),
     )
     expect(await screen.findByText(/đang chờ kiểm duyệt/)).toBeInTheDocument()
+  })
+
+  it('shows verified ownership evidence on a published review', async () => {
+    catalogApi.getProductReviews.mockResolvedValue({
+      data: [{
+        id: 19,
+        rating: 5,
+        body: 'Màu và kích thước đúng như mình hình dung.',
+        verified_purchase: true,
+        evidence: { color_accuracy: 'accurate', size_fit: 'as_expected', usage_duration: 'one_to_six_months' },
+        user: { id: 2, name: 'Mai' },
+        created_at: '2026-08-01T00:00:00Z',
+      }],
+      meta: { pagination: { next_cursor: null, has_more: false } },
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Đã mua hàng')).toBeInTheDocument()
+    expect(screen.getByText('Màu sắc giống ảnh')).toBeInTheDocument()
+    expect(screen.getByText('Kích thước đúng kỳ vọng')).toBeInTheDocument()
   })
 
   // A verified purchase unlocks the review form for these tests.

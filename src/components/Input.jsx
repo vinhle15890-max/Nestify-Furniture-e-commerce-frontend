@@ -1,6 +1,6 @@
 import { forwardRef } from 'react'
 
-export const Input = forwardRef(function Input({ label, id, error, className = '', ...props }, ref) {
+export const Input = forwardRef(function Input({ label, id, error, reserveMessageSpace = false, className = '', ...props }, ref) {
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -16,9 +16,15 @@ export const Input = forwardRef(function Input({ label, id, error, className = '
         aria-describedby={error && id ? `${id}-error` : undefined}
         {...props}
       />
-      {error && (
-        <p id={id ? `${id}-error` : undefined} role="alert" className="text-sm text-destructive">
-          {error}
+      {(error || reserveMessageSpace) && (
+        <p
+          id={error && id ? `${id}-error` : undefined}
+          role={error ? 'alert' : undefined}
+          aria-hidden={error ? undefined : 'true'}
+          data-message-slot="true"
+          className={`min-h-5 text-sm ${error ? 'text-destructive' : 'text-muted-foreground'}`}
+        >
+          {error || ''}
         </p>
       )}
     </div>

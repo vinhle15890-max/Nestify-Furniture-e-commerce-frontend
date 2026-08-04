@@ -341,9 +341,11 @@ describe('CheckoutPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
 
     expect(await screen.findByText(/Đơn hàng NES-260713-0099 đã được tạo/)).toBeInTheDocument()
+    expect(screen.getByText('Đang chuyển đến PayOS')).toBeInTheDocument()
+    expect(screen.getByText(/Bạn sẽ rời Nestify tạm thời/)).toBeInTheDocument()
     expect(screen.getByText(/chưa được gọi là thành công/)).toBeInTheDocument()
     expect(screen.queryByText(/thanh toán thành công/i)).not.toBeInTheDocument()
-    expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99')
+    await waitFor(() => expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99'))
   })
 
   it('shows a COD created-order state without implying online payment', async () => {
@@ -378,7 +380,7 @@ describe('CheckoutPage', () => {
 
     expect(checkoutApi.createOrder).toHaveBeenCalledTimes(1)
     expect(checkoutApi.createPaymentSession).toHaveBeenCalledTimes(2)
-    expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99')
+    await waitFor(() => expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99'))
   })
 
   it('rehydrates an existing created Order after refresh even though Cart is empty', async () => {

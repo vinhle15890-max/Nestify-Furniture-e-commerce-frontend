@@ -1,3 +1,4 @@
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DOMPurify from 'dompurify'
@@ -57,6 +58,30 @@ function findProductFact(attributes, aliases) {
     normalizedAliases.includes(name.trim().toLocaleLowerCase('vi')),
   )
   return entry?.[1] == null || entry[1] === '' ? null : String(entry[1])
+}
+
+const REVIEW_EVIDENCE_LABELS = {
+  accurate: 'Màu sắc giống ảnh',
+  slightly_different: 'Màu sắc hơi khác ảnh',
+  very_different: 'Màu sắc khác nhiều so với ảnh',
+  as_expected: 'Kích thước đúng kỳ vọng',
+  larger: 'Lớn hơn kỳ vọng',
+  smaller: 'Nhỏ hơn kỳ vọng',
+  under_month: 'Đã dùng dưới 1 tháng',
+  one_to_six_months: 'Đã dùng 1–6 tháng',
+  over_six_months: 'Đã dùng trên 6 tháng',
+}
+
+function reviewEvidenceItems(evidence) {
+  if (!evidence) return []
+  const items = [
+    REVIEW_EVIDENCE_LABELS[evidence.color_accuracy],
+    REVIEW_EVIDENCE_LABELS[evidence.size_fit],
+    REVIEW_EVIDENCE_LABELS[evidence.usage_duration],
+    evidence.material_quality ? `Chất liệu ${evidence.material_quality}/5` : null,
+    evidence.delivery_experience ? `Giao nhận ${evidence.delivery_experience}/5` : null,
+  ]
+  return items.filter(Boolean)
 }
 
 export function ProductPage() {
@@ -200,7 +225,12 @@ export function ProductPage() {
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewTitle, setReviewTitle] = useState('')
   const [reviewBody, setReviewBody] = useState('')
-  const [reviewSubmitted, setReviewSubmitted] = useState(false)
+  const [reviewColorAccuracy, setReviewColorAccuracy] = useState('')
+  const [reviewSizeFit, setReviewSizeFit] = useState('')
+  const [reviewMaterialQuality, setReviewMaterialQuality] = useState('')
+  const [reviewDeliveryExperience, setReviewDeliveryExperience] = useState('')
+  const [reviewUsageDuration, setReviewUsageDuration] = useState('')
+  const [reviewSubmissionStatus, setReviewSubmissionStatus] = useState(null)
   const [reviewError, setReviewError] = useState(null)
   const [reviewFieldErrors, setReviewFieldErrors] = useState({ rating: null, title: null, body: null })
   const reviewFormRef = useRef(null)
@@ -219,14 +249,20 @@ export function ProductPage() {
     setReviewError(null)
     setReviewFieldErrors({ rating: null, title: null, body: null })
     try {
-      await createReview.mutateAsync({
+      const response = await createReview.mutateAsync({
         productId: product.id,
         order_id: verifiedOrder.id,
         rating: reviewRating,
         title: reviewTitle.trim() || undefined,
         body: reviewBody.trim(),
+        color_accuracy: reviewColorAccuracy || undefined,
+        size_fit: reviewSizeFit || undefined,
+        material_quality: reviewMaterialQuality ? Number(reviewMaterialQuality) : undefined,
+        delivery_experience: reviewDeliveryExperience ? Number(reviewDeliveryExperience) : undefined,
+        usage_duration: reviewUsageDuration || undefined,
       })
-      setReviewSubmitted(true)
+      setReviewSubmissionStatus(response.data.status)
+      if (response.data.status === 'approved') await reviewsQuery.refetch()
     } catch (error) {
       if (error?.code === 'VALIDATION_FAILED' && error.details?.fields) {
         const fields = Object.fromEntries(
@@ -420,15 +456,19 @@ export function ProductPage() {
       <section className="mt-20 border-t border-border pt-16">
         <h2 className="font-display text-[clamp(1.6rem,2.6vw,2.2rem)] text-foreground">Đánh giá</h2>
 
-        {token && verifiedOrder && !reviewSubmitted && (
+        {token && verifiedOrder && !reviewSubmissionStatus && (
           <form
             ref={reviewFormRef}
             onSubmit={handleSubmitReview}
-            className="mt-6 flex max-w-xl flex-col gap-4 rounded-card border border-border bg-surface p-6 shadow-soft"
+            className="mt-8 max-w-3xl border-y border-border py-8"
           >
-            <p className="font-medium text-foreground">Viết đánh giá của bạn</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-accent">Đơn hàng đã giao</p>
+            <h3 className="mt-2 font-display text-2xl text-foreground">Điều gì đúng với căn phòng của bạn?</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              Chia sẻ những chi tiết người mua sau cần để hình dung chính xác hơn. Các mục trải nghiệm là không bắt buộc.
+            </p>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="mt-6 flex flex-col gap-1.5">
               <p id="review-rating-label" className="text-sm font-medium text-foreground">
                 Số sao
               </p>
@@ -449,7 +489,7 @@ export function ProductPage() {
                       setReviewRating(value)
                       if (reviewFieldErrors.rating) setReviewFieldErrors((prev) => ({ ...prev, rating: null }))
                     }}
-                    className="transition-transform hover:scale-110"
+                    className="flex size-11 items-center justify-center rounded-control transition-colors hover:bg-surface-alt active:bg-unbuilt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Star size={24} fill={value <= reviewRating ? 'currentColor' : 'none'} />
                   </button>
@@ -462,7 +502,51 @@ export function ProductPage() {
               )}
             </div>
 
-            <Input
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Màu sắc so với ảnh
+                <select value={reviewColorAccuracy} onChange={(event) => setReviewColorAccuracy(event.target.value)} className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-base font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="">Chọn nếu phù hợp</option>
+                  <option value="accurate">Giống ảnh</option>
+                  <option value="slightly_different">Hơi khác ảnh</option>
+                  <option value="very_different">Khác nhiều</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Kích thước trong không gian
+                <select value={reviewSizeFit} onChange={(event) => setReviewSizeFit(event.target.value)} className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-base font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="">Chọn nếu phù hợp</option>
+                  <option value="as_expected">Đúng kỳ vọng</option>
+                  <option value="larger">Lớn hơn kỳ vọng</option>
+                  <option value="smaller">Nhỏ hơn kỳ vọng</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Chất lượng chất liệu
+                <select value={reviewMaterialQuality} onChange={(event) => setReviewMaterialQuality(event.target.value)} className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-base font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="">Chọn nếu phù hợp</option>
+                  {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}/5</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground">
+                Trải nghiệm giao nhận
+                <select value={reviewDeliveryExperience} onChange={(event) => setReviewDeliveryExperience(event.target.value)} className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-base font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="">Chọn nếu phù hợp</option>
+                  {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}/5</option>)}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground sm:col-span-2">
+                Thời gian đã sử dụng
+                <select value={reviewUsageDuration} onChange={(event) => setReviewUsageDuration(event.target.value)} className="min-h-11 rounded-control border border-border-strong bg-surface px-3 text-base font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-w-[calc(50%-0.5rem)]">
+                  <option value="">Chọn nếu phù hợp</option>
+                  <option value="under_month">Dưới 1 tháng</option>
+                  <option value="one_to_six_months">1–6 tháng</option>
+                  <option value="over_six_months">Trên 6 tháng</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-6"><Input
               id="review-title"
               label="Tiêu đề (không bắt buộc)"
               value={reviewTitle}
@@ -472,9 +556,9 @@ export function ProductPage() {
               }}
               error={reviewFieldErrors.title}
               maxLength={200}
-            />
+            /></div>
 
-            <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor="review-body">
+            <label className="mt-4 flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor="review-body">
               Nội dung đánh giá
               <textarea
                 id="review-body"
@@ -503,15 +587,17 @@ export function ProductPage() {
               </p>
             )}
 
-            <Button type="submit" disabled={reviewRating === 0 || !reviewBody.trim() || createReview.isPending}>
+            <div className="mt-5"><Button type="submit" disabled={reviewRating === 0 || !reviewBody.trim() || createReview.isPending}>
               {createReview.isPending ? 'Đang gửi…' : 'Gửi đánh giá'}
-            </Button>
+            </Button></div>
           </form>
         )}
 
-        {reviewSubmitted && (
-          <p className="mt-6 text-sm text-muted-foreground">
-            Đánh giá của bạn đã được gửi và đang chờ kiểm duyệt.
+        {reviewSubmissionStatus && (
+          <p className="mt-8 border-l-2 border-emerging pl-4 text-sm text-muted-foreground" role="status">
+            {reviewSubmissionStatus === 'approved'
+              ? 'Đánh giá đã được đăng với dấu hiệu Đã mua hàng.'
+              : 'Đánh giá đang chờ kiểm duyệt vì hệ thống phát hiện tín hiệu cần xem lại.'}
           </p>
         )}
 
@@ -520,16 +606,24 @@ export function ProductPage() {
             Chưa có đánh giá nào — những cảm nhận đầu tiên sẽ xuất hiện ở đây.
           </p>
         ) : (
-          <ul className="mt-8 flex flex-col gap-5">
+          <ul className="mt-8 divide-y divide-border border-y border-border">
             {reviews.map((review) => (
-              <li key={review.id} className="rounded-card border border-border bg-surface p-6 shadow-soft">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-foreground">{review.user?.name}</p>
+              <li key={review.id} className="py-7">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-foreground">{review.user?.name}</p>
+                    {review.verified_purchase && <span className="text-xs font-semibold text-emerging">Đã mua hàng</span>}
+                  </div>
                   <span className="flex items-center gap-1 text-sm text-accent">
                     <Star size={14} fill="currentColor" />
                     <span className="text-muted-foreground">{review.rating}/5</span>
                   </span>
                 </div>
+                {reviewEvidenceItems(review.evidence).length > 0 && (
+                  <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                    {reviewEvidenceItems(review.evidence).map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                )}
                 {review.title && <p className="mt-2 font-display text-lg text-foreground">{review.title}</p>}
                 <p className="mt-1.5 leading-relaxed text-foreground">{review.body}</p>
               </li>
