@@ -22,7 +22,8 @@ security boundary. Tương tự, FE ẩn purchase với staff nhưng backend m�
   nói theo dữ liệu cấp sản phẩm/current order state; trang liên hệ mở `mailto:support@nestify.vn`, không giả
   lập form gửi khi chưa có endpoint tiếp nhận.
 - `apiClient` đọc token mới nhất từ Zustand trước từng request, unwrap response body và chuẩn hóa lỗi. 401
-  ngoài `/auth/*` xóa auth persisted; lỗi 401 của login/register không tự logout để form giữ ngữ cảnh.
+  ngoài `/auth/*` xóa auth persisted và React Query cache; login/register/logout cũng clear cache tại session boundary.
+  Lỗi 401 của login/register không tự logout để form giữ ngữ cảnh.
 - Auth persist token+user trong `localStorage` key `nestify-auth`. Chat, preview-role, toast và editor chỉ ở
   memory. Bearer token trong storage và route guard đều không thay được validation/authorization server.
 - `AdminRoute` chỉ yêu cầu có ít nhất một role khác `customer`. Từng nhánh yêu cầu: categories
@@ -267,11 +268,12 @@ combination cũ. SKU rỗng được omit cho server tự sinh; FE không tự �
 
 ### Review moderation
 
-Admin review query dùng cursor; approve/reject mutation cập nhật/invalidate cache nhưng server mới kiểm
-permission và trạng thái transition. Storefront chỉ cho form chọn một order `delivered` có variant thuộc product,
-trim nội dung và gửi `order_id`; đây là convenience filter. Backend phải kiểm order thuộc user, đã delivered,
-product thật sự nằm trong order và chưa review trùng. Review chưa approved không được coi là public chỉ vì FE
-đã append local state. Comment rỗng bị chặn client và vẫn được server validate.
+Admin review query dùng cursor và chỉ là exception queue cho review có risk flag; approve/reject mutation cập
+nhật/invalidate cache nhưng server mới kiểm permission và trạng thái transition. Storefront chỉ cho form chọn một
+order `delivered` có variant thuộc product, trim nội dung, gửi `order_id` và evidence tuỳ chọn (màu, kích thước,
+chất liệu, giao nhận, thời gian dùng); đây là convenience filter. Backend vẫn kiểm ownership/delivered/product/
+duplicate. Review sạch được auto-publish và refetch public list; review có link/contact mới chờ admin. Điểm thấp
+không phải risk signal. Comment rỗng bị chặn client và vẫn được server validate.
 
 ### AI description và RAG boundary
 
@@ -296,7 +298,8 @@ nên crawler không chạy JS có thể không thấy chúng. JSON-LD availabili
 không đối chiếu stock — limitation cần tránh coi là inventory assertion.
 
 Quantity client clamp 1..stock quan sát; `INSUFFICIENT_STOCK` cập nhật conflict, server vẫn authoritative.
-Wishlist theo **variant**, không product. Chỉ customer đăng nhập mới record view/query wishlist; suggested
+Wishlist theo **variant**, không product. Variant inactive vẫn được trình bày như lựa chọn lịch sử nhưng không cho chuyển
+giỏ; variant inactive mới bị BE từ chối khi add. Chỉ customer đăng nhập mới record view/query wishlist; suggested
 category là slug xuất hiện nhiều nhất trong recently-viewed, hòa lấy slug gặp trước, không phải ML.
 
 Review eligibility client tìm order `delivered` chứa variant product rồi gửi `order_id`; server phải xác minh
@@ -315,7 +318,8 @@ declaration để retry; chống duplicate thật nằm ở backend.
 Trước submit, client khóa declaration gồm cart basis (item/variant/qty/price/subtotal/total), địa chỉ, payment
 và voucher. Địa chỉ chỉ thành snapshot sau server create; stock chưa reserve. Recovery record giữ order ID để
 reload fetch chính order cũ thay vì POST lại. COD dừng ở order created. PayOS tạo order pending trước, rồi mở
-session; session lỗi/rate-limit giữ order và retry chỉ gọi payment-session, không tạo order thứ hai.
+session; FE chỉ gửi `gateway`, còn backend tự tạo PayOS return/cancel URL từ cấu hình + order ID. Session lỗi/rate-limit
+giữ order và retry chỉ gọi payment-session, không tạo order thứ hai.
 
 Return chỉ nhận `order_id` nguyên dương; sai/thiếu thì không reconcile. ID hợp lệ POST backend reconcile, không
 tin query status. Pending poll sau khi response trước settle, mỗi 3 giây, tối đa 10 request tính cả request đầu;

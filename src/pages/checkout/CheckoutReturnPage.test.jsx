@@ -72,10 +72,12 @@ describe('CheckoutReturnPage', () => {
   })
 
   it('shows a success message and stops polling once payment is confirmed', async () => {
-    checkoutApi.reconcilePayment.mockResolvedValue({ data: { id: 99, status: 'paid' }, meta: { payment_status: 'success' } })
+    checkoutApi.reconcilePayment.mockResolvedValue({ data: { id: 99, order_number: 'NES-99', status: 'paid' }, meta: { payment_status: 'success' } })
     renderPage('/checkout/return?order_id=99')
 
     expect(await screen.findByText(/Thanh toán thành công/)).toBeInTheDocument()
+    expect(screen.getByText('Đơn hàng NES-99')).toBeInTheDocument()
+    expect(screen.getByText(/không tạo thêm đơn/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Xem chi tiết đơn hàng' })).toHaveAttribute('href', '/orders/99')
     expect(checkoutApi.reconcilePayment).toHaveBeenCalledTimes(1)
   })

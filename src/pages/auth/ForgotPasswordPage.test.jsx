@@ -25,6 +25,14 @@ describe('ForgotPasswordPage', () => {
     vi.clearAllMocks()
   })
 
+  it('uses the compact recovery calibration with its explanation in the page header', () => {
+    renderPage()
+
+    expect(screen.getByTestId('auth-layout')).toHaveAttribute('data-auth-variant', 'recovery')
+    expect(screen.getByText(/Nhập email đã đăng ký/)).toBeInTheDocument()
+    expect(screen.getByText(/không làm thay đổi những gì bạn đã lưu/)).toBeInTheDocument()
+  })
+
   it('shows a validation error when submitting without an email', async () => {
     renderPage()
 

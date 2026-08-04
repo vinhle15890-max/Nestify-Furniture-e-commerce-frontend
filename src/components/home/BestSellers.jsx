@@ -13,8 +13,8 @@ export function BestSellers() {
   const products = query.data?.data ?? []
 
   return (
-    <section data-home-section="products" className="border-y border-emerging/35 bg-unbuilt/10">
-      <div className="mx-auto max-w-7xl px-6 py-20 md:py-24 lg:px-10">
+    <section data-home-section="products" className="relative overflow-hidden bg-surface-alt/55">
+      <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-24 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
             eyebrow="Thiết kế nổi bật"

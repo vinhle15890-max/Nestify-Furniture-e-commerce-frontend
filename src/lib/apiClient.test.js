@@ -3,6 +3,7 @@ import MockAdapter from 'axios-mock-adapter'
 import { apiClient } from './apiClient'
 import { useAuthStore } from '../store/authStore'
 import { ApiError } from './errors'
+import { queryClient } from './queryClient'
 
 describe('apiClient', () => {
   let mock
@@ -10,6 +11,7 @@ describe('apiClient', () => {
   beforeEach(() => {
     mock = new MockAdapter(apiClient)
     useAuthStore.setState({ token: null, user: null })
+    queryClient.clear()
   })
 
   afterEach(() => {
@@ -51,6 +53,7 @@ describe('apiClient', () => {
 
   it('clears auth on 401 for non-/auth/* routes', async () => {
     useAuthStore.setState({ token: 'abc123', user: { id: 1 } })
+    queryClient.setQueryData(['cart'], { data: { items: [{ id: 99 }] } })
     mock.onGet('/orders').reply(401, {
       error: { code: 'UNAUTHENTICATED', message: 'Unauthorized' },
     })
@@ -58,6 +61,7 @@ describe('apiClient', () => {
     await expect(apiClient.get('/orders')).rejects.toBeInstanceOf(ApiError)
     expect(useAuthStore.getState().token).toBeNull()
     expect(useAuthStore.getState().user).toBeNull()
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
   })
 
   it('does not clear auth on 401 from /auth/* routes', async () => {

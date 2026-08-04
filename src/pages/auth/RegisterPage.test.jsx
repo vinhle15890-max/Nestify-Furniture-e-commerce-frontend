@@ -37,6 +37,14 @@ describe('RegisterPage', () => {
     vi.clearAllMocks()
   })
 
+  it('uses the registration calibration and groups identity from account protection', () => {
+    renderRegisterPage()
+
+    expect(screen.getByTestId('auth-layout')).toHaveAttribute('data-auth-variant', 'register')
+    expect(screen.getByRole('group', { name: 'Thông tin của bạn' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Bảo vệ tài khoản' })).toBeInTheDocument()
+  })
+
   it('shows validation errors when submitting an empty form', async () => {
     renderRegisterPage()
 

@@ -612,13 +612,13 @@ export function CartPage() {
 
             <section className="grid md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]">
               <div aria-hidden="true" className="hidden md:block" />
-              <div className="border-l-2 border-foreground/25 pb-8 pl-5 md:pl-7 md:text-right lg:pb-10">
+              <div className="border-l-2 border-foreground/25 pb-8 pl-5 md:pl-7 lg:pb-10">
                 {checkoutBlocked ? (
                   <div>
                     <button
                       type="button"
                       disabled
-                      className="flex w-full cursor-not-allowed items-center justify-between whitespace-nowrap border-y-2 border-foreground/30 py-3 text-left text-sm font-medium text-muted-foreground md:text-right"
+                      className="flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-control border border-foreground/25 px-6 py-3 text-sm font-medium tracking-wide text-muted-foreground opacity-60"
                     >
                       <span>Tiến hành thanh toán</span>
                       <ArrowRight size={17} />
@@ -632,7 +632,7 @@ export function CartPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex w-full cursor-not-allowed items-center justify-between whitespace-nowrap border-y-2 border-foreground/30 py-3 text-left text-sm font-medium text-muted-foreground md:text-right"
+                      className="flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-control border border-foreground/25 px-6 py-3 text-sm font-medium tracking-wide text-muted-foreground opacity-60"
                     >
                       <span>Đang cập nhật giỏ hàng…</span>
                       <ArrowRight size={17} />
@@ -641,10 +641,10 @@ export function CartPage() {
                 ) : (
                   <Link
                     to="/checkout"
-                    className="flex w-full items-center justify-between whitespace-nowrap border-y-2 border-foreground py-3 text-sm font-medium text-foreground transition-[padding] hover:px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                    className="group flex min-h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-control border border-foreground/35 px-6 py-3 text-sm font-medium tracking-wide text-foreground transition-[background-color,border-color,color,opacity,transform] duration-200 ease-out hover:border-foreground hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                   >
                     <span>Tiến hành thanh toán</span>
-                    <ArrowRight size={17} />
+                    <ArrowRight size={17} className="transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
                   </Link>
                 )}
               </div>

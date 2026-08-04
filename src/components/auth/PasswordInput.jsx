@@ -1,9 +1,10 @@
 import { forwardRef, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
-export const PasswordInput = forwardRef(function PasswordInput({ label, id, error, guidance, ...props }, ref) {
+export const PasswordInput = forwardRef(function PasswordInput({ label, id, error, guidance, reserveMessageSpace = false, ...props }, ref) {
   const [visible, setVisible] = useState(false)
-  const describedBy = [guidance ? `${id}-guidance` : null, error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined
+  const message = error || guidance
+  const messageId = error ? `${id}-error` : guidance ? `${id}-guidance` : undefined
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -14,7 +15,7 @@ export const PasswordInput = forwardRef(function PasswordInput({ label, id, erro
           id={id}
           type={visible ? 'text' : 'password'}
           aria-invalid={error ? 'true' : undefined}
-          aria-describedby={describedBy}
+          aria-describedby={messageId}
           className={`w-full rounded-control border bg-surface px-3 py-2 pr-12 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${error ? 'border-destructive' : 'border-border'}`}
           {...props}
         />
@@ -28,8 +29,17 @@ export const PasswordInput = forwardRef(function PasswordInput({ label, id, erro
           {visible ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
         </button>
       </div>
-      {guidance && <p id={`${id}-guidance`} className="text-sm text-muted-foreground">{guidance}</p>}
-      {error && <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{error}</p>}
+      {(message || reserveMessageSpace) && (
+        <p
+          id={messageId}
+          role={error ? 'alert' : undefined}
+          aria-hidden={message ? undefined : 'true'}
+          data-message-slot="true"
+          className={`min-h-5 text-sm ${error ? 'text-destructive' : 'text-muted-foreground'}`}
+        >
+          {message || ''}
+        </p>
+      )}
     </div>
   )
 })

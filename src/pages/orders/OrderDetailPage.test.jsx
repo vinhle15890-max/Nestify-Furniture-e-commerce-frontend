@@ -84,6 +84,8 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Hủy đơn' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Thanh toán lại' })).not.toBeInTheDocument()
     expect(screen.getByText(/Hãy để lại đánh giá/)).toBeInTheDocument()
+    expect(screen.getByText('Quyết định của bạn đang dần thành hình.')).toBeInTheDocument()
+    expect(screen.queryByText(/Những món này đang trên đường/)).not.toBeInTheDocument()
   })
 
   it('shows the cancel action for a paid order with a refund note, and cancels with a reason', async () => {

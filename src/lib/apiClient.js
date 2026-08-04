@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 import { normalizeError } from './errors'
+import { queryClient } from './queryClient'
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -20,6 +21,7 @@ apiClient.interceptors.response.use(
     const isAuthRoute = error.config?.url?.startsWith('/auth/')
     if (error.response?.status === 401 && !isAuthRoute) {
       useAuthStore.getState().logout()
+      queryClient.clear()
     }
     return Promise.reject(normalizeError(error))
   },

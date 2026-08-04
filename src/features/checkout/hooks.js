@@ -13,8 +13,7 @@ export function useCreateOrder() {
 
 export function useCreatePaymentSession() {
   return useMutation({
-    mutationFn: ({ orderId, gateway, returnUrl }) =>
-      checkoutApi.createPaymentSession(orderId, { gateway, return_url: returnUrl }),
+    mutationFn: ({ orderId, gateway }) => checkoutApi.createPaymentSession(orderId, { gateway }),
   })
 }
 

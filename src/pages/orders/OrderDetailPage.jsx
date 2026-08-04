@@ -12,7 +12,6 @@ import { BecomingModal } from '../../components/BecomingModal'
 import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
-import { BecomingRoomArt } from '../../components/BecomingRoomArt'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 
@@ -93,8 +92,7 @@ export function OrderDetailPage() {
 
   async function handleRetryPayment() {
     try {
-      const returnUrl = `${window.location.origin}/checkout/return?order_id=${order.id}`
-      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway, returnUrl })
+      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway })
       redirectToExternal(session.data.payment_url)
     } catch (error) {
       if (error.code === 'ORDER_ALREADY_PAID') {
@@ -122,16 +120,14 @@ export function OrderDetailPage() {
         )}
       </p>
 
-      {/* Ownership amplification (Ch5) — a confirmed order is the room becoming
-          real. Shown only once the order is genuinely placed, not while pending
-          payment or after cancellation. */}
+      {/* Ownership echo (Ch5) — deliberately typographic. The order status above
+          carries the operational truth; this line adds narrative continuity
+          without simulating a room the customer may never have created. */}
       {!isPendingPayment && order.status !== 'cancelled' && (
-        <div className="mt-6 flex items-center gap-4 rounded-card border border-border bg-unbuilt/15 p-4">
-          <div className="pointer-events-none w-24 shrink-0">
-            <BecomingRoomArt level={3} />
-          </div>
-          <p className="text-sm text-foreground">
-            Những món này đang trên đường thuộc về không gian bạn đã hình dung.
+        <div className="mt-5 flex items-center gap-3" data-order-ownership-echo>
+          <span aria-hidden="true" className="h-2 w-10 shrink-0 rounded-full bg-primary" />
+          <p className="text-sm font-medium leading-relaxed text-emerging">
+            Quyết định của bạn đang dần thành hình.
           </p>
         </div>
       )}

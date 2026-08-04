@@ -58,6 +58,7 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
+      variant="register"
       title="Đăng ký"
       subtitle="Lưu phòng, giữ lại lựa chọn và tiếp tục khi bạn sẵn sàng."
       footer={
@@ -69,37 +70,48 @@ export function RegisterPage() {
         </p>
       }
     >
-      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col">
         {formError && (
-          <p role="alert" tabIndex="-1" className="text-sm text-destructive">
+          <p role="alert" tabIndex="-1" className="mb-5 text-sm text-destructive">
             {formError}
           </p>
         )}
-        <Input label="Họ tên" id="name" autoComplete="name" error={errors.name?.message} {...register('name')} />
-        <Input
-          label="Email"
-          id="email"
-          type="email"
-          autoComplete="email"
-          error={errors.email?.message}
-          {...register('email')}
-        />
-        <PasswordInput
-          label="Mật khẩu"
-          id="password"
-          guidance="Dùng ít nhất 10 ký tự. Một cụm từ dài sẽ dễ nhớ và khó đoán hơn."
-          autoComplete="new-password"
-          error={errors.password?.message}
-          {...register('password')}
-        />
-        <PasswordInput
-          label="Xác nhận mật khẩu"
-          id="password_confirmation"
-          autoComplete="new-password"
-          error={errors.password_confirmation?.message}
-          {...register('password_confirmation')}
-        />
-        <Button type="submit" disabled={isSubmitting} className="mt-2 py-3.5">
+        <fieldset className="grid min-w-0 gap-4 sm:grid-cols-2">
+          <legend className="col-span-full mb-4 text-sm font-medium text-foreground">Thông tin của bạn</legend>
+          <Input label="Họ tên" id="name" autoComplete="name" reserveMessageSpace error={errors.name?.message} {...register('name')} />
+          <Input
+            label="Email"
+            id="email"
+            type="email"
+            autoComplete="email"
+            reserveMessageSpace
+            error={errors.email?.message}
+            {...register('email')}
+          />
+        </fieldset>
+
+        <fieldset className="mt-7 grid min-w-0 gap-4 border-t border-unbuilt pt-6 sm:grid-cols-2">
+          <legend className="col-span-full px-0 text-sm font-medium text-foreground">Bảo vệ tài khoản</legend>
+          <PasswordInput
+            label="Mật khẩu"
+            id="password"
+            guidance="Dùng ít nhất 10 ký tự. Một cụm từ dài sẽ dễ nhớ và khó đoán hơn."
+            autoComplete="new-password"
+            reserveMessageSpace
+            error={errors.password?.message}
+            {...register('password')}
+          />
+          <PasswordInput
+            label="Xác nhận mật khẩu"
+            id="password_confirmation"
+            autoComplete="new-password"
+            reserveMessageSpace
+            error={errors.password_confirmation?.message}
+            {...register('password_confirmation')}
+          />
+        </fieldset>
+
+        <Button type="submit" disabled={isSubmitting} className="mt-7 w-full py-3.5 sm:w-auto sm:self-start sm:px-10">
           {isSubmitting ? 'Đang đăng ký…' : 'Đăng ký'}
         </Button>
       </form>

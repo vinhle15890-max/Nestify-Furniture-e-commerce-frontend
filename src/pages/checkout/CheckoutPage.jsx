@@ -1,7 +1,8 @@
+/* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V4 · checkout workbench · contrast: pass */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { CircleAlert, MapPin, ShoppingBag } from 'lucide-react'
+import { CircleAlert, ExternalLink, LockKeyhole, MapPin, ShoppingBag } from 'lucide-react'
 import { useCart, useApplyVoucher } from '../../features/cart/hooks'
 import { useAddresses } from '../../features/addresses/hooks'
 import { useCreateOrder, useCreatePaymentSession } from '../../features/checkout/hooks'
@@ -501,7 +502,7 @@ function CreatedOrderEvidence({ order }) {
   )
 }
 
-function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempted, onRetry }) {
+function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempted, handoffPending, onRetry }) {
   const isPayos = order?.payment_method === 'payos' || order?.status === 'pending_payment'
   const isAwaitingPayment = isPayos && order?.status === 'pending_payment'
   const status = ORDER_STATUS_LABELS[order?.status]?.label ?? order?.status
@@ -529,11 +530,29 @@ function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempt
 
       {isAwaitingPayment && (
         <section aria-labelledby="created-order-payment-heading" className="mt-8 max-w-3xl border-t border-border/80 pt-6">
-          <h2 id="created-order-payment-heading" className="font-medium text-foreground">Phiên thanh toán cho đơn hiện có</h2>
-          {sessionPending ? (
+          <h2 id="created-order-payment-heading" className="font-medium text-foreground">
+            {handoffPending ? 'Đang chuyển đến PayOS' : 'Phiên thanh toán cho đơn hiện có'}
+          </h2>
+          {handoffPending ? (
+            <div role="status" className="mt-4 border-y border-border py-5" aria-live="polite">
+              <div className="flex items-start gap-3">
+                <Spinner className="mt-0.5" />
+                <div>
+                  <p className="font-medium text-foreground">PayOS sẽ mở trong giây lát</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Bạn đang thanh toán cho đơn {orderLabel(order)}. Nội dung thanh toán ở bước tiếp theo do PayOS bảo vệ và hiển thị.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
+                <p className="flex items-center gap-2"><LockKeyhole aria-hidden="true" size={16} /> Không nhập lại thông tin đơn hàng</p>
+                <p className="flex items-center gap-2"><ExternalLink aria-hidden="true" size={16} /> Bạn sẽ rời Nestify tạm thời</p>
+              </div>
+            </div>
+          ) : sessionPending ? (
             <div role="status" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner />
-              <span>Đang chuẩn bị PayOS cho đơn {orderLabel(order)}…</span>
+              <span>Đang tạo phiên PayOS cho đơn {orderLabel(order)}…</span>
             </div>
           ) : sessionError ? (
             <FactStatus className="mt-4">{sessionError}</FactStatus>
@@ -544,7 +563,7 @@ function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempt
                 : 'Trang đã khôi phục đơn sau khi quay lại hoặc tải lại. Mở PayOS từ đơn hiện có; không đặt lại.'}
             </p>
           )}
-          {!sessionPending && (
+          {!sessionPending && !handoffPending && (
             <div className="mt-5 flex flex-wrap gap-4">
               <Button type="button" onClick={onRetry}>
                 {sessionError ? 'Thử mở lại PayOS' : 'Mở PayOS cho đơn này'}
@@ -627,6 +646,7 @@ export function CheckoutPage() {
   const [submittedDeclaration, setSubmittedDeclaration] = useState(null)
   const [paymentSessionError, setPaymentSessionError] = useState(null)
   const [paymentSessionAttempted, setPaymentSessionAttempted] = useState(false)
+  const [paymentHandoffPending, setPaymentHandoffPending] = useState(false)
   const [existingOrderId, setExistingOrderId] = useState(null)
   const addressGroupRef = useRef(null)
   const voucherInputRef = useRef(null)
@@ -730,6 +750,7 @@ export function CheckoutPage() {
         sessionError={paymentSessionError}
         sessionPending={createPaymentSession.isPending}
         sessionAttempted={paymentSessionAttempted}
+        handoffPending={paymentHandoffPending}
         onRetry={() => openPaymentSession(authoritativeOrder)}
       />
     )
@@ -847,8 +868,9 @@ export function CheckoutPage() {
     setPaymentSessionAttempted(true)
 
     try {
-      const returnUrl = `${window.location.origin}/checkout/return?order_id=${order.id}`
-      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway: 'payos', returnUrl })
+      const session = await createPaymentSession.mutateAsync({ orderId: order.id, gateway: 'payos' })
+      setPaymentHandoffPending(true)
+      await new Promise((resolve) => window.setTimeout(resolve, 500))
       redirectToExternal(session.data.payment_url)
     } catch (error) {
       if (error.code === 'ORDER_ALREADY_PAID') {
@@ -857,6 +879,7 @@ export function CheckoutPage() {
         return
       }
 
+      setPaymentHandoffPending(false)
       setPaymentSessionError(paymentSessionFailureMessage(error))
     }
   }

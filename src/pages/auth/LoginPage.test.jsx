@@ -39,6 +39,7 @@ describe('LoginPage', () => {
   it('shows the Nestify brand logo linking home', async () => {
     renderLoginPage()
 
+    expect(screen.getByTestId('auth-layout')).toHaveAttribute('data-auth-variant', 'login')
     const logo = screen.getByRole('img', { name: 'Nestify' })
     expect(logo).toBeInTheDocument()
     expect(logo.closest('a')).toHaveAttribute('href', '/')

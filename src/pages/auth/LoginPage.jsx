@@ -54,6 +54,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout
+      variant="login"
       title="Đăng nhập"
       subtitle="Mở lại những căn phòng và lựa chọn bạn đang giữ."
       footer={
@@ -81,6 +82,7 @@ export function LoginPage() {
           id="email"
           type="email"
           autoComplete="email"
+          reserveMessageSpace
           error={errors.email?.message}
           {...register('email')}
         />
@@ -88,10 +90,11 @@ export function LoginPage() {
           label="Mật khẩu"
           id="password"
           autoComplete="current-password"
+          reserveMessageSpace
           error={errors.password?.message}
           {...register('password')}
         />
-        <Button type="submit" disabled={isSubmitting} className="mt-2 py-3.5">
+        <Button type="submit" disabled={isSubmitting} className="mt-3 w-full py-3.5 sm:w-auto sm:min-w-44">
           {isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
         </Button>
       </form>

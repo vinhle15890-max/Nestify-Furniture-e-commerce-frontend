@@ -6,8 +6,8 @@ export function createOrder(payload, idempotencyKey) {
   })
 }
 
-export function createPaymentSession(orderId, { gateway, return_url }) {
-  return apiClient.post(`/orders/${orderId}/payment-session`, { gateway, return_url })
+export function createPaymentSession(orderId, { gateway }) {
+  return apiClient.post(`/orders/${orderId}/payment-session`, { gateway })
 }
 
 // Ask the backend to confirm payment synchronously by querying the gateway — the

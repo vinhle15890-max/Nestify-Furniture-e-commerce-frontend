@@ -16,18 +16,20 @@ import { ButtonLink } from '../Button'
  */
 export function PlannerInvite() {
   return (
-    <section data-home-section="planner" className="border-y border-imagined/35 bg-imagined/10">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-24 md:py-28 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-10">
+    <section data-home-section="planner" className="relative overflow-hidden bg-ink text-canvas">
+      <div aria-hidden="true" className="absolute -right-24 -top-36 size-[30rem] rounded-full bg-primary/25 blur-3xl" />
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-24 md:py-28 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-10">
         <Reveal className="max-w-xl">
-          <p className="eyebrow">{plannerInvite.eyebrow}</p>
-          <h2 className="mt-4 font-display text-[clamp(1.9rem,3.6vw,3.2rem)] leading-[1.06] text-foreground">
+          <p className="text-sm font-medium text-primary">{plannerInvite.eyebrow}</p>
+          <h2 className="mt-4 font-display text-[clamp(1.9rem,3.6vw,3.2rem)] font-normal leading-[1.06] text-canvas">
             {plannerInvite.title}
           </h2>
-          <p className="mt-5 text-lg leading-relaxed text-muted-foreground">{plannerInvite.intro}</p>
+          <p className="mt-5 text-lg leading-relaxed text-canvas/70">{plannerInvite.intro}</p>
           <div>
             <ButtonLink
               to={plannerInvite.cta.to}
-              className="mt-8"
+              variant="secondary"
+              className="mt-8 border-canvas/45 text-canvas hover:border-canvas hover:bg-canvas/10"
             >
               {plannerInvite.cta.label}
               <ArrowRight size={16} className="transition-transform duration-200 ease-out group-hover:translate-x-0.5" />

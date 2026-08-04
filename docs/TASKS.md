@@ -118,7 +118,7 @@ as each phase lands rather than creating duplicates.
 - [x] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
 - [x] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
 - [x] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
-- [x] `/wishlist` page — list, toggle restock notify, move-to-cart (handle `409 INSUFFICIENT_STOCK` → inline error, keep item)
+- [x] `/wishlist` page — list, toggle restock notify, move-to-cart; handle `409 INSUFFICIENT_STOCK` và `409 INACTIVE_VARIANT` bằng trạng thái rõ ràng, giữ item để khách tự quyết định xóa
 - [x] Cart drawer (uses `uiStore.toggleCart`, already wired in Header) — mini cart summary
 - [x] Tests: cart add/update/remove incl. stock-error handling, voucher preview applies to summary only
 
@@ -131,7 +131,7 @@ as each phase lands rather than creating duplicates.
 **Folders:** `src/features/checkout/`, `src/features/orders/`, `src/pages/checkout/`, `src/pages/orders/`
 
 - [x] `lib/idempotency.js` — `crypto.randomUUID()` per checkout attempt, mirrored from `uiStore` to same-tab `sessionStorage`, regenerated only after the backend returns an order
-- [x] `features/checkout/api.js` — `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway, returnUrl)` (addresses/voucher reused from existing `features/addresses` and `features/cart`)
+- [x] `features/checkout/api.js` — `createOrder` (with `Idempotency-Key` header, `source: "cart"`), `createPaymentSession(orderId, gateway)`; backend tự dựng PayOS return/cancel URL từ cấu hình tin cậy và order ID (addresses/voucher reused from existing `features/addresses` and `features/cart`)
 - [x] `/checkout` page — address selector (defaults to `is_default: true`), voucher input, **payment method picker** (`payos` online | `cod`), submit → create order → (PayOS: create payment session → redirect; COD: xác nhận ngay → trang đơn)
 - [x] `/checkout/return` page — calls `POST /api/orders/{id}/payment/reconcile` every 3s (10 total/cycle), stops on success/failed/error/timeout and offers explicit retry
 - [x] `features/orders/api.js` + `hooks.js` — `getOrders`, `getOrder(id)`, `cancelOrder` (retry payment reuses `useCreatePaymentSession` from `features/checkout/hooks.js`)

@@ -95,8 +95,8 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
   unwrap một lớp axios.
 - Lỗi có `response.data.error` được chuẩn hóa thành `ApiError(code, message, details, status)`. Không có envelope
   (mất mạng/CORS/timeout) trở thành `NETWORK_ERROR`; đây không đồng nghĩa server trả 500.
-- `401` ở endpoint ngoài `/auth/*` làm `authStore.logout()` ngay trong interceptor. `401` của login/register không
-  auto-logout để form còn phân biệt lỗi xác thực của chính thao tác đó.
+- `401` ở endpoint ngoài `/auth/*` làm `authStore.logout()` và clear React Query cache ngay trong interceptor. Login,
+  register và logout cũng clear cache ở session boundary; `401` của login/register không auto-logout để form còn phân biệt lỗi xác thực của chính thao tác đó.
 - `ProtectedRoute`/`AdminRoute`/`RequirePermission` là gate điều hướng và UX. Chúng không thay thế
   `auth:sanctum`, `verified`, `isStaff` hay permission middleware của BE.
 - Mutation mặc định không optimistic update: phần lớn operation chờ server thành công rồi invalidate prefix cache.
@@ -336,9 +336,9 @@ vẫn gửi code và BE kiểm tra lại trong transaction tạo order.
 | Toggle báo hàng | `useUpdateWishlistItem` → `PATCH /wishlist/items/{id}` | invalidate wishlist |
 | Move to cart | `useMoveToCart` → `POST /wishlist/items/{id}/move-to-cart` | invalidate cả wishlist và cart |
 
-Wishlist cho lưu variant hết hàng vì mục tiêu là theo dõi lâu dài. Move-to-cart là boundary khác: BE kiểm tra lại variant
-và stock; thành công mới làm hai cache hội tụ. Nếu move thất bại, item vẫn ở wishlist và cart cache không bị invalidate
-bởi hook thành công.
+Wishlist cho lưu variant hết hàng vì mục tiêu là theo dõi lâu dài, nhưng không nhận variant đã inactive. Item legacy bị
+deactivate vẫn hiện với trạng thái "đã dừng bán" và CTA chuyển giỏ bị khóa; BE trả `409 INACTIVE_VARIANT` nếu client cũ
+vẫn gọi. Move-to-cart kiểm tra lại variant và stock; thành công mới làm hai cache hội tụ.
 
 > **Phản biện:** Wishlist là "theo dõi lâu dài" nên cho thêm hàng hết; move-to-cart mới chặn tồn kho. Báo hàng về do BE
 > phát qua Observer/Event — FE chỉ bật cờ. FE không gửi email, không quyết định thời điểm “restock”, và toggle ở client
@@ -373,8 +373,8 @@ FE không tự đảm bảo exactly-once: unique index/transaction ở BE mới 
 
 ### 6.3 Tạo payment session — `POST /orders/{id}/payment-session`
 
-Sau khi đã có order PayOS, page chuyển sang state theo `orderId` và gọi `useCreatePaymentSession()` với
-`{gateway, return_url}`. Thành công redirect đến checkout URL. Nếu request này lỗi, order **đã tồn tại**: UI phải giữ
+Sau khi đã có order PayOS, page chuyển sang state theo `orderId` và gọi `useCreatePaymentSession()` với `{gateway}`.
+Backend tự tạo return/cancel URL từ cấu hình tin cậy và order ID. Thành công redirect đến checkout URL. Nếu request này lỗi, order **đã tồn tại**: UI phải giữ
 order ID, cho retry tạo session hoặc mở chi tiết đơn, tuyệt đối không quay lại gọi create-order với key mới.
 
 COD không cần redirect gateway; trạng thái do response BE quyết định, FE không tự set order thành processing.
@@ -453,15 +453,17 @@ hoàn chỉnh dù resource có `meta`. Đây là gap cần sửa hoặc phải d
 
 ### 8.1 Tạo review
 
-`ProductPage`/review form → `useCreateReview()` → `POST /products/{productId}/reviews` với phần payload còn lại
-(rating/body theo form). “Đã mua”, verified và uniqueness một review/sản phẩm phải do BE kiểm tra; việc FE ẩn form chỉ
-là affordance. Hook hiện **không invalidate** product-review query sau success: UI phải dựa vào copy “chờ duyệt” hoặc
-refetch chủ động, không được giả định review vừa tạo sẽ xuất hiện public.
+`ProductPage`/review form → `useCreateReview()` → `POST /products/{productId}/reviews` với rating/body và evidence
+tuỳ chọn về màu, kích thước, chất liệu, giao nhận, thời gian dùng. “Đã mua”, verified và uniqueness một review/sản
+phẩm phải do BE kiểm tra; việc FE ẩn form chỉ là affordance. Response `approved` được refetch để hiện ngay trong public
+list; response `pending` chỉ hiện copy đang xem lại, không append local vào danh sách công khai.
 
 ### 8.2 Moderation boundary
 
-Public list chỉ nhận approved review. Admin approve/reject dùng domain `features/admin/reviews`; storefront không được
-tự lọc pending như một biện pháp bảo mật vì pending vốn không nên được API public serialize.
+Public list chỉ nhận approved review và render dấu `Đã mua hàng` cùng evidence sở hữu. Review sạch từ đơn đã giao được
+đăng tự động; link hoặc thông tin liên hệ đi vào exception queue. Điểm thấp không phải tín hiệu kiểm duyệt. Admin UI
+hiện risk flag + product + order context trước hai quyết định “Giữ công khai”/“Ẩn đánh giá”; storefront không được tự
+lọc pending như một biện pháp bảo mật vì pending vốn không nên được API public serialize.
 
 > **Phản biện:** Form review nằm ở `/p/:slug` **không** ở `/orders/:id` vì `variant_snapshot` của đơn không mang `product_id`
 > Đây là lý do response review cần kèm `product`: danh sách moderation phải gắn review với đúng sản phẩm.

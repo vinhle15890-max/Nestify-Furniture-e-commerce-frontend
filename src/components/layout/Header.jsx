@@ -56,7 +56,7 @@ export function Header() {
     <header className={headerClass}>
       <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-5 px-4 py-4 sm:px-6 lg:px-10">
         <Link to="/" aria-label="Nestify — trang chủ" className={`flex items-center ${focusRing}`}>
-          <Logo className="h-11 w-11 rounded-full object-cover object-center" />
+          <Logo className="h-12 w-auto shrink-0 object-contain" />
         </Link>
 
         <nav aria-label="Điều hướng chính" className="hidden items-center justify-center gap-7 md:flex">

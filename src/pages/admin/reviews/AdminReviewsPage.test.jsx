@@ -17,6 +17,9 @@ const pendingReviews = {
       body: 'Chất lượng ổn, giao hàng nhanh.',
       status: 'pending',
       user: { id: 10, name: 'Bao Le' },
+      product: { id: 20, name: 'Sofa Mây', slug: 'sofa-may' },
+      purchase: { order_id: 50, order_number: 'NES-50', variant_name: 'Nâu' },
+      moderation_flags: ['external_link'],
       created_at: '2026-01-10T08:00:00Z',
       updated_at: '2026-01-10T08:00:00Z',
     },
@@ -27,6 +30,9 @@ const pendingReviews = {
       body: 'Hơi thất vọng.',
       status: 'pending',
       user: { id: 11, name: 'Mai Anh' },
+      product: { id: 21, name: 'Bàn Mộc', slug: 'ban-moc' },
+      purchase: { order_id: 51, order_number: 'NES-51', variant_name: 'Sồi' },
+      moderation_flags: ['contact_information'],
       created_at: '2026-01-11T08:00:00Z',
       updated_at: '2026-01-11T08:00:00Z',
     },
@@ -57,6 +63,8 @@ describe('AdminReviewsPage', () => {
     expect(screen.getByText('Chất lượng ổn, giao hàng nhanh.')).toBeInTheDocument()
     expect(screen.getByText('Bao Le')).toBeInTheDocument()
     expect(screen.getByText('Mai Anh')).toBeInTheDocument()
+    expect(screen.getByText('Sofa Mây')).toBeInTheDocument()
+    expect(screen.getByText('Có liên kết ngoài')).toBeInTheDocument()
   })
 
   it('approves a review and removes it from the queue', async () => {
@@ -66,7 +74,7 @@ describe('AdminReviewsPage', () => {
 
     await screen.findByText('Sản phẩm tốt')
 
-    const approveButtons = screen.getAllByRole('button', { name: 'Duyệt' })
+    const approveButtons = screen.getAllByRole('button', { name: 'Giữ công khai' })
     await userEvent.click(approveButtons[0])
 
     await waitFor(() => expect(reviewsApi.approveReview).toHaveBeenCalledWith(1))
@@ -81,7 +89,7 @@ describe('AdminReviewsPage', () => {
 
     await screen.findByText('Mai Anh')
 
-    const rejectButtons = screen.getAllByRole('button', { name: 'Từ chối' })
+    const rejectButtons = screen.getAllByRole('button', { name: 'Ẩn đánh giá' })
     await userEvent.click(rejectButtons[1])
 
     await waitFor(() => expect(reviewsApi.rejectReview).toHaveBeenCalledWith(2))
@@ -96,7 +104,7 @@ describe('AdminReviewsPage', () => {
     })
     renderPage()
 
-    expect(await screen.findByText('Không có đánh giá chờ duyệt')).toBeInTheDocument()
-    expect(screen.getByText('Mọi đánh giá đã được xử lý.')).toBeInTheDocument()
+    expect(await screen.findByText('Không có đánh giá cần xem lại')).toBeInTheDocument()
+    expect(screen.getByText('Các đánh giá đã mua hàng đang được đăng bình thường.')).toBeInTheDocument()
   })
 })

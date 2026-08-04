@@ -15,4 +15,14 @@ describe('PasswordInput', () => {
     expect(input).toHaveAttribute('type', 'text')
     expect(screen.getByRole('button', { name: 'Ẩn mật khẩu' })).toHaveAttribute('aria-pressed', 'true')
   })
+
+  it('replaces guidance with an error and reserves one stable message slot', () => {
+    const { container } = render(
+      <PasswordInput id="password" label="Mật khẩu" guidance="Ít nhất 10 ký tự." error="Mật khẩu chưa hợp lệ." reserveMessageSpace />,
+    )
+
+    expect(screen.queryByText('Ít nhất 10 ký tự.')).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Mật khẩu chưa hợp lệ.')
+    expect(container.querySelectorAll('[data-message-slot="true"]')).toHaveLength(1)
+  })
 })
