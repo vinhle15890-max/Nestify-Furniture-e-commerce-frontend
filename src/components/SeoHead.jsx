@@ -17,6 +17,7 @@ export function SeoHead({ title, description, canonicalPath, image, type = 'webs
   useEffect(() => {
     const previousTitle = document.title
     const canonical = absoluteUrl(canonicalPath)
+    document.querySelectorAll('[data-nestify-prerender]').forEach((element) => element.remove())
     document.title = title
     const elements = [
       addMeta('name', 'description', description), addMeta('name', 'robots', noindex ? 'noindex,follow' : 'index,follow'),

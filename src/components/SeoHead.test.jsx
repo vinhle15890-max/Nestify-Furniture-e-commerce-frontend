@@ -11,3 +11,13 @@ it('publishes canonical, robots and social metadata', () => {
   unmount()
   expect(document.querySelector('[data-nestify-head]')).toBeNull()
 })
+
+it('replaces prerender metadata instead of publishing conflicting canonicals after hydration', () => {
+  document.head.insertAdjacentHTML('beforeend', '<link data-nestify-prerender="true" rel="canonical" href="https://api.nestify.asia/p/sofa">')
+  const { unmount } = render(<SeoHead title="Sofa | Nestify" description="Mô tả" canonicalPath="/p/sofa" />)
+
+  const canonicals = document.querySelectorAll('link[rel="canonical"]')
+  expect(canonicals).toHaveLength(1)
+  expect(canonicals[0].href).not.toContain('api.nestify.asia')
+  unmount()
+})

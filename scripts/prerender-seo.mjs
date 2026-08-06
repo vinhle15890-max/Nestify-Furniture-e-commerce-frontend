@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { resolveSeoSite } from './seo-site.mjs'
 
 const api = process.env.VITE_API_BASE_URL?.replace(/\/$/, '')
 if (!api) {
@@ -10,7 +11,7 @@ if (!api) {
 const template = await readFile('dist/index.html', 'utf8')
 const escape = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char])
 const plain = (html = '') => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-const site = (process.env.VITE_SITE_URL || new URL(api).origin).replace(/\/$/, '')
+const site = resolveSeoSite(process.env.VITE_SITE_URL, api)
 
 async function get(endpoint) {
   const response = await fetch(`${api}${endpoint}`)
@@ -20,7 +21,7 @@ async function get(endpoint) {
 
 async function emit(route, { title, description, body, jsonLd }) {
   const canonical = `${site}${route}`
-  const head = `<meta name="description" content="${escape(description)}"><meta name="robots" content="index,follow"><link rel="canonical" href="${escape(canonical)}"><meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(description)}"><meta property="og:url" content="${escape(canonical)}">${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : ''}`
+  const head = `<meta data-nestify-prerender="true" name="description" content="${escape(description)}"><meta data-nestify-prerender="true" name="robots" content="index,follow"><link data-nestify-prerender="true" rel="canonical" href="${escape(canonical)}"><meta data-nestify-prerender="true" property="og:title" content="${escape(title)}"><meta data-nestify-prerender="true" property="og:description" content="${escape(description)}"><meta data-nestify-prerender="true" property="og:url" content="${escape(canonical)}">${jsonLd ? `<script data-nestify-prerender="true" type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : ''}`
   const html = template.replace(/<title>.*?<\/title>/, `<title>${escape(title)}</title>${head}`).replace('<div id="root"></div>', `<div id="root"><main><h1>${escape(body.title)}</h1><p>${escape(body.description)}</p></main></div>`)
   const directory = path.join('dist', route.replace(/^\//, ''))
   await mkdir(directory, { recursive: true })
