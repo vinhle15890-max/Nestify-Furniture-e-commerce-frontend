@@ -29,6 +29,15 @@ export function sceneToEditorState(resource) {
         right: r.wall_right ?? true,
       },
     },
+    obstacles: (r.obstacles ?? []).map((obstacle) => ({
+      id: String(obstacle.id),
+      type: obstacle.type,
+      x: num(obstacle.x),
+      z: num(obstacle.z),
+      width: num(obstacle.width, 0.8),
+      depth: num(obstacle.depth, 0.8),
+      rotation: num(obstacle.rotation),
+    })),
     items: (r.items ?? []).map((item) => ({
       localId: makeLocalId(),
       placementId: item.id ?? null,
@@ -63,6 +72,7 @@ export function editorStateToPayload(state) {
     wall_back:  state.room.walls?.back  ?? true,
     wall_left:  state.room.walls?.left  ?? true,
     wall_right: state.room.walls?.right ?? true,
+    obstacles: state.obstacles ?? [],
     items: state.items.map((item) => ({
       variant_id: item.variant.id,
       position: { ...item.position },

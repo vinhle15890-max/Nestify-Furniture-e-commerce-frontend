@@ -3,8 +3,9 @@ import { SceneStage } from './SceneStage'
 import { PlacedItem } from './PlacedItem'
 import { ScaleReference } from './ScaleReference'
 import { RoomEditOverlay } from './RoomEditOverlay'
+import { ObstacleLayer } from './ObstacleLayer'
 import { useEditorStore } from '../../../features/roomPlanner/editorStore'
-import { findOverlaps } from '../../../features/roomPlanner/collision'
+import { findObstacleConflicts, findOverlaps } from '../../../features/roomPlanner/collision'
 import { registerPlannerCanvas, unregisterPlannerCanvas } from '../../../features/roomPlanner/canvasCapture'
 import { DimensionComparisonFallback } from '../DimensionComparisonFallback'
 
@@ -41,6 +42,11 @@ function EditorPlacedItem({ item, setOrbitEnabled, ...props }) {
 export function RoomCanvas() {
   const room = useEditorStore((s) => s.room)
   const items = useEditorStore((s) => s.items)
+  const obstacles = useEditorStore((s) => s.obstacles)
+  const selectedObstacleId = useEditorStore((s) => s.selectedObstacleId)
+  const obstacleGizmoMode = useEditorStore((s) => s.obstacleGizmoMode)
+  const selectObstacle = useEditorStore((s) => s.selectObstacle)
+  const updateObstacle = useEditorStore((s) => s.updateObstacle)
   const selectedId = useEditorStore((s) => s.selectedId)
   const gizmoMode = useEditorStore((s) => s.gizmoMode)
   const editMode = useEditorStore((s) => s.editMode)
@@ -71,7 +77,11 @@ export function RoomCanvas() {
 
   // Which items overlap another (top-down footprints). Recomputes when items move
   // OR when their footprints get measured — both live in `items`.
-  const conflictSet = useMemo(() => findOverlaps(items), [items])
+  const conflictSet = useMemo(() => {
+    const conflicts = findOverlaps(items)
+    findObstacleConflicts(items, obstacles).forEach((id) => conflicts.add(id))
+    return conflicts
+  }, [items, obstacles])
 
   return (
     <SceneStage
@@ -103,6 +113,7 @@ export function RoomCanvas() {
           interactive={editMode !== 'room'}
         />
       ))}
+      <ObstacleLayer obstacles={obstacles} interactive={editMode === 'room'} selectedId={selectedObstacleId} mode={obstacleGizmoMode} onSelect={selectObstacle} onUpdate={updateObstacle} onDragChange={(dragging) => setOrbitEnabled(!dragging)} />
       {topDown && <RoomEditOverlay room={room} onDragChange={(d) => setOrbitEnabled(!d)} />}
       {showScaleRef && !topDown && <ScaleReference room={room} onDragChange={(dragging) => setOrbitEnabled(!dragging)} />}
     </SceneStage>

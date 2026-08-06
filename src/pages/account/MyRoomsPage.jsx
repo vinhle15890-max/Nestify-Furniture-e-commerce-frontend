@@ -138,7 +138,7 @@ export function MyRoomsPage() {
             </p>
           ) : (
             <Link
-              to="/room-planner"
+              to="/room-planner?new=1"
               className="inline-flex min-h-11 items-center gap-2 rounded-control bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus size={16} aria-hidden="true" /> Thêm phòng
@@ -154,7 +154,7 @@ export function MyRoomsPage() {
           <div className="mt-12 border-y border-unbuilt py-14 text-center">
             <p className="mx-auto max-w-sm text-muted-foreground">Căn hộ chưa có phòng nào. Bắt đầu từ không gian bạn muốn sắp xếp trước.</p>
             <Link
-              to="/room-planner"
+              to="/room-planner?new=1"
               className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-control bg-ink px-4 py-2.5 text-sm font-medium text-canvas transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus size={16} aria-hidden="true" /> Thêm phòng đầu tiên

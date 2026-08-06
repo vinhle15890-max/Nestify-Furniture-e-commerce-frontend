@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { RoomCanvas } from './scene/RoomCanvas'
 import { RoomEditPanel } from './RoomEditPanel'
 import { RoomSetupDialog } from './RoomSetupDialog'
@@ -79,6 +79,10 @@ export function RoomPlannerPage() {
   const previewSlug = searchParams.get('product')
   const variantId = searchParams.get('variant')
   const hasDeepLink = Boolean(previewSlug && variantId)
+  const wantsNewRoom = searchParams.get('new') === '1'
+  const opensRoomHub = useRef(Boolean(
+    token && !id && !wantsNewRoom && !hasDeepLink && !draftToken && !roomDraftTokenFromHash(location.hash),
+  ))
   const numericVariantId = Number(variantId) // STEP 3 coercion (variant.id is a JSON number)
   const applied = useRef(false)
   // Request-scoped 10s timeout; disabled unless a full deep-link is present.
@@ -406,6 +410,13 @@ export function RoomPlannerPage() {
   }
 
   const selectedItem = store.items.find((item) => item.localId === store.selectedId) ?? null
+
+  // The generic planner entry is the room hub for signed-in customers. Creating
+  // a room is an explicit intent; product hand-offs and guest drafts still open
+  // the editor directly.
+  if (opensRoomHub.current) {
+    return <Navigate to="/account/rooms" replace />
+  }
 
   if (!isDesktop) {
     return (

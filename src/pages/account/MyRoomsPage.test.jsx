@@ -72,7 +72,7 @@ describe('MyRoomsPage', () => {
     // Two entry points to the same action (header + empty-state CTA) both point at the planner.
     const createLinks = screen.getAllByRole('link', { name: /Thêm phòng/ })
     expect(createLinks.length).toBeGreaterThan(0)
-    createLinks.forEach((link) => expect(link).toHaveAttribute('href', '/room-planner'))
+    createLinks.forEach((link) => expect(link).toHaveAttribute('href', '/room-planner?new=1'))
   })
 
   it('prevents creating a ninth room when the home is full', async () => {

@@ -49,6 +49,7 @@ function renderPage(path = '/room-planner') {
         <Routes>
           <Route path="/room-planner" element={<RoomPlannerPage />} />
           <Route path="/room-planner/:id" element={<RoomPlannerPage />} />
+          <Route path="/account/rooms" element={<div>Danh sách phòng</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -102,8 +103,13 @@ describe('RoomPlannerPage', () => {
     roomPlannerApi.reviewScene.mockResolvedValue({ data: { scene_id: 55, can_continue: true, items: [{ placement_id: 1, product_name: 'Sofa', variant_name: 'Đỏ', price: 100, available_stock: 2, purchasable: true, reason: null }] } })
   })
 
-  it('shows the setup dialog for a new room, then the canvas', async () => {
+  it('sends a signed-in customer from the generic entry to their saved rooms', async () => {
     renderPage('/room-planner')
+    expect(await screen.findByText('Danh sách phòng')).toBeInTheDocument()
+  })
+
+  it('shows the setup dialog for an explicit new room, then the canvas', async () => {
+    renderPage('/room-planner?new=1')
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
     expect(await screen.findByTestId('room-canvas')).toBeInTheDocument()
   })
@@ -133,7 +139,7 @@ describe('RoomPlannerPage', () => {
 
   it('adds a tray item then saves via create and shows the saved state', async () => {
     roomPlannerApi.createScene.mockResolvedValue({ data: { id: 55, name: 'Phòng của tôi' } })
-    renderPage('/room-planner')
+    renderPage('/room-planner?new=1')
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
     await userEvent.click(await screen.findByRole('button', { name: /Sofa.*Đỏ/s }))
     await userEvent.click(screen.getByRole('button', { name: /lưu/i }))
@@ -150,7 +156,7 @@ describe('RoomPlannerPage', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/room-planner']}>
+        <MemoryRouter initialEntries={['/room-planner?new=1']}>
           <Routes>
             <Route path="/room-planner" element={<RoomPlannerPage />} />
             <Route path="/room-planner/:id" element={<RoomPlannerPage />} />
@@ -214,7 +220,7 @@ describe('RoomPlannerPage', () => {
   describe('small-screen capability boundary', () => {
     it('shows only the continuation notice for a new room', async () => {
       installMatchMedia(false)
-      renderPage('/room-planner')
+      renderPage('/room-planner?new=1')
 
       expect(await screen.findByRole('heading', { name: 'Tiếp tục thiết kế trên máy tính' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /tạo phòng/i })).not.toBeInTheDocument()
@@ -260,7 +266,7 @@ describe('RoomPlannerPage', () => {
 
     it('keeps in-memory work when resizing across the boundary', async () => {
       const mediaQuery = installMatchMedia(true)
-      renderPage('/room-planner')
+      renderPage('/room-planner?new=1')
       await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
 
       act(() => {
@@ -281,7 +287,7 @@ describe('RoomPlannerPage', () => {
     it('reuses dirty-exit protection from the mobile notice', async () => {
       const mediaQuery = installMatchMedia(true)
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
-      renderPage('/room-planner')
+      renderPage('/room-planner?new=1')
       await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
       act(() => {
         useEditorStore.getState().addVariant({ id: 77, name: 'Ghế đang thử' })
@@ -301,7 +307,7 @@ describe('RoomPlannerPage', () => {
         writable: true,
         value: undefined,
       })
-      renderPage('/room-planner')
+      renderPage('/room-planner?new=1')
 
       expect(await screen.findByRole('heading', { name: 'Tiếp tục thiết kế trên máy tính' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /tạo phòng/i })).not.toBeInTheDocument()

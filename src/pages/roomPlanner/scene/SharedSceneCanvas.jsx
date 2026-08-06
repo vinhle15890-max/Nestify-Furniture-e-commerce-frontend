@@ -1,10 +1,11 @@
 import { SceneStage } from './SceneStage'
 import { FurnitureModelRuntime } from './FurnitureModel'
+import { ObstacleLayer } from './ObstacleLayer'
 
 // Read-only render of a saved scene: the same stage as the editor, but each item
 // is a static group — no TransformControls, no selection handler. Items are
 // editor-state-shaped ({ localId, variant, position, rotation, scale }).
-export function SharedSceneCanvas({ room, items }) {
+export function SharedSceneCanvas({ room, items, obstacles = [] }) {
   return (
     <SceneStage room={room}>
       {items.map((item) => (
@@ -20,6 +21,7 @@ export function SharedSceneCanvas({ room, items }) {
           />
         </group>
       ))}
+      <ObstacleLayer obstacles={obstacles} />
     </SceneStage>
   )
 }

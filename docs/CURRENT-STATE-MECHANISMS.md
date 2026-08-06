@@ -41,7 +41,8 @@ căn hộ đó. Backend giới hạn tối đa 8 phòng bằng transaction + use
 `GET /room-scenes` trả `meta.limits`. `/account/rooms` là tổng quan căn hộ:
 hiển thị số phòng, số món đang cân nhắc, số phòng còn có thể thêm và khóa entry
 tạo mới khi đạt giới hạn. Guest vẫn chỉ có một draft room. Không có project
-thứ hai, polygon hay trình vẽ tường tự do.
+thứ hai, polygon hay trình vẽ tường tự do; room edit có các vùng cản chữ nhật
+cho cột, sàn khuyết, vùng cấm và hộp bao vùng quét cửa.
 
 ### Hệ tọa độ và room shell
 
@@ -49,9 +50,16 @@ Phòng đặt tâm `(0,0,0)`: X=rộng, Z=sâu, Y=hướng lên, sàn Y=0. UI gi
 2–5 m; backend chấp nhận 0.01–999999.99 nên giới hạn thực dụng là **client-only**. Ba wall flag chỉ quyết
 định mặt nào được render; tắt wall không mở miền kéo.
 
-Store load API resource qua mapper thành item có `localId`, variant, transform và footprint. Selection,
+Store load API resource qua mapper thành item có `localId`, variant, transform và footprint; `obstacles` được
+serialize cùng scene và guest draft. Selection,
 gizmo/view/edit mode và scale reference là state phiên xem, không serialize. `dirty` chỉ đánh dấu dữ liệu cần
 lưu.
+
+Vùng cản render trên sàn trong cả editor và shared viewer. Trong room edit, tạo vùng sẽ chọn ngay; người dùng
+bấm vùng để chọn, kéo thân để di chuyển hoặc chuyển gizmo giữa translate/rotate, còn panel đồng bộ tọa độ và
+kích thước chính xác. Vùng được kẹp trong biên phòng. Collision dùng SAT giữa footprint nội thất và OBB
+vùng cản; cửa dùng hộp bao bảo thủ của cung quét. Conflict đi vào cùng cảnh báo overlap hiện có, không tự đẩy
+vật thể ra ngoài. Backend validate shape/type/range nhưng chưa đối chiếu vùng cản với biên phòng.
 
 ### Kéo, xoay, snap và clamp
 
@@ -316,7 +324,7 @@ tab restore, storage bị chặn thì degrade memory. POST order gửi `Idempote
 declaration để retry; chống duplicate thật nằm ở backend.
 
 Trước submit, client khóa declaration gồm cart basis (item/variant/qty/price/subtotal/total), địa chỉ, payment
-và voucher. Địa chỉ chỉ thành snapshot sau server create; stock chưa reserve. Recovery record giữ order ID để
+và voucher. Cart tải các voucher áp dụng được cho subtotal/user hiện tại và là nơi duy nhất cho khách chọn mã; Checkout nhận mã qua query string rồi xác minh lại, không lặp editor. CTA Cart và Checkout nằm trong action bar cố định theo viewport, có khoảng đệm đáy để không che nội dung. Địa chỉ chỉ thành snapshot sau server create; stock chưa reserve. Recovery record giữ order ID để
 reload fetch chính order cũ thay vì POST lại. COD dừng ở order created. PayOS tạo order pending trước, rồi mở
 session; FE chỉ gửi `gateway`, còn backend tự tạo PayOS return/cancel URL từ cấu hình + order ID. Session lỗi/rate-limit
 giữ order và retry chỉ gọi payment-session, không tạo order thứ hai.

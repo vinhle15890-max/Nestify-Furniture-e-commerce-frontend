@@ -23,6 +23,13 @@ const ROOM_MAX = 30
 const HEIGHT_MIN = 2
 const HEIGHT_MAX = 5
 const clampDim = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+const clampObstacle = (obstacle, room) => {
+  const radiusX = obstacle.type === 'door_swing' ? obstacle.width : obstacle.width / 2
+  const radiusZ = obstacle.type === 'door_swing' ? obstacle.depth : obstacle.depth / 2
+  const limitX = Math.max(0, room.width / 2 - radiusX)
+  const limitZ = Math.max(0, room.depth / 2 - radiusZ)
+  return { ...obstacle, x: clampDim(obstacle.x, -limitX, limitX), z: clampDim(obstacle.z, -limitZ, limitZ) }
+}
 
 const emptyState = {
   id: null,
@@ -31,7 +38,10 @@ const emptyState = {
   roomType: 'other',
   room: { width: 0, depth: 0, height: 0, walls: { back: true, left: true, right: true } },
   items: [],
+  obstacles: [],
   selectedId: null,
+  selectedObstacleId: null,
+  obstacleGizmoMode: 'translate',
   pendingPlacementId: null,
   gizmoMode: 'translate',
   editMode: 'furnish', // 'furnish' | 'room'
@@ -69,6 +79,7 @@ export const useEditorStore = create((set, get) => ({
   setEditMode: (editMode) => set({
     editMode,
     viewMode: editMode === 'room' ? 'top' : 'perspective',
+    selectedObstacleId: editMode === 'room' ? get().selectedObstacleId : null,
   }),
 
   setViewMode: (viewMode) => set({
@@ -97,6 +108,33 @@ export const useEditorStore = create((set, get) => ({
   // Room-shell edit — intentionally NOT undoable (history is items-only); see note above resizeRoom.
   toggleWall: (side) => set((s) => ({
     room: { ...s.room, walls: { ...s.room.walls, [side]: !s.room.walls[side] } },
+    dirty: true,
+  })),
+
+  addObstacle: (type) => set((s) => {
+    const id = makeLocalId()
+    return {
+    obstacles: [...s.obstacles, {
+      id, type, x: 0, z: 0,
+      width: type === 'door_swing' ? 0.9 : 0.8,
+      depth: type === 'door_swing' ? 0.9 : 0.8,
+      rotation: 0,
+    }],
+    selectedObstacleId: id,
+    dirty: true,
+  }}),
+
+  selectObstacle: (id) => set({ selectedObstacleId: id }),
+  setObstacleGizmoMode: (mode) => set({ obstacleGizmoMode: mode === 'rotate' ? 'rotate' : 'translate' }),
+
+  updateObstacle: (id, patch) => set((s) => ({
+    obstacles: s.obstacles.map((obstacle) => obstacle.id === id ? clampObstacle({ ...obstacle, ...patch }, s.room) : obstacle),
+    dirty: true,
+  })),
+
+  removeObstacle: (id) => set((s) => ({
+    obstacles: s.obstacles.filter((obstacle) => obstacle.id !== id),
+    selectedObstacleId: s.selectedObstacleId === id ? null : s.selectedObstacleId,
     dirty: true,
   })),
 

@@ -44,3 +44,11 @@ export function useApplyVoucher() {
     mutationFn: (code) => cartApi.applyVoucher(code),
   })
 }
+
+export function useAvailableVouchers(enabled = true) {
+  return useQuery({
+    queryKey: ['cart', 'available-vouchers'],
+    queryFn: cartApi.getAvailableVouchers,
+    enabled,
+  })
+}

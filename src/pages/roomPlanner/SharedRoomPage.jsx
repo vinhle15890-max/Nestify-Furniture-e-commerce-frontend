@@ -54,7 +54,7 @@ export function SharedRoomPage() {
       </header>
       <main className="flex min-h-0 flex-1 flex-col md:flex-row">
         <div className="relative min-h-0 flex-1">
-          <SharedSceneCanvas room={state.room} items={state.items} />
+          <SharedSceneCanvas room={state.room} items={state.items} obstacles={state.obstacles} />
         </div>
         <aside className="max-h-[45%] shrink-0 overflow-y-auto border-t border-border bg-surface-alt/40 p-4 md:max-h-none md:w-80 md:border-l md:border-t-0">
           <SharedRoomItems items={state.items} />

@@ -69,6 +69,7 @@ describe('CartPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     cartApi.getCart.mockResolvedValue(sampleCart)
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: [] })
   })
 
   it('shows a login prompt for guests', () => {
@@ -202,12 +203,12 @@ describe('CartPage', () => {
   it('applies a voucher to the order summary without changing the cart total', async () => {
     useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
     cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: [{ code: 'GIAM10', discount_amount: 1000000, final_total: 9000000 }] })
     renderPage()
 
     await screen.findByText('Sofa Mây')
 
-    await userEvent.type(screen.getByLabelText('Mã giảm giá'), 'GIAM10')
-    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+    await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
 
     expect(cartApi.applyVoucher).toHaveBeenCalledWith('GIAM10')
     expect(await screen.findByText('9.000.000 ₫')).toBeInTheDocument()
@@ -261,6 +262,7 @@ describe('CartPage', () => {
   it('clears a stale voucher preview after a successful quantity change', async () => {
     useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
     cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: [{ code: 'GIAM10', discount_amount: 1000000, final_total: 9000000 }] })
     cartApi.updateItem.mockResolvedValue({
       data: {
         ...sampleCart.data,
@@ -271,9 +273,7 @@ describe('CartPage', () => {
     renderPage()
 
     await screen.findByText('Sofa Mây')
-    await userEvent.click(screen.getByText('Có mã giảm giá?'))
-    await userEvent.type(screen.getByLabelText('Mã giảm giá'), 'GIAM10')
-    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+    await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
     expect(await screen.findByText('9.000.000 ₫')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Tăng số lượng' }))
@@ -294,13 +294,12 @@ describe('CartPage', () => {
     }
     cartApi.getCart.mockResolvedValue({ data: { ...sampleCart.data, items: [...sampleCart.data.items, secondItem], total: 12000000 } })
     cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 11000000 } })
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: [{ code: 'GIAM10', discount_amount: 1000000, final_total: 11000000 }] })
     cartApi.removeItem.mockResolvedValue({})
     renderPage()
 
     await screen.findByText('Bàn Gỗ')
-    await userEvent.click(screen.getByText('Có mã giảm giá?'))
-    await userEvent.type(screen.getByLabelText('Mã giảm giá'), 'GIAM10')
-    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng' }))
+    await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
     expect(await screen.findByText('11.000.000 ₫')).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Xóa Bàn Gỗ' }))
@@ -335,5 +334,14 @@ describe('CartPage', () => {
     expect(within(item).getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(2)
     expect(within(item).getByText('Thành tiền dòng')).toBeInTheDocument()
     expect(within(item).getByRole('button', { name: 'Xóa Sofa Mây' })).toBeInTheDocument()
+    expect(within(item).getByRole('button', { name: 'Xóa Sofa Mây' }).parentElement).toContainElement(within(item).getByText('Sofa Mây'))
+  })
+
+  it('keeps the checkout action clear of the floating chat safe area', async () => {
+    useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
+    renderPage()
+
+    const action = await screen.findByRole('complementary', { name: 'Tiếp tục thanh toán' })
+    expect(action).toHaveClass('pr-20', 'lg:right-24')
   })
 })
