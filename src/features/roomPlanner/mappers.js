@@ -31,7 +31,10 @@ export function sceneToEditorState(resource) {
     },
     obstacles: (r.obstacles ?? []).map((obstacle) => ({
       id: String(obstacle.id),
-      type: obstacle.type,
+      // Legacy column/cutout records had the same interaction and collision as
+      // restricted zones. Collapse them at the boundary instead of exposing
+      // three names for one capability.
+      type: obstacle.type === 'door_swing' ? 'door_swing' : 'restricted',
       x: num(obstacle.x),
       z: num(obstacle.z),
       width: num(obstacle.width, 0.8),

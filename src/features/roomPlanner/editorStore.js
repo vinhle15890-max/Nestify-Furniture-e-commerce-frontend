@@ -22,10 +22,23 @@ const ROOM_MIN = 2
 const ROOM_MAX = 30
 const HEIGHT_MIN = 2
 const HEIGHT_MAX = 5
+const DOOR_WALL_SNAP = 0.3
 const clampDim = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 const clampObstacle = (obstacle, room) => {
-  const radiusX = obstacle.type === 'door_swing' ? obstacle.width : obstacle.width / 2
-  const radiusZ = obstacle.type === 'door_swing' ? obstacle.depth : obstacle.depth / 2
+  if (obstacle.type === 'door_swing') {
+    const halfWidth = room.width / 2
+    const halfDepth = room.depth / 2
+    const clamped = { ...obstacle, x: clampDim(obstacle.x, -halfWidth, halfWidth), z: clampDim(obstacle.z, -halfDepth, halfDepth) }
+    const candidates = [
+      { distance: Math.abs(clamped.x - halfWidth), patch: { x: halfWidth } },
+      { distance: Math.abs(clamped.x + halfWidth), patch: { x: -halfWidth } },
+      { distance: Math.abs(clamped.z - halfDepth), patch: { z: halfDepth } },
+      { distance: Math.abs(clamped.z + halfDepth), patch: { z: -halfDepth } },
+    ].sort((a, b) => a.distance - b.distance)
+    return candidates[0].distance <= DOOR_WALL_SNAP ? { ...clamped, ...candidates[0].patch } : clamped
+  }
+  const radiusX = obstacle.width / 2
+  const radiusZ = obstacle.depth / 2
   const limitX = Math.max(0, room.width / 2 - radiusX)
   const limitZ = Math.max(0, room.depth / 2 - radiusZ)
   return { ...obstacle, x: clampDim(obstacle.x, -limitX, limitX), z: clampDim(obstacle.z, -limitZ, limitZ) }

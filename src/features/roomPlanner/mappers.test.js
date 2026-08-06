@@ -108,4 +108,9 @@ describe('roomPlanner/mappers', () => {
     expect(state.obstacles).toEqual([obstacle])
     expect(editorStateToPayload({ name: 'P', room: state.room, obstacles: state.obstacles, items: [] }).obstacles).toEqual([obstacle])
   })
+
+  it('gộp loại vùng cản cũ thành restricted khi đọc scene', () => {
+    const state = sceneToEditorState({ width: 4, depth: 5, height: 3, obstacles: [{ id: 'old', type: 'column', x: 0, z: 0, width: 1, depth: 1 }] })
+    expect(state.obstacles[0].type).toBe('restricted')
+  })
 })

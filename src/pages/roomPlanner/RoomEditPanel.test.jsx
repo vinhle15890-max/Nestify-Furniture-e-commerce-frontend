@@ -58,4 +58,13 @@ describe('RoomEditPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xoá vùng 1' }))
     expect(useEditorStore.getState().obstacles).toEqual([])
   })
+
+  it('gộp các vùng cản cùng hành vi thành một công cụ', () => {
+    render(<RoomEditPanel />)
+    expect(screen.queryByRole('button', { name: 'Cột' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sàn khuyết' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Vùng không đặt đồ' }))
+    expect(useEditorStore.getState().obstacles[0].type).toBe('restricted')
+    expect(screen.getByText(/cột, sàn khuyết, lối đi/)).toBeInTheDocument()
+  })
 })

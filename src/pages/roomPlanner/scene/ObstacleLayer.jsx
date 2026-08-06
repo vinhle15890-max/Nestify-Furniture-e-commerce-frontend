@@ -2,7 +2,17 @@ import { useRef } from 'react'
 import { TransformControls } from '@react-three/drei'
 import { Plane, Vector3 } from 'three'
 
-const COLORS = { column: '#6E6861', cutout: '#292A20', restricted: '#B5754A', door_swing: '#A58B4C' }
+const COLORS = { restricted: '#B5754A', door_swing: '#A58B4C' }
+
+function RectFrame({ width, depth, color, opacity = 1 }) {
+  const material = <meshBasicMaterial color={color} transparent opacity={opacity} />
+  return <group position={[0, 0.018, 0]}>
+    <mesh position={[0, 0, depth / 2]}><boxGeometry args={[width, 0.018, 0.035]} />{material}</mesh>
+    <mesh position={[0, 0, -depth / 2]}><boxGeometry args={[width, 0.018, 0.035]} />{material}</mesh>
+    <mesh position={[width / 2, 0, 0]}><boxGeometry args={[0.035, 0.018, depth]} />{material}</mesh>
+    <mesh position={[-width / 2, 0, 0]}><boxGeometry args={[0.035, 0.018, depth]} />{material}</mesh>
+  </group>
+}
 
 function ObstacleShape({ obstacle, selected, interactive, onSelect, onUpdate, onDragChange, mode }) {
   const groupRef = useRef()
@@ -54,10 +64,10 @@ function ObstacleShape({ obstacle, selected, interactive, onSelect, onUpdate, on
           </mesh>
         </group>
       ) : (
-        <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[obstacle.width, obstacle.depth]} />
-          <meshBasicMaterial color={COLORS[obstacle.type] ?? COLORS.restricted} transparent opacity={selected ? 0.72 : 0.42} side={2} />
-        </mesh>
+        <group>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[obstacle.width, obstacle.depth]} /><meshBasicMaterial color={COLORS.restricted} transparent opacity={selected ? 0.24 : 0.12} side={2} /></mesh>
+          <RectFrame width={obstacle.width} depth={obstacle.depth} color={COLORS.restricted} opacity={selected ? 1 : 0.8} />
+        </group>
       )}
     </group>
   )

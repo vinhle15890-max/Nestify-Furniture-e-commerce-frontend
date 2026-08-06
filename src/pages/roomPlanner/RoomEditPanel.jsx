@@ -12,7 +12,7 @@ const DIMENSIONS = [
 const fieldClass =
   'mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-sm tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-const OBSTACLE_LABELS = { column: 'Cột', cutout: 'Sàn khuyết', restricted: 'Vùng cấm', door_swing: 'Cửa mở' }
+const OBSTACLE_LABELS = { restricted: 'Vùng không đặt đồ', door_swing: 'Cửa mở' }
 
 export function RoomEditPanel() {
   const room = useEditorStore((state) => state.room)
@@ -107,8 +107,7 @@ export function RoomEditPanel() {
         <p className="mt-1 text-xs leading-5 text-muted-foreground">Thêm vùng, rồi kéo trực tiếp trên mặt bằng. Bấm một vùng để chọn lại.</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {[
-            ['column', 'Cột'], ['cutout', 'Sàn khuyết'],
-            ['restricted', 'Vùng cấm'], ['door_swing', 'Cửa mở'],
+            ['restricted', 'Vùng không đặt đồ'], ['door_swing', 'Cửa mở'],
           ].map(([type, label]) => (
             <button key={type} type="button" onClick={() => addObstacle(type)} className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-control border border-border px-2 text-xs text-foreground hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Plus size={14} aria-hidden="true" /> {label}
@@ -125,7 +124,8 @@ export function RoomEditPanel() {
           {obstacles.map((obstacle, index) => (
             <fieldset key={obstacle.id} onClick={() => selectObstacle(obstacle.id)} className={`p-3 ${selectedObstacleId === obstacle.id ? 'border-2 border-ink bg-surface-alt/50' : 'border border-border'}`}>
               <legend className="px-1 text-xs font-medium text-foreground">{OBSTACLE_LABELS[obstacle.type]} {index + 1}{selectedObstacleId === obstacle.id ? ' · đang chọn' : ''}</legend>
-              {obstacle.type === 'door_swing' && <p className="mb-2 text-[11px] leading-4 text-muted-foreground">Chấm đậm là bản lề; đường thẳng là cánh cửa đóng; cung tròn là khoảng cửa quét qua.</p>}
+              {obstacle.type === 'door_swing' && <p className="mb-2 text-[11px] leading-4 text-muted-foreground">Chấm đậm là bản lề; kéo chấm lại gần mép phòng để tự dính vào tường. Đường thẳng là cửa đóng, cung tròn là khoảng cửa quét qua.</p>}
+              {obstacle.type === 'restricted' && <p className="mb-2 text-[11px] leading-4 text-muted-foreground">Đánh dấu mọi phần mặt bằng cần để trống: cột, sàn khuyết, lối đi hoặc vùng thao tác.</p>}
               <div className="grid grid-cols-2 gap-2">
                 {[
                   ['x', 'X (m)', 0.1], ['z', 'Z (m)', 0.1],

@@ -41,8 +41,8 @@ căn hộ đó. Backend giới hạn tối đa 8 phòng bằng transaction + use
 `GET /room-scenes` trả `meta.limits`. `/account/rooms` là tổng quan căn hộ:
 hiển thị số phòng, số món đang cân nhắc, số phòng còn có thể thêm và khóa entry
 tạo mới khi đạt giới hạn. Guest vẫn chỉ có một draft room. Không có project
-thứ hai, polygon hay trình vẽ tường tự do; room edit có các vùng cản chữ nhật
-cho cột, sàn khuyết, vùng cấm và hộp bao vùng quét cửa.
+thứ hai, polygon hay trình vẽ tường tự do; room edit có vùng không đặt đồ chữ nhật
+và vùng cửa với hộp bao cung quét.
 
 ### Hệ tọa độ và room shell
 

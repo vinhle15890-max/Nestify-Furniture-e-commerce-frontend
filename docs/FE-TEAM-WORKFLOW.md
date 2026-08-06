@@ -709,7 +709,8 @@ token/quyền thật).
   `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
   TransformControls chỉ di chuyển/xoay; customer scale bị loại khỏi gizmo và store). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
   (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
-- **Vùng cản:** state `obstacles[]` lưu cột, sàn khuyết, vùng cấm và vùng quét cửa dưới dạng OBB trên mặt sàn.
+- **Vùng cản:** state `obstacles[]` chỉ trình bày hai capability: `restricted` (vùng không đặt đồ dạng OBB) và
+  `door_swing` (bản lề + cung quét). Record `column`/`cutout` cũ được mapper chuẩn hóa thành `restricted`.
   `RoomEditPanel` thêm/chỉnh chính xác và chọn translate/rotate; `ObstacleLayer` cho chọn, kéo trực tiếp và gizmo,
   đồng thời render ở editor/shared viewer; `collision.js` đưa món chồng vùng vào cảnh báo. Cửa dùng hộp bao bảo
   thủ, chưa có polygon hoặc tay nắm resize trực tiếp.
