@@ -19,3 +19,7 @@ export function removeItem(itemId) {
 export function applyVoucher(code) {
   return apiClient.post('/cart/apply-voucher', { code })
 }
+
+export function getAvailableVouchers() {
+  return apiClient.get('/cart/available-vouchers')
+}

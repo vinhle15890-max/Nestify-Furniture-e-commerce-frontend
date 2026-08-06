@@ -45,6 +45,7 @@ describe('roomPlanner/mappers', () => {
       wall_back: true,
       wall_left: true,
       wall_right: true,
+      obstacles: [],
       items: [
         {
           variant_id: 12,
@@ -99,5 +100,17 @@ describe('roomPlanner/mappers', () => {
     expect(payload.wall_back).toBe(true)
     expect(payload.wall_left).toBe(false)
     expect(payload.wall_right).toBe(true)
+  })
+
+  it('round-trip danh sách vùng cản', () => {
+    const obstacle = { id: 'door-1', type: 'door_swing', x: 1, z: -1, width: 0.9, depth: 0.9, rotation: 1.57 }
+    const state = sceneToEditorState({ width: 4, depth: 5, height: 3, obstacles: [obstacle] })
+    expect(state.obstacles).toEqual([obstacle])
+    expect(editorStateToPayload({ name: 'P', room: state.room, obstacles: state.obstacles, items: [] }).obstacles).toEqual([obstacle])
+  })
+
+  it('gộp loại vùng cản cũ thành restricted khi đọc scene', () => {
+    const state = sceneToEditorState({ width: 4, depth: 5, height: 3, obstacles: [{ id: 'old', type: 'column', x: 0, z: 0, width: 1, depth: 1 }] })
+    expect(state.obstacles[0].type).toBe('restricted')
   })
 })

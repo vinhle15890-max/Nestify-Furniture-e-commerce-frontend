@@ -80,6 +80,26 @@ export function findOverlaps(items) {
   return conflict
 }
 
+export function obstacleRect(obstacle) {
+  const doorScale = obstacle.type === 'door_swing' ? 1 : 0.5
+  return {
+    cx: obstacle.x,
+    cz: obstacle.z,
+    hx: obstacle.width * doorScale,
+    hz: obstacle.depth * doorScale,
+    angle: obstacle.rotation ?? 0,
+  }
+}
+
+// Cửa dùng vùng bao bảo thủ của cung quét: thà cảnh báo sớm còn hơn để một món
+// đồ chặn hành trình mở cửa. Các loại vùng khác dùng đúng OBB đã vẽ.
+export function findObstacleConflicts(items, obstacles) {
+  const zones = (obstacles ?? []).map(obstacleRect)
+  return new Set((items ?? [])
+    .filter((item) => zones.some((zone) => overlaps(itemRect(item), zone)))
+    .map((item) => item.localId))
+}
+
 // Kẹp tâm để footprint (đã xoay) nằm gọn trong phòng. Món to hơn phòng trên một
 // trục → về giữa (0) trục đó.
 export function clampRectToRoom(position, room, halfExtents) {

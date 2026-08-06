@@ -709,12 +709,17 @@ token/quyền thật).
   `scene/RoomCanvas` render bằng **R3F (`@react-three/fiber` v8) + drei v9** (sàn/tường/lưới, OrbitControls xoay-zoom,
   TransformControls chỉ di chuyển/xoay; customer scale bị loại khỏi gizmo và store). `CatalogTray` dùng `useInfiniteProducts` rồi lọc qua **`toPlaceableItems`**
   (chỉ giữ variant có `model_3d_url`). Lưu → `useCreateScene`/`useUpdateScene` → `POST`/`PATCH /room-scenes`.
+- **Vùng cản:** state `obstacles[]` chỉ trình bày hai capability: `restricted` (vùng không đặt đồ dạng OBB) và
+  `door_swing` (bản lề + cung quét). Record `column`/`cutout` cũ được mapper chuẩn hóa thành `restricted`.
+  `RoomEditPanel` thêm/chỉnh chính xác và chọn translate/rotate; `ObstacleLayer` cho chọn, kéo trực tiếp và gizmo,
+  đồng thời render ở editor/shared viewer; `collision.js` đưa món chồng vùng vào cảnh báo. Cửa dùng hộp bao bảo
+  thủ, chưa có polygon hoặc tay nắm resize trực tiếp.
 - **Phạm vi căn hộ:** một account là một căn hộ, tối đa 8 `room_scene`; mỗi
   scene là một phòng chữ nhật do người dùng tự đặt tên. `room_type` còn được gửi giá trị `other` để tương thích
   contract BE cũ nhưng không hiển thị thành một lựa chọn trùng nghĩa trong UI. `GET /room-scenes` trả
   `meta.limits`; `/account/rooms` dùng metadata này để hiện tổng quan và khóa
   “Thêm phòng” khi hết quota. Guest chỉ giữ một draft. Không có nhiều project
-  hoặc wall-drawing/CAD.
+  hoặc wall-drawing/CAD; chỉ có các primitive vùng cản nêu trên.
 - **Map dữ liệu:** `mappers.js` — `sceneToEditorState` (resource BE → state editor) ⇄ `editorStateToPayload` (state →
   payload). `RoomSceneItemResource` **không** trả name/price/thumbnail của variant → fallback về `sku`.
 - **Hiệu ứng phụ:** lần lưu đầu chuyển hướng `/room-planner` → `/room-planner/:id` (replace). Có **`beforeunload`** + chặn lúc

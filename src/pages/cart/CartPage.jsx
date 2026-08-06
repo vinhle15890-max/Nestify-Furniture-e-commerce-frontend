@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, CircleAlert, Minus, Plus, Trash2 } from 'lucide-react'
+import { ArrowRight, Check, CircleAlert, Minus, Plus, Ticket, Trash2 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
-import { useCart, useUpdateCartItem, useRemoveCartItem, useApplyVoucher } from '../../features/cart/hooks'
-import { Button } from '../../components/Button'
-import { Input } from '../../components/Input'
+import { useCart, useUpdateCartItem, useRemoveCartItem, useApplyVoucher, useAvailableVouchers } from '../../features/cart/hooks'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { VerifyEmailGate } from '../../components/VerifyEmailGate'
@@ -159,16 +157,28 @@ function CartLineItem({
           )}
 
           <div className="min-w-0 flex-1">
-            {item.variant?.product_slug ? (
-              <Link
-                to={`/p/${item.variant.product_slug}`}
-                className="font-display text-xl leading-snug text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:text-2xl"
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              {item.variant?.product_slug ? (
+                <Link
+                  to={`/p/${item.variant.product_slug}`}
+                  className="min-w-0 font-display text-xl leading-snug text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:text-2xl"
+                >
+                  {name}
+                </Link>
+              ) : (
+                <p className="min-w-0 font-display text-xl leading-snug text-foreground sm:text-2xl">{name}</p>
+              )}
+              <button
+                type="button"
+                aria-label={`Xóa ${name}`}
+                onClick={() => onRemove(item)}
+                disabled={itemPending}
+                className="inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap px-1 text-sm text-muted-foreground underline decoration-border-strong underline-offset-4 transition-colors hover:text-destructive active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {name}
-              </Link>
-            ) : (
-              <p className="font-display text-xl leading-snug text-foreground sm:text-2xl">{name}</p>
-            )}
+                <Trash2 aria-hidden="true" size={15} />
+                {removalPending ? 'Đang xóa…' : 'Xóa lựa chọn'}
+              </button>
+            </div>
 
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               {[item.variant?.name, item.variant?.sku].filter(Boolean).join(' · ')}
@@ -253,17 +263,6 @@ function CartLineItem({
       </div>
 
       <div className="space-y-3 pb-4 pt-3 md:col-span-2 md:pt-0">
-        <button
-          type="button"
-          aria-label={`Xóa ${name}`}
-          onClick={() => onRemove(item)}
-          disabled={itemPending}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground underline decoration-border-strong underline-offset-4 transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Trash2 size={15} />
-          {removalPending ? 'Đang xóa…' : 'Xóa lựa chọn'}
-        </button>
-
         {quantityPending && <ItemStatus pending>Đang cập nhật số lượng…</ItemStatus>}
         {removalPending && <ItemStatus pending>Đang cập nhật giỏ hàng…</ItemStatus>}
         {mutationError && <ItemStatus>{mutationError}</ItemStatus>}
@@ -295,6 +294,7 @@ export function CartPage() {
   const updateCartItem = useUpdateCartItem()
   const removeCartItem = useRemoveCartItem()
   const applyVoucher = useApplyVoucher()
+  const availableVouchersQuery = useAvailableVouchers(Boolean(token && user?.email_verified_at && !isStaff(user)))
 
   const [quantityDrafts, setQuantityDrafts] = useState({})
   const [pendingQuantities, setPendingQuantities] = useState({})
@@ -469,11 +469,11 @@ export function CartPage() {
     })
   }
 
-  function handleApplyVoucher(event) {
-    event.preventDefault()
+  function chooseVoucher(code) {
+    setVoucherCode(code)
     setVoucherError(null)
     setVoucherStaleNotice(false)
-    applyVoucher.mutate(voucherCode, {
+    applyVoucher.mutate(code, {
       onSuccess: (response) => setVoucherResult(response.data),
       onError: (error) => {
         setVoucherResult(null)
@@ -484,7 +484,7 @@ export function CartPage() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
-      <main className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
+      <main className="mx-auto max-w-7xl px-6 pb-32 pt-8 lg:px-10 lg:pb-36">
         <div className="max-w-2xl">
           <h1 className="font-display text-[clamp(2rem,3.2vw,2.75rem)] text-foreground">Giỏ hàng</h1>
           {items.length > 0 && (
@@ -575,31 +575,44 @@ export function CartPage() {
               </div>
             </section>
 
-            <section className="grid border-t border-border md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]">
-              <div className="py-4 md:pr-8">
-                <details>
-                  <summary className="w-fit cursor-pointer text-sm text-muted-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas">
-                    Có mã giảm giá?
-                  </summary>
-                  <form onSubmit={handleApplyVoucher} className="mt-5 flex max-w-md flex-col gap-3 sm:flex-row sm:items-end">
-                    <Input
-                      id="voucher-code"
-                      label="Mã giảm giá"
-                      value={voucherCode}
-                      onChange={(event) => setVoucherCode(event.target.value)}
-                      className="w-full"
-                    />
-                    <Button type="submit" variant="secondary" disabled={!voucherCode || applyVoucher.isPending} className="h-11 shrink-0">
-                      {applyVoucher.isPending ? 'Đang áp dụng…' : 'Áp dụng'}
-                    </Button>
-                  </form>
+            <section aria-labelledby="available-vouchers-heading" className="grid border-t border-border md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]">
+              <div className="py-6 md:pr-8">
+                <h2 id="available-vouchers-heading" className="flex items-center gap-2 text-lg font-medium text-foreground">
+                  <Ticket aria-hidden="true" size={19} /> Mã giảm giá có thể dùng
+                </h2>
+                {availableVouchersQuery.isLoading ? (
+                  <p role="status" className="mt-3 text-sm text-muted-foreground">Đang tìm mã phù hợp với giỏ hàng…</p>
+                ) : availableVouchersQuery.isError ? (
+                  <button type="button" onClick={() => availableVouchersQuery.refetch()} className="mt-3 text-sm text-foreground underline underline-offset-4">Chưa tải được mã. Thử lại</button>
+                ) : (availableVouchersQuery.data?.data ?? []).length === 0 ? (
+                  <p className="mt-3 text-sm text-muted-foreground">Hiện chưa có mã giảm giá cho giỏ hàng này.</p>
+                ) : (
+                  <div role="radiogroup" aria-label="Chọn mã giảm giá" className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {(availableVouchersQuery.data?.data ?? []).map((voucher) => {
+                      const selected = voucherCode === voucher.code && Boolean(voucherResult)
+                      return (
+                        <button
+                          key={voucher.code}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          disabled={applyVoucher.isPending}
+                          onClick={() => chooseVoucher(voucher.code)}
+                          className="flex min-h-20 min-w-0 items-center justify-between gap-4 rounded-control border border-border-strong bg-canvas px-4 py-3 text-left transition-[background-color,border-color,transform] duration-200 hover:border-foreground hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                        >
+                          <span className="min-w-0"><span className="block font-semibold tracking-wide text-foreground">{voucher.code}</span><span className="mt-1 block text-sm text-muted-foreground">Giảm {formatPrice(voucher.discount_amount)}</span></span>
+                          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-foreground bg-foreground text-canvas' : 'border-border-strong text-transparent'}`}><Check size={15} /></span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
                   {voucherError && <ItemStatus>{voucherError}</ItemStatus>}
                   {voucherStaleNotice && (
                     <p role="status" className="mt-4 max-w-md border-l-2 border-foreground pl-3 text-sm leading-relaxed text-foreground">
                       Giỏ hàng đã thay đổi. Hãy áp dụng lại mã để xem số tiền mới.
                     </p>
                   )}
-                </details>
               </div>
               <div aria-hidden="true" className="hidden border-l-2 border-foreground/25 md:block" />
             </section>
@@ -610,15 +623,13 @@ export function CartPage() {
               className="h-6 border-t border-border"
             />
 
-            <section className="grid md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]">
-              <div aria-hidden="true" className="hidden md:block" />
-              <div className="border-l-2 border-foreground/25 pb-8 pl-5 md:pl-7 lg:pb-10">
+            <aside aria-label="Tiếp tục thanh toán" className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-canvas/95 py-3 pl-5 pr-20 shadow-xl backdrop-blur-sm sm:pl-6 sm:pr-24 lg:left-auto lg:right-24 lg:bottom-6 lg:w-[24rem] lg:rounded-control lg:border lg:px-6">
                 {checkoutBlocked ? (
                   <div>
                     <button
                       type="button"
                       disabled
-                      className="flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-control border border-foreground/25 px-6 py-3 text-sm font-medium tracking-wide text-muted-foreground opacity-60"
+                    className="flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-control bg-foreground/15 px-6 py-3 text-sm font-semibold tracking-wide text-muted-foreground"
                     >
                       <span>Tiến hành thanh toán</span>
                       <ArrowRight size={17} />
@@ -632,7 +643,7 @@ export function CartPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-control border border-foreground/25 px-6 py-3 text-sm font-medium tracking-wide text-muted-foreground opacity-60"
+                    className="flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-control bg-foreground/15 px-6 py-3 text-sm font-semibold tracking-wide text-muted-foreground"
                     >
                       <span>Đang cập nhật giỏ hàng…</span>
                       <ArrowRight size={17} />
@@ -640,15 +651,14 @@ export function CartPage() {
                   </div>
                 ) : (
                   <Link
-                    to="/checkout"
-                    className="group flex min-h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-control border border-foreground/35 px-6 py-3 text-sm font-medium tracking-wide text-foreground transition-[background-color,border-color,color,opacity,transform] duration-200 ease-out hover:border-foreground hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                    to={voucherResult ? `/checkout?voucher=${encodeURIComponent(voucherCode)}` : '/checkout'}
+                    className="group flex min-h-12 w-full items-center justify-center gap-2 whitespace-nowrap rounded-control bg-foreground px-6 py-3 text-sm font-semibold tracking-wide text-canvas transition-[opacity,transform] duration-200 ease-out hover:opacity-90 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                   >
                     <span>Tiến hành thanh toán</span>
                     <ArrowRight size={17} className="transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
                   </Link>
                 )}
-              </div>
-            </section>
+            </aside>
           </div>
         )}
       </main>

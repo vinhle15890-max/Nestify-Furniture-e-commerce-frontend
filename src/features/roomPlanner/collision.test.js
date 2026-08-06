@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rotatedHalfExtents, itemRect, overlaps, findOverlaps, clampRectToRoom, projectTransform, snapToWalls, WALL_SNAP_THRESHOLD } from './collision'
+import { rotatedHalfExtents, itemRect, overlaps, findOverlaps, findObstacleConflicts, clampRectToRoom, projectTransform, snapToWalls, WALL_SNAP_THRESHOLD } from './collision'
 
 const item = (over) => ({
   localId: 1,
@@ -123,5 +123,14 @@ describe('snapToWalls', () => {
   })
   it('giữa phòng không hút', () => {
     expect(snapToWalls({ x: 0, y: 0.3, z: 0 }, room, he, WALL_SNAP_THRESHOLD)).toEqual({ x: 0, y: 0.3, z: 0 })
+  })
+})
+
+describe('findObstacleConflicts', () => {
+  it('đánh dấu món nằm trong vùng cấm và bỏ qua món ở ngoài', () => {
+    const inside = item({ localId: 1, footprint: { x: 0.5, y: 1, z: 0.5 } })
+    const outside = item({ localId: 2, position: { x: 2, y: 0, z: 2 }, footprint: { x: 0.5, y: 1, z: 0.5 } })
+    const conflicts = findObstacleConflicts([inside, outside], [{ id: 'z1', type: 'restricted', x: 0, z: 0, width: 1, depth: 1, rotation: 0 }])
+    expect([...conflicts]).toEqual([1])
   })
 })

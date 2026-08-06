@@ -1,7 +1,7 @@
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V4 · checkout workbench · contrast: pass */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CircleAlert, ExternalLink, LockKeyhole, MapPin, ShoppingBag } from 'lucide-react'
 import { useCart, useApplyVoucher } from '../../features/cart/hooks'
 import { useAddresses } from '../../features/addresses/hooks'
@@ -13,7 +13,6 @@ import { resetCheckoutIdempotencyKey } from '../../lib/idempotency'
 import { redirectToExternal } from '../../lib/navigation'
 import { BackLink } from '../../components/BackLink'
 import { Button } from '../../components/Button'
-import { Input } from '../../components/Input'
 import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
@@ -139,7 +138,7 @@ function cartBasis(cart) {
 
 function CheckoutShell({ children, width = 'max-w-6xl' }) {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-canvas px-5 py-10 text-ink sm:px-6 md:py-12 lg:px-10">
+    <div className="min-h-screen overflow-x-hidden bg-canvas px-5 pb-32 pt-10 text-ink sm:px-6 md:pb-36 md:pt-12 lg:px-10">
       <div className={`mx-auto w-full min-w-0 ${width}`}>{children}</div>
     </div>
   )
@@ -408,71 +407,6 @@ function PaymentClause({ method, editing, locked, onEdit, onCancel, onSelect }) 
   )
 }
 
-function VoucherClause({
-  code,
-  result,
-  error,
-  staleNotice,
-  pending,
-  locked,
-  inputRef,
-  onCodeChange,
-  onApply,
-}) {
-  return (
-    <section aria-labelledby="checkout-voucher-heading" className="border-t border-border/80 py-4">
-      <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(8.5rem,0.32fr)_minmax(0,1fr)] sm:gap-6 lg:grid-cols-1 lg:gap-3">
-        <h2 id="checkout-voucher-heading" className="font-medium text-foreground">Mã giảm giá</h2>
-        <div className="min-w-0">
-          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <Input
-              ref={inputRef}
-              id="checkout-voucher-code"
-              label="Mã muốn kiểm tra"
-              value={code}
-              onChange={onCodeChange}
-              error={error}
-              disabled={locked}
-              className="w-full min-w-0"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onApply}
-              disabled={locked || !code.trim() || pending}
-              className="self-end"
-            >
-              {pending ? 'Đang kiểm tra…' : 'Xem trước'}
-            </Button>
-          </div>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Chỉ là xem trước trên Cart hiện tại; mã chưa được tiêu thụ.
-          </p>
-
-          {staleNotice && !result && (
-            <FactStatus role="status" className="mt-4">
-              Cart đã thay đổi. Kết quả xem trước trước đó không còn được dùng; hãy kiểm tra lại mã nếu cần.
-            </FactStatus>
-          )}
-
-          {result && (
-            <dl className="mt-5 max-w-xl border-l-2 border-foreground/35 pl-4 text-sm">
-              <div className="flex items-baseline justify-between gap-6 text-muted-foreground">
-                <dt>Điều chỉnh xem trước</dt>
-                <dd className="tabular-nums text-foreground">-{formatPrice(result.discount_amount)}</dd>
-              </div>
-              <div className="mt-3 flex items-baseline justify-between gap-6 border-t border-border/70 pt-3">
-                <dt className="text-foreground">Giảm giá dự kiến</dt>
-                <dd className="text-xl font-semibold tabular-nums text-foreground">{formatPrice(result.final_total)}</dd>
-              </div>
-            </dl>
-          )}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function CreatedOrderEvidence({ order }) {
   const items = order?.items ?? []
   if (!items.length && order?.total == null) return null
@@ -619,6 +553,7 @@ export function CheckoutPage() {
   const createPaymentSession = useCreatePaymentSession()
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
   const [recoveryRecord, setRecoveryRecord] = useState(() => readCheckoutRecovery())
@@ -634,7 +569,7 @@ export function CheckoutPage() {
   const [editingAddress, setEditingAddress] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('payos')
   const [paymentEditing, setPaymentEditing] = useState(false)
-  const [voucherCode, setVoucherCode] = useState('')
+  const [voucherCode] = useState(() => searchParams.get('voucher')?.trim() ?? '')
   const [voucherResult, setVoucherResult] = useState(null)
   const [voucherBasis, setVoucherBasis] = useState(null)
   const [voucherError, setVoucherError] = useState(null)
@@ -649,7 +584,7 @@ export function CheckoutPage() {
   const [paymentHandoffPending, setPaymentHandoffPending] = useState(false)
   const [existingOrderId, setExistingOrderId] = useState(null)
   const addressGroupRef = useRef(null)
-  const voucherInputRef = useRef(null)
+  const voucherAutoAppliedRef = useRef(false)
   const orderErrorRef = useRef(null)
 
   const addresses = useMemo(() => addressesData?.data ?? [], [addressesData?.data])
@@ -688,8 +623,20 @@ export function CheckoutPage() {
   }, [addressError, addressEditing])
 
   useEffect(() => {
-    if (voucherError) voucherInputRef.current?.focus()
-  }, [voucherError])
+    if (!voucherCode || !currentCartBasis || voucherAutoAppliedRef.current) return
+    voucherAutoAppliedRef.current = true
+    applyVoucher.mutate(voucherCode, {
+      onSuccess: (response) => {
+        setVoucherResult(response.data)
+        setVoucherBasis(currentCartBasis)
+      },
+      onError: (error) => {
+        setVoucherResult(null)
+        setVoucherBasis(null)
+        setVoucherError(voucherFailureMessage(error))
+      },
+    })
+  }, [voucherCode, currentCartBasis, applyVoucher])
 
   useEffect(() => {
     if (orderError) orderErrorRef.current?.focus()
@@ -832,35 +779,6 @@ export function CheckoutPage() {
     if (declarationLocked) return
     setEditingAddress(address)
     setAddressModalOpen(true)
-  }
-
-  function handleApplyVoucher(event) {
-    event.preventDefault()
-    if (declarationLocked) return
-    setVoucherError(null)
-    setVoucherStaleNotice(false)
-    const normalizedCode = voucherCode.trim()
-
-    applyVoucher.mutate(normalizedCode, {
-      onSuccess: (response) => {
-        setVoucherResult(response.data)
-        setVoucherBasis(currentCartBasis)
-      },
-      onError: (error) => {
-        setVoucherResult(null)
-        setVoucherBasis(null)
-        setVoucherError(voucherFailureMessage(error))
-      },
-    })
-  }
-
-  function handleVoucherCodeChange(event) {
-    if (declarationLocked) return
-    setVoucherCode(event.target.value)
-    setVoucherResult(null)
-    setVoucherBasis(null)
-    setVoucherError(null)
-    setVoucherStaleNotice(false)
   }
 
   async function openPaymentSession(order) {
@@ -1028,17 +946,15 @@ export function CheckoutPage() {
             }}
           />
 
-          <VoucherClause
-            code={declarationLocked ? submittedDeclaration.voucherCode : voucherCode}
-            result={declarationLocked ? submittedDeclaration.voucherResult : voucherResult}
-            error={voucherError}
-            staleNotice={voucherStaleNotice}
-            pending={applyVoucher.isPending}
-            locked={declarationLocked}
-            inputRef={voucherInputRef}
-            onCodeChange={handleVoucherCodeChange}
-            onApply={handleApplyVoucher}
-          />
+          {voucherCode && (
+            <section aria-labelledby="checkout-voucher-heading" className="border-t border-border/80 py-4">
+              <h2 id="checkout-voucher-heading" className="font-medium text-foreground">Mã giảm giá từ giỏ hàng</h2>
+              {applyVoucher.isPending && <p role="status" className="mt-2 text-sm text-muted-foreground">Đang xác minh lại {voucherCode}…</p>}
+              {voucherResult && <p className="mt-2 text-sm text-foreground"><span className="font-semibold">{voucherCode}</span> · giảm {formatPrice(voucherResult.discount_amount)}</p>}
+              {voucherError && <FactStatus className="mt-3">{voucherError} <Link to="/cart" className="underline underline-offset-4">Chọn lại trong giỏ hàng.</Link></FactStatus>}
+              {voucherStaleNotice && <FactStatus role="status" className="mt-3">Giỏ hàng đã thay đổi; mã này không còn được dùng. <Link to="/cart" className="underline underline-offset-4">Chọn lại trong giỏ hàng.</Link></FactStatus>}
+            </section>
+          )}
 
         <section aria-labelledby="checkout-certainty-heading" className="mt-4 max-w-5xl border-t-2 border-foreground pt-5">
           <div className="max-w-3xl">
@@ -1067,7 +983,7 @@ export function CheckoutPage() {
             </FactStatus>
           )}
 
-          <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+          <div className="fixed inset-x-0 bottom-0 z-30 flex flex-col gap-3 border-t border-border bg-canvas/95 py-3 pl-5 pr-20 shadow-xl backdrop-blur-sm sm:pl-6 sm:pr-24 lg:left-auto lg:right-24 lg:bottom-6 lg:w-[24rem] lg:rounded-control lg:border lg:px-6">
             <Button
               type="submit"
               variant="confirmed"

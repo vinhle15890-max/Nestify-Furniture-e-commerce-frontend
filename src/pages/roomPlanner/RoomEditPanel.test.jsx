@@ -43,4 +43,28 @@ describe('RoomEditPanel', () => {
     expect(useEditorStore.getState().room.depth).toBe(5)
     expect(useEditorStore.getState().editMode).toBe('furnish')
   })
+
+  it('thêm, chỉnh và xoá vùng cản', () => {
+    render(<RoomEditPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'Cửa mở' }))
+    expect(useEditorStore.getState().obstacles[0].type).toBe('door_swing')
+    expect(screen.getByText(/Chấm đậm là bản lề/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Rộng cánh cửa (m)')).toHaveValue(0.9)
+    expect(useEditorStore.getState().selectedObstacleId).toBe(useEditorStore.getState().obstacles[0].id)
+    fireEvent.change(screen.getByLabelText('X (m)'), { target: { value: '0.8' } })
+    expect(useEditorStore.getState().obstacles[0].x).toBe(0.8)
+    fireEvent.click(screen.getByRole('button', { name: 'Xoay' }))
+    expect(useEditorStore.getState().obstacleGizmoMode).toBe('rotate')
+    fireEvent.click(screen.getByRole('button', { name: 'Xoá vùng 1' }))
+    expect(useEditorStore.getState().obstacles).toEqual([])
+  })
+
+  it('gộp các vùng cản cùng hành vi thành một công cụ', () => {
+    render(<RoomEditPanel />)
+    expect(screen.queryByRole('button', { name: 'Cột' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sàn khuyết' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Vùng không đặt đồ' }))
+    expect(useEditorStore.getState().obstacles[0].type).toBe('restricted')
+    expect(screen.getByText(/cột, sàn khuyết, lối đi/)).toBeInTheDocument()
+  })
 })

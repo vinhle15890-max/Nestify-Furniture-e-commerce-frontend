@@ -19,6 +19,7 @@ cp .env.example .env
 
 ```
 VITE_API_BASE_URL=http://localhost:8000/api
+VITE_SITE_URL=http://localhost:1309
 ```
 
 Start the dev server:

@@ -14,6 +14,7 @@ export function editorStateToDraftSnapshot(state) {
     wall_back: state.room.walls?.back ?? true,
     wall_left: state.room.walls?.left ?? true,
     wall_right: state.room.walls?.right ?? true,
+    obstacles: state.obstacles ?? [],
     items: state.items.map((item) => ({
       variant: item.variant,
       position: item.position,

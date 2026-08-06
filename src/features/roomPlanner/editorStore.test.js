@@ -379,3 +379,21 @@ describe('vỏ phòng: resizeRoom / toggleWall / editMode', () => {
     expect(store().room.walls.left).toBe(false)
   })
 })
+
+describe('vùng cửa và tường', () => {
+  it('hút bản lề cửa vào tường gần nhất thay vì giữ cách tường một bán kính', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 5, height: 3 })
+    useEditorStore.getState().addObstacle('door_swing')
+    const id = useEditorStore.getState().selectedObstacleId
+    useEditorStore.getState().updateObstacle(id, { x: 1.8, z: 0.4 })
+    expect(useEditorStore.getState().obstacles[0]).toMatchObject({ x: 2, z: 0.4 })
+  })
+
+  it('không hút cửa khi bản lề còn ở xa tường', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 5, height: 3 })
+    useEditorStore.getState().addObstacle('door_swing')
+    const id = useEditorStore.getState().selectedObstacleId
+    useEditorStore.getState().updateObstacle(id, { x: 1.2, z: 0.4 })
+    expect(useEditorStore.getState().obstacles[0]).toMatchObject({ x: 1.2, z: 0.4 })
+  })
+})
