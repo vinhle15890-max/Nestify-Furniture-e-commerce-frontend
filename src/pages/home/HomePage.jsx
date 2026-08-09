@@ -4,6 +4,7 @@ import { BecomingStates } from '../../components/home/BecomingStates'
 import { BestSellers } from '../../components/home/BestSellers'
 import { PlannerInvite } from '../../components/home/PlannerInvite'
 import { SeoHead } from '../../components/SeoHead'
+import { createHomeJsonLd, HOME_SEO } from './homeSeo'
 
 /* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
 
@@ -26,11 +27,18 @@ import { SeoHead } from '../../components/SeoHead'
  * reframed away from social proof; Threshold forbids it).
  */
 export function HomePage() {
+  const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
+
   // Whole Home reads as one `canvas` surface (Not Yet Seen). The global body bg
   // is still the legacy cream — scoped here so we don't touch other pages.
   return (
     <div className="bg-canvas text-ink">
-      <SeoHead title="Nestify — Thấy rõ căn phòng trước khi chọn" description="Khám phá nội thất và đặt thử trong căn phòng 3D để nhìn rõ lựa chọn trước khi quyết định." canonicalPath="/" />
+      <SeoHead
+        title={HOME_SEO.title}
+        description={HOME_SEO.description}
+        canonicalPath="/"
+        jsonLd={createHomeJsonLd(siteUrl)}
+      />
       <Hero />
       <FeaturedCategories />
       <BestSellers />

@@ -199,11 +199,17 @@ Storefront publish metadata qua `SeoHead`: title, description, canonical, robots
 JSON-LD được quản lý theo lifecycle route. Product dùng `AggregateOffer` khi có nhiều active variant, tính
 low/high price và availability từ stock thật; auth/account/admin/404 dùng `noindex`. Laravel sinh sitemap từ
 category + active product và robots policy; Vercel proxy hai file về cùng storefront origin. Production build
-có `VITE_API_BASE_URL` sẽ prerender category/product thành HTML crawlable; canonical origin lấy từ
-`VITE_SITE_URL`, với fallback production cố định `https://www.nestify.asia` (không bao giờ suy ra từ API
-origin). Metadata prerender được đánh dấu để `SeoHead` thay thế khi hydrate, tránh hai canonical mâu thuẫn.
-Build không có API base URL bỏ qua prerender và ghi thông báo rõ, phù hợp local/test nhưng không đạt SEO
-production gate.
+luôn prerender trang chủ với title/description/canonical, nội dung crawlable và JSON-LD `Organization` +
+`WebSite`; có `VITE_API_BASE_URL` thì prerender thêm category/product. Canonical origin lấy từ `VITE_SITE_URL`,
+với fallback production cố định `https://www.nestify.asia` (không bao giờ suy ra từ API origin). Metadata
+prerender được đánh dấu để `SeoHead` thay thế khi hydrate, tránh hai canonical mâu thuẫn. Build không có API
+base URL vẫn hoàn tất prerender trang chủ, bỏ qua category/product và ghi thông báo rõ; production gate đầy
+đủ vẫn cần API base URL.
+
+Production verification ngày 2026-08-06 xác nhận product HTML, canonical, Open Graph URL, Product JSON-LD,
+robots và sitemap cùng dùng `https://www.nestify.asia`; Google Search Console đã chấp nhận submission
+`sitemap.xml`. Trạng thái này chỉ xác nhận discovery submission, không đồng nghĩa mọi URL đã được index hoặc
+có thứ hạng tìm kiếm.
 
 Live score client-side, deterministic: title length 20 (pass 50–60, warn 30–70); meta length 20 (pass
 140–160, warn 100–180); keyword trong title/meta/đoạn `<p>` đầu mỗi mục 15; H2+UL 15. Pass=full,
