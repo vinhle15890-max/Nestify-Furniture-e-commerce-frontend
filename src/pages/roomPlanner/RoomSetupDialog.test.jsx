@@ -4,6 +4,24 @@ import userEvent from '@testing-library/user-event'
 import { RoomSetupDialog } from './RoomSetupDialog'
 
 describe('RoomSetupDialog', () => {
+  it('cannot be dismissed while room setup is required', async () => {
+    const onOpenChange = vi.fn()
+    render(
+      <RoomSetupDialog
+        open
+        required
+        onOpenChange={onOpenChange}
+        initialRoom={{ width: 4, depth: 5, height: 2.8 }}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Đóng' })).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.getByRole('dialog', { name: 'Kích thước phòng' })).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+  })
+
   it('stacks dimension fields below the medium breakpoint and explains each axis', () => {
     render(<RoomSetupDialog open onOpenChange={vi.fn()} initialRoom={{ width: 4, depth: 5, height: 2.8 }} onSubmit={vi.fn()} />)
     expect(screen.getByTestId('room-dimension-fields')).toHaveClass('grid-cols-1', 'md:grid-cols-3')

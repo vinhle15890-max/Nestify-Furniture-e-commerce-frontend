@@ -44,6 +44,12 @@ tạo mới khi đạt giới hạn. Guest vẫn chỉ có một draft room. Kh�
 thứ hai, polygon hay trình vẽ tường tự do; room edit có vùng không đặt đồ chữ nhật
 và vùng cửa với hộp bao cung quét.
 
+Với route tạo phòng mới, form kích thước là điều kiện khởi tạo bắt buộc: khi editor
+còn `idle`, dialog không có nút đóng và bỏ qua Escape/click ra ngoài. Chỉ submit hợp
+lệ mới gọi `initNew` rồi mount canvas. Vì vậy người dùng không thể rơi vào workspace
+trắng chưa có room shell; các dialog chỉnh sửa sau khi phòng đã sẵn sàng vẫn giữ hành
+vi đóng bình thường.
+
 ### Hệ tọa độ và room shell
 
 Phòng đặt tâm `(0,0,0)`: X=rộng, Z=sâu, Y=hướng lên, sàn Y=0. UI giới hạn rộng/sâu 2–30 m và cao

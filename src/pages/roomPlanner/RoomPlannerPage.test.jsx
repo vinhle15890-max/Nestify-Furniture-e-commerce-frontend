@@ -110,6 +110,10 @@ describe('RoomPlannerPage', () => {
 
   it('shows the setup dialog for an explicit new room, then the canvas', async () => {
     renderPage('/room-planner?new=1')
+    expect(await screen.findByRole('dialog', { name: 'Kích thước phòng' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Đóng' })).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.getByRole('dialog', { name: 'Kích thước phòng' })).toBeInTheDocument()
     await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
     expect(await screen.findByTestId('room-canvas')).toBeInTheDocument()
   })
