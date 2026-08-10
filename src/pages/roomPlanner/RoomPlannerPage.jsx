@@ -266,15 +266,6 @@ export function RoomPlannerPage() {
     setSetupOpen(false)
   }
 
-  // Radix fires onOpenChange only on user-driven dismiss (Esc / overlay / X) —
-  // NOT on our controlled close in handleCreateRoom. So dismissing the setup
-  // dialog without submitting means abandoning the deep-link intent: drop the
-  // params so the failed preload can't linger or re-trigger on back/forward.
-  const handleSetupOpenChange = (open) => {
-    setSetupOpen(open)
-    if (!open && hasDeepLink && !applied.current) clearPreloadParams()
-  }
-
   // Persist the scene if there are unsaved changes, returning the scene id.
   // Shared by Save and Add-to-cart — the cart handoff needs a saved scene id to
   // tag items with (the whole point of the imagined callback in the Cart).
@@ -491,7 +482,8 @@ export function RoomPlannerPage() {
 
       <RoomSetupDialog
         open={setupOpen}
-        onOpenChange={handleSetupOpenChange}
+        required={store.status === 'idle'}
+        onOpenChange={setSetupOpen}
         initialRoom={DEFAULT_ROOM}
         onSubmit={handleCreateRoom}
       />

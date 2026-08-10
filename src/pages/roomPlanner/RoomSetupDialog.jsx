@@ -9,7 +9,7 @@ const FIELDS = [
   { key: 'height', label: 'Chiều cao (m)' },
 ]
 
-export function RoomSetupDialog({ open, onOpenChange, initialRoom, onSubmit }) {
+export function RoomSetupDialog({ open, onOpenChange, initialRoom, onSubmit, required = false }) {
   const [values, setValues] = useState(() => ({
     ...initialRoom,
     name: initialRoom.name ?? 'Phòng mới',
@@ -38,9 +38,14 @@ export function RoomSetupDialog({ open, onOpenChange, initialRoom, onSubmit }) {
   return (
     <BecomingModal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(nextOpen) => {
+        if (!required || nextOpen) onOpenChange(nextOpen)
+      }}
+      showCloseButton={!required}
       title="Kích thước phòng"
-      description="Nhập kích thước để dựng căn phòng theo đúng tỷ lệ."
+      description={required
+        ? 'Nhập kích thước để bắt đầu dựng căn phòng theo đúng tỷ lệ.'
+        : 'Nhập kích thước để dựng căn phòng theo đúng tỷ lệ.'}
     >
       <form onSubmit={submit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1.5 text-sm font-medium text-foreground" htmlFor="room-name">

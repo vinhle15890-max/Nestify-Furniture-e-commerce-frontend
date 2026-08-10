@@ -1,17 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { resolveSeoSite } from './seo-site.mjs'
+import { createHomeJsonLd, HOME_SEO } from '../src/pages/home/homeSeo.js'
 
 const api = process.env.VITE_API_BASE_URL?.replace(/\/$/, '')
-if (!api) {
-  process.stdout.write('SEO prerender skipped: VITE_API_BASE_URL is not set.\n')
-  process.exit(0)
-}
-
 const template = await readFile('dist/index.html', 'utf8')
 const escape = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char])
 const plain = (html = '') => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-const site = resolveSeoSite(process.env.VITE_SITE_URL, api)
+const site = resolveSeoSite(process.env.VITE_SITE_URL, api || 'https://www.nestify.asia')
 
 async function get(endpoint) {
   const response = await fetch(`${api}${endpoint}`)
@@ -26,6 +22,20 @@ async function emit(route, { title, description, body, jsonLd }) {
   const directory = path.join('dist', route.replace(/^\//, ''))
   await mkdir(directory, { recursive: true })
   await writeFile(path.join(directory, 'index.html'), html)
+}
+
+await emit('/', {
+  ...HOME_SEO,
+  body: {
+    title: 'Nội thất phù hợp hơn khi bạn nhìn thấy trước',
+    description: HOME_SEO.description,
+  },
+  jsonLd: createHomeJsonLd(site),
+})
+
+if (!api) {
+  process.stdout.write('Homepage SEO prerender completed; category/product prerender skipped because VITE_API_BASE_URL is not set.\n')
+  process.exit(0)
 }
 
 const categories = (await get('/categories')).data ?? []
