@@ -11,6 +11,8 @@ import { readCatalogUrlState, writeCatalogUrlState } from '../../lib/catalogUrlS
 import { CatalogFilterDrawer, CatalogFilterFields } from './CatalogFilterDrawer'
 import { FeedbackState } from '../../components/FeedbackState'
 import { SeoHead } from '../../components/SeoHead'
+import { useJourneyContext } from '../../features/personalization/hooks'
+import { rankProductsWithJourney } from '../../features/personalization/rank'
 
 const SORT_OPTIONS = [
   { value: '', label: 'Mặc định' },
@@ -38,6 +40,7 @@ export function CategoryPage() {
   const isAll = categorySlug === 'all'
   const { search, price: priceKey, sort } = readCatalogUrlState(searchParams)
   const [lensOpen, setLensOpen] = useState(false)
+  const [journeyOrder, setJourneyOrder] = useState(true)
   // Remount the internally controlled search input when a constraint is cleared.
 
   const categoryQuery = useCategory(isAll ? undefined : categorySlug)
@@ -82,6 +85,13 @@ export function CategoryPage() {
   const products = useMemo(
     () => productsQuery.data?.pages.flatMap((page) => page.data) ?? [],
     [productsQuery.data],
+  )
+  const journeyQuery = useJourneyContext()
+  const journeyDiscovery = useMemo(() => journeyQuery.data?.data?.discovery ?? [], [journeyQuery.data])
+  const canUseJourneyOrder = journeyOrder && !sort && journeyDiscovery.length > 0
+  const displayedProducts = useMemo(
+    () => canUseJourneyOrder ? rankProductsWithJourney(products, journeyDiscovery) : products,
+    [canUseJourneyOrder, journeyDiscovery, products],
   )
   const hasProductData = Boolean(productsQuery.data)
 
@@ -187,6 +197,13 @@ export function CategoryPage() {
 
         {activeConstraints.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-2">{activeConstraints.map((constraint) => <button key={constraint.key} type="button" aria-label={`Bỏ lọc ${constraint.label}`} onClick={constraint.onRemove} className="rounded-full border border-unbuilt px-3 py-1 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{constraint.label} <span aria-hidden="true">×</span></button>)}<button type="button" onClick={clearAll} className="text-xs text-ink/65 underline underline-offset-4">Xóa tất cả</button></div>}
 
+        {canUseJourneyOrder && (
+          <div className="mt-4 flex flex-col gap-2 border-l-2 border-emerging pl-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-foreground">Một số lựa chọn liên quan đến hành trình của bạn được đưa lên trước; toàn bộ sản phẩm vẫn ở đây.</p>
+            <button type="button" onClick={() => setJourneyOrder(false)} className="min-h-11 w-fit whitespace-nowrap text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Dùng thứ tự mặc định</button>
+          </div>
+        )}
+
         <div className="mt-6 grid items-start gap-8 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
           <aside aria-label="Lọc và sắp xếp sản phẩm" className="sticky top-28 hidden md:block"><CatalogFilterFields search={search} onSearchChange={setSearch} currentCategoryValue={currentCategoryValue} onCategoryChange={handleCategoryChange} categories={flatCategories} categoryFallback={hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null} priceKey={priceKey} onPriceChange={setPriceKey} priceOptions={PRICE_RANGES} sort={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} /></aside>
           <div className="min-w-0">
@@ -235,7 +252,7 @@ export function CategoryPage() {
             aria-label="Trường sản phẩm"
             className="grid grid-cols-2 gap-x-3 gap-y-10 lg:grid-cols-3 xl:grid-cols-4"
           >
-            {products.map((product) => (
+            {displayedProducts.map((product) => (
               <DiscoverProductUnit key={product.id} product={product} />
             ))}
           </section>

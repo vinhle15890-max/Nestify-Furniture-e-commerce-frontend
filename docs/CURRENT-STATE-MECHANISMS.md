@@ -32,6 +32,23 @@ security boundary. Tương tự, FE ẩn purchase với staff nhưng backend m�
   render 403 tại URL hiện tại. “Xem với vai trò” chỉ thay permission dùng để render; token/danh tính thật giữ
   nguyên, backend vẫn xét quyền thật.
 
+## Cá nhân hóa hành trình trên Home
+
+`useJourneyContext` chỉ enable cho customer có token và `email_verified_at`, đồng thời loại staff bằng `isStaff`.
+Nó dùng một contract chung `GET /me/journey-context`; backend chịu trách nhiệm tổng hợp phòng, wishlist,
+recently-viewed và sản phẩm đã đặt, đồng thời trả continuation, category signals, discovery candidates và lý do.
+Home ưu tiên continuation sau Featured Categories. Catalog stable-rank candidate có bằng chứng trong tập kết
+quả hiện tại khi user chưa chọn sort; CatalogTray làm tương tự khi chưa search. Không surface nào giấu sản phẩm;
+Catalog công bố việc đổi thứ tự và cho quay về thứ tự mặc định. Product
+Detail nhắc đúng phòng đang tiếp tục. Account cung cấp opt-out và xóa riêng lịch sử `product_viewed`.
+
+`PATCH /me/personalization` dừng ghi view mới nhưng không xóa phòng/wishlist/order. `DELETE
+/me/personalization/history` chỉ xóa lịch sử hành vi. Khi context disabled/rỗng/lỗi, mọi surface giữ hành vi
+công khai hiện có; giá, voucher, tồn kho, Cart và Checkout không được cá nhân hóa.
+
+Các component `PersonalizedGreeting`, `SuggestedForYou` và `PersonalizedSection` cũ còn ở source nhưng không
+được HomePage nối vào runtime. `RecentlyViewedStrip` vẫn hoạt động độc lập ở ProductPage.
+
 ## Room Planner Interaction Model
 
 ### Căn hộ và giới hạn phạm vi

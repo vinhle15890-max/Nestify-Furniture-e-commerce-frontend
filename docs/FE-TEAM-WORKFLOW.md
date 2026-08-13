@@ -508,30 +508,32 @@ BE `14-workflows.md` §10.
 
 > **Liên kết bảo vệ `J3`:** [Kịch bản Chương 4A](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4a--an-khám-phá) · [BE §10b](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10b-personalization--recently-viewed-tính-năng-cá-nhân-hoá) · Tài/BE2 ↔ FE1.
 
-**Actor:** Customer (logged-in + verified only). **Entry:** `ProductPage` → ghi xem + hiện "Bạn vừa xem"; `HomePage` → `PersonalizedSection` giữa Hero và Featured Categories.
+**Actor:** Customer (logged-in + verified only). **Entry:** `ProductPage` → ghi xem + hiện "Bạn vừa xem"; `HomePage` → `JourneyContinuation` sau Featured Categories.
 
 **Feature structure:** `src/features/personalization/`:
-- `api.js` — `recordProductView(slug)` (fire-and-forget POST), `getRecentlyViewed(limit=10)` (GET).
-- `hooks.js` — `useRecordProductView()` (mutation, không await), `useRecentlyViewed({ enabled, limit })`  (query, enabled chỉ khi logged-in).
-- `recommend.js` — `topCategorySlug(recentlyViewed)` (logic JS thuần: tìm danh mục xuất hiện nhiều nhất trong recently-viewed).
+- `api.js` — record/recently-viewed cùng `getJourneyContext`, `updatePersonalization`, `clearPersonalizationHistory`.
+- `hooks.js` — `useJourneyContext()` là cache chung cho toàn storefront; chỉ enable cho verified customer. Hai mutation control invalidate cả context và recently-viewed.
+- `recommend.js` — logic cũ của `SuggestedForYou`; không còn điều phối cá nhân hóa Home.
 
 **Components under `src/components/personalization/`:**
-- `PersonalizedGreeting` — "Chào [tên], hôm nay có gì mới?" (chỉ logged-in customer).
-- `RecentlyViewedStrip` — cuộn ngang recently-viewed, exclude current product (ở ProductPage), auto-hide nếu rỗng.
-- `SuggestedForYou` — top 5 products từ category được gợi ý (via `topCategorySlug`), fetch qua `GET /products?filter[category]=...`, auto-hide nếu rỗng.
-- `PersonalizedSection` — **composition root** — gate `token && !isStaff(user)` (logged-in customers only), wrap PersonalizedGreeting + RecentlyViewedStrip + SuggestedForYou, render ở HomePage.
+- `RecentlyViewedStrip` — recently-viewed trên ProductPage, exclude sản phẩm hiện tại, auto-hide nếu rỗng.
+- `JourneyContinuation` — **composition root hiện hành trên Home**, render từ Journey Context; không tự fan-out rooms/wishlist/recently-viewed.
+- `PersonalizedGreeting`, `SuggestedForYou`, `PersonalizedSection` — implementation cũ còn trong source để tránh cleanup ngoài phạm vi, nhưng không còn được HomePage import hoặc render.
 
 **Luồng:**
 1. **ProductPage:** on mount → call `useRecordProductView()` (không await) → ghi event. Hiển thị `RecentlyViewedStrip` (nếu logged-in customer, exclude current product).
-2. **HomePage:** render `PersonalizedSection` giữa Hero + FeaturedCategories → gate `isCustomer = Boolean(token) && !isStaff(user)` (logged-in customer, loại staff/admin) → gọi `useRecentlyViewed({ enabled: isCustomer })` → gợi ý danh mục top via `topCategorySlug()`.
-3. **Visibility:** admin/staff xem storefront → `PersonalizedSection` invisible (`render null`); guest → `render null`. Chỉ **customer** (đã verify) thấy.
+2. **HomePage:** sau `FeaturedCategories`, render continuation + discovery từ context chung.
+3. **Catalog/Planner:** Catalog stable-rank candidate trong tập search/filter hiện tại khi chưa chọn sort; Planner chỉ rank khi chưa search. Không loại phần còn lại; Catalog cho tắt thứ tự cá nhân trong phiên.
+4. **Product Detail:** nếu continuation là room, hiện một callback nhỏ dẫn về đúng phòng; không giả vờ sản phẩm đã vừa phòng.
+5. **Account:** cho bật/tắt và xóa behavioral history; rooms, wishlist, orders không bị xóa.
+6. **Visibility:** admin/staff, guest và customer chưa verify không gọi context. Context rỗng/disabled/error fallback về UI công khai.
 
 **Side-effect & Lỗi:**
 - `recordProductView` fail (404/network) → **silent** (fire-and-forget, không toast).
-- `useRecentlyViewed` rỗng → `RecentlyViewedStrip` / `SuggestedForYou` auto-hide (không hiện empty state).
-- `topCategorySlug` fallback → category đầu tiên của tree (hoặc "all") khi không có recently-viewed.
+- Home không đủ tín hiệu → `JourneyContinuation` auto-hide; lỗi một nguồn không được diễn giải thành sở thích hay mức độ phù hợp giả.
+- Không có category từ lượt xem gần nhất → không gọi catalog discovery; phần tiếp tục phòng/wishlist vẫn có thể hiển thị.
 
-> **Phản biện:** (1) Fire-and-forget `recordProductView` → không chậm page load; silent fail chống nát UX. (2) Gate `token && !isStaff(user)` → customer-only surfaces; admin xem storefront vẫn nhìn catalog bình thường. (3) `RecentlyViewedStrip` exclude current product → tránh "sản phẩm đang xem" xuất hiện lại. (4) `topCategorySlug` là logic JS không gọi API → tái dùng danh sách recently-viewed đã fetch, không thêm request. (5) Auto-hide empty → UX sạch, không phải xử lý null-check ở page.
+> **Phản biện:** (1) Fire-and-forget `recordProductView` không chậm ProductPage. (2) Gate chạy trước data hooks nên actor ngoài phạm vi không phát sinh request. (3) Tiếp tục việc đã tạo có giá trị cao hơn một lưới recommendation; discovery chỉ đứng sau và công bố đúng nguồn bằng chứng. (4) Loại slug đã xem/đã lưu để phần khám phá thật sự mở rộng lựa chọn. (5) Auto-hide khi thiếu bằng chứng, không giả vờ hiểu người dùng mới.
 
 ---
 

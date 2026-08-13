@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Check, CircleAlert, Minus, Plus, Ticket, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Minus, Plus, Search, Ticket, Trash2 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useCart, useUpdateCartItem, useRemoveCartItem, useApplyVoucher, useAvailableVouchers } from '../../features/cart/hooks'
 import { LoadErrorState } from '../../components/LoadErrorState'
@@ -13,6 +13,7 @@ import { stockShortfall, cartHasStockShortfall } from '../../lib/stock'
 import { FeedbackState } from '../../components/FeedbackState'
 
 const MAX_QUANTITY = 100
+const VOUCHER_RESULT_LIMIT = 6
 
 const stepperButton =
   'flex h-10 w-10 items-center justify-center rounded-control border border-border-strong text-foreground transition-colors duration-200 hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border-strong'
@@ -305,6 +306,8 @@ export function CartPage() {
   const [voucherResult, setVoucherResult] = useState(null)
   const [voucherError, setVoucherError] = useState(null)
   const [voucherStaleNotice, setVoucherStaleNotice] = useState(false)
+  const [voucherSearch, setVoucherSearch] = useState('')
+  const [voucherPage, setVoucherPage] = useState(0)
 
   if (!token) {
     return (
@@ -364,6 +367,15 @@ export function CartPage() {
   const checkoutBlocked = cartHasStockShortfall(items)
   const mutationPending = Object.keys(pendingQuantities).length > 0 || Object.keys(pendingRemovals).length > 0
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+  const availableVouchers = availableVouchersQuery.data?.data ?? []
+  const normalizedVoucherSearch = voucherSearch.trim().toLocaleUpperCase('vi-VN')
+  const matchingVouchers = normalizedVoucherSearch
+    ? availableVouchers.filter((voucher) => voucher.code.toLocaleUpperCase('vi-VN').includes(normalizedVoucherSearch))
+    : availableVouchers
+  const voucherPageCount = Math.max(1, Math.ceil(matchingVouchers.length / VOUCHER_RESULT_LIMIT))
+  const safeVoucherPage = Math.min(voucherPage, voucherPageCount - 1)
+  const firstVisibleVoucher = safeVoucherPage * VOUCHER_RESULT_LIMIT
+  const visibleVouchers = matchingVouchers.slice(firstVisibleVoucher, firstVisibleVoucher + VOUCHER_RESULT_LIMIT)
 
   function setItemPending(setter, itemId, pending) {
     setter((previous) => {
@@ -539,12 +551,12 @@ export function CartPage() {
             </section>)}
 
             <section
-              aria-labelledby="cart-consequence-title"
+              aria-labelledby="cart-summary-title"
               className="grid border-t-2 border-foreground/40 md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]"
             >
               <div className="py-6 md:pr-8">
-                <h2 id="cart-consequence-title" className="font-display text-2xl text-foreground">
-                  Hệ quả hiện tại
+                <h2 id="cart-summary-title" className="font-display text-2xl text-foreground">
+                  Tóm tắt giỏ hàng
                 </h2>
                 <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
                   {items.length} lựa chọn · {totalQuantity} sản phẩm. Phí giao hàng và phương thức thanh toán được xác định ở Checkout.
@@ -584,27 +596,78 @@ export function CartPage() {
                   <p role="status" className="mt-3 text-sm text-muted-foreground">Đang tìm mã phù hợp với giỏ hàng…</p>
                 ) : availableVouchersQuery.isError ? (
                   <button type="button" onClick={() => availableVouchersQuery.refetch()} className="mt-3 text-sm text-foreground underline underline-offset-4">Chưa tải được mã. Thử lại</button>
-                ) : (availableVouchersQuery.data?.data ?? []).length === 0 ? (
+                ) : availableVouchers.length === 0 ? (
                   <p className="mt-3 text-sm text-muted-foreground">Hiện chưa có mã giảm giá cho giỏ hàng này.</p>
                 ) : (
-                  <div role="radiogroup" aria-label="Chọn mã giảm giá" className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {(availableVouchersQuery.data?.data ?? []).map((voucher) => {
-                      const selected = voucherCode === voucher.code && Boolean(voucherResult)
-                      return (
+                  <div className="mt-4">
+                    <label htmlFor="voucher-search" className="block text-sm font-medium text-foreground">
+                      Tìm mã giảm giá
+                    </label>
+                    <div className="relative mt-2 max-w-xl">
+                      <Search aria-hidden="true" size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        id="voucher-search"
+                        type="search"
+                        value={voucherSearch}
+                        onChange={(event) => {
+                          setVoucherSearch(event.target.value)
+                          setVoucherPage(0)
+                        }}
+                        placeholder="Ví dụ: NEST10"
+                        aria-describedby="voucher-search-status"
+                        className="min-h-12 w-full rounded-control border border-border-strong bg-canvas py-3 pl-11 pr-4 text-foreground outline outline-2 outline-offset-1 outline-transparent transition-colors placeholder:text-muted-foreground hover:bg-unbuilt/15 focus:border-foreground focus:outline-ring"
+                      />
+                    </div>
+                    <p id="voucher-search-status" className="mt-2 text-sm text-muted-foreground">
+                      {matchingVouchers.length > VOUCHER_RESULT_LIMIT
+                        ? `Hiển thị ${firstVisibleVoucher + 1}–${firstVisibleVoucher + visibleVouchers.length} trong ${matchingVouchers.length} mã`
+                        : `${matchingVouchers.length} mã phù hợp`}
+                    </p>
+
+                    {matchingVouchers.length === 0 ? (
+                      <p className="mt-4 text-sm text-foreground">Không tìm thấy mã phù hợp. Hãy kiểm tra lại nội dung đã nhập.</p>
+                    ) : (
+                      <div role="radiogroup" aria-label="Chọn mã giảm giá" className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {visibleVouchers.map((voucher) => {
+                          const selected = voucherCode === voucher.code && Boolean(voucherResult)
+                          return (
+                            <button
+                              key={voucher.code}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              disabled={applyVoucher.isPending}
+                              onClick={() => chooseVoucher(voucher.code)}
+                              className="flex min-h-20 min-w-0 items-center justify-between gap-4 rounded-control border border-border-strong bg-canvas px-4 py-3 text-left transition-[background-color,border-color,transform] duration-200 hover:border-foreground hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                            >
+                              <span className="min-w-0"><span className="block font-semibold tracking-wide text-foreground">{voucher.code}</span><span className="mt-1 block text-sm text-muted-foreground">Giảm {formatPrice(voucher.discount_amount)}</span></span>
+                              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-foreground bg-foreground text-canvas' : 'border-border-strong text-transparent'}`}><Check size={15} /></span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {matchingVouchers.length > VOUCHER_RESULT_LIMIT && (
+                      <nav aria-label="Trang mã giảm giá" className="mt-4 flex items-center justify-between gap-4">
                         <button
-                          key={voucher.code}
                           type="button"
-                          role="radio"
-                          aria-checked={selected}
-                          disabled={applyVoucher.isPending}
-                          onClick={() => chooseVoucher(voucher.code)}
-                          className="flex min-h-20 min-w-0 items-center justify-between gap-4 rounded-control border border-border-strong bg-canvas px-4 py-3 text-left transition-[background-color,border-color,transform] duration-200 hover:border-foreground hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
+                          disabled={safeVoucherPage === 0}
+                          onClick={() => setVoucherPage((page) => Math.max(0, page - 1))}
+                          className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-control px-2 text-sm font-medium text-foreground transition-colors hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          <span className="min-w-0"><span className="block font-semibold tracking-wide text-foreground">{voucher.code}</span><span className="mt-1 block text-sm text-muted-foreground">Giảm {formatPrice(voucher.discount_amount)}</span></span>
-                          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-foreground bg-foreground text-canvas' : 'border-border-strong text-transparent'}`}><Check size={15} /></span>
+                          <ArrowLeft aria-hidden="true" size={16} /> Trước
                         </button>
-                      )
-                    })}
+                        <span className="text-sm tabular-nums text-muted-foreground">Trang {safeVoucherPage + 1}/{voucherPageCount}</span>
+                        <button
+                          type="button"
+                          disabled={safeVoucherPage >= voucherPageCount - 1}
+                          onClick={() => setVoucherPage((page) => Math.min(voucherPageCount - 1, page + 1))}
+                          className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-control px-2 text-sm font-medium text-foreground transition-colors hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Sau <ArrowRight aria-hidden="true" size={16} />
+                        </button>
+                      </nav>
+                    )}
                   </div>
                 )}
                   {voucherError && <ItemStatus>{voucherError}</ItemStatus>}

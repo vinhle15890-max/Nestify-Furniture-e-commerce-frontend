@@ -216,6 +216,35 @@ describe('CartPage', () => {
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 
+  it('keeps a large voucher list searchable without rendering every option', async () => {
+    useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
+    const vouchers = Array.from({ length: 105 }, (_, index) => ({
+      code: `MA-${String(index + 1).padStart(3, '0')}`,
+      discount_amount: (index + 1) * 1000,
+      final_total: 10000000 - ((index + 1) * 1000),
+    }))
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: vouchers })
+    cartApi.applyVoucher.mockResolvedValue({ data: vouchers[104] })
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Tóm tắt giỏ hàng' })).toBeInTheDocument()
+    expect(screen.queryByText('Hệ quả hiện tại')).not.toBeInTheDocument()
+    expect(await screen.findByText('MA-001')).toBeInTheDocument()
+    expect(screen.getByText('MA-006')).toBeInTheDocument()
+    expect(screen.queryByText('MA-007')).not.toBeInTheDocument()
+    expect(screen.getByText('Hiển thị 1–6 trong 105 mã')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sau' }))
+    expect(screen.queryByText('MA-001')).not.toBeInTheDocument()
+    expect(screen.getByText('MA-007')).toBeInTheDocument()
+    expect(screen.getByText('Trang 2/18')).toBeInTheDocument()
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Tìm mã giảm giá' }), 'MA-105')
+    await userEvent.click(screen.getByRole('radio', { name: /MA-105/ }))
+
+    expect(cartApi.applyVoucher).toHaveBeenCalledWith('MA-105')
+  })
+
   it('restores confirmed quantity and shows an item-local error after a generic update failure', async () => {
     useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
     cartApi.updateItem.mockRejectedValue(new ApiError('SERVER_ERROR', 'Chưa cập nhật được số lượng.', {}, 500))
