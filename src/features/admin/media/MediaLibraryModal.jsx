@@ -59,7 +59,7 @@ export function MediaLibraryModal({
       }}
       title="Thư viện ảnh"
       description="Chọn ảnh có sẵn trong thư viện hoặc tải ảnh mới lên."
-      contentClassName="max-w-3xl"
+      contentClassName="!w-[calc(100vw-2rem)] !max-w-3xl"
     >
       <div className="flex gap-2 border-b border-border">
         <button
@@ -84,7 +84,7 @@ export function MediaLibraryModal({
         </button>
       </div>
 
-      <div className="mt-4 max-h-[55vh] overflow-y-auto">
+      <div className="mt-4 min-w-0 max-h-[55vh] overflow-x-hidden overflow-y-auto pr-1">
         {tab === 'library' ? (
           <>
             <SearchInput
@@ -92,7 +92,8 @@ export function MediaLibraryModal({
                 setSearch(value)
                 setPage(1)
               }}
-              placeholder="Tìm theo tên/mô tả ảnh"
+              placeholder="Tìm theo tên hoặc mô tả ảnh"
+              className="w-full"
             />
             <div className="mt-4">
               {isLoading ? null : items.length === 0 ? (

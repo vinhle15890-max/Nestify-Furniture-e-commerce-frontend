@@ -61,4 +61,12 @@ describe('MediaLibraryModal', () => {
     expect(screen.getByAltText('Ảnh 2')).toBeInTheDocument()
     vi.useRealTimers()
   })
+
+  it('provides a visible full-width search field inside a viewport-safe modal', () => {
+    renderModal()
+
+    expect(screen.getByRole('searchbox', { name: 'Tìm theo tên hoặc mô tả ảnh' }))
+      .toHaveClass('w-full')
+    expect(screen.getByRole('dialog')).toHaveClass('!max-w-3xl')
+  })
 })
