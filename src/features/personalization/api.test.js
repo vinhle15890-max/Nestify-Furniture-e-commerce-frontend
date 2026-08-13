@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiClient } from '../../lib/apiClient'
-import { recordProductView, getRecentlyViewed } from './api'
+import { clearPersonalizationHistory, getJourneyContext, getRecentlyViewed, recordProductView, updatePersonalization } from './api'
 
 vi.mock('../../lib/apiClient', () => ({
-  apiClient: { post: vi.fn(), get: vi.fn() },
+  apiClient: { post: vi.fn(), get: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
 describe('personalization api', () => {
@@ -22,5 +22,14 @@ describe('personalization api', () => {
   it('defaults the limit to 10', () => {
     getRecentlyViewed()
     expect(apiClient.get).toHaveBeenCalledWith('/me/recently-viewed', { params: { limit: 10 } })
+  })
+
+  it('uses the journey context and privacy control endpoints', () => {
+    getJourneyContext()
+    updatePersonalization(false)
+    clearPersonalizationHistory()
+    expect(apiClient.get).toHaveBeenCalledWith('/me/journey-context')
+    expect(apiClient.patch).toHaveBeenCalledWith('/me/personalization', { enabled: false })
+    expect(apiClient.delete).toHaveBeenCalledWith('/me/personalization/history')
   })
 })

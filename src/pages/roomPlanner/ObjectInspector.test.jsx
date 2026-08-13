@@ -38,4 +38,10 @@ describe('ObjectInspector', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Dịch ra sau 50 cm' }))
     expect(onTransform).toHaveBeenLastCalledWith(7, { position: { x: 0, y: 0, z: 0.5 } })
   })
+
+  it('does not label a provisional footprint as confirmed dimensions', () => {
+    render(<ObjectInspector item={{ ...item, footprint: { x: 1, y: 1, z: 1 }, footprintConfirmed: false }} onTransform={vi.fn()} onDelete={vi.fn()} onResetTransform={vi.fn()} onDuplicate={vi.fn()} />)
+    expect(screen.getByText(/kích thước đang được xác nhận/i)).toBeInTheDocument()
+    expect(screen.queryByText('1 m')).not.toBeInTheDocument()
+  })
 })

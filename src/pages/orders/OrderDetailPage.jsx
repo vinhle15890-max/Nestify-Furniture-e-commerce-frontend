@@ -74,9 +74,10 @@ export function OrderDetailPage() {
 
   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
   const isPendingPayment = order.status === 'pending_payment'
+  const isFullyDiscounted = Number(order.total) === 0
   const canCancel = CANCELLABLE_STATUSES.includes(order.status)
   // A cancelled order refunds money only when an online payment was captured.
-  const willRefund = order.status === 'paid' || (order.status === 'processing' && order.payment_method === 'payos')
+  const willRefund = !isFullyDiscounted && (order.status === 'paid' || (order.status === 'processing' && order.payment_method === 'payos'))
   const address = order.shipping_address
 
   async function handleCancel() {
@@ -115,7 +116,9 @@ export function OrderDetailPage() {
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {formatDate(order.created_at)}
-        {order.payment_method && (
+        {isFullyDiscounted ? (
+          <> · Đã áp dụng mã giảm giá toàn bộ</>
+        ) : order.payment_method && (
           <> · {order.payment_method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán online (PayOS)'}</>
         )}
       </p>

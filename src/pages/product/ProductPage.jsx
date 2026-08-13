@@ -14,7 +14,7 @@ import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../fe
 import { useOrders } from '../../features/orders/hooks'
 import { useCreateReview } from '../../features/reviews/hooks'
 import { focusFirstError, formLevelMessage } from '../../lib/formErrors'
-import { useRecordProductView } from '../../features/personalization/hooks'
+import { useJourneyContext, useRecordProductView } from '../../features/personalization/hooks'
 import { RecentlyViewedStrip } from '../../components/personalization/RecentlyViewedStrip'
 import { useAuthStore } from '../../store/authStore'
 import { isStaff } from '../../lib/roles'
@@ -94,6 +94,10 @@ export function ProductPage() {
   const staff = isStaff(user)
   const isCustomer = Boolean(token) && !staff
   const recordView = useRecordProductView()
+  const journeyQuery = useJourneyContext()
+  const activeRoom = journeyQuery.data?.data?.continuation?.type === 'room'
+    ? journeyQuery.data.data.continuation.room
+    : null
   const openCart = useUiStore((state) => state.openCart)
   const addToast = useToastStore((state) => state.addToast)
   const addCartItem = useAddCartItem()
@@ -440,6 +444,16 @@ export function ProductPage() {
 
         <ProductDecisionRail product={product} variants={variants} variantOptions={variantOptions} selectedOptions={selectedOptions} onSelectOption={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))} selectedVariant={selectedVariant} onSelectVariant={setSelectedVariantId} visibleMedia={visibleMedia} outOfStock={outOfStock} price={price} quantity={quantity} onQuantityChange={(next) => { const max = Math.max(stockError ?? availableStock, 1); setQuantity(Math.min(Math.max(next, 1), max)) }} maxQuantity={Math.max(stockError ?? availableStock, 1)} token={token} staff={staff} onAddToCart={handleAddToCart} adding={addCartItem.isPending} isWishlisted={isWishlisted} onToggleWishlist={handleToggleWishlist} wishlistPending={addWishlistItem.isPending || removeWishlistItem.isPending} stockError={stockError} deliveryFact={deliveryFact} returnsFact={returnsFact} />
       </div>
+
+      {activeRoom && (
+        <aside aria-label="Ngữ cảnh phòng đang tiếp tục" className="mt-8 flex flex-col gap-4 border-y border-unbuilt py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">Bạn đang tiếp tục “{activeRoom.name}”</p>
+            <p className="mt-1 text-sm text-muted-foreground">Mở lại phòng để xem sản phẩm này trong đúng không gian bạn đang cân nhắc.</p>
+          </div>
+          <Link to={`/room-planner/${activeRoom.id}`} className="inline-flex min-h-11 w-fit items-center whitespace-nowrap text-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Mở phòng</Link>
+        </aside>
+      )}
 
       <ProductSpecifications product={product} selectedVariant={selectedVariant} delivery={deliveryFact} assembly={assemblyFact} warranty={warrantyFact} />
 

@@ -18,6 +18,12 @@ const NUDGE_DIRECTIONS = [
 export function ObjectInspector({ item, room, onTransform, onDelete, onResetTransform, onDuplicate }) {
   if (!item) return <p className="text-sm leading-6 text-muted-foreground">Chọn một món trong phòng để xem kích thước và chỉnh vị trí.</p>
   const modelFidelity = describeModelFidelity(item.variant)
+  const semanticDimensions = item.variant?.model_scale_confirmed === true
+    ? [Number(item.variant.width_cm) / 100, Number(item.variant.height_cm) / 100, Number(item.variant.depth_cm) / 100]
+    : null
+  const displayDimensions = semanticDimensions?.every((value) => Number.isFinite(value) && value > 0)
+    ? semanticDimensions
+    : [item.footprint.x, item.footprint.y, item.footprint.z]
   const halfExtents = rotatedHalfExtents(
     item.footprint,
     item.scale ?? { x: 1, y: 1, z: 1 },
@@ -54,16 +60,20 @@ export function ObjectInspector({ item, room, onTransform, onDelete, onResetTran
       <p className="text-xs font-medium text-muted-foreground">Vật thể đang chọn</p>
       <h2 id="object-inspector-title" className="mt-1 truncate text-base font-medium text-foreground">{item.variant.name}</h2>
       <p className="mt-2 text-xs leading-5 text-muted-foreground">{modelFidelity.text}</p>
-      <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-border py-3 text-center">
-        {[['Rộng', item.footprint.x], ['Cao', item.footprint.y], ['Sâu', item.footprint.z]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-sm tabular-nums text-foreground">{formatDimension(value, 'm')}</dd></div>)}
-      </dl>
-      {nearestClearance !== null && (
+      {item.footprintConfirmed ? (
+        <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-border py-3 text-center">
+          {[['Rộng', displayDimensions[0]], ['Cao', displayDimensions[1]], ['Sâu', displayDimensions[2]]].map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-sm tabular-nums text-foreground">{formatDimension(value, 'm')}</dd></div>)}
+        </dl>
+      ) : (
+        <p className="mt-4 border-y border-border py-3 text-xs leading-5 text-muted-foreground">Kích thước đang được xác nhận. Khối tạm thời chỉ giữ vị trí, không đại diện cho số đo thật.</p>
+      )}
+      {item.footprintConfirmed && nearestClearance !== null && (
         <div className="mt-3 flex items-baseline justify-between gap-3 text-xs">
           <span className="text-muted-foreground">Khoảng trống gần tường nhất</span>
           <span className="shrink-0 font-medium tabular-nums text-foreground">{formatDimension(nearestClearance, 'm')}</span>
         </div>
       )}
-      {!fitsRoom && (
+      {item.footprintConfirmed && !fitsRoom && (
         <p className="mt-3 rounded-control border border-border bg-surface-alt px-3 py-2 text-xs leading-5 text-muted-foreground">
           Kích thước món này lớn hơn mặt sàn phòng theo góc xoay hiện tại.
         </p>

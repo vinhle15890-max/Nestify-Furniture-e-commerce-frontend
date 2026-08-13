@@ -117,7 +117,7 @@ export function PlacedItem({ item, room, selected, gizmoMode, alignmentEnabled =
       onPointerUp={interactive ? finishDirectDrag : undefined}
       onPointerCancel={interactive ? finishDirectDrag : undefined}
     >
-      <FurnitureModelRuntime url={item.variant.model_3d_url} onMeasure={onMeasure} onError={onModelError} onStateChange={onModelStateChange} />
+      <FurnitureModelRuntime url={item.variant.model_3d_url} placeholderSize={item.footprint} onMeasure={onMeasure} onError={onModelError} onStateChange={onModelStateChange} />
       {conflict && (
         // Quầng cảnh báo trên sàn RỘNG HƠN footprint (1.4×) để lộ viền quanh chân
         // món — mặt phẳng đúng bằng footprint sẽ bị chính model che khuất. `ink` mờ,

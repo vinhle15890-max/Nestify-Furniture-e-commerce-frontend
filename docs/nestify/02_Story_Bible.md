@@ -177,7 +177,7 @@ Không thuộc Transformation. Hai trang này không kể hành trình cảm xú
 |---|---|
 | Hero | **Threshold** — không phải chapter, xem mục Threshold ở trên |
 | FeaturedCategories | Possibility → Chapter 1 |
-| PersonalizedSection (khách đã đăng nhập) | echo — Discover, đặt sau Entry Event |
+| JourneyContinuation (customer đã đăng nhập, có tín hiệu thật) | echo — Experiment/Discover, đặt sau Entry Event; ưu tiên việc đang dang dở trước khám phá mới |
 | CuratedCollections | Discover |
 | BestSellers | Discover *(flag: khung "bán chạy" nghiêng social-proof/giục chọn, cần bỏ khung này, giữ nguyên chapter)* |
 | MaterialStory, BrandStory | Brand Layer (About) — không thuộc Transformation |

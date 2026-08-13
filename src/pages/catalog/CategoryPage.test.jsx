@@ -6,8 +6,11 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { CategoryPage } from './CategoryPage'
 import * as catalogApi from '../../features/catalog/api'
 import { ApiError } from '../../lib/errors'
+import * as personalizationApi from '../../features/personalization/api'
+import { useAuthStore } from '../../store/authStore'
 
 vi.mock('../../features/catalog/api')
+vi.mock('../../features/personalization/api')
 
 function renderPage(slug = 'phong-khach') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -43,6 +46,8 @@ const product = (overrides = {}) => ({
 describe('CategoryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useAuthStore.setState({ token: null, user: null })
+    personalizationApi.getJourneyContext.mockResolvedValue({ data: { enabled: true, continuation: null, signals: {}, discovery: [] } })
     catalogApi.getCategory.mockResolvedValue({
       data: { id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] },
     })
@@ -63,6 +68,27 @@ describe('CategoryPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Phòng khách' })).toBeInTheDocument()
     expect(await screen.findByText('Ghế sofa')).toBeInTheDocument()
+  })
+
+  it('ranks explained journey candidates first without hiding other results', async () => {
+    useAuthStore.setState({ token: 'customer', user: { roles: ['customer'], email_verified_at: '2026-08-01' } })
+    catalogApi.getProducts.mockResolvedValue({
+      data: [product({ id: 1, name: 'Ghế thứ nhất' }), product({ id: 2, slug: 'ghe-go', name: 'Ghế theo hành trình' })],
+      meta: { pagination: { has_more: false, next_cursor: null, limit: 20 } },
+    })
+    personalizationApi.getJourneyContext.mockResolvedValue({ data: {
+      enabled: true,
+      continuation: null,
+      signals: {},
+      discovery: [{ product: { id: 2 }, reason: { code: 'considered_category' } }],
+    } })
+
+    renderPage()
+
+    expect(await screen.findByText(/được đưa lên trước/)).toBeInTheDocument()
+    const units = await screen.findAllByTestId('discover-product-unit')
+    expect(within(units[0]).getByText('Ghế theo hành trình')).toBeInTheDocument()
+    expect(units).toHaveLength(2)
   })
 
   it('shows a retryable product failure without claiming the result is empty', async () => {

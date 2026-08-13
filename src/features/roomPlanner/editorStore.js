@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { sceneToEditorState } from './mappers'
 import { makeLocalId, clampToRoom } from './threeD'
 import { clampRectToRoom, projectTransform, rotatedHalfExtents } from './collision'
+import { initialFootprint } from './dimensions'
 
 const IDENTITY = {
   position: { x: 0, y: 0, z: 0 },
@@ -11,8 +12,6 @@ const IDENTITY = {
 
 // Footprint (kích thước thật) mặc định trước khi model được đo. KHÔNG gộp vào
 // IDENTITY vì resetSelectedTransform spread IDENTITY — sẽ xoá footprint đã đo.
-const DEFAULT_FOOTPRINT = { x: 1, y: 1, z: 1 }
-
 const HISTORY_CAP = 50
 const snapshot = (items) => structuredClone(items)
 // Push the current items onto the undo stack (capped) and drop any redo future.
@@ -152,7 +151,7 @@ export const useEditorStore = create((set, get) => ({
   })),
 
   addVariant: (variant, { provisional = false } = {}) => set((s) => {
-    const item = { localId: makeLocalId(), variant, footprint: { ...DEFAULT_FOOTPRINT }, ...structuredClone(IDENTITY) }
+    const item = { localId: makeLocalId(), variant, ...initialFootprint(variant), ...structuredClone(IDENTITY) }
     return { ...pushPast(s), items: [...s.items, item], selectedId: item.localId, pendingPlacementId: provisional ? item.localId : null, dirty: true }
   }),
 
@@ -242,10 +241,10 @@ export const useEditorStore = create((set, get) => ({
     if (idx === -1) return
     const cur = s.items[idx].footprint
     const near = (a, b) => Math.abs(a - b) < 1e-4
-    if (near(cur.x, size.x) && near(cur.y, size.y) && near(cur.z, size.z)) return
+    if (s.items[idx].footprintConfirmed && near(cur.x, size.x) && near(cur.y, size.y) && near(cur.z, size.z)) return
     set((state) => {
       const items = state.items.slice()
-      const measured = { ...items[idx], footprint: { x: size.x, y: size.y, z: size.z } }
+      const measured = { ...items[idx], footprint: { x: size.x, y: size.y, z: size.z }, footprintConfirmed: true }
       items[idx] = { ...measured, ...projectTransform(measured, {}, state.room, state.wallSnap) }
       return { items }
     })

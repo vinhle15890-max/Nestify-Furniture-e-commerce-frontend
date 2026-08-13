@@ -65,6 +65,21 @@ describe('roomPlanner/editorStore', () => {
     useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
     useEditorStore.getState().addVariant(variant)
     expect(useEditorStore.getState().items[0].footprint).toEqual({ x: 1, y: 1, z: 1 })
+    expect(useEditorStore.getState().items[0].footprintConfirmed).toBe(false)
+  })
+
+  it('addVariant dùng ngay kích thước đã xác nhận từ API', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant({
+      ...variant,
+      model_scale_confirmed: true,
+      width_cm: 220,
+      height_cm: 95,
+      depth_cm: 200,
+      model_size: { x: 2, y: 0.95, z: 2.2 },
+    })
+    expect(useEditorStore.getState().items[0].footprint).toEqual({ x: 2, y: 0.95, z: 2.2 })
+    expect(useEditorStore.getState().items[0].footprintConfirmed).toBe(true)
   })
 
   it('reportFootprint cập nhật footprint mà KHÔNG đụng history/dirty', () => {
@@ -76,17 +91,26 @@ describe('roomPlanner/editorStore', () => {
     useEditorStore.getState().reportFootprint(id, { x: 2, y: 0.8, z: 1.5 })
     const s = useEditorStore.getState()
     expect(s.items[0].footprint).toEqual({ x: 2, y: 0.8, z: 1.5 })
+    expect(s.items[0].footprintConfirmed).toBe(true)
     expect(s.past.length).toBe(pastBefore)
     expect(s.dirty).toBe(false)
   })
 
   it('reportFootprint no-op khi size không đổi (không tạo mảng mới)', () => {
     useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
-    useEditorStore.getState().addVariant(variant)
+    useEditorStore.getState().addVariant({ ...variant, model_scale_confirmed: true, width_cm: 100, height_cm: 100, depth_cm: 100, model_size: { x: 1, y: 1, z: 1 } })
     const id = useEditorStore.getState().items[0].localId
     const itemsRef = useEditorStore.getState().items
     useEditorStore.getState().reportFootprint(id, { x: 1, y: 1, z: 1 })
     expect(useEditorStore.getState().items).toBe(itemsRef)
+  })
+
+  it('reportFootprint xác nhận footprint runtime dù số đo trùng khối engine tạm', () => {
+    useEditorStore.getState().initNew({ width: 4, depth: 4, height: 2.8 })
+    useEditorStore.getState().addVariant(variant)
+    const id = useEditorStore.getState().items[0].localId
+    useEditorStore.getState().reportFootprint(id, { x: 1, y: 1, z: 1 })
+    expect(useEditorStore.getState().items[0].footprintConfirmed).toBe(true)
   })
 
   it('reportFootprint notifies subscribers only for the first genuine size change', () => {

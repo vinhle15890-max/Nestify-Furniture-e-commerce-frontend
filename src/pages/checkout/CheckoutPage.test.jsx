@@ -202,6 +202,12 @@ describe('CheckoutPage', () => {
 
     expect(await screen.findByText('GIAM10')).toBeInTheDocument()
     expect(screen.getByText(/giảm 1.000.000/)).toBeInTheDocument()
+    const transaction = screen.getByTestId('checkout-transaction-evidence')
+    expect(within(transaction).getAllByText('Tạm tính')).toHaveLength(2)
+    expect(within(transaction).getByText('Giảm giá')).toBeInTheDocument()
+    expect(within(transaction).getByText('Thành tiền')).toBeInTheDocument()
+    expect(within(transaction).getByText(/^-1\.000\.000/, { selector: 'dd' })).toBeInTheDocument()
+    expect(within(transaction).getByText(/^9\.000\.000/, { selector: 'dd' })).toBeInTheDocument()
     expect(cartApi.applyVoucher).toHaveBeenCalledWith('GIAM10')
     expect(screen.queryByLabelText('Mã muốn kiểm tra')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Đặt hàng' }).closest('div')).toHaveClass('fixed', 'pr-20', 'lg:right-24')
@@ -223,21 +229,6 @@ describe('CheckoutPage', () => {
     nodes.slice(0, -1).forEach((node, index) => {
       expect(node.compareDocumentPosition(nodes[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
-  })
-
-  it.skip('labels voucher values as preview rather than final payable truth', async () => {
-    cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })
-    renderPage()
-    await screen.findByText('Sofa Mây')
-
-    await userEvent.type(screen.getByLabelText('Mã muốn kiểm tra'), 'GIAM10')
-    await userEvent.click(screen.getByRole('button', { name: 'Xem trước' }))
-
-    expect(await screen.findByText('Giảm giá dự kiến')).toBeInTheDocument()
-    expect(screen.getByText('Điều chỉnh xem trước')).toBeInTheDocument()
-    expect(screen.queryByText('Thành tiền')).not.toBeInTheDocument()
-    expect(screen.getByText(/Số tiền đang hiển thị gồm sản phẩm/)).toBeInTheDocument()
-    expect(screen.queryByText(/tổng thanh toán cuối cùng/i)).not.toBeInTheDocument()
   })
 
   it.skip('invalidates a voucher preview when the Cart basis changes in place', async () => {
@@ -372,6 +363,20 @@ describe('CheckoutPage', () => {
 
     expect(await screen.findByText(/Đơn hàng NES-77 đã được tạo/)).toBeInTheDocument()
     expect(screen.getByText(/Không có thanh toán online nào được xác nhận/)).toBeInTheDocument()
+    expect(checkoutApi.createPaymentSession).not.toHaveBeenCalled()
+    expect(navigation.redirectToExternal).not.toHaveBeenCalled()
+  })
+
+  it('does not open PayOS when a voucher reduces the created order total to zero', async () => {
+    checkoutApi.createOrder.mockResolvedValue({
+      data: { ...createdPayosOrder, status: 'processing', total: 0 },
+    })
+    renderPage('/checkout?voucher=FREE100')
+    await screen.findByText('Sofa Mây')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
+
+    expect(await screen.findByText(/Mã giảm giá đã thanh toán toàn bộ giá trị đơn/)).toBeInTheDocument()
     expect(checkoutApi.createPaymentSession).not.toHaveBeenCalled()
     expect(navigation.redirectToExternal).not.toHaveBeenCalled()
   })

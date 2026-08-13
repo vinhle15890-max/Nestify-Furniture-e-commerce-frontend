@@ -39,4 +39,14 @@ describe('Pagination', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
     expect(onPageChange).toHaveBeenCalledWith(2)
   })
+
+  it('renders a compact page window for long result sets', () => {
+    render(<Pagination page={8} lastPage={20} onPageChange={() => {}} />)
+
+    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '8' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: '20' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '4' })).not.toBeInTheDocument()
+    expect(screen.getAllByText('…')).toHaveLength(2)
+  })
 })

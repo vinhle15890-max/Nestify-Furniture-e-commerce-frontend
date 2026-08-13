@@ -183,7 +183,9 @@ function FactStatus({ children, role = 'alert', className = '' }) {
 }
 
 function TransactionEvidence({ declaration, stockConflictVariantId }) {
-  const { items, goodsTotal, totalQuantity } = declaration
+  const { items, goodsTotal, totalQuantity, voucherResult } = declaration
+  const discountAmount = Number(voucherResult?.discount_amount ?? 0)
+  const finalTotal = Number(voucherResult?.final_total ?? goodsTotal)
 
   return (
     <section aria-labelledby="checkout-transaction-heading" data-testid="checkout-transaction-evidence">
@@ -253,12 +255,27 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
         <div>
           <p className="text-sm text-muted-foreground">Tổng thanh toán</p>
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Giá trị từ Cart đã tải gần nhất; chưa phải xác nhận thanh toán hay số tiền cuối cùng có phí chưa được cung cấp.
+            Số tiền được tính lại từ giỏ hàng và mã giảm giá đã xác minh. Phí giao hàng hoặc thuế chưa được cung cấp.
           </p>
         </div>
-        <p className="mt-4  text-[clamp(1.7rem,3.2vw,2.4rem)] tabular-nums text-foreground sm:mt-0">
-          {formatPrice(goodsTotal)}
-        </p>
+        <dl className="mt-4 min-w-56 space-y-2 tabular-nums sm:mt-0">
+          {discountAmount > 0 && (
+            <>
+              <div className="flex items-center justify-between gap-8 text-sm text-muted-foreground">
+                <dt>Tạm tính</dt>
+                <dd>{formatPrice(goodsTotal)}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-8 text-sm text-foreground">
+                <dt>Giảm giá</dt>
+                <dd>-{formatPrice(discountAmount)}</dd>
+              </div>
+            </>
+          )}
+          <div className="flex items-baseline justify-between gap-8 border-t border-border pt-2">
+            <dt className="text-sm font-medium text-foreground">Thành tiền</dt>
+            <dd className="text-[clamp(1.7rem,3.2vw,2.4rem)] text-foreground">{formatPrice(finalTotal)}</dd>
+          </div>
+        </dl>
       </div>
     </section>
   )
@@ -437,6 +454,7 @@ function CreatedOrderEvidence({ order }) {
 }
 
 function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempted, handoffPending, onRetry }) {
+  const isFullyDiscounted = Number(order?.total) === 0
   const isPayos = order?.payment_method === 'payos' || order?.status === 'pending_payment'
   const isAwaitingPayment = isPayos && order?.status === 'pending_payment'
   const status = ORDER_STATUS_LABELS[order?.status]?.label ?? order?.status
@@ -449,7 +467,11 @@ function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempt
         <h1 className="mt-2 font-display text-[clamp(2rem,5vw,3.5rem)] leading-tight text-foreground">
           Đơn hàng {orderLabel(order)} đã được tạo.
         </h1>
-        {isPayos ? (
+        {isFullyDiscounted ? (
+          <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
+            Mã giảm giá đã thanh toán toàn bộ giá trị đơn. Đơn được chuyển thẳng sang xử lý và không cần mở PayOS.
+          </p>
+        ) : isPayos ? (
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
             Đơn hiện tồn tại độc lập với Cart. Thanh toán PayOS chưa được gọi là thành công cho tới khi trạng thái được xác nhận từ hệ thống thanh toán.
           </p>
@@ -871,7 +893,7 @@ export function CheckoutPage() {
     setRecoveryRecord(saveCheckoutRecovery(order.id))
     setPlacedOrder(order)
 
-    if (declaration.paymentMethod === 'payos') {
+    if (order.status === 'pending_payment' && Number(order.total) > 0) {
       await openPaymentSession(order)
     }
   }

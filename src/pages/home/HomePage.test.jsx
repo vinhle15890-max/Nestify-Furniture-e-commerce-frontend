@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HomePage } from './HomePage'
 import * as catalogApi from '../../features/catalog/api'
+import { useAuthStore } from '../../store/authStore'
 
 vi.mock('../../features/catalog/api')
 
@@ -21,6 +22,7 @@ function renderPage() {
 describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useAuthStore.setState({ token: null, user: null })
     // FeaturedCategories pulls real categories; give every case a default.
     catalogApi.getCategories.mockResolvedValue({
       data: [{ id: 1, name: 'Phòng khách', slug: 'phong-khach', image_url: null }],

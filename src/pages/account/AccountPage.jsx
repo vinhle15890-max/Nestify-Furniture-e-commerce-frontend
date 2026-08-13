@@ -12,6 +12,7 @@ import { useAuthStore } from '../../store/authStore'
 import { formatDate, formatPrice, numericClassName } from '../../lib/format'
 import { ProfileForm } from './ProfileForm'
 import { AccountSkeleton } from '../../components/LoadingStates'
+import { PersonalizationControls } from './PersonalizationControls'
 
 const secondaryLinks = [
   { to: '/account/addresses', label: 'Địa chỉ giao hàng', icon: MapPin },
@@ -105,6 +106,8 @@ export function AccountPage() {
                 {secondaryLinks.map(({ to, label, icon: Icon }) => <Link key={to} to={to} className="inline-flex items-center gap-2 text-sm text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon size={16} aria-hidden="true" />{label}</Link>)}
               </div>
             </nav>
+
+            <PersonalizationControls enabled={user?.personalization_enabled !== false} />
 
             {user && <details className="mt-8 border-t border-border pt-6"><summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><UserRound size={17} aria-hidden="true" />Thông tin cá nhân</summary><div className="mt-6 max-w-2xl"><ProfileForm user={user} /></div></details>}
           </>

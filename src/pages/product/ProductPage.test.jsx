@@ -106,6 +106,7 @@ describe('ProductPage', () => {
     ordersApi.getOrders.mockResolvedValue({ data: [] })
     personalizationHooks.useRecordProductView.mockReturnValue({ mutate: vi.fn() })
     personalizationHooks.useRecentlyViewed.mockReturnValue({ data: { data: [] } })
+    personalizationHooks.useJourneyContext.mockReturnValue({ data: { data: { continuation: null } } })
   })
 
   it('renders product details, sanitized description, and approved reviews', async () => {
@@ -116,6 +117,15 @@ describe('ProductPage', () => {
     expect(container.querySelector('strong')?.textContent).toBe('sofa')
     expect(container.querySelector('script')).toBeNull()
     expect(await screen.findByText('Rất hài lòng với sản phẩm')).toBeInTheDocument()
+  })
+
+  it('links the product back to the active room without claiming it fits', async () => {
+    personalizationHooks.useJourneyContext.mockReturnValue({ data: { data: { continuation: { type: 'room', room: { id: 7, name: 'Phòng khách' } } } } })
+    renderPage()
+
+    expect(await screen.findByText('Bạn đang tiếp tục “Phòng khách”')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Mở phòng' })).toHaveAttribute('href', '/room-planner/7')
+    expect(screen.queryByText(/đã vừa/i)).not.toBeInTheDocument()
   })
 
   it('keeps product-specific trust facts beside the decisions they support', async () => {

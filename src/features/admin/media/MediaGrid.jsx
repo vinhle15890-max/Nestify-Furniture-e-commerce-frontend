@@ -2,12 +2,12 @@ import { CheckCircle2 } from 'lucide-react'
 
 export function MediaGrid({ items = [], selectedIds = [], onToggle, attachedAssetIds = [] }) {
   return (
-    <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+    <ul className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
       {items.map((asset) => {
         const selected = selectedIds.includes(asset.id)
         const attached = attachedAssetIds.includes(asset.id)
         return (
-          <li key={asset.id}>
+          <li key={asset.id} className="min-w-0">
             <button
               type="button"
               onClick={() => !attached && onToggle(asset)}

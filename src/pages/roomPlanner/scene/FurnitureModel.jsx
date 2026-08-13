@@ -33,17 +33,17 @@ export function FurnitureModel({ url, onMeasure, onReady }) {
 const STATE_LABEL = {
   [MODEL_STATE.NO_MODEL]: 'Chưa thể hiển thị món đồ',
   [MODEL_STATE.LOADING]: 'Đang chuẩn bị món đồ',
-  [MODEL_STATE.LOAD_FAILED]: 'Đang hiển thị kích thước tham khảo',
+  [MODEL_STATE.LOAD_FAILED]: 'Không thể tải chi tiết món đồ',
 }
 
-export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange }) {
+export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange, size = { x: 1, y: 1, z: 1 } }) {
   useEffect(() => onStateChange?.(state), [onStateChange, state])
   const loading = state === MODEL_STATE.LOADING
   const failed = state === MODEL_STATE.LOAD_FAILED
   return (
     <group {...placeholderGroupProps(state)}>
-      <mesh position={[0, 0.5, 0]}>
-        <boxGeometry args={[1, 1, 1]} />
+      <mesh position={[0, size.y / 2, 0]}>
+        <boxGeometry args={[size.x, size.y, size.z]} />
         <meshStandardMaterial color={failed ? '#6E6861' : '#A58B4C'} transparent opacity={loading ? 0.35 : 0.6} wireframe={loading} />
       </mesh>
       <Html center position={[0, 1.2, 0]}>
@@ -64,20 +64,20 @@ export class ModelErrorBoundary extends Component {
   }
   render() {
     return this.state.failed
-      ? <PlaceholderBox state={MODEL_STATE.LOAD_FAILED} onStateChange={this.props.onStateChange} />
+      ? <PlaceholderBox state={MODEL_STATE.LOAD_FAILED} onStateChange={this.props.onStateChange} size={this.props.placeholderSize} />
       : this.props.children
   }
 }
 
-export function FurnitureModelRuntime({ url, onMeasure, onError, onStateChange }) {
+export function FurnitureModelRuntime({ url, onMeasure, onError, onStateChange, placeholderSize }) {
   const handleReady = useCallback(
     () => onStateChange?.(MODEL_STATE.READY),
     [onStateChange],
   )
-  if (!url) return <PlaceholderBox state={MODEL_STATE.NO_MODEL} onStateChange={onStateChange} />
+  if (!url) return <PlaceholderBox state={MODEL_STATE.NO_MODEL} onStateChange={onStateChange} size={placeholderSize} />
   return (
-    <ModelErrorBoundary resetKey={url} onError={onError} onStateChange={onStateChange}>
-      <Suspense fallback={<PlaceholderBox state={MODEL_STATE.LOADING} onStateChange={onStateChange} />}>
+    <ModelErrorBoundary resetKey={url} onError={onError} onStateChange={onStateChange} placeholderSize={placeholderSize}>
+      <Suspense fallback={<PlaceholderBox state={MODEL_STATE.LOADING} onStateChange={onStateChange} size={placeholderSize} />}>
         <FurnitureModel url={url} onMeasure={onMeasure} onReady={handleReady} />
       </Suspense>
     </ModelErrorBoundary>
