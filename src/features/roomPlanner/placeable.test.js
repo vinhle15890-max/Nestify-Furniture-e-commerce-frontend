@@ -7,7 +7,7 @@ describe('roomPlanner/placeable', () => {
       {
         id: 1, name: 'Sofa', thumbnail: 'thumb.jpg',
         variants: [
-          { id: 11, sku: 'A', name: 'Đỏ', model_3d_url: 'a.glb', price: 100 },
+          { id: 11, sku: 'A', name: 'Đỏ', model_3d_url: 'a.glb', price: 100, model_scale_confirmed: true, width_cm: 220, height_cm: 90, depth_cm: 100, model_size: { x: 1, y: 0.9, z: 2.2 } },
           { id: 12, sku: 'B', name: 'Xanh', model_3d_url: null, price: 120 },
         ],
       },
@@ -16,6 +16,7 @@ describe('roomPlanner/placeable', () => {
     const out = toPlaceableItems(products)
     expect(out).toHaveLength(1)
     expect(out[0].variant).toMatchObject({ id: 11, model_3d_url: 'a.glb', thumbnail: 'thumb.jpg' })
+    expect(out[0].variant).toMatchObject({ model_scale_confirmed: true, width_cm: 220, height_cm: 90, depth_cm: 100, model_size: { x: 1, y: 0.9, z: 2.2 } })
     expect(out[0].product).toEqual({ id: 1, name: 'Sofa', thumbnail: 'thumb.jpg' })
   })
 

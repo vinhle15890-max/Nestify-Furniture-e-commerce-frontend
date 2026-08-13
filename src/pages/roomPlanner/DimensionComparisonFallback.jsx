@@ -17,8 +17,18 @@ export function DimensionComparisonFallback({ room, items }) {
         {items.length === 0 ? <p className="mt-6 border-t border-border pt-5 text-sm text-muted-foreground">Chưa có món nào trong phòng. Hãy mở lại liên kết trên máy tính để tiếp tục thử nội thất.</p> : (
           <ul className="mt-6 space-y-5">
             {items.map((item) => {
+              if (!item.footprintConfirmed) {
+                return <li key={item.localId} className="border-t border-border pt-4"><h2 className="text-sm font-medium text-foreground">{item.variant.name}</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">Kích thước của món này chưa được xác nhận nên Nestify chưa dùng khối tạm thời để tính độ vừa vặn.</p></li>
+              }
+              const semanticWidth = Number(item.variant.width_cm) / 100
+              const semanticDepth = Number(item.variant.depth_cm) / 100
+              const hasSemanticDimensions = item.variant.model_scale_confirmed === true
+                && Number.isFinite(semanticWidth) && semanticWidth > 0
+                && Number.isFinite(semanticDepth) && semanticDepth > 0
               const occupied = Math.min(100, (item.footprint.x * item.footprint.z) / (room.width * room.depth) * 100)
-              return <li key={item.localId} className="border-t border-border pt-4"><div className="flex items-baseline justify-between gap-4"><h2 className="text-sm font-medium text-foreground">{item.variant.name}</h2><span className="text-xs tabular-nums text-muted-foreground">{occupied.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}% mặt sàn</span></div><p className="mt-1 text-xs text-muted-foreground">{formatDimension(item.footprint.x, 'm')} rộng × {formatDimension(item.footprint.z, 'm')} sâu</p><div className="mt-3 space-y-2"><div><span className="text-xs text-muted-foreground">So với chiều rộng phòng</span><div className="mt-1 h-2 bg-unbuilt"><div className="h-full bg-primary" style={{ width: ratio(item.footprint.x, room.width) }} /></div></div><div><span className="text-xs text-muted-foreground">So với chiều sâu phòng</span><div className="mt-1 h-2 bg-unbuilt"><div className="h-full bg-primary" style={{ width: ratio(item.footprint.z, room.depth) }} /></div></div></div></li>
+              const shownWidth = hasSemanticDimensions ? semanticWidth : item.footprint.x
+              const shownDepth = hasSemanticDimensions ? semanticDepth : item.footprint.z
+              return <li key={item.localId} className="border-t border-border pt-4"><div className="flex items-baseline justify-between gap-4"><h2 className="text-sm font-medium text-foreground">{item.variant.name}</h2><span className="text-xs tabular-nums text-muted-foreground">{occupied.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}% mặt sàn</span></div><p className="mt-1 text-xs text-muted-foreground">{formatDimension(shownWidth, 'm')} rộng × {formatDimension(shownDepth, 'm')} sâu</p><div className="mt-3 space-y-2"><div><span className="text-xs text-muted-foreground">Phần chiếm theo chiều ngang phòng</span><div className="mt-1 h-2 bg-unbuilt"><div className="h-full bg-primary" style={{ width: ratio(item.footprint.x, room.width) }} /></div></div><div><span className="text-xs text-muted-foreground">Phần chiếm theo chiều sâu phòng</span><div className="mt-1 h-2 bg-unbuilt"><div className="h-full bg-primary" style={{ width: ratio(item.footprint.z, room.depth) }} /></div></div></div></li>
             })}
           </ul>
         )}

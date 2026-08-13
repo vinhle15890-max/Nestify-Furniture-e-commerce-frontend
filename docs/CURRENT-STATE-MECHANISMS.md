@@ -56,7 +56,9 @@ Phòng đặt tâm `(0,0,0)`: X=rộng, Z=sâu, Y=hướng lên, sàn Y=0. UI gi
 2–5 m; backend chấp nhận 0.01–999999.99 nên giới hạn thực dụng là **client-only**. Ba wall flag chỉ quyết
 định mặt nào được render; tắt wall không mở miền kéo.
 
-Store load API resource qua mapper thành item có `localId`, variant, transform và footprint; `obstacles` được
+Store load API resource qua mapper thành item có `localId`, variant, transform và footprint; với model đã xác nhận,
+footprint được khởi tạo ngay từ `model_size {x,y,z}` theo trục GLB của API, còn `width_cm/height_cm/depth_cm`
+giữ ngữ nghĩa người dùng; `obstacles` được
 serialize cùng scene và guest draft. Selection,
 gizmo/view/edit mode và scale reference là state phiên xem, không serialize. `dirty` chỉ đánh dấu dữ liệu cần
 lưu.
@@ -103,7 +105,8 @@ X/Y/Z cho store. `reportFootprint` no-op nếu sai khác dưới `1e-4`: tránh 
 re-clamp.
 
 Model đã admin-confirm được bake để 1 Three unit = 1 m. Model legacy/chưa confirm vẫn có thể có URL: trước
-load dùng footprint 1×1×1 m, sau load dùng bounding box thô, nên kích thước thật có thể sai.
+load dùng kích thước API đã xác nhận để dựng placeholder đúng tỷ lệ; model chưa xác nhận vẫn có footprint engine
+1×1×1 m nhưng inspector/fallback không công bố số này như kích thước thật. Sau load, bounding box runtime được đo lại.
 
 Customer không có scale gizmo; `updateTransform` còn xóa mọi `patch.scale`. Backend chỉ chấp nhận mỗi scale
 axis `1 ± 0.000001`. Vì vậy arbitrary scale bị chặn **cả client và server**, không chỉ ẩn nút.
@@ -112,7 +115,8 @@ axis `1 ± 0.000001`. Vì vậy arbitrary scale bị chặn **cả client và se
 
 Không URL → khối 1 m “Chưa có mô hình 3D”. Suspense → khối wireframe “Đang tải mô hình”. Exception
 `useGLTF` → error boundary, `console.error`, khối “Đang dùng khối thay thế”; đổi URL reset boundary. Không
-auto-retry, không fallback ảnh 2D, không telemetry ngoài console. Placeholder dùng footprint mặc định nên
+auto-retry, không fallback ảnh 2D, không telemetry ngoài console. Placeholder dùng footprint API đã xác nhận khi có;
+model chưa xác nhận dùng khối tạm nhưng UI ghi rõ chưa có số đo thật nên
 collision/bounds chỉ là ước lượng.
 
 ### Selection, history, overlap và room resize
@@ -158,7 +162,7 @@ automated visual regression).
 
 - `reset` về idle; `initNew` gắn room/default walls và ready; `loadScene` cấp `localId` mới, xóa selection,
   history và dirty. `setName`/`setRoom` dirty; edit/gizmo/view/scale-reference là state phiên xem.
-- `addVariant` tạo transform identity + footprint tạm 1 m, ghi history, add/select/dirty. `duplicateSelected`
+- `addVariant` tạo transform identity + footprint từ kích thước API đã xác nhận; nếu thiếu thì giữ footprint engine tạm 1 m với `footprintConfirmed=false`, ghi history, add/select/dirty. `duplicateSelected`
   deep-clone, ID mới, offset 0.3 m X/Z rồi clamp. Không có selection hợp lệ thì action phụ thuộc selection
   no-op.
 - `reportFootprint` no-op khi mỗi trục lệch dưới `1e-4`; nếu đổi thì replace footprint và re-project nhưng

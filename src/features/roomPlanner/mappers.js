@@ -1,4 +1,5 @@
 import { makeLocalId } from './threeD'
+import { initialFootprint } from './dimensions'
 
 const num = (value, fallback = 0) => {
   const n = Number(value)
@@ -50,6 +51,11 @@ export function sceneToEditorState(resource) {
         // RoomSceneItemResource omits name/price/thumbnail — fall back to sku.
         name: item.variant?.name ?? item.variant?.sku ?? '',
         model_3d_url: item.variant?.model_3d_url ?? null,
+        model_scale_confirmed: item.variant?.model_scale_confirmed === true,
+        width_cm: item.variant?.width_cm ?? null,
+        height_cm: item.variant?.height_cm ?? null,
+        depth_cm: item.variant?.depth_cm ?? null,
+        model_size: item.variant?.model_size ?? null,
         price: item.variant?.price ?? null,
         thumbnail: item.variant?.thumbnail ?? null,
         product_slug: item.variant?.product_slug ?? null,
@@ -58,7 +64,7 @@ export function sceneToEditorState(resource) {
       position: vec3(item.position, 0),
       rotation: vec3(item.rotation, 0),
       scale: vec3(item.scale, 1),
-      footprint: { x: 1, y: 1, z: 1 }, // đo lại từ GLB khi render
+      ...initialFootprint(item.variant), // GLB runtime vẫn đo lại để đối chiếu
     })),
   }
 }

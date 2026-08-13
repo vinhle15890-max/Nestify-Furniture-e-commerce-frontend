@@ -119,6 +119,17 @@ describe('OrderDetailPage', () => {
     expect(ordersApi.cancelOrder).toHaveBeenCalledWith(99, undefined)
   })
 
+  it('shows a fully discounted PayOS order without claiming an online refund', async () => {
+    ordersApi.getOrder.mockResolvedValue({
+      data: { ...baseOrder, status: 'processing', payment_method: 'payos', discount_amount: 10000000, total: 0 },
+    })
+    renderPage()
+
+    expect(await screen.findByText(/Đã áp dụng mã giảm giá toàn bộ/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn' }))
+    expect(screen.queryByText(/sẽ được hoàn tiền/)).not.toBeInTheDocument()
+  })
+
   it('cancels a pending-payment order through the confirm dialog', async () => {
     ordersApi.getOrder.mockResolvedValue({ data: baseOrder })
     ordersApi.cancelOrder.mockResolvedValue({ data: { ...baseOrder, status: 'cancelled' } })

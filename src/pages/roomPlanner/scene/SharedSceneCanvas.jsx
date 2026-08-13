@@ -17,6 +17,7 @@ export function SharedSceneCanvas({ room, items, obstacles = [] }) {
         >
           <FurnitureModelRuntime
             url={item.variant.model_3d_url}
+            placeholderSize={item.footprint}
             onError={(error) => console.error('Shared Planner furniture model failed to render', error)}
           />
         </group>

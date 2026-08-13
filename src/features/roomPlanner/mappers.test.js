@@ -11,7 +11,7 @@ const resource = {
   items: [
     {
       id: 1,
-      variant: { id: 12, sku: 'SOFA-RED', model_3d_url: 'https://x/m.glb' },
+      variant: { id: 12, sku: 'SOFA-RED', model_3d_url: 'https://x/m.glb', model_scale_confirmed: true, width_cm: 220, height_cm: 95, depth_cm: 100, model_size: { x: 1, y: 0.95, z: 2.2 } },
       position: { x: '1.0000', y: '0.0000', z: '2.0000' },
       rotation: { x: '0', y: '1.57', z: '0' },
       scale: { x: '1', y: '1', z: '1' },
@@ -29,6 +29,8 @@ describe('roomPlanner/mappers', () => {
     expect(item.variant).toMatchObject({ id: 12, sku: 'SOFA-RED', name: 'SOFA-RED', model_3d_url: 'https://x/m.glb' })
     expect(item.position).toEqual({ x: 1, y: 0, z: 2 })
     expect(item.rotation).toEqual({ x: 0, y: 1.57, z: 0 })
+    expect(item.footprint).toEqual({ x: 1, y: 0.95, z: 2.2 })
+    expect(item.footprintConfirmed).toBe(true)
     expect(typeof item.localId).toBe('number')
   })
 

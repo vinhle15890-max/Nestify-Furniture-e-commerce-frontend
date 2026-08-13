@@ -45,7 +45,7 @@ describe('runtime furniture model states', () => {
   it.each([
     [MODEL_STATE.NO_MODEL, 'Chưa thể hiển thị món đồ'],
     [MODEL_STATE.LOADING, 'Đang chuẩn bị món đồ'],
-    [MODEL_STATE.LOAD_FAILED, 'Đang hiển thị kích thước tham khảo'],
+    [MODEL_STATE.LOAD_FAILED, 'Không thể tải chi tiết món đồ'],
   ])('renders an identifiable %s fallback', (state, label) => {
     const { container } = render(<PlaceholderBox state={state} />)
     expect(container.querySelector(`[data-model-state="${state}"]`)).toBeInTheDocument()

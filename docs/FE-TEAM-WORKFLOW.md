@@ -554,7 +554,7 @@ BE `14-workflows.md` §10.
 
 ## 10. Khu vực Admin (back-office)
 
-> **Liên kết bảo vệ `J6`, `J12`:** [Kịch bản Chương 2–3](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-3--một-khả-năng-được-chuẩn-bị) · [BE §10d–§10e và §11–§12](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10d-media-library-thư-viện-ảnh-dùng-chung--đã-build-2026-07-08) · Tài/BE2 ↔ FE4.
+> **Liên kết bảo vệ `J6`, `J12`:** [Kịch bản Chương 2–3](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-3--một-khả-năng-được-chuẩn-bị) · [BE §10d–§10e và §11–§12](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10d-media-library-thư-viện-ảnh-dùng-chung--đã-build-2026-07-08) · Tài/BE2 phụ trách Admin–audit; Bảo/BE1 phụ trách RBAC ↔ FE4.
 
 **Actor:** Staff (role ≠ customer). **Entry:** `/admin/*` sau `AdminRoute`. **Feature:** `features/admin/*`, `pages/admin/*`.
 
