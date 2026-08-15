@@ -185,7 +185,7 @@ function FactStatus({ children, role = 'alert', className = '' }) {
 function TransactionEvidence({ declaration, stockConflictVariantId }) {
   const { items, goodsTotal, totalQuantity, voucherResult } = declaration
   const discountAmount = Number(voucherResult?.discount_amount ?? 0)
-  const finalTotal = Number(voucherResult?.final_total ?? goodsTotal)
+  const finalTotal = Number(voucherResult?.final_total ?? Math.max(0, goodsTotal - discountAmount))
 
   return (
     <section aria-labelledby="checkout-transaction-heading" data-testid="checkout-transaction-evidence">

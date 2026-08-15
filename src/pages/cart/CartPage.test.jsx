@@ -216,6 +216,18 @@ describe('CartPage', () => {
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 
+  it('derives the preview total when an older apply-voucher response omits final_total', async () => {
+    useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
+    cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000 } })
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: [{ code: 'GIAM10', discount_amount: 1000000, final_total: 9000000 }] })
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
+
+    expect(await screen.findByText('9.000.000 ₫')).toBeInTheDocument()
+    expect(screen.queryByText('0 ₫')).not.toBeInTheDocument()
+  })
+
   it('keeps a large voucher list searchable without rendering every option', async () => {
     useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
     const vouchers = Array.from({ length: 105 }, (_, index) => ({

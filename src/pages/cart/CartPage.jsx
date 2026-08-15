@@ -363,6 +363,8 @@ export function CartPage() {
 
   const cart = data?.data
   const items = cart?.items ?? []
+  const voucherPreviewTotal = voucherResult?.final_total
+    ?? Math.max(0, Number(cart?.total ?? 0) - Number(voucherResult?.discount_amount ?? 0))
   const itemGroups = groupCartItems(items)
   const checkoutBlocked = cartHasStockShortfall(items)
   const mutationPending = Object.keys(pendingQuantities).length > 0 || Object.keys(pendingRemovals).length > 0
@@ -576,8 +578,8 @@ export function CartPage() {
                       <dd className="tabular-nums text-foreground">-{formatPrice(voucherResult.discount_amount)}</dd>
                     </div>
                     <div className="flex items-start justify-between gap-4 md:flex-col md:items-end md:gap-1">
-                      <dt className="text-muted-foreground">Số tiền xem trước</dt>
-                      <dd className="font-medium tabular-nums text-foreground">{formatPrice(voucherResult.final_total)}</dd>
+                      <dt className="text-muted-foreground">Thành tiền dự kiến</dt>
+                      <dd className="font-medium tabular-nums text-foreground">{formatPrice(voucherPreviewTotal)}</dd>
                     </div>
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Đây chưa phải tổng thanh toán cuối cùng.
