@@ -14,6 +14,13 @@ const baseOrder = {
   id: 101,
   status: 'processing',
   payment_method: 'payos',
+  payment: {
+    id: 5,
+    gateway: 'payos',
+    status: 'success',
+    amount: 7500000,
+    refunded_amount: 0,
+  },
   subtotal: 7500000,
   discount_amount: 0,
   total: 7500000,
@@ -328,6 +335,32 @@ describe('AdminOrderDetailPage', () => {
 
     expect(ordersApi.refundOrder).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('dialog', { name: 'Xác nhận hoàn tiền' })).toBeInTheDocument()
+  })
+
+  it('shows a customer cancellation refund as recorded instead of an empty refund form', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      total: 10000,
+      payment: {
+        id: 5,
+        gateway: 'payos',
+        status: 'refunded',
+        amount: 10000,
+        refunded_amount: 10000,
+      },
+      cancellation: {
+        reason: 'Không còn nhu cầu',
+        refund_recorded: true,
+      },
+    })
+
+    expect(await screen.findByText('Yêu cầu hoàn tiền của khách')).toBeInTheDocument()
+    expect(screen.getByText('Không còn nhu cầu')).toBeInTheDocument()
+    expect(screen.getAllByText(/10.000/)).toHaveLength(2)
+    expect(screen.getByText(/cần chuyển trả thủ công qua PayOS/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Số tiền hoàn')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tiếp tục hoàn tiền' })).not.toBeInTheDocument()
   })
 
   it('ẩn nút Hoàn tiền khi user không có quyền refund', () => {

@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ArrowUpRight,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react'
 import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
@@ -122,13 +123,14 @@ export function AdminDashboardPage() {
   if (!stats) return null
 
   const { orders, catalog } = stats
+  const manualRefunds = stats.manual_refunds ?? { count: 0, total_amount: 0, orders: [] }
 
   // Derived metrics (computed client-side from the fixed payload).
   const revenueOrders = orders.paid + orders.processing + orders.shipped + orders.delivered
   const avgOrderValue = revenueOrders ? stats.revenue / revenueOrders : 0
   const fulfilledRate = pct(orders.delivered, orders.total)
   const activeRate = pct(catalog.active_products, catalog.products)
-  const needsAttention = orders.pending_payment + stats.pending_reviews
+  const needsAttention = orders.pending_payment + stats.pending_reviews + manualRefunds.count
 
   const funnel = [
     { key: 'pending_payment', label: 'Chờ TT', value: orders.pending_payment, color: 'bg-accent/70' },
@@ -147,6 +149,50 @@ export function AdminDashboardPage() {
         title="Tổng quan"
         description="Bức tranh nhanh về hoạt động cửa hàng."
       />
+
+      {manualRefunds.count > 0 && (
+        <section
+          aria-labelledby="manual-refunds-title"
+          className="rounded-card border border-destructive/30 bg-destructive/[0.04] p-5 shadow-soft"
+        >
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-control bg-destructive/10 text-destructive">
+              <AlertTriangle size={20} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 id="manual-refunds-title" className="font-display text-xl text-foreground">
+                Có khoản hoàn tiền cần xử lý
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {manualRefunds.count} đơn · {formatPrice(manualRefunds.total_amount)} đã được ghi nhận,
+                cần chuyển trả thủ công qua PayOS.
+              </p>
+              <div className="mt-4 grid gap-2 lg:grid-cols-2">
+                {manualRefunds.orders.map((refund) => (
+                  <Link
+                    key={refund.id}
+                    to={`/admin/orders/${refund.id}`}
+                    className="group flex items-center justify-between gap-4 rounded-control border border-border bg-surface px-4 py-3 transition-colors hover:border-destructive/30"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground">{refund.order_number}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {refund.reason || 'Khách không cung cấp lý do'}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">
+                        {formatPrice(refund.amount)}
+                      </span>
+                      <ArrowUpRight size={16} className="text-muted-foreground group-hover:text-destructive" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Revenue hero + actionable queue */}
       <div className="grid gap-5 lg:grid-cols-3">
@@ -190,6 +236,13 @@ export function AdminDashboardPage() {
           <div className="mt-3 flex flex-1 flex-col justify-center">
             {needsAttention > 0 ? (
               <div className="-mx-3 flex flex-col">
+                <ActionRow
+                  to="/admin/orders?status=cancelled"
+                  icon={AlertTriangle}
+                  label="Hoàn tiền PayOS thủ công"
+                  count={manualRefunds.count}
+                  urgent
+                />
                 <ActionRow
                   to="/admin/orders"
                   icon={Clock}

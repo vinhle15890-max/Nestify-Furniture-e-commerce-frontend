@@ -95,7 +95,12 @@ export function AdminOrderDetailPage() {
 
   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
   const transitions = ADMIN_ORDER_TRANSITIONS[order.status] ?? []
-  const canRefund = order.status !== 'pending_payment'
+  const payment = order.payment
+  const remainingRefund = payment
+    ? Math.max(0, Number(payment.amount) - Number(payment.refunded_amount))
+    : 0
+  const refundRecordedByCancellation = order.cancellation?.refund_recorded === true
+  const canRefund = ['success', 'partially_refunded'].includes(payment?.status) && remainingRefund > 0
   const mayRefund = canRefund && can(user, 'refund')
   const orderLabel = order.order_number ?? `#${order.id}`
   const requiresManualRefund = order.payment_method === 'payos'
@@ -231,6 +236,25 @@ export function AdminOrderDetailPage() {
           </div>
         </div>
       </Card>
+
+      {refundRecordedByCancellation && payment && (
+        <Card className="flex flex-col gap-4">
+          <h3 className="font-display text-xl text-foreground">Yêu cầu hoàn tiền của khách</h3>
+          <dl className="grid gap-3 text-sm sm:grid-cols-[auto_1fr]">
+            <dt className="text-muted-foreground">Số tiền đã ghi nhận</dt>
+            <dd className="font-medium text-foreground sm:text-right">
+              {formatPrice(payment.refunded_amount)}
+            </dd>
+            <dt className="text-muted-foreground">Lý do hủy</dt>
+            <dd className="text-foreground sm:text-right">
+              {order.cancellation.reason || 'Khách không cung cấp lý do'}
+            </dd>
+          </dl>
+          <p className="rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">
+            Khoản hoàn đã được ghi nhận trong hệ thống nhưng vẫn cần chuyển trả thủ công qua PayOS.
+          </p>
+        </Card>
+      )}
 
       {transitions.length > 0 && (
         <Card className="flex flex-col gap-4">
