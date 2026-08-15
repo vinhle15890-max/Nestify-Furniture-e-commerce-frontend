@@ -363,6 +363,24 @@ describe('AdminOrderDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Tiếp tục hoàn tiền' })).not.toBeInTheDocument()
   })
 
+  it('closes a manual refund with a required transaction reference', async () => {
+    ordersApi.completeManualRefund.mockResolvedValue({ data: { reference: 'PAYOS-REF-001' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 7500000, manual_refund: { completed_at: null } },
+      cancellation: { reason: 'Đổi ý', refund_recorded: true },
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận đã chuyển tiền' }))
+    const submit = screen.getByRole('button', { name: 'Xác nhận đã chuyển tiền' })
+    expect(submit).toBeDisabled()
+    await userEvent.type(screen.getByLabelText('Mã giao dịch hoặc tham chiếu'), 'PAYOS-REF-001')
+    await userEvent.click(submit)
+
+    await waitFor(() => expect(ordersApi.completeManualRefund).toHaveBeenCalledWith(101, { reference: 'PAYOS-REF-001' }))
+  })
+
   it('ẩn nút Hoàn tiền khi user không có quyền refund', () => {
     renderPage(baseOrder, { permissions: [] })
 

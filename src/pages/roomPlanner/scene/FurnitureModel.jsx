@@ -1,4 +1,4 @@
-import { Component, Suspense, useCallback, useEffect, useMemo } from 'react'
+import { Component, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Box3, Vector3 } from 'three'
 import { Html, useGLTF } from '@react-three/drei'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -36,7 +36,7 @@ const STATE_LABEL = {
   [MODEL_STATE.LOAD_FAILED]: 'Không thể tải chi tiết món đồ',
 }
 
-export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange, size = { x: 1, y: 1, z: 1 } }) {
+export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange, onRetry, size = { x: 1, y: 1, z: 1 } }) {
   useEffect(() => onStateChange?.(state), [onStateChange, state])
   const loading = state === MODEL_STATE.LOADING
   const failed = state === MODEL_STATE.LOAD_FAILED
@@ -47,8 +47,9 @@ export function PlaceholderBox({ state = MODEL_STATE.NO_MODEL, onStateChange, si
         <meshStandardMaterial color={failed ? '#6E6861' : '#A58B4C'} transparent opacity={loading ? 0.35 : 0.6} wireframe={loading} />
       </mesh>
       <Html center position={[0, 1.2, 0]}>
-        <span role="status" data-model-state={state} className="whitespace-nowrap rounded-control border border-border bg-surface/95 px-2 py-1 text-xs text-foreground shadow-sm">
+        <span role="status" data-model-state={state} className="flex items-center gap-2 whitespace-nowrap rounded-control border border-border bg-surface/95 px-2 py-1 text-xs text-foreground shadow-sm">
           {STATE_LABEL[state]}
+          {failed && onRetry && <button type="button" onClick={(event) => { event.stopPropagation(); onRetry() }} className="rounded-control font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Thử lại</button>}
         </span>
       </Html>
     </group>
@@ -64,19 +65,25 @@ export class ModelErrorBoundary extends Component {
   }
   render() {
     return this.state.failed
-      ? <PlaceholderBox state={MODEL_STATE.LOAD_FAILED} onStateChange={this.props.onStateChange} size={this.props.placeholderSize} />
+      ? <PlaceholderBox state={MODEL_STATE.LOAD_FAILED} onStateChange={this.props.onStateChange} onRetry={this.props.onRetry} size={this.props.placeholderSize} />
       : this.props.children
   }
 }
 
 export function FurnitureModelRuntime({ url, onMeasure, onError, onStateChange, placeholderSize }) {
+  const [attempt, setAttempt] = useState(0)
   const handleReady = useCallback(
     () => onStateChange?.(MODEL_STATE.READY),
     [onStateChange],
   )
   if (!url) return <PlaceholderBox state={MODEL_STATE.NO_MODEL} onStateChange={onStateChange} size={placeholderSize} />
+  const retry = () => {
+    useGLTF.clear(url)
+    setAttempt((value) => value + 1)
+    onStateChange?.(MODEL_STATE.LOADING)
+  }
   return (
-    <ModelErrorBoundary resetKey={url} onError={onError} onStateChange={onStateChange} placeholderSize={placeholderSize}>
+    <ModelErrorBoundary resetKey={`${url}:${attempt}`} onRetry={retry} onError={onError} onStateChange={onStateChange} placeholderSize={placeholderSize}>
       <Suspense fallback={<PlaceholderBox state={MODEL_STATE.LOADING} onStateChange={onStateChange} size={placeholderSize} />}>
         <FurnitureModel url={url} onMeasure={onMeasure} onReady={handleReady} />
       </Suspense>

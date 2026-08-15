@@ -8,6 +8,7 @@ import { LoadErrorState } from '../../components/LoadErrorState'
 import { useAddresses, useDeleteAddress, useSetDefaultAddress } from '../../features/addresses/hooks'
 import { useToastStore } from '../../store/toastStore'
 import { AddressFormModal } from './AddressFormModal'
+import { ConfirmActionDialog } from '../../components/ConfirmActionDialog'
 
 const actionButton =
   'inline-flex cursor-pointer items-center gap-1.5 rounded-control text-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
@@ -20,6 +21,8 @@ export function AddressesPage() {
   const addToast = useToastStore((state) => state.addToast)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAddress, setEditingAddress] = useState(null)
+  const [deletingAddress, setDeletingAddress] = useState(null)
+  const [pendingAddressId, setPendingAddressId] = useState(null)
 
   const addresses = data?.data ?? []
 
@@ -33,23 +36,30 @@ export function AddressesPage() {
     setModalOpen(true)
   }
 
-  const handleDelete = async (address) => {
-    if (!window.confirm(`Xóa địa chỉ của ${address.recipient_name}?`)) return
-
+  const handleDelete = async () => {
+    if (!deletingAddress || deleteAddress.isPending) return
+    setPendingAddressId(deletingAddress.id)
     try {
-      await deleteAddress.mutateAsync(address.id)
+      await deleteAddress.mutateAsync(deletingAddress.id)
       addToast({ title: 'Đã xóa địa chỉ.', variant: 'success' })
+      setDeletingAddress(null)
     } catch (error) {
       addToast({ title: 'Không thể xóa địa chỉ.', description: error.message, variant: 'error' })
+    } finally {
+      setPendingAddressId(null)
     }
   }
 
   const handleSetDefault = async (address) => {
+    if (setDefaultAddress.isPending) return
+    setPendingAddressId(address.id)
     try {
       await setDefaultAddress.mutateAsync(address.id)
       addToast({ title: 'Đã đặt làm địa chỉ mặc định.', variant: 'success' })
     } catch (error) {
       addToast({ title: 'Không thể đặt làm mặc định.', description: error.message, variant: 'error' })
+    } finally {
+      setPendingAddressId(null)
     }
   }
 
@@ -112,13 +122,14 @@ export function AddressesPage() {
                 <button
                   type="button"
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-control text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                  onClick={() => handleDelete(address)}
+                  onClick={() => setDeletingAddress(address)}
+                  disabled={pendingAddressId === address.id}
                 >
                   <Trash2 size={14} />
                   Xóa
                 </button>
                 {!address.is_default && (
-                  <button type="button" className={actionButton} onClick={() => handleSetDefault(address)}>
+                  <button type="button" className={actionButton} onClick={() => handleSetDefault(address)} disabled={pendingAddressId === address.id}>
                     <Star size={14} />
                     Đặt làm mặc định
                   </button>
@@ -130,6 +141,17 @@ export function AddressesPage() {
       </div>
 
       <AddressFormModal open={modalOpen} onOpenChange={setModalOpen} address={editingAddress} />
+      <ConfirmActionDialog
+        open={Boolean(deletingAddress)}
+        onOpenChange={(open) => !open && setDeletingAddress(null)}
+        title="Xóa địa chỉ?"
+        description={deletingAddress ? `Địa chỉ của ${deletingAddress.recipient_name}` : undefined}
+        consequence="Địa chỉ sẽ bị xóa khỏi sổ địa chỉ và không còn dùng được cho lần đặt hàng tiếp theo. Các đơn đã tạo không bị thay đổi."
+        confirmLabel="Xóa địa chỉ"
+        onConfirm={handleDelete}
+        pending={deleteAddress.isPending}
+        destructive
+      />
     </div>
     </div>
   )

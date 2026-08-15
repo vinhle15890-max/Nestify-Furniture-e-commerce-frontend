@@ -159,12 +159,13 @@ describe('AddressesPage', () => {
   })
 
   it('deletes an address after confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     addressesApi.deleteAddress.mockResolvedValue({})
     renderPage()
     await screen.findByText('Bao Le · 0900000000')
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Xóa' })[0])
+    expect(await screen.findByText(/Các đơn đã tạo không bị thay đổi/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa địa chỉ' }))
 
     await waitFor(() => expect(addressesApi.deleteAddress).toHaveBeenCalledWith(1))
   })

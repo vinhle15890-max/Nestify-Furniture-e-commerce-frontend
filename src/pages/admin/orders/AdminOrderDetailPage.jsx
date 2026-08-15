@@ -8,7 +8,7 @@ import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
 import { Modal } from '../../../components/Modal'
 import { Spinner } from '../../../components/Spinner'
-import { useAdminOrder, useUpdateOrderStatus, useRefundOrder } from '../../../features/admin/orders/hooks'
+import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useCompleteManualRefund } from '../../../features/admin/orders/hooks'
 import { ADMIN_ORDER_TRANSITIONS } from '../../../features/admin/orders/statusTransitions'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { useToastStore } from '../../../store/toastStore'
@@ -36,6 +36,7 @@ export function AdminOrderDetailPage() {
   const order = orderQuery.data?.data
   const updateOrderStatus = useUpdateOrderStatus()
   const refundOrder = useRefundOrder()
+  const completeManualRefund = useCompleteManualRefund()
   const addToast = useToastStore((state) => state.addToast)
   const user = useAuthStore((state) => state.user)
 
@@ -46,6 +47,10 @@ export function AdminOrderDetailPage() {
   const [pendingRefund, setPendingRefund] = useState(null)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelError, setCancelError] = useState(null)
+  const [payoutOpen, setPayoutOpen] = useState(false)
+  const [payoutReference, setPayoutReference] = useState('')
+  const [payoutNote, setPayoutNote] = useState('')
+  const [payoutError, setPayoutError] = useState(null)
 
   const validOrderId = Number.isInteger(orderId) && orderId > 0
 
@@ -100,6 +105,7 @@ export function AdminOrderDetailPage() {
     ? Math.max(0, Number(payment.amount) - Number(payment.refunded_amount))
     : 0
   const refundRecordedByCancellation = order.cancellation?.refund_recorded === true
+  const manualRefundCompleted = Boolean(payment?.manual_refund?.completed_at)
   const canRefund = ['success', 'partially_refunded'].includes(payment?.status) && remainingRefund > 0
   const mayRefund = canRefund && can(user, 'refund')
   const orderLabel = order.order_number ?? `#${order.id}`
@@ -180,6 +186,24 @@ export function AdminOrderDetailPage() {
     }
   }
 
+  const handleCompletePayout = async (event) => {
+    event.preventDefault()
+    if (completeManualRefund.isPending) return
+    setPayoutError(null)
+
+    try {
+      await completeManualRefund.mutateAsync({
+        id: order.id,
+        reference: payoutReference.trim(),
+        ...(payoutNote.trim() ? { note: payoutNote.trim() } : {}),
+      })
+      setPayoutOpen(false)
+      addToast({ title: 'Đã xác nhận chuyển tiền hoàn cho khách.', variant: 'success' })
+    } catch (error) {
+      setPayoutError(error.message)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {orderQuery.isError && (
@@ -250,9 +274,24 @@ export function AdminOrderDetailPage() {
               {order.cancellation.reason || 'Khách không cung cấp lý do'}
             </dd>
           </dl>
-          <p className="rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">
-            Khoản hoàn đã được ghi nhận trong hệ thống nhưng vẫn cần chuyển trả thủ công qua PayOS.
-          </p>
+          {manualRefundCompleted ? (
+            <div className="rounded-control border border-secondary/30 bg-secondary/[0.06] p-3 text-sm text-foreground">
+              <p className="font-medium">Đã chuyển tiền hoàn cho khách</p>
+              <p className="mt-1 text-muted-foreground">
+                Mã tham chiếu: {payment.manual_refund.reference} · {formatDate(payment.manual_refund.completed_at)}
+              </p>
+              {payment.manual_refund.note && <p className="mt-1 text-muted-foreground">{payment.manual_refund.note}</p>}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
+              <p>Khoản hoàn đã được ghi nhận nhưng vẫn cần chuyển trả thủ công qua PayOS.</p>
+              {can(user, 'refund') && (
+                <Button type="button" onClick={() => setPayoutOpen(true)} className="shrink-0">
+                  Xác nhận đã chuyển tiền
+                </Button>
+              )}
+            </div>
+          )}
         </Card>
       )}
 
@@ -351,6 +390,33 @@ export function AdminOrderDetailPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={payoutOpen}
+        onOpenChange={(open) => {
+          if (completeManualRefund.isPending) return
+          setPayoutOpen(open)
+          if (!open) setPayoutError(null)
+        }}
+        title="Xác nhận đã chuyển tiền"
+        description={`Khoản hoàn của đơn ${orderLabel}`}
+      >
+        <form onSubmit={handleCompletePayout} className="flex flex-col gap-4">
+          <p className="text-sm text-foreground">
+            Chỉ xác nhận sau khi giao dịch hoàn tiền đã hoàn tất trên PayOS hoặc tài khoản ngân hàng.
+            Thao tác sẽ đóng nhắc việc trên dashboard và được lưu vào nhật ký kiểm toán.
+          </p>
+          <Input id="payout-reference" label="Mã giao dịch hoặc tham chiếu" value={payoutReference} onChange={(event) => setPayoutReference(event.target.value)} maxLength={255} required />
+          <Input id="payout-note" label="Ghi chú (không bắt buộc)" value={payoutNote} onChange={(event) => setPayoutNote(event.target.value)} maxLength={500} />
+          {payoutError && <p role="alert" className="text-sm text-destructive">{payoutError}</p>}
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setPayoutOpen(false)} disabled={completeManualRefund.isPending}>Quay lại</Button>
+            <Button type="submit" disabled={completeManualRefund.isPending || !payoutReference.trim()}>
+              {completeManualRefund.isPending ? 'Đang xác nhận...' : 'Xác nhận đã chuyển tiền'}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <Modal

@@ -5,6 +5,7 @@ export const AUDIT_ACTION_LABELS = {
   'order.cancel': 'Hủy đơn hàng',
   'order.status_transition': 'Chuyển trạng thái đơn',
   'payment.refund': 'Hoàn tiền',
+  'payment.manual_refund_completed': 'Xác nhận đã chuyển tiền hoàn',
   'user.assign_roles': 'Gán vai trò cho người dùng',
   'user.lock': 'Khoá người dùng',
   'user.unlock': 'Mở khoá người dùng',

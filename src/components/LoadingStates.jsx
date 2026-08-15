@@ -53,11 +53,11 @@ export function AccountSkeleton() {
 
 export function PlannerGeometryPlaceholder() {
   return (
-    <div role="status" aria-label="Đang chuẩn bị mặt bằng phòng" className="relative flex h-dvh overflow-hidden bg-[#e9e5dd] p-5 md:p-8">
+    <div role="status" aria-label="Đang chuẩn bị mặt bằng phòng" className="relative flex h-dvh overflow-hidden bg-canvas p-5 md:p-8">
       <div className="relative m-auto aspect-[4/3] w-full max-w-4xl border-4 border-ink/30 bg-canvas shadow-[inset_0_0_0_1px_rgba(42,39,35,0.08)]">
         <div aria-hidden="true" className="absolute left-[14%] top-[18%] h-[24%] w-[34%] animate-pulse border-2 border-ink/20 bg-unbuilt/35 motion-reduce:animate-none" />
         <div aria-hidden="true" className="absolute bottom-[15%] right-[12%] h-[18%] w-[22%] animate-pulse rounded-full border-2 border-ink/20 bg-unbuilt/35 motion-reduce:animate-none" />
-        <div aria-hidden="true" className="absolute bottom-0 left-[46%] h-1/4 w-16 border-x-2 border-ink/20 bg-[#e9e5dd]" />
+        <div aria-hidden="true" className="absolute bottom-0 left-[46%] h-1/4 w-16 border-x-2 border-ink/20 bg-canvas" />
       </div>
       <p className="absolute inset-x-0 bottom-8 text-center text-sm font-medium text-ink/65">Đang chuẩn bị mặt bằng phòng…</p>
     </div>

@@ -290,7 +290,6 @@ describe('RoomPlannerPage', () => {
 
     it('reuses dirty-exit protection from the mobile notice', async () => {
       const mediaQuery = installMatchMedia(true)
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
       renderPage('/room-planner?new=1')
       await userEvent.click(await screen.findByRole('button', { name: /tạo phòng/i }))
       act(() => {
@@ -300,9 +299,9 @@ describe('RoomPlannerPage', () => {
 
       await userEvent.click(await screen.findByRole('button', { name: 'Về cửa hàng' }))
 
-      expect(confirmSpy).toHaveBeenCalledOnce()
+      expect(await screen.findByRole('heading', { name: 'Rời phòng khi chưa lưu?' })).toBeInTheDocument()
+      expect(screen.getByText(/các thay đổi trong phòng này kể từ lần lưu gần nhất sẽ mất/i)).toBeInTheDocument()
       expect(useEditorStore.getState().items).toHaveLength(1)
-      confirmSpy.mockRestore()
     })
 
     it('fails closed when matchMedia is unavailable', async () => {

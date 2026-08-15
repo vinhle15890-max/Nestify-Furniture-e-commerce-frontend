@@ -1,11 +1,14 @@
 import { useClearPersonalizationHistory, useUpdatePersonalization } from '../../features/personalization/hooks'
+import { useState } from 'react'
+import { ConfirmActionDialog } from '../../components/ConfirmActionDialog'
 
 export function PersonalizationControls({ enabled = true }) {
   const update = useUpdatePersonalization()
   const clear = useClearPersonalizationHistory()
+  const [clearOpen, setClearOpen] = useState(false)
 
   const clearHistory = () => {
-    if (window.confirm('Xóa lịch sử sản phẩm đã xem dùng cho cá nhân hóa? Phòng, wishlist và đơn hàng của bạn vẫn được giữ nguyên.')) clear.mutate()
+    clear.mutate(undefined, { onSuccess: () => setClearOpen(false) })
   }
 
   return (
@@ -16,11 +19,22 @@ export function PersonalizationControls({ enabled = true }) {
         <span>Cho phép cá nhân hóa</span>
         <input type="checkbox" checked={enabled} disabled={update.isPending} onChange={(event) => update.mutate(event.target.checked)} className="h-5 w-5 accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
       </label>
-      <button type="button" onClick={clearHistory} disabled={clear.isPending} className="mt-4 min-h-11 text-sm text-muted-foreground underline decoration-border-strong underline-offset-4 hover:text-foreground active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+      <button type="button" onClick={() => setClearOpen(true)} disabled={clear.isPending} className="mt-4 min-h-11 text-sm text-muted-foreground underline decoration-border-strong underline-offset-4 hover:text-foreground active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
         {clear.isPending ? 'Đang xóa lịch sử…' : 'Xóa lịch sử sản phẩm đã xem'}
       </button>
       {update.isError && <p role="alert" className="mt-3 text-sm text-destructive">Chưa cập nhật được lựa chọn cá nhân hóa.</p>}
       {clear.isError && <p role="alert" className="mt-3 text-sm text-destructive">Chưa xóa được lịch sử. Dữ liệu hiện tại vẫn được giữ nguyên.</p>}
+      <ConfirmActionDialog
+        open={clearOpen}
+        onOpenChange={setClearOpen}
+        title="Xóa lịch sử đã xem?"
+        consequence="Nestify sẽ quên các sản phẩm bạn đã xem để gợi ý lại từ đầu. Phòng đã lưu, wishlist và đơn hàng vẫn được giữ nguyên."
+        confirmLabel="Xóa lịch sử đã xem"
+        onConfirm={clearHistory}
+        pending={clear.isPending}
+        error={clear.isError ? 'Chưa xóa được lịch sử. Dữ liệu hiện tại vẫn được giữ nguyên.' : null}
+        destructive
+      />
     </section>
   )
 }

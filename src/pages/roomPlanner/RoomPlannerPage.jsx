@@ -17,6 +17,7 @@ import { useEditorShortcuts } from './useEditorShortcuts'
 import { SmallScreenNotice } from './SmallScreenNotice'
 import { PlannerGeometryPlaceholder } from '../../components/LoadingStates'
 import { PlannerCanvasErrorBoundary } from './PlannerCanvasErrorBoundary'
+import { ConfirmActionDialog } from '../../components/ConfirmActionDialog'
 import { useEditorStore } from '../../features/roomPlanner/editorStore'
 import { useScene, useSceneReview, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview, useRoomDraft, useSaveRoomDraft, useClaimRoomDraft } from '../../features/roomPlanner/hooks'
 import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
@@ -395,10 +396,8 @@ export function RoomPlannerPage() {
     }
   }
 
-  const handleExit = () => {
-    if (store.dirty && !window.confirm('Bạn có thay đổi chưa lưu. Thoát?')) return
-    navigate('/')
-  }
+  const [exitOpen, setExitOpen] = useState(false)
+  const handleExit = () => store.dirty ? setExitOpen(true) : navigate('/')
 
   const selectedItem = store.items.find((item) => item.localId === store.selectedId) ?? null
 
@@ -411,13 +410,25 @@ export function RoomPlannerPage() {
 
   if (!isDesktop) {
     return (
-      <SmallScreenNotice
-        continueUrl={continueUrl}
-        hasUnsavedChanges={store.dirty}
-        onExit={handleExit}
-        room={store.status === 'ready' ? store.room : null}
-        items={store.items}
-      />
+      <>
+        <SmallScreenNotice
+          continueUrl={continueUrl}
+          hasUnsavedChanges={store.dirty}
+          onExit={handleExit}
+          room={store.status === 'ready' ? store.room : null}
+          items={store.items}
+        />
+        <ConfirmActionDialog
+          open={exitOpen}
+          onOpenChange={setExitOpen}
+          title="Rời phòng khi chưa lưu?"
+          description={store.name}
+          consequence="Các thay đổi trong phòng này kể từ lần lưu gần nhất sẽ mất. Bạn có thể quay lại để lưu trước khi rời đi."
+          confirmLabel="Rời đi và bỏ thay đổi"
+          onConfirm={() => navigate('/')}
+          destructive
+        />
+      </>
     )
   }
 
@@ -510,6 +521,16 @@ export function RoomPlannerPage() {
         onRemove={handleRemoveReviewPlacement}
         removingPlacementId={removingPlacementId}
         removeError={reviewRemoveError}
+      />
+      <ConfirmActionDialog
+        open={exitOpen}
+        onOpenChange={setExitOpen}
+        title="Rời phòng khi chưa lưu?"
+        description={store.name}
+        consequence="Các thay đổi trong phòng này kể từ lần lưu gần nhất sẽ mất. Bạn có thể quay lại để lưu trước khi rời đi."
+        confirmLabel="Rời đi và bỏ thay đổi"
+        onConfirm={() => navigate('/')}
+        destructive
       />
     </div>
   )

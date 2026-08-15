@@ -52,3 +52,16 @@ export function useRefundOrder() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: adminOrderKeys.all }),
   })
 }
+
+export function useCompleteManualRefund() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.completeManualRefund(id, payload),
+    onSuccess: (_response, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
