@@ -126,6 +126,31 @@ describe('AdminVouchersPage', () => {
     )
   })
 
+  it('accepts a multi-million fixed discount and rejects percentages over 100', async () => {
+    vouchersApi.createVoucher.mockResolvedValue({ data: { ...vouchersResponse.data[0], id: 3 } })
+    renderPage()
+    await screen.findByText('SALE10')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher' }))
+    await userEvent.type(screen.getByLabelText('Mã voucher'), 'SAVE2690K')
+    await userEvent.type(screen.getByLabelText('Giá trị'), '2690000')
+    await userEvent.type(screen.getByLabelText(/Lượt sử dụng tối đa$/), '100')
+    await userEvent.type(screen.getByLabelText(/Lượt sử dụng \/ người/), '100')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher mới' }))
+
+    await waitFor(() => expect(vouchersApi.createVoucher).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'fixed', value: 2690000 }),
+    ))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher' }))
+    await userEvent.selectOptions(screen.getByLabelText('Loại'), 'percentage')
+    await userEvent.type(screen.getByLabelText('Giá trị'), '101')
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher mới' }))
+
+    expect(await screen.findByText('Voucher phần trăm không được vượt quá 100%.')).toBeInTheDocument()
+    expect(vouchersApi.createVoucher).toHaveBeenCalledTimes(1)
+  })
+
   it('generates a voucher code with the "Tạo mã" button', async () => {
     renderPage()
     await screen.findByText('SALE10')

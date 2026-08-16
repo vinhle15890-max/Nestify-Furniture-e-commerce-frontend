@@ -90,11 +90,12 @@ describe('MyRoomsPage', () => {
   })
 
   it('deletes a room after confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     roomPlannerApi.deleteScene.mockResolvedValue(null)
     renderPage()
     await screen.findByText('Phòng khách')
     await userEvent.click(screen.getByRole('button', { name: 'Xoá' }))
+    expect(await screen.findByText(/liên kết chia sẻ của phòng này sẽ bị xóa/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa phòng' }))
     await waitFor(() => expect(roomPlannerApi.deleteScene).toHaveBeenCalledWith(7))
   })
 

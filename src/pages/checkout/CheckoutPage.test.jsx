@@ -213,6 +213,16 @@ describe('CheckoutPage', () => {
     expect(screen.getByRole('button', { name: 'Đặt hàng' }).closest('div')).toHaveClass('fixed', 'pr-20', 'lg:right-24')
   })
 
+  it('subtracts the discount at Checkout when an older voucher response omits final_total', async () => {
+    cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000 } })
+    renderPage('/checkout?voucher=GIAM10')
+
+    const transaction = await screen.findByTestId('checkout-transaction-evidence')
+
+    expect(within(transaction).getByText(/^-1\.000\.000/, { selector: 'dd' })).toBeInTheDocument()
+    expect(within(transaction).getByText(/^9\.000\.000/, { selector: 'dd' })).toBeInTheDocument()
+  })
+
   it.skip('orders narrow DOM flow as transaction evidence, address, payment, voucher, certainty, action', async () => {
     renderPage()
     await screen.findByText('Sofa Mây')

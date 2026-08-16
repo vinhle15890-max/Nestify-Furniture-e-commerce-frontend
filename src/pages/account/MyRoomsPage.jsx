@@ -9,6 +9,7 @@ import { Pagination } from '../../components/Pagination'
 import { useScenes, useDeleteScene, useRenameScene } from '../../features/roomPlanner/hooks'
 import { useToastStore } from '../../store/toastStore'
 import { formatDate } from '../../lib/format'
+import { ConfirmActionDialog } from '../../components/ConfirmActionDialog'
 
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
 
@@ -18,6 +19,7 @@ function RoomCard({ scene }) {
   const addToast = useToastStore((s) => s.addToast)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(scene.name)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const commitName = () => {
     setEditing(false)
@@ -33,9 +35,8 @@ function RoomCard({ scene }) {
   }
 
   const handleDelete = () => {
-    if (!window.confirm(`Xoá phòng “${scene.name}”?`)) return
     remove.mutate(scene.id, {
-      onSuccess: () => addToast({ title: 'Đã xoá phòng.', variant: 'success' }),
+      onSuccess: () => { setDeleteOpen(false); addToast({ title: 'Đã xoá phòng.', variant: 'success' }) },
       onError: () => addToast({ title: 'Xoá phòng thất bại.', variant: 'error' }),
     })
   }
@@ -96,13 +97,24 @@ function RoomCard({ scene }) {
         </button>
         <button
           type="button"
-          onClick={handleDelete}
+          onClick={() => setDeleteOpen(true)}
           disabled={remove.isPending}
           className="inline-flex items-center gap-1.5 rounded-control border border-destructive/40 px-3 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/5 disabled:opacity-50"
         >
           <Trash2 size={15} aria-hidden="true" /> Xoá
         </button>
       </div>
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Xóa phòng đã lưu?"
+        description={scene.name}
+        consequence="Phương án bố trí, ảnh xem trước và liên kết chia sẻ của phòng này sẽ bị xóa. Thao tác không ảnh hưởng các đơn hàng đã tạo."
+        confirmLabel="Xóa phòng"
+        onConfirm={handleDelete}
+        pending={remove.isPending}
+        destructive
+      />
     </li>
   )
 }

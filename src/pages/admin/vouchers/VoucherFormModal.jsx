@@ -36,12 +36,18 @@ const schema = yup.object({
     .transform(optionalNumber)
     .typeError('Giá trị phải là số.')
     .required('Vui lòng nhập giá trị.')
-    .min(0, 'Giá trị phải lớn hơn hoặc bằng 0.'),
+    .min(0, 'Giá trị phải lớn hơn hoặc bằng 0.')
+    .when('type', {
+      is: 'percentage',
+      then: (field) => field.max(100, 'Voucher phần trăm không được vượt quá 100%.'),
+      otherwise: (field) => field.max(9999999999.99, 'Giá trị voucher vượt quá giới hạn cho phép.'),
+    }),
   max_discount: yup
     .number()
     .transform(optionalNumber)
     .typeError('Giảm tối đa phải là số.')
     .min(0, 'Giá trị phải lớn hơn hoặc bằng 0.')
+    .max(9999999999.99, 'Giảm tối đa vượt quá giới hạn cho phép.')
     .nullable(),
   min_order_value: yup
     .number()
@@ -234,7 +240,7 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
           {errors.type && <p id="type-error" role="alert" className="text-sm text-destructive">{errors.type.message}</p>}
         </div>
 
-        <Input label="Giá trị" id="value" type="number" error={errors.value?.message} {...register('value')} />
+        <Input label="Giá trị" id="value" type="number" max={type === 'percentage' ? 100 : 9999999999.99} error={errors.value?.message} {...register('value')} />
 
         {type === 'percentage' && (
           <Input

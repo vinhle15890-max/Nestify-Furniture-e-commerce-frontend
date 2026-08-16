@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
+import { ConfirmActionDialog } from '../../../components/ConfirmActionDialog'
 import { useToastStore } from '../../../store/toastStore'
 import { useBulkCreateVariants } from '../../../features/admin/products/hooks'
 import { missingCombinations } from '../../../lib/variantOptions'
@@ -19,6 +20,7 @@ export function VariantMatrixGenerator({ productId, options, variants, onCreated
   const [basePrice, setBasePrice] = useState('')
   const [baseStock, setBaseStock] = useState('0')
   const [rows, setRows] = useState([])
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const missing = useMemo(() => missingCombinations(options ?? [], variants ?? []), [options, variants])
   const optionNames = (options ?? []).map((o) => o.name)
@@ -50,8 +52,11 @@ export function VariantMatrixGenerator({ productId, options, variants, onCreated
     )
   }
 
-  const handleGenerate = async () => {
-    if (missing.length > 50 && !window.confirm(`Sẽ tạo ${missing.length} biến thể. Tiếp tục?`)) return
+  const handleGenerate = async (confirmed = false) => {
+    if (missing.length > 50 && !confirmed) {
+      setConfirmOpen(true)
+      return
+    }
     try {
       const canContinue = await onBeforeGenerate?.()
       if (canContinue === false) return
@@ -64,6 +69,7 @@ export function VariantMatrixGenerator({ productId, options, variants, onCreated
         })),
       })
       addToast({ title: `Đã tạo ${missing.length} biến thể.`, variant: 'success' })
+      setConfirmOpen(false)
       onCreated?.(res.data)
     } catch (error) {
       addToast({ title: 'Không thể tạo biến thể.', description: error.message, variant: 'error' })
@@ -161,6 +167,15 @@ export function VariantMatrixGenerator({ productId, options, variants, onCreated
           {bulkCreate.isPending ? 'Đang tạo…' : `Lưu và tạo ${missing.length} biến thể`}
         </Button>
       </div>
+      <ConfirmActionDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Tạo số lượng lớn biến thể?"
+        consequence={`Hệ thống sẽ tạo ${missing.length} biến thể còn thiếu với giá và tồn kho đang hiển thị. Hãy kiểm tra các giá trị trước khi tiếp tục.`}
+        confirmLabel={`Tạo ${missing.length} biến thể`}
+        onConfirm={() => handleGenerate(true)}
+        pending={bulkCreate.isPending}
+      />
     </div>
   )
 }

@@ -70,7 +70,7 @@ vi đóng bình thường.
 ### Hệ tọa độ và room shell
 
 Phòng đặt tâm `(0,0,0)`: X=rộng, Z=sâu, Y=hướng lên, sàn Y=0. UI giới hạn rộng/sâu 2–30 m và cao
-2–5 m; backend chấp nhận 0.01–999999.99 nên giới hạn thực dụng là **client-only**. Ba wall flag chỉ quyết
+2–5 m; backend áp cùng giới hạn width/depth 2–30 m và height 2–5 m. Ba wall flag chỉ quyết
 định mặt nào được render; tắt wall không mở miền kéo.
 
 Store load API resource qua mapper thành item có `localId`, variant, transform và footprint; với model đã xác nhận,
@@ -111,8 +111,7 @@ Thanh công cụ canvas chỉ giữ bốn ý định có nghĩa trực tiếp: g
 mốc người/cửa. Snap và bắt tường không còn là hai công tắc bắt người dùng tự quản lý. Form kích thước dùng
 giá trị nháp và chỉ gọi `resizeRoom` khi bấm **Áp dụng**, nên đóng/huỷ không làm biến đổi phòng.
 
-**Enforcement gap:** backend chỉ kiểm position/rotation là số; không bounds-check, clamp, ép Y=0 hay kiểm
-overlap. Direct API có thể lưu đồ ngoài phòng. Đây là client-only constraint.
+**Server enforcement:** backend ép Y=0, kiểm item/obstacle bounds, dùng footprint model đã xác nhận sau xoay Y để kiểm vừa phòng và overlap; PATCH dimensions kiểm lại dữ liệu đang lưu. Model legacy chưa xác nhận chỉ kiểm tâm/Y vì chưa có footprint đáng tin cậy. Client vẫn projection/clamp tức thời để UX không phải chờ lỗi server.
 
 ### Kích thước thật và cấm scale
 

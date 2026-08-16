@@ -18,3 +18,7 @@ export function updateOrderStatus(id, status) {
 export function refundOrder(id, payload) {
   return apiClient.post(`/admin/orders/${id}/refund`, payload)
 }
+
+export function completeManualRefund(id, payload) {
+  return apiClient.post(`/admin/orders/${id}/refund/complete`, payload)
+}

@@ -14,6 +14,13 @@ const baseOrder = {
   id: 101,
   status: 'processing',
   payment_method: 'payos',
+  payment: {
+    id: 5,
+    gateway: 'payos',
+    status: 'success',
+    amount: 7500000,
+    refunded_amount: 0,
+  },
   subtotal: 7500000,
   discount_amount: 0,
   total: 7500000,
@@ -328,6 +335,50 @@ describe('AdminOrderDetailPage', () => {
 
     expect(ordersApi.refundOrder).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('dialog', { name: 'Xác nhận hoàn tiền' })).toBeInTheDocument()
+  })
+
+  it('shows a customer cancellation refund as recorded instead of an empty refund form', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      total: 10000,
+      payment: {
+        id: 5,
+        gateway: 'payos',
+        status: 'refunded',
+        amount: 10000,
+        refunded_amount: 10000,
+      },
+      cancellation: {
+        reason: 'Không còn nhu cầu',
+        refund_recorded: true,
+      },
+    })
+
+    expect(await screen.findByText('Yêu cầu hoàn tiền của khách')).toBeInTheDocument()
+    expect(screen.getByText('Không còn nhu cầu')).toBeInTheDocument()
+    expect(screen.getAllByText(/10.000/)).toHaveLength(2)
+    expect(screen.getByText(/cần chuyển trả thủ công qua PayOS/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Số tiền hoàn')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tiếp tục hoàn tiền' })).not.toBeInTheDocument()
+  })
+
+  it('closes a manual refund with a required transaction reference', async () => {
+    ordersApi.completeManualRefund.mockResolvedValue({ data: { reference: 'PAYOS-REF-001' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 7500000, manual_refund: { completed_at: null } },
+      cancellation: { reason: 'Đổi ý', refund_recorded: true },
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận đã chuyển tiền' }))
+    const submit = screen.getByRole('button', { name: 'Xác nhận đã chuyển tiền' })
+    expect(submit).toBeDisabled()
+    await userEvent.type(screen.getByLabelText('Mã giao dịch hoặc tham chiếu'), 'PAYOS-REF-001')
+    await userEvent.click(submit)
+
+    await waitFor(() => expect(ordersApi.completeManualRefund).toHaveBeenCalledWith(101, { reference: 'PAYOS-REF-001' }))
   })
 
   it('ẩn nút Hoàn tiền khi user không có quyền refund', () => {

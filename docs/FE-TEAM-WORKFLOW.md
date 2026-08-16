@@ -794,10 +794,10 @@ Chia theo **miền** để mỗi người sở hữu một mảng *end-to-end* (
 
 | Track | Người phụ trách | Chức năng phụ trách (mục §) | Thư mục sở hữu chính |
 |---|---|---|---|
-| **FE1 — Khám phá storefront** | _(tên)_ | §2 Catalog · §3 Chi tiết SP & biến thể · §9b Personalization (recently viewed & gợi ý) | `pages/{home,catalog,product}`, `features/{catalog,personalization}`, `components/{home,layout}`, `Breadcrumb`, `ProductCard` |
-| **FE2 — Phễu mua hàng** | _(tên)_ | §4 Giỏ · §5 Wishlist · §6 Checkout · §7 Đơn hàng · §8 Review | `pages/{cart,wishlist,checkout,orders}`, `features/{cart,wishlist,checkout,orders,reviews}` |
-| **FE3 — Tài khoản & Nền tảng** | _(tên)_ | §1 Auth/Account · §9 AI Chat · §10b Room Planner 3D · §11 Hạ tầng dùng chung | `pages/{auth,account}`, `features/{auth,addresses,chat,roomPlanner}`, `lib/`, `store/`, `routes/`, `app/router.jsx` |
-| **FE4 — Quản trị & Chất lượng** | _(tên)_ | §10 Admin (gồm §10a Khóa/mở-khóa người dùng · §10c Form sản phẩm admin · §10d Brand layer) · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
+| **FE1 — Khám phá storefront** | _Võ Thành Công_ | §2 Catalog · §3 Chi tiết SP & biến thể · §9b Personalization (recently viewed & gợi ý) | `pages/{home,catalog,product}`, `features/{catalog,personalization}`, `components/{home,layout}`, `Breadcrumb`, `ProductCard` |
+| **FE2 — Phễu mua hàng** | _Lê Kiến Tấn_ | §4 Giỏ · §5 Wishlist · §6 Checkout · §7 Đơn hàng · §8 Review | `pages/{cart,wishlist,checkout,orders}`, `features/{cart,wishlist,checkout,orders,reviews}` |
+| **FE3 — Tài khoản & Nền tảng** | _Lê Thành Vinh_ | §1 Auth/Account · §9 AI Chat · §10b Room Planner 3D · §11 Hạ tầng dùng chung | `pages/{auth,account}`, `features/{auth,addresses,chat,roomPlanner}`, `lib/`, `store/`, `routes/`, `app/router.jsx` |
+| **FE4 — Quản trị & Chất lượng** | _ Trần Đặng Chính Phước_ | §10 Admin (gồm §10a Khóa/mở-khóa người dùng · §10c Form sản phẩm admin · §10d Brand layer) · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
 
 > **Lưu ý nền tảng (FE3):** vì sở hữu `lib/`, `store/`, `router`, `AuthLayout` — mọi thay đổi ảnh hưởng cả nhóm → **PR review kỹ,
 > báo trước nhóm**. **3D Room Planner (§10b)** đã làm **MVP** (tạo phòng + thêm/biến đổi nội thất + lưu/sửa) bằng `three` +

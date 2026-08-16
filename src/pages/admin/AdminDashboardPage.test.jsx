@@ -22,6 +22,19 @@ const dashboardResponse = {
     catalog: { products: 3, active_products: 3 },
     customers: 4,
     pending_reviews: 1,
+    manual_refunds: {
+      count: 1,
+      total_amount: 10000,
+      orders: [
+        {
+          id: 13,
+          order_number: 'NES-260815-0013',
+          amount: 10000,
+          reason: 'Không còn nhu cầu',
+          cancelled_at: '2026-08-15T13:00:00Z',
+        },
+      ],
+    },
   },
 }
 
@@ -56,5 +69,17 @@ describe('AdminDashboardPage', () => {
     const { container } = renderPage()
     expect(await screen.findByText('Doanh thu')).toBeInTheDocument()
     expect(container.querySelector('[data-brand-watermark]')).toBeTruthy()
+  })
+
+  it('shows manual PayOS refund reminders with a direct order link', async () => {
+    renderPage()
+
+    expect(await screen.findByText('Có khoản hoàn tiền cần xử lý')).toBeInTheDocument()
+    expect(screen.getByText('NES-260815-0013')).toBeInTheDocument()
+    expect(screen.getByText('Không còn nhu cầu')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /NES-260815-0013/ })).toHaveAttribute(
+      'href',
+      '/admin/orders/13',
+    )
   })
 })

@@ -23,9 +23,10 @@ describe('PersonalizationControls', () => {
   })
 
   it('clears only behavioral history after explicit confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<PersonalizationControls enabled />)
     await userEvent.click(screen.getByRole('button', { name: 'Xóa lịch sử sản phẩm đã xem' }))
+    expect(await screen.findByText(/Phòng đã lưu, wishlist và đơn hàng vẫn được giữ nguyên/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa lịch sử đã xem' }))
     expect(clear.mutate).toHaveBeenCalled()
   })
 })
