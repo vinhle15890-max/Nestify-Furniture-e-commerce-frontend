@@ -43,6 +43,10 @@ describe('RegisterPage', () => {
     expect(screen.getByTestId('auth-layout')).toHaveAttribute('data-auth-variant', 'register')
     expect(screen.getByRole('group', { name: 'Thông tin của bạn' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Bảo vệ tài khoản' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /Mẫu giường được đặt thử/ })).toHaveAttribute(
+      'src',
+      '/images/home/room-planner-experiment.png',
+    )
   })
 
   it('shows validation errors when submitting an empty form', async () => {

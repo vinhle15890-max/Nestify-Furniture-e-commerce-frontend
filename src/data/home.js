@@ -20,11 +20,9 @@ export const hero = {
   cta: { label: 'Xem sản phẩm', to: '/c/all' },
 }
 
-// The Becoming, in three states — the homepage's compressed arc from an empty
-// room to a future home. Each step maps to a Story Bible chapter and drives
-// `BecomingRoomArt` at an increasing `level` of completeness. `imagined` warmth
-// is permitted only at level 3 (Future Home — the chapter that owns it), and
-// only as depiction, never as an interactive/CTA color.
+// The Becoming, in three states — shown with evidence captured from the real
+// Room Planner rather than a simulated interface. `imagined` warmth remains
+// reserved for the Future Home chapter's framing, never an interactive color.
 export const becomingSteps = [
   {
     n: '01',
@@ -32,6 +30,8 @@ export const becomingSteps = [
     chapter: 'Possibility',
     title: 'Một căn phòng trống',
     caption: 'Mọi khả năng còn để mở — bạn chưa phải cam kết bất cứ điều gì.',
+    image: '/images/home/room-planner-empty.png',
+    imageAlt: 'Phòng 3D Nestify trống với lưới đo theo kích thước thật',
   },
   {
     n: '02',
@@ -39,6 +39,8 @@ export const becomingSteps = [
     chapter: 'Experiment',
     title: 'Thử một món đồ',
     caption: 'Đặt thử ngay trong chính căn phòng của bạn, thấy nó vừa vặn đến đâu.',
+    image: '/images/home/room-planner-experiment.png',
+    imageAlt: 'Mẫu giường được đặt thử theo đúng tỷ lệ trong phòng ngủ 3D Nestify',
   },
   {
     n: '03',
@@ -46,6 +48,8 @@ export const becomingSteps = [
     chapter: 'Future Home',
     title: 'Thấy tổ ấm tương lai',
     caption: 'Nhìn rõ ngôi nhà sẽ thành hình — trước khi bạn đưa ra quyết định.',
+    image: '/images/home/room-planner-future-home.png',
+    imageAlt: 'Phòng ngủ hoàn chỉnh với giường, tủ áo, bàn, ghế và kệ trong Room Planner Nestify',
   },
 ]
 

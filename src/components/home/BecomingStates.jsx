@@ -1,17 +1,16 @@
 import { SectionHeading } from './SectionHeading'
 import { Reveal } from '../Reveal'
-import { BecomingRoomArt } from '../BecomingRoomArt'
 import { becomingSteps } from '../../data/home'
 
 /**
  * BecomingStates — the homepage's emotional climax and the "room becomes as you
  * scroll" throughline made explicit. The same signature room is shown at three
- * levels of completeness (Possibility → Experiment → Future Home), turning the
- * whole page into one compressed "becoming".
+ * real Room Planner captures (Possibility → Experiment → Future Home), turning
+ * the whole page into one compressed "becoming".
  *
  * This is the missing Chapter-4 payoff ("giờ mình nhìn thấy rồi" — clarity): it
- * teaches the product's value (seeing your home before deciding) WITHOUT
- * demonstrating any Room Planner mechanic. Static illustration only.
+ * teaches the product's value with real product evidence instead of simulated
+ * UI or decorative SVG artwork.
  */
 export function BecomingStates() {
   return (
@@ -28,7 +27,13 @@ export function BecomingStates() {
             <div className={`overflow-hidden rounded-card border bg-canvas ${
               step.level === 3 ? 'border-imagined/60 bg-imagined/10' : 'border-border'
             }`}>
-              <BecomingRoomArt level={step.level} />
+              <img
+                src={step.image}
+                alt={step.imageAlt}
+                loading="lazy"
+                decoding="async"
+                className="aspect-[4/3] w-full object-cover object-top"
+              />
             </div>
             <div className="mt-6 flex items-baseline gap-3">
               <span className={`text-sm font-medium ${step.level === 3 ? 'text-imagined' : 'text-emerging'}`}>{step.n}</span>

@@ -1,6 +1,5 @@
 import { ArrowRight } from 'lucide-react'
 import { Reveal } from '../Reveal'
-import { BecomingRoomArt } from '../BecomingRoomArt'
 import { plannerInvite } from '../../data/home'
 import { ButtonLink } from '../Button'
 
@@ -37,8 +36,16 @@ export function PlannerInvite() {
           </div>
         </Reveal>
 
-        <Reveal delay={120} className="pointer-events-none mx-auto w-full max-w-[480px] px-2 lg:px-0">
-          <BecomingRoomArt level={3} />
+        <Reveal delay={120} className="pointer-events-none mx-auto w-full max-w-[520px] px-2 lg:px-0">
+          <figure className="overflow-hidden rounded-card border border-canvas/25 bg-canvas shadow-2xl shadow-black/20">
+            <img
+              src="/images/home/room-planner-future-home.png"
+              alt="Phòng ngủ hoàn chỉnh được bố trí trong Room Planner Nestify"
+              loading="lazy"
+              decoding="async"
+              className="aspect-[4/3] w-full object-cover object-top"
+            />
+          </figure>
         </Reveal>
       </div>
     </section>
