@@ -467,7 +467,7 @@ export function ProductPage() {
         </section>
       )}
 
-      <section className="mt-20 border-t border-border pt-16">
+      <section id="reviews" className="mt-20 scroll-mt-24 border-t border-border pt-16">
         <h2 className="font-display text-[clamp(1.6rem,2.6vw,2.2rem)] text-foreground">Đánh giá</h2>
 
         {token && verifiedOrder && !reviewSubmissionStatus && (

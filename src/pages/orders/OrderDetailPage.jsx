@@ -195,12 +195,40 @@ export function OrderDetailPage() {
           </div>
         </div>
 
-        {order.status === 'delivered' && (
-          <p className="border-t border-border pt-4 text-sm text-muted-foreground">
-            Đơn hàng đã giao. Hãy để lại đánh giá trên trang sản phẩm.
-          </p>
-        )}
       </div>
+
+      {order.status === 'delivered' && (
+        <section className={`mt-6 ${sectionClass}`} aria-labelledby="order-reviews-heading">
+          <h2 id="order-reviews-heading" className="font-display text-xl text-foreground">Đánh giá sản phẩm</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Chia sẻ trải nghiệm thực tế để người mua sau hình dung rõ hơn trước khi chọn.
+          </p>
+          <ul className="mt-5 divide-y divide-border border-y border-border">
+            {order.items.map((item) => {
+              const snapshot = item.variant_snapshot ?? {}
+              const title = snapshot.product_name ?? snapshot.name
+              return (
+                <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <ProductThumb src={snapshot.thumbnail} alt="" size="h-12 w-12" />
+                    <p className="min-w-0 font-medium text-foreground">{title}</p>
+                  </div>
+                  {snapshot.product_slug ? (
+                    <Link
+                      to={`/p/${snapshot.product_slug}#reviews`}
+                      className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-control border border-border-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-alt active:bg-unbuilt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Viết đánh giá
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Sản phẩm không còn được hiển thị</span>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       {isPendingPayment && (
         <div className={`mt-6 flex flex-col gap-4 ${sectionClass}`}>

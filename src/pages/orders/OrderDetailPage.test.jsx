@@ -76,16 +76,38 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByText(/Hãy để lại đánh giá/)).not.toBeInTheDocument()
   })
 
-  it('hides cancel and retry actions and shows a review hint for a delivered order', async () => {
-    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'delivered' } })
+  it('hides cancel and retry actions and links delivered products to their review form', async () => {
+    ordersApi.getOrder.mockResolvedValue({
+      data: {
+        ...baseOrder,
+        status: 'delivered',
+        items: [{
+          ...baseOrder.items[0],
+          variant_snapshot: {
+            ...baseOrder.items[0].variant_snapshot,
+            product_name: 'Sofa Mây',
+            product_slug: 'sofa-may',
+          },
+        }],
+      },
+    })
     renderPage()
 
     expect(await screen.findByText('Đơn hàng #99')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Hủy đơn' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Thanh toán lại' })).not.toBeInTheDocument()
-    expect(screen.getByText(/Hãy để lại đánh giá/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Đánh giá sản phẩm' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Viết đánh giá' })).toHaveAttribute('href', '/p/sofa-may#reviews')
     expect(screen.getByText('Quyết định của bạn đang dần thành hình.')).toBeInTheDocument()
     expect(screen.queryByText(/Những món này đang trên đường/)).not.toBeInTheDocument()
+  })
+
+  it('does not offer a broken review link when a delivered product no longer has a slug', async () => {
+    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'delivered' } })
+    renderPage()
+
+    expect(await screen.findByText('Sản phẩm không còn được hiển thị')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Viết đánh giá' })).not.toBeInTheDocument()
   })
 
   it('shows the cancel action for a paid order with a refund note, and cancels with a reason', async () => {

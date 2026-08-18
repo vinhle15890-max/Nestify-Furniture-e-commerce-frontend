@@ -201,7 +201,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 ### 2.2 Danh sách sản phẩm (L1)
 - **Hook:** `useInfiniteProducts(filters)` → `useCursorQuery` từ `lib/pagination.js`.
 - **API:** `GET /products?filter[category]=&filter[brand]=&filter[wood_type]=&filter[price_min]=&filter[price_max]=&filter[search]=&sort=&cursor=&limit=`.
-- **FE filters:** `filter[category]` lấy từ route param `:categorySlug`. `filter[brand]`, `sort` từ UI select/dropdown. `filter[search]` từ search input.
+- **FE filters:** `filter[category]` lấy từ route param `:categorySlug`; BE trả sản phẩm gắn trực tiếp với slug đó và mọi danh mục con/cháu. `filter[brand]`, `sort` từ UI select/dropdown. `filter[search]` từ search input.
 - **Cursor:** Mỗi page trả `next_cursor` → FE gửi cursor để lấy page tiếp (infinite scroll). TanStack `useInfiniteQuery` nối page into `data.pages[]`.
 - **Loading:** Skeleton cards. **Empty:** "Không tìm thấy sản phẩm phù hợp".
 - **Error:** Retry 1 lần (TanStack default). Toast nếu network error persistent.
@@ -449,7 +449,7 @@ hoàn chỉnh dù resource có `meta`. Đây là gap cần sửa hoặc phải d
 
 > **Liên kết bảo vệ `J11`:** [Kịch bản Chương 2](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-2--ai-tham-gia-và-hệ-thống-ghi-nhớ-gì) · [BE §8](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#8-review--moderation) · Tài/BE2 ↔ FE2/FE4.
 
-**Actor:** Customer (đã mua). **Entry:** form ở `ProductPage` (`/p/:slug`). **Feature:** `features/reviews`.
+**Actor:** Customer (đã mua). **Entry:** khu vực “Đánh giá sản phẩm” ở chi tiết đơn đã giao (`/orders/:id`) dẫn thẳng tới form ở `ProductPage` (`/p/:slug#reviews`). **Feature:** `features/reviews`.
 
 ### 8.1 Tạo review
 
@@ -465,8 +465,10 @@ Public list chỉ nhận approved review và render dấu `Đã mua hàng` cùng
 hiện risk flag + product + order context trước hai quyết định “Giữ công khai”/“Ẩn đánh giá”; storefront không được tự
 lọc pending như một biện pháp bảo mật vì pending vốn không nên được API public serialize.
 
-> **Phản biện:** Form review nằm ở `/p/:slug` **không** ở `/orders/:id` vì `variant_snapshot` của đơn không mang `product_id`
-> Đây là lý do response review cần kèm `product`: danh sách moderation phải gắn review với đúng sản phẩm.
+> **Phản biện:** `/orders/:id` dùng `variant_snapshot.product_slug` để đưa khách tới đúng form nhưng không tự gửi review,
+> vì snapshot không mang `product_id`; `ProductPage` resolve product hiện tại rồi gửi `productId + order_id` để BE vẫn kiểm
+> verified purchase. Nếu slug không còn tồn tại trong snapshot, UI không tạo link hỏng. Response review vẫn cần kèm
+> `product` để danh sách moderation gắn review với đúng sản phẩm.
 
 **Code evidence:** `features/reviews/{api,hooks}.js`, `features/catalog/hooks.js`, Product review components,
 `features/admin/reviews/{api,hooks}.js`; BE `14-workflows.md` §8.
