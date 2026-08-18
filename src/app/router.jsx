@@ -6,6 +6,7 @@ import { AdminRoute } from '../routes/AdminRoute'
 import { RequirePermission } from '../routes/RequirePermission'
 import { Spinner } from '../components/Spinner'
 import { DiagnosticRouteErrorBoundary } from '../pages/dev/DiagnosticRouteErrorBoundary'
+import { RootRoute } from '../routes/RootRoute'
 
 // Route-level code splitting: pages load on demand so the initial bundle stays small
 // (admin pages, in particular, ship in their own chunks behind the AdminRoute guard).
@@ -64,7 +65,7 @@ const pageFallback = (
 
 const lazyPage = (element) => <Suspense fallback={pageFallback}>{element}</Suspense>
 
-export const routes = [
+const appRoutes = [
   ...(import.meta.env.DEV ? [{
     path: '/__dev/r2-model',
     element: <DiagnosticRouteErrorBoundary>{lazyPage(<R2ModelDiagnosticPage />)}</DiagnosticRouteErrorBoundary>,
@@ -179,6 +180,8 @@ export const routes = [
     ],
   },
 ]
+
+export const routes = [{ element: <RootRoute />, children: appRoutes }]
 
 export const router = createBrowserRouter(routes, {
   future: { v7_relativeSplatPath: true },

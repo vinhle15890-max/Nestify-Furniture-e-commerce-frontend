@@ -15,5 +15,9 @@ describe('PlannerInvite', () => {
     expect(screen.getByRole('heading', { name: plannerInvite.title })).toBeInTheDocument()
     const cta = screen.getByRole('link', { name: new RegExp(plannerInvite.cta.label) })
     expect(cta).toHaveAttribute('href', '/room-planner')
+    expect(screen.getByRole('img', { name: /Phòng ngủ hoàn chỉnh/ })).toHaveAttribute(
+      'src',
+      '/images/home/room-planner-future-home.png',
+    )
   })
 })

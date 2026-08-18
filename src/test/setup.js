@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { beforeEach } from 'vitest'
+import { beforeEach, vi } from 'vitest'
 
 // React Router emits the same two v7 migration notices from every isolated
 // MemoryRouter test. Production opts into both flags; keep test output useful
@@ -86,6 +86,10 @@ if (typeof globalThis.Request === 'function') {
 // jsdom does not implement pointer capture APIs, which Radix UI primitives
 // (Toast, Dialog, etc.) call when handling pointer/dismiss interactions.
 if (typeof window !== 'undefined') {
+  // ScrollRestoration calls this after data-router navigation; jsdom leaves it
+  // deliberately unimplemented while real browsers provide it.
+  window.scrollTo = vi.fn()
+
   if (!window.HTMLElement.prototype.hasPointerCapture) {
     window.HTMLElement.prototype.hasPointerCapture = () => false
   }

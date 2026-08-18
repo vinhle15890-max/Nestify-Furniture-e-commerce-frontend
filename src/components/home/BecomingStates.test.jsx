@@ -13,8 +13,14 @@ describe('BecomingStates', () => {
     expect(titles).toEqual(becomingSteps.map((s) => s.title))
   })
 
-  it('shows a room illustration for every step (decorative, aria-hidden)', () => {
-    const { container } = render(<BecomingStates />)
-    expect(container.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(becomingSteps.length)
+  it('shows a real Room Planner capture for every step', () => {
+    render(<BecomingStates />)
+
+    const captures = screen.getAllByRole('img')
+    expect(captures).toHaveLength(becomingSteps.length)
+    captures.forEach((capture, index) => {
+      expect(capture).toHaveAttribute('src', becomingSteps[index].image)
+      expect(capture).toHaveAccessibleName(becomingSteps[index].imageAlt)
+    })
   })
 })

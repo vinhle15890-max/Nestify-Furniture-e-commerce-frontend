@@ -1,7 +1,17 @@
 import { Link } from 'react-router-dom'
 import { Logo } from '../Logo'
-import { BecomingRoomArt } from '../BecomingRoomArt'
 import { SeoHead } from '../SeoHead'
+
+const plannerImages = {
+  experiment: {
+    src: '/images/home/room-planner-experiment.png',
+    alt: 'Mẫu giường được đặt thử theo đúng tỷ lệ trong Room Planner Nestify',
+  },
+  futureHome: {
+    src: '/images/home/room-planner-future-home.png',
+    alt: 'Phòng ngủ hoàn chỉnh đã được bố trí trong Room Planner Nestify',
+  },
+}
 
 const calibrations = {
   login: {
@@ -10,7 +20,7 @@ const calibrations = {
     statement: 'Quay lại nơi bạn đã dừng.',
     supporting: 'Những căn phòng, lựa chọn và bản nháp bạn đang giữ vẫn ở đúng vị trí.',
     mobile: 'Tiếp tục mà không phải bắt đầu lại.',
-    artLevel: 2,
+    art: plannerImages.futureHome,
     artWidth: 'max-w-[34rem]',
   },
   register: {
@@ -19,7 +29,7 @@ const calibrations = {
     statement: 'Một nơi để giữ điều còn đang hình thành.',
     supporting: 'Tạo tài khoản để lưu phòng, giữ lựa chọn và trở lại khi bạn đã nhìn rõ hơn.',
     mobile: 'Giữ lại điều bạn đang cân nhắc.',
-    artLevel: 1,
+    art: plannerImages.experiment,
     artWidth: 'max-w-[28rem]',
   },
   recovery: {
@@ -28,7 +38,7 @@ const calibrations = {
     statement: 'Lấy lại lối vào, không làm lại từ đầu.',
     supporting: 'Đặt lại mật khẩu không làm thay đổi những gì bạn đã lưu trong Nestify.',
     mobile: 'Những gì bạn đã lưu vẫn được giữ nguyên.',
-    artLevel: null,
+    art: null,
     artWidth: '',
   },
 }
@@ -48,7 +58,11 @@ export function AuthLayout({ title, subtitle, children, footer, variant = 'legac
               Lưu phòng và quay lại đúng nơi bạn đã dừng, khi bạn sẵn sàng.
             </p>
             <div className="pointer-events-none mt-10 w-full max-w-[440px]">
-              <BecomingRoomArt level={1} />
+              <img
+                src={plannerImages.futureHome.src}
+                alt={plannerImages.futureHome.alt}
+                className="aspect-[4/3] w-full rounded-card border border-border object-cover object-top"
+              />
             </div>
           </div>
         </aside>
@@ -74,25 +88,31 @@ export function AuthLayout({ title, subtitle, children, footer, variant = 'legac
     <main
       data-testid="auth-layout"
       data-auth-variant={variant}
-      className={`min-h-screen overflow-x-clip bg-canvas text-ink lg:grid ${calibration.grid}`}
+      className={`min-h-[calc(100dvh-5rem)] overflow-x-clip bg-canvas text-ink lg:grid ${calibration.grid}`}
     >
       <SeoHead title={`${title} | Nestify`} description={subtitle || 'Tài khoản Nestify.'} noindex />
       <aside className="hidden min-w-0 border-r border-unbuilt bg-unbuilt/10 px-[clamp(2.5rem,5vw,6rem)] pb-12 pt-[clamp(6rem,12vh,9rem)] lg:flex lg:flex-col">
-        <div className="ml-auto w-full max-w-[36rem]">
-          <p className="max-w-[18ch] font-display text-[clamp(2rem,3vw,3.75rem)] leading-[1.08] text-foreground [overflow-wrap:anywhere]">
-            {calibration.statement}
-          </p>
-          <p className="mt-5 max-w-[48ch] leading-relaxed text-muted-foreground">
-            {calibration.supporting}
-          </p>
-        </div>
-        {calibration.artLevel ? (
-          <div className={`pointer-events-none mt-auto w-full pt-10 ${calibration.artWidth}`}>
-            <BecomingRoomArt level={calibration.artLevel} />
+        <div className="ml-auto flex min-h-0 w-full max-w-[36rem] flex-1 flex-col">
+          <div>
+            <p className="max-w-[18ch] font-display text-[clamp(2rem,3vw,3.75rem)] leading-[1.08] text-foreground [overflow-wrap:anywhere]">
+              {calibration.statement}
+            </p>
+            <p className="mt-5 max-w-[48ch] leading-relaxed text-muted-foreground">
+              {calibration.supporting}
+            </p>
           </div>
-        ) : (
-          <div aria-hidden="true" className="mt-auto h-24 w-full border-b border-l border-unbuilt" />
-        )}
+          {calibration.art ? (
+            <div className={`pointer-events-none mx-auto mt-[clamp(2.5rem,6vh,4rem)] w-full ${calibration.artWidth}`}>
+              <img
+                src={calibration.art.src}
+                alt={calibration.art.alt}
+                className="aspect-[16/10] w-full rounded-card border border-border bg-canvas object-contain"
+              />
+            </div>
+          ) : (
+            <div aria-hidden="true" className="mt-auto h-24 w-full border-b border-l border-unbuilt" />
+          )}
+        </div>
       </aside>
 
       <div className="flex min-h-screen min-w-0 flex-col px-5 py-10 sm:px-8 sm:py-14 lg:min-h-full lg:px-[clamp(3rem,7vw,8rem)] lg:pb-16 lg:pt-[clamp(4rem,8vh,6rem)]">

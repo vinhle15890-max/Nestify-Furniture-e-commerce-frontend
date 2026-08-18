@@ -43,6 +43,10 @@ describe('LoginPage', () => {
     const logo = screen.getByRole('img', { name: 'Nestify' })
     expect(logo).toBeInTheDocument()
     expect(logo.closest('a')).toHaveAttribute('href', '/')
+    expect(screen.getByRole('img', { name: /Phòng ngủ hoàn chỉnh/ })).toHaveAttribute(
+      'src',
+      '/images/home/room-planner-future-home.png',
+    )
   })
 
   it('shows validation errors when submitting an empty form', async () => {
