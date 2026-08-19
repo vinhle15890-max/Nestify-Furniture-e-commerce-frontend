@@ -386,6 +386,17 @@ describe('ProductPage', () => {
     expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 1 })
   })
 
+  it('keeps wishlist available when the selected variant is out of stock', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Xám' }))
+    expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm vào yêu thích' }))
+
+    expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 2 })
+  })
+
   it('uses safe Vietnamese copy when adding to the wishlist loses its connection', async () => {
     wishlistApi.addItem.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Network Error', null, undefined))
     renderPage()

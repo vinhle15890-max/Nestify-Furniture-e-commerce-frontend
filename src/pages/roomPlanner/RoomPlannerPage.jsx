@@ -22,6 +22,7 @@ import { useEditorStore } from '../../features/roomPlanner/editorStore'
 import { useScene, useSceneReview, useCreateScene, useUpdateScene, useAddSceneToCart, useShareScene, useUploadScenePreview, useRoomDraft, useSaveRoomDraft, useClaimRoomDraft } from '../../features/roomPlanner/hooks'
 import { capturePlannerPreview } from '../../features/roomPlanner/canvasCapture'
 import { useProductPreload } from '../../features/catalog/hooks'
+import { useAddWishlistItem } from '../../features/wishlist/hooks'
 import { editorStateToPayload } from '../../features/roomPlanner/mappers'
 import { useToastStore } from '../../store/toastStore'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
@@ -52,6 +53,7 @@ export function RoomPlannerPage() {
   const createScene = useCreateScene()
   const updateScene = useUpdateScene()
   const addSceneToCart = useAddSceneToCart()
+  const addWishlistItem = useAddWishlistItem()
   const shareScene = useShareScene()
   const uploadPreview = useUploadScenePreview()
   const saveDraft = useSaveRoomDraft()
@@ -65,6 +67,8 @@ export function RoomPlannerPage() {
   const [reviewSceneId, setReviewSceneId] = useState(null)
   const [removingPlacementId, setRemovingPlacementId] = useState(null)
   const [reviewRemoveError, setReviewRemoveError] = useState(null)
+  const [savingWishlistVariantId, setSavingWishlistVariantId] = useState(null)
+  const [savedWishlistVariantIds, setSavedWishlistVariantIds] = useState([])
   const sceneReview = useSceneReview(reviewSceneId, reviewOpen)
 
   // Keyboard editing (delete / undo / redo / duplicate / gizmo modes / deselect).
@@ -350,6 +354,19 @@ export function RoomPlannerPage() {
     }
   }
 
+  const handleSaveReviewItemForLater = async (variantId) => {
+    setSavingWishlistVariantId(variantId)
+    try {
+      await addWishlistItem.mutateAsync({ variant_id: variantId, notify_on_restock: true })
+      setSavedWishlistVariantIds((current) => current.includes(variantId) ? current : [...current, variantId])
+      addToast({ title: 'Đã lưu để chờ hàng.', description: 'Nestify sẽ báo khi phiên bản này có hàng trở lại.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Chưa thể lưu vào yêu thích.', description: error?.message, variant: 'error' })
+    } finally {
+      setSavingWishlistVariantId(null)
+    }
+  }
+
   // Share needs a saved scene (the public link resolves a persisted scene id),
   // so persist first, then make it public and surface the copy dialog. `share`
   // is idempotent server-side, so re-sharing returns the same token.
@@ -521,6 +538,9 @@ export function RoomPlannerPage() {
         onRemove={handleRemoveReviewPlacement}
         removingPlacementId={removingPlacementId}
         removeError={reviewRemoveError}
+        onSaveForLater={handleSaveReviewItemForLater}
+        savingVariantId={savingWishlistVariantId}
+        savedVariantIds={savedWishlistVariantIds}
       />
       <ConfirmActionDialog
         open={exitOpen}
