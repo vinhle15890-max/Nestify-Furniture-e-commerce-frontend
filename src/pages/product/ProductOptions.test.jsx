@@ -20,9 +20,12 @@ describe('ProductOptions', () => {
     expect(onSelect).toHaveBeenCalledWith('Màu sắc', 'Đỏ')
   })
 
-  it('disable giá trị dẫn tới tổ hợp hết hàng/không tồn tại', () => {
-    render(<ProductOptions options={options} variants={variants} selected={{ 'Màu sắc': 'Đỏ' }} onSelect={() => {}} />)
-    // Đỏ/M hết hàng → nút "M" disabled
-    expect(screen.getByRole('button', { name: 'M' })).toBeDisabled()
+  it('cho phép chọn tổ hợp hết hàng để người dùng vẫn có thể lưu vào yêu thích', async () => {
+    const onSelect = vi.fn()
+    render(<ProductOptions options={options} variants={variants} selected={{ 'Màu sắc': 'Đỏ' }} onSelect={onSelect} />)
+    const outOfStockOption = screen.getAllByRole('button', { name: 'M (Tạm hết hàng)' }).at(-1)
+    expect(outOfStockOption).toBeEnabled()
+    await userEvent.click(outOfStockOption)
+    expect(onSelect).toHaveBeenCalledWith('Kích thước', 'M')
   })
 })

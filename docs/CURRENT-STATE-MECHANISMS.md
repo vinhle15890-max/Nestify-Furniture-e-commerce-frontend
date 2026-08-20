@@ -61,6 +61,11 @@ tạo mới khi đạt giới hạn. Guest vẫn chỉ có một draft room. Kh�
 thứ hai, polygon hay trình vẽ tường tự do; room edit có vùng không đặt đồ chữ nhật
 và vùng cửa với hộp bao cung quét.
 
+Ở bước review trước khi chuyển phòng sang giỏ, biến thể tạm hết hàng không bị ép xóa:
+khách có thể giữ placement trong phòng và lưu đúng `variant_id` vào wishlist với
+`notify_on_restock=true`. Việc lưu để chờ không làm món trở thành purchasable; chuyển
+sang giỏ vẫn chỉ tiếp tục khi mọi placement đều mua được hoặc món không khả dụng đã được xóa.
+
 Với route tạo phòng mới, form kích thước là điều kiện khởi tạo bắt buộc: khi editor
 còn `idle`, dialog không có nút đóng và bỏ qua Escape/click ra ngoài. Chỉ submit hợp
 lệ mới gọi `initNew` rồi mount canvas. Vì vậy người dùng không thể rơi vào workspace
@@ -341,8 +346,9 @@ nên crawler không chạy JS có thể không thấy chúng. JSON-LD availabili
 không đối chiếu stock — limitation cần tránh coi là inventory assertion.
 
 Quantity client clamp 1..stock quan sát; `INSUFFICIENT_STOCK` cập nhật conflict, server vẫn authoritative.
-Wishlist theo **variant**, không product. Variant inactive vẫn được trình bày như lựa chọn lịch sử nhưng không cho chuyển
-giỏ; variant inactive mới bị BE từ chối khi add. Chỉ customer đăng nhập mới record view/query wishlist; suggested
+Wishlist theo **variant**, không product. Product options chỉ vô hiệu hóa tổ hợp không tồn tại/inactive;
+tổ hợp active nhưng hết hàng vẫn chọn được để lưu wishlist, trong khi add-cart bị khóa. Variant inactive vẫn
+được trình bày như lựa chọn lịch sử nhưng không cho chuyển giỏ; variant inactive mới bị BE từ chối khi add. Chỉ customer đăng nhập mới record view/query wishlist; suggested
 category là slug xuất hiện nhiều nhất trong recently-viewed, hòa lấy slug gặp trước, không phải ML.
 
 Review eligibility client tìm order `delivered` chứa variant product rồi gửi `order_id`; server phải xác minh

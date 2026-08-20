@@ -5,6 +5,18 @@ import { describe, expect, it, vi } from 'vitest'
 import { ReviewRoomDialog } from './ReviewRoomDialog'
 
 describe('ReviewRoomDialog', () => {
+  it('lets the customer save an out-of-stock placement to wishlist without removing it from the room', async () => {
+    const onSaveForLater = vi.fn()
+    render(<ReviewRoomDialog open onOpenChange={vi.fn()} items={[]} onContinue={vi.fn()} review={{
+      can_continue: false,
+      items: [{ placement_id: 1, variant_id: 9, product_name: 'Ghế', variant_name: 'Nâu', price: 100, available_stock: 0, purchasable: false, reason: 'out_of_stock' }],
+    }} onSaveForLater={onSaveForLater} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu Ghế vào yêu thích để chờ hàng' }))
+    expect(onSaveForLater).toHaveBeenCalledWith(9)
+    expect(screen.getByText('Ghế')).toBeInTheDocument()
+  })
+
   it('removes a named unavailable placement and enables the sole cart handoff after review', async () => {
     function Harness() {
       const [review, setReview] = useState({
