@@ -113,7 +113,7 @@ export function AdminRolesPage() {
                 <tr className="border-b border-border">
                   <th className={thClass}>Vai trò</th>
                   <th className={thClass}>Số quyền</th>
-                  <th className={thClass}>Nhân viên</th>
+                  <th className={thClass}>Người dùng</th>
                   <th className={thClass}><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>

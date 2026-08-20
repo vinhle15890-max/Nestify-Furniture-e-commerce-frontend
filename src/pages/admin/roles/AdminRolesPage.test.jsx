@@ -45,6 +45,7 @@ describe('AdminRolesPage', () => {
     expect(screen.getByText('Nhân viên đơn')).toBeInTheDocument()
     expect(screen.getByText('Hệ thống')).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Danh sách vai trò' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Người dùng' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument()
   })
 
