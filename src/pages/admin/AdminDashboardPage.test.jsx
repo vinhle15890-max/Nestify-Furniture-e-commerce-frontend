@@ -11,6 +11,7 @@ const dashboardResponse = {
   data: {
     orders: {
       total: 5,
+      pending_confirmation: 1,
       pending_payment: 1,
       paid: 2,
       processing: 0,
@@ -19,6 +20,14 @@ const dashboardResponse = {
       cancelled: 1,
     },
     revenue: 150000,
+    finance: {
+      cash_collected: 160000,
+      refunds: 10000,
+      net_revenue: 150000,
+      cod_receivable: 500000,
+      units_sold: 3,
+    },
+    operations: { delivery_failed: 0, low_stock: 2 },
     catalog: { products: 3, active_products: 3 },
     customers: 4,
     pending_reviews: 1,
@@ -60,14 +69,14 @@ describe('AdminDashboardPage', () => {
 
     expect(await screen.findByText('Tổng đơn hàng')).toBeInTheDocument()
     // revenue formatted as VND
-    expect(screen.getByText(/150[.,]000/)).toBeInTheDocument()
+    expect(screen.getAllByText(/150[.,]000/).length).toBeGreaterThan(0)
     expect(screen.getByText('Khách hàng')).toBeInTheDocument()
     expect(screen.getByText('Đánh giá chờ duyệt')).toBeInTheDocument()
   })
 
   it('renders a decorative brand watermark in the revenue hero', async () => {
     const { container } = renderPage()
-    expect(await screen.findByText('Doanh thu')).toBeInTheDocument()
+    expect(await screen.findByText('Tiền thực thu')).toBeInTheDocument()
     expect(container.querySelector('[data-brand-watermark]')).toBeTruthy()
   })
 
@@ -80,6 +89,15 @@ describe('AdminDashboardPage', () => {
     expect(screen.getByRole('link', { name: /NES-260815-0013/ })).toHaveAttribute(
       'href',
       '/admin/orders/13',
+    )
+  })
+
+  it('links the low-stock queue to inventory operations', async () => {
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: /Biến thể sắp hết hàng/ })).toHaveAttribute(
+      'href',
+      '/admin/inventory',
     )
   })
 })

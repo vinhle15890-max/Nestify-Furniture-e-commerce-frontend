@@ -37,6 +37,18 @@ export function updateVariant(id, payload) {
   return apiClient.patch(`/admin/variants/${id}`, payload)
 }
 
+export function adjustVariantStock(id, payload) {
+  return apiClient.post(`/admin/variants/${id}/stock-adjustments`, payload)
+}
+
+export function getVariantStockMovements(id) {
+  return apiClient.get(`/admin/variants/${id}/stock-movements`)
+}
+
+export function getLowStockVariants({ threshold = 5, page = 1 } = {}) {
+  return apiClient.get('/admin/inventory/low-stock', { params: { threshold, page } })
+}
+
 export function uploadMedia(productId, formData) {
   return apiClient.post(`/admin/products/${productId}/media`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },

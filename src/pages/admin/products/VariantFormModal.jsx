@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Modal } from '../../../components/Modal'
 import { Input } from '../../../components/Input'
 import { Button } from '../../../components/Button'
-import { useCreateVariant, useUpdateVariant } from '../../../features/admin/products/hooks'
+import { useAdjustVariantStock, useCreateVariant, useUpdateVariant } from '../../../features/admin/products/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 import { variantSignature } from '../../../lib/variantOptions'
@@ -27,8 +27,8 @@ const skuShape = { sku: yup.string().max(100, 'Tối đa 100 ký tự.') }
 const schemas = {
   createSimple: yup.object({ ...skuShape, ...nameShape, ...priceStockShape }),
   createOption: yup.object({ ...skuShape, ...priceStockShape }),
-  updateSimple: yup.object({ ...nameShape, ...priceStockShape, is_active: yup.boolean() }),
-  updateOption: yup.object({ ...priceStockShape, is_active: yup.boolean() }),
+  updateSimple: yup.object({ ...nameShape, price: priceStockShape.price, is_active: yup.boolean() }),
+  updateOption: yup.object({ price: priceStockShape.price, is_active: yup.boolean() }),
 }
 
 const emptyValues = {
@@ -62,11 +62,15 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
   const hasOptions = (options ?? []).length > 0
   const createVariant = useCreateVariant()
   const updateVariant = useUpdateVariant()
+  const adjustStock = useAdjustVariantStock()
   const addToast = useToastStore((state) => state.addToast)
 
   // Tổ hợp thuộc tính đang chọn (chỉ dùng khi hasOptions).
   const [selectedAttrs, setSelectedAttrs] = useState({})
   const [attrError, setAttrError] = useState(null)
+  const [stockDelta, setStockDelta] = useState('')
+  const [stockReason, setStockReason] = useState('')
+  const [stockError, setStockError] = useState(null)
 
   const schemaKey = `${isEditing ? 'update' : 'create'}${hasOptions ? 'Option' : 'Simple'}`
 
@@ -83,6 +87,9 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
       reset(variant ? toFormValues(variant) : emptyValues)
       setSelectedAttrs(variant?.attributes ?? {})
       setAttrError(null)
+      setStockDelta('')
+      setStockReason('')
+      setStockError(null)
     }
   }, [open, variant, reset])
 
@@ -121,7 +128,6 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
         const payload = {
           id: variant.id,
           price: Number(values.price),
-          stock_quantity: Number(values.stock_quantity),
           is_active: values.is_active,
         }
         // Có thuộc tính → gửi attributes (BE tự suy tên + options_key). Không thì gửi tên tự do.
@@ -149,6 +155,33 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
     } catch (error) {
       if (applyServerErrors(error, setError)) return
       addToast({ title: 'Có lỗi xảy ra.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleAdjustStock = async () => {
+    const delta = Number(stockDelta)
+    if (!Number.isInteger(delta) || delta === 0) {
+      setStockError('Nhập số nguyên khác 0; dùng số âm để giảm tồn.')
+      return
+    }
+    if (stockReason.trim().length < 3) {
+      setStockError('Vui lòng ghi lý do điều chỉnh kho.')
+      return
+    }
+    setStockError(null)
+    try {
+      const response = await adjustStock.mutateAsync({
+        id: variant.id,
+        quantity_delta: delta,
+        reason: stockReason.trim(),
+        idempotency_key: `admin:${variant.id}:${crypto.randomUUID()}`,
+      })
+      onSaved?.(response.data)
+      setStockDelta('')
+      setStockReason('')
+      addToast({ title: 'Đã ghi nhận điều chỉnh kho.', variant: 'success' })
+    } catch (error) {
+      setStockError(error.message)
     }
   }
 
@@ -226,13 +259,27 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
         )}
 
         <Input label="Giá" id="variant-price" type="number" error={errors.price?.message} {...register('price')} />
-        <Input
-          label="Số lượng kho"
-          id="variant-stock_quantity"
-          type="number"
-          error={errors.stock_quantity?.message}
-          {...register('stock_quantity')}
-        />
+        {!isEditing && (
+          <Input
+            label="Số lượng kho"
+            id="variant-stock_quantity"
+            type="number"
+            error={errors.stock_quantity?.message}
+            {...register('stock_quantity')}
+          />
+        )}
+        {isEditing && (
+          <section className="flex flex-col gap-3 rounded-control border border-border bg-surface-alt p-4">
+            <div>
+              <h3 className="font-medium text-foreground">Điều chỉnh tồn kho</h3>
+              <p className="mt-1 text-xs text-muted-foreground">On-hand {variant.stock_quantity ?? '—'} · Đang giữ {variant.reserved_quantity ?? '—'} · Có thể bán {variant.available_stock ?? '—'}</p>
+            </div>
+            <Input id="stock-delta" label="Số lượng tăng/giảm" type="number" value={stockDelta} onChange={(event) => setStockDelta(event.target.value)} placeholder="Ví dụ: 5 hoặc -2" />
+            <Input id="stock-reason" label="Lý do kiểm kê" value={stockReason} onChange={(event) => setStockReason(event.target.value)} maxLength={500} />
+            {stockError && <p role="alert" className="text-sm text-destructive">{stockError}</p>}
+            <div><Button type="button" variant="secondary" onClick={handleAdjustStock} disabled={adjustStock.isPending}>{adjustStock.isPending ? 'Đang ghi nhận...' : 'Ghi nhận điều chỉnh'}</Button></div>
+          </section>
+        )}
         {isEditing ? (
           <VariantModelScaleFlow variant={variant} onConfirmed={onSaved} />
         ) : (

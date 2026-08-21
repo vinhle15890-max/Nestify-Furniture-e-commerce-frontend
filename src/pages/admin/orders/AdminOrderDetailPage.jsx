@@ -8,7 +8,7 @@ import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
 import { Modal } from '../../../components/Modal'
 import { Spinner } from '../../../components/Spinner'
-import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useCompleteManualRefund } from '../../../features/admin/orders/hooks'
+import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useCompleteManualRefund, useCollectCod } from '../../../features/admin/orders/hooks'
 import { ADMIN_ORDER_TRANSITIONS } from '../../../features/admin/orders/statusTransitions'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { useToastStore } from '../../../store/toastStore'
@@ -37,6 +37,7 @@ export function AdminOrderDetailPage() {
   const updateOrderStatus = useUpdateOrderStatus()
   const refundOrder = useRefundOrder()
   const completeManualRefund = useCompleteManualRefund()
+  const collectCod = useCollectCod()
   const addToast = useToastStore((state) => state.addToast)
   const user = useAuthStore((state) => state.user)
 
@@ -51,6 +52,12 @@ export function AdminOrderDetailPage() {
   const [payoutReference, setPayoutReference] = useState('')
   const [payoutNote, setPayoutNote] = useState('')
   const [payoutError, setPayoutError] = useState(null)
+  const [collectOpen, setCollectOpen] = useState(false)
+  const [collectError, setCollectError] = useState(null)
+  const [shippingOpen, setShippingOpen] = useState(false)
+  const [carrierName, setCarrierName] = useState('')
+  const [trackingNumber, setTrackingNumber] = useState('')
+  const [shippingError, setShippingError] = useState(null)
 
   const validOrderId = Number.isInteger(orderId) && orderId > 0
 
@@ -99,22 +106,34 @@ export function AdminOrderDetailPage() {
   if (!order) return null
 
   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
-  const transitions = ADMIN_ORDER_TRANSITIONS[order.status] ?? []
+  const transitions = (ADMIN_ORDER_TRANSITIONS[order.status] ?? [])
+    .filter((next) => !(order.payment_method === 'cod' && order.status === 'shipped' && next === 'delivered'))
   const payment = order.payment
   const remainingRefund = payment
     ? Math.max(0, Number(payment.amount) - Number(payment.refunded_amount))
     : 0
   const refundRecordedByCancellation = order.cancellation?.refund_recorded === true
   const manualRefundCompleted = Boolean(payment?.manual_refund?.completed_at)
-  const canRefund = ['success', 'partially_refunded'].includes(payment?.status) && remainingRefund > 0
+  const canRefund = ['paid', 'success', 'partially_refunded'].includes(payment?.status) && remainingRefund > 0
   const mayRefund = canRefund && can(user, 'refund')
   const orderLabel = order.order_number ?? `#${order.id}`
   const requiresManualRefund = order.payment_method === 'payos'
-    && ['paid', 'processing'].includes(order.status)
+    && ['paid', 'success'].includes(order.payment?.status)
 
-  const handleTransition = async (nextStatus) => {
+  const handleCollectCod = async () => {
+    setCollectError(null)
     try {
-      await updateOrderStatus.mutateAsync({ id: order.id, status: nextStatus })
+      await collectCod.mutateAsync({ id: order.id, collected_amount: Number(order.total) })
+      setCollectOpen(false)
+      addToast({ title: 'Đã xác nhận giao hàng và thu đủ tiền COD.', variant: 'success' })
+    } catch (error) {
+      setCollectError(error.message)
+    }
+  }
+
+  const handleTransition = async (nextStatus, metadata = {}) => {
+    try {
+      await updateOrderStatus.mutateAsync({ id: order.id, status: nextStatus, ...metadata })
       addToast({ title: 'Đã cập nhật trạng thái đơn hàng.', variant: 'success' })
       return null
     } catch (error) {
@@ -129,7 +148,25 @@ export function AdminOrderDetailPage() {
       setCancelOpen(true)
       return
     }
+    if (nextStatus === 'shipped') {
+      setShippingError(null)
+      setShippingOpen(true)
+      return
+    }
     handleTransition(nextStatus)
+  }
+
+  const handleConfirmShipping = async () => {
+    if (!carrierName.trim()) {
+      setShippingError('Vui lòng nhập đơn vị vận chuyển.')
+      return
+    }
+    setShippingError(null)
+    const error = await handleTransition('shipped', {
+      carrier_name: carrierName.trim(),
+      tracking_number: trackingNumber.trim() || null,
+    })
+    if (!error) setShippingOpen(false)
   }
 
   const handleCancelOpenChange = (open) => {
@@ -261,6 +298,14 @@ export function AdminOrderDetailPage() {
         </div>
       </Card>
 
+      <Card className="flex flex-col gap-3">
+        <h3 className="font-display text-xl text-foreground">Thanh toán</h3>
+        <p className="text-sm text-foreground">
+          {order.payment_method === 'cod' ? 'COD' : 'PayOS'} · {order.payment?.status === 'paid' ? 'Đã thanh toán' : order.payment?.status === 'waived' ? 'Không cần thu tiền' : 'Chưa thanh toán'}
+        </p>
+        {order.payment?.paid_at && <p className="text-sm text-muted-foreground">Ghi nhận: {formatDate(order.payment.paid_at)}</p>}
+      </Card>
+
       {refundRecordedByCancellation && payment && (
         <Card className="flex flex-col gap-4">
           <h3 className="font-display text-xl text-foreground">Yêu cầu hoàn tiền của khách</h3>
@@ -310,6 +355,14 @@ export function AdminOrderDetailPage() {
               </Button>
             ))}
           </div>
+        </Card>
+      )}
+
+      {order.payment_method === 'cod' && order.status === 'shipped' && order.payment?.status === 'pending' && (
+        <Card className="flex flex-col gap-3">
+          <h3 className="font-display text-xl text-foreground">Giao hàng và thu COD</h3>
+          <p className="text-sm text-muted-foreground">Chỉ xác nhận sau khi khách đã nhận hàng và cửa hàng thu đủ {formatPrice(order.total)}.</p>
+          <div><Button type="button" onClick={() => setCollectOpen(true)}>Xác nhận giao và thu đủ tiền</Button></div>
         </Card>
       )}
 
@@ -388,6 +441,30 @@ export function AdminOrderDetailPage() {
             >
               {updateOrderStatus.isPending ? 'Đang hủy...' : 'Xác nhận hủy đơn'}
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={shippingOpen} onOpenChange={setShippingOpen} title="Bàn giao đơn vị vận chuyển" description={`Đơn hàng ${orderLabel}`}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-foreground">Nhập thông tin vận chuyển trước khi chuyển đơn sang “Đang giao”. Mã vận đơn có thể bổ sung sau nếu đơn vị vận chuyển chưa cấp.</p>
+          <Input id="carrier-name" label="Đơn vị vận chuyển" value={carrierName} onChange={(event) => setCarrierName(event.target.value)} maxLength={100} required />
+          <Input id="tracking-number" label="Mã vận đơn (không bắt buộc)" value={trackingNumber} onChange={(event) => setTrackingNumber(event.target.value)} maxLength={100} />
+          {shippingError && <p role="alert" className="text-sm text-destructive">{shippingError}</p>}
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setShippingOpen(false)} disabled={updateOrderStatus.isPending}>Quay lại</Button>
+            <Button type="button" onClick={handleConfirmShipping} disabled={updateOrderStatus.isPending}>{updateOrderStatus.isPending ? 'Đang cập nhật...' : 'Xác nhận đang giao'}</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={collectOpen} onOpenChange={setCollectOpen} title="Xác nhận giao hàng và thu COD" description={`Đơn hàng ${orderLabel}`}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-foreground">Hệ thống sẽ ghi nhận đã giao và đã thu đủ {formatPrice(order.total)}. Thao tác này làm phát sinh doanh thu COD.</p>
+          {collectError && <p role="alert" className="text-sm text-destructive">{collectError}</p>}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setCollectOpen(false)} disabled={collectCod.isPending}>Quay lại</Button>
+            <Button type="button" onClick={handleCollectCod} disabled={collectCod.isPending}>Xác nhận</Button>
           </div>
         </div>
       </Modal>

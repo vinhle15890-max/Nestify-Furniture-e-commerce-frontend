@@ -16,7 +16,7 @@ import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 
 // Orders can be cancelled by their owner any time before they ship.
-const CANCELLABLE_STATUSES = ['pending_payment', 'paid', 'processing']
+const CANCELLABLE_STATUSES = ['pending_confirmation', 'pending_payment', 'paid', 'processing']
 
 const sectionClass = 'rounded-card border border-border bg-surface p-6'
 
@@ -73,11 +73,18 @@ export function OrderDetailPage() {
   }
 
   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
-  const isPendingPayment = order.status === 'pending_payment'
+  const paymentMethod = order.payment_method ?? 'payos'
+  const isPendingPayment = paymentMethod === 'payos' && (
+    order.payment?.status === 'pending'
+    || (!order.payment && order.status === 'pending_payment')
+  )
   const isFullyDiscounted = Number(order.total) === 0
   const canCancel = CANCELLABLE_STATUSES.includes(order.status)
   // A cancelled order refunds money only when an online payment was captured.
-  const willRefund = !isFullyDiscounted && (order.status === 'paid' || (order.status === 'processing' && order.payment_method === 'payos'))
+  const willRefund = !isFullyDiscounted && (
+    order.payment?.status === 'paid'
+    || (!order.payment && paymentMethod === 'payos' && order.status === 'paid')
+  )
   const address = order.shipping_address
 
   async function handleCancel() {

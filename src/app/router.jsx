@@ -41,6 +41,7 @@ const AdminProductsPage = named(() => import('../pages/admin/products/AdminProdu
 const AdminProductCreatePage = named(() => import('../pages/admin/products/AdminProductCreatePage'), 'AdminProductCreatePage')
 const AdminProductEditPage = named(() => import('../pages/admin/products/AdminProductEditPage'), 'AdminProductEditPage')
 const AdminSeoReviewPage = named(() => import('../pages/admin/products/AdminSeoReviewPage'), 'AdminSeoReviewPage')
+const AdminInventoryPage = named(() => import('../pages/admin/products/AdminInventoryPage'), 'AdminInventoryPage')
 const AdminMediaLibraryPage = named(() => import('../pages/admin/media/AdminMediaLibraryPage'), 'AdminMediaLibraryPage')
 const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPage'), 'AdminOrdersPage')
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
@@ -140,6 +141,7 @@ const appRoutes = [
               { path: 'products', element: lazyPage(<AdminProductsPage />) },
               { path: 'products/new', element: lazyPage(<AdminProductCreatePage />) },
               { path: 'products/seo', element: lazyPage(<AdminSeoReviewPage />) },
+              { path: 'inventory', element: lazyPage(<AdminInventoryPage />) },
               { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
             ],
           },

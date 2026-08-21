@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Package,
@@ -109,7 +110,11 @@ function ActionRow({ to, icon: Icon, label, count, urgent }) {
 }
 
 export function AdminDashboardPage() {
-  const { data, isLoading, isError, isFetching, refetch } = useAdminDashboard()
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA')
+  const today = now.toLocaleDateString('en-CA')
+  const [filters, setFilters] = useState({ date_from: monthStart, date_to: today, interval: 'day' })
+  const { data, isLoading, isError, isFetching, refetch } = useAdminDashboard(filters)
 
   if (isLoading) {
     return <Spinner label="Đang tải số liệu tổng quan..." />
@@ -123,20 +128,29 @@ export function AdminDashboardPage() {
   if (!stats) return null
 
   const { orders, catalog } = stats
+  const finance = stats.finance ?? {
+    cash_collected: stats.revenue ?? 0,
+    refunds: 0,
+    net_revenue: stats.revenue ?? 0,
+    cod_receivable: 0,
+    units_sold: 0,
+  }
+  const operations = stats.operations ?? {}
   const manualRefunds = stats.manual_refunds ?? { count: 0, total_amount: 0, orders: [] }
 
   // Derived metrics (computed client-side from the fixed payload).
-  const revenueOrders = orders.paid + orders.processing + orders.shipped + orders.delivered
-  const avgOrderValue = revenueOrders ? stats.revenue / revenueOrders : 0
+  const revenueOrders = orders.delivered
+  const avgOrderValue = revenueOrders ? finance.net_revenue / revenueOrders : 0
   const fulfilledRate = pct(orders.delivered, orders.total)
   const activeRate = pct(catalog.active_products, catalog.products)
-  const needsAttention = orders.pending_payment + stats.pending_reviews + manualRefunds.count
+  const awaitingConfirmation = orders.pending_confirmation ?? orders.pending_payment ?? 0
+  const needsAttention = awaitingConfirmation + (operations.delivery_failed ?? 0) + (operations.low_stock ?? 0) + stats.pending_reviews + manualRefunds.count
 
   const funnel = [
-    { key: 'pending_payment', label: 'Chờ TT', value: orders.pending_payment, color: 'bg-accent/70' },
-    { key: 'paid', label: 'Đã TT', value: orders.paid, color: 'bg-secondary/60' },
+    { key: 'pending_confirmation', label: 'Chờ xác nhận', value: awaitingConfirmation, color: 'bg-accent/70' },
     { key: 'processing', label: 'Xử lý', value: orders.processing, color: 'bg-secondary/85' },
     { key: 'shipped', label: 'Đang giao', value: orders.shipped, color: 'bg-accent' },
+    { key: 'delivery_failed', label: 'Giao thất bại', value: orders.delivery_failed ?? 0, color: 'bg-destructive/50' },
     { key: 'delivered', label: 'Đã giao', value: orders.delivered, color: 'bg-foreground' },
     { key: 'cancelled', label: 'Đã huỷ', value: orders.cancelled, color: 'bg-destructive/70' },
   ]
@@ -149,6 +163,25 @@ export function AdminDashboardPage() {
         title="Tổng quan"
         description="Bức tranh nhanh về hoạt động cửa hàng."
       />
+
+      <section className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4 shadow-soft" aria-label="Khoảng thời gian báo cáo">
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          Từ ngày
+          <input className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" type="date" value={filters.date_from} onChange={(event) => setFilters((current) => ({ ...current, date_from: event.target.value }))} />
+        </label>
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          Đến ngày
+          <input className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" type="date" value={filters.date_to} onChange={(event) => setFilters((current) => ({ ...current, date_to: event.target.value }))} />
+        </label>
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          Gom nhóm
+          <select className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" value={filters.interval} onChange={(event) => setFilters((current) => ({ ...current, interval: event.target.value }))}>
+            <option value="day">Theo ngày</option>
+            <option value="week">Theo tuần</option>
+            <option value="month">Theo tháng</option>
+          </select>
+        </label>
+      </section>
 
       {manualRefunds.count > 0 && (
         <section
@@ -207,15 +240,17 @@ export function AdminDashboardPage() {
           <div className="relative flex h-full flex-col">
             <div className="flex items-center gap-2 text-sm text-surface/70">
               <TrendingUp size={18} className="text-accent" />
-              Doanh thu
+              Tiền thực thu
             </div>
             <p className="mt-4 font-display text-[clamp(2.25rem,4vw,3.25rem)] leading-none">
-              {formatPrice(stats.revenue)}
+              {formatPrice(finance.net_revenue)}
             </p>
-            <p className="mt-3 text-sm text-surface/60">Tổng doanh thu đã ghi nhận</p>
+            <p className="mt-3 text-sm text-surface/60">
+              Đã thu {formatPrice(finance.cash_collected)} · hoàn {formatPrice(finance.refunds)}
+            </p>
 
             <div className="mt-auto grid grid-cols-3 gap-4 border-t border-surface/15 pt-6 sm:max-w-md">
-              <HeroStat label="Đơn ghi nhận DT" value={revenueOrders} />
+              <HeroStat label="Sản phẩm đã giao" value={finance.units_sold} />
               <HeroStat label="Giá trị đơn TB" value={formatPrice(avgOrderValue)} />
               <HeroStat label="Tỉ lệ hoàn tất" value={`${fulfilledRate}%`} />
             </div>
@@ -246,14 +281,21 @@ export function AdminDashboardPage() {
                 <ActionRow
                   to="/admin/orders"
                   icon={Clock}
-                  label="Đơn chờ thanh toán"
-                  count={orders.pending_payment}
+                  label="Đơn chờ xác nhận"
+                  count={awaitingConfirmation}
                 />
                 <ActionRow
                   to="/admin/reviews"
                   icon={Star}
                   label="Đánh giá chờ duyệt"
                   count={stats.pending_reviews}
+                  urgent
+                />
+                <ActionRow
+                  to="/admin/inventory"
+                  icon={Package}
+                  label="Biến thể sắp hết hàng"
+                  count={operations.low_stock ?? 0}
                   urgent
                 />
               </div>
@@ -289,13 +331,31 @@ export function AdminDashboardPage() {
           hint={`${activeRate}% trên tổng ${catalog.products} sản phẩm`}
         />
         <Kpi
-          label="Đơn đã giao"
-          value={orders.delivered}
+          label="COD chờ thu"
+          value={formatPrice(finance.cod_receivable)}
           icon={CheckCircle2}
           tone="olive"
-          hint={`Tỉ lệ hoàn tất ${fulfilledRate}%`}
+          hint="Không tính vào doanh thu cho tới khi đã thu tiền"
         />
       </div>
+
+      <section className="overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="font-display text-xl text-foreground">Đối soát tiền bán hàng</h3>
+          <p className="mt-1 text-sm text-muted-foreground">COD chỉ được cộng vào tiền thực thu sau khi giao và xác nhận thu đủ.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-surface-alt text-left text-muted-foreground"><tr><th className="px-5 py-3">Chỉ số</th><th className="px-5 py-3 text-right">Giá trị</th><th className="px-5 py-3">Ý nghĩa</th></tr></thead>
+            <tbody className="divide-y divide-border">
+              <tr><td className="px-5 py-3">Giá trị đơn phát sinh</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.order_value ?? 0)}</td><td className="px-5 py-3 text-muted-foreground">Đơn tạo trong kỳ, chưa trừ tiền chưa thu</td></tr>
+              <tr><td className="px-5 py-3">Tiền đã thu</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.cash_collected)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm thanh toán</td></tr>
+              <tr><td className="px-5 py-3">Tiền đã hoàn</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.refunds)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm hoàn tiền</td></tr>
+              <tr><td className="px-5 py-3">COD chờ thu</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.cod_receivable)}</td><td className="px-5 py-3 text-muted-foreground">Khoản phải thu, chưa phải doanh thu</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Order status funnel — colour-coded CSS bar chart */}
       <div className="rounded-card border border-border bg-surface p-7 shadow-soft">

@@ -11,8 +11,8 @@ export function getOrder(id) {
   return apiClient.get(`/admin/orders/${id}`)
 }
 
-export function updateOrderStatus(id, status) {
-  return apiClient.patch(`/admin/orders/${id}/status`, { status })
+export function updateOrderStatus(id, status, metadata = {}) {
+  return apiClient.patch(`/admin/orders/${id}/status`, { status, ...metadata })
 }
 
 export function refundOrder(id, payload) {
@@ -21,4 +21,8 @@ export function refundOrder(id, payload) {
 
 export function completeManualRefund(id, payload) {
   return apiClient.post(`/admin/orders/${id}/refund/complete`, payload)
+}
+
+export function collectCod(id, payload) {
+  return apiClient.post(`/admin/orders/${id}/collect-cod`, payload)
 }

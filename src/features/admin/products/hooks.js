@@ -83,6 +83,35 @@ export function useUpdateVariant() {
   })
 }
 
+export function useAdjustVariantStock() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => productsApi.adjustVariantStock(id, payload),
+    onSuccess: (_response, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'variant', id, 'stock-movements'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useLowStockVariants({ threshold = 5, page = 1 } = {}) {
+  return useQuery({
+    queryKey: ['admin', 'inventory', 'low-stock', { threshold, page }],
+    queryFn: () => productsApi.getLowStockVariants({ threshold, page }),
+  })
+}
+
+export function useVariantStockMovements(id) {
+  return useQuery({
+    queryKey: ['admin', 'variant', id, 'stock-movements'],
+    queryFn: () => productsApi.getVariantStockMovements(id),
+    enabled: Number.isFinite(id),
+  })
+}
+
 export function usePresignVariantModel() {
   return useMutation({ mutationFn: productsApi.presignVariantModel })
 }

@@ -30,7 +30,9 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, status }) => ordersApi.updateOrderStatus(id, status),
+    mutationFn: ({ id, status, ...metadata }) => Object.keys(metadata).length
+      ? ordersApi.updateOrderStatus(id, status, metadata)
+      : ordersApi.updateOrderStatus(id, status),
     onSuccess: (response, { id }) => {
       queryClient.setQueryData(adminOrderKeys.detail(id), (current) => {
         if (!current) return response
@@ -58,6 +60,18 @@ export function useCompleteManualRefund() {
 
   return useMutation({
     mutationFn: ({ id, ...payload }) => ordersApi.completeManualRefund(id, payload),
+    onSuccess: (_response, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useCollectCod() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.collectCod(id, payload),
     onSuccess: (_response, { id }) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })

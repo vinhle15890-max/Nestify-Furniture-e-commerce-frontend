@@ -171,8 +171,15 @@ describe('AdminOrderDetailPage', () => {
 
     ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'shipped' } })
     await userEvent.click(screen.getByRole('button', { name: 'Đang giao' }))
+    const dialog = screen.getByRole('dialog', { name: 'Bàn giao đơn vị vận chuyển' })
+    await userEvent.type(within(dialog).getByLabelText('Đơn vị vận chuyển'), 'Giao Hàng Nhanh')
+    await userEvent.type(within(dialog).getByLabelText('Mã vận đơn (không bắt buộc)'), 'GHN-101')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận đang giao' }))
 
-    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'shipped'))
+    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'shipped', {
+      carrier_name: 'Giao Hàng Nhanh',
+      tracking_number: 'GHN-101',
+    }))
     expect(await screen.findByText('Đã giao')).toBeInTheDocument()
   })
 

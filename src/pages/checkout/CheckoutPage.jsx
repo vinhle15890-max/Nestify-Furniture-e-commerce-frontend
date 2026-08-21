@@ -455,8 +455,9 @@ function CreatedOrderEvidence({ order }) {
 
 function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempted, handoffPending, onRetry }) {
   const isFullyDiscounted = Number(order?.total) === 0
-  const isPayos = order?.payment_method === 'payos' || order?.status === 'pending_payment'
-  const isAwaitingPayment = isPayos && order?.status === 'pending_payment'
+  const isPayos = order?.payment_method === 'payos'
+  const paymentStatus = order?.payment?.status ?? (order?.status === 'pending_payment' ? 'pending' : null)
+  const isAwaitingPayment = isPayos && paymentStatus === 'pending' && Number(order?.total) > 0
   const status = ORDER_STATUS_LABELS[order?.status]?.label ?? order?.status
 
   return (
@@ -893,7 +894,8 @@ export function CheckoutPage() {
     setRecoveryRecord(saveCheckoutRecovery(order.id))
     setPlacedOrder(order)
 
-    if (order.status === 'pending_payment' && Number(order.total) > 0) {
+    const paymentStatus = order.payment?.status ?? (order.status === 'pending_payment' ? 'pending' : null)
+    if (paymentStatus === 'pending' && order.payment_method === 'payos' && Number(order.total) > 0) {
       await openPaymentSession(order)
     }
   }

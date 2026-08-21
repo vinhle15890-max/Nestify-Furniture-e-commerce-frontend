@@ -27,10 +27,24 @@ security boundary. Tương tự, FE ẩn purchase với staff nhưng backend m�
 - Auth persist token+user trong `localStorage` key `nestify-auth`. Chat, preview-role, toast và editor chỉ ở
   memory. Bearer token trong storage và route guard đều không thay được validation/authorization server.
 - `AdminRoute` chỉ yêu cầu có ít nhất một role khác `customer`. Từng nhánh yêu cầu: categories
-  `manage_categories`; products/media/SEO `manage_products`; orders `manage_orders`; vouchers
+  `manage_categories`; products/media/SEO/inventory `manage_products`; orders `manage_orders`; vouchers
   `manage_vouchers`; reviews `moderate_reviews`; users/roles `manage_users`; audit `view_audit`. Thiếu quyền
   render 403 tại URL hiện tại. “Xem với vai trò” chỉ thay permission dùng để render; token/danh tính thật giữ
   nguyên, backend vẫn xét quyền thật.
+
+### Vận hành tồn kho
+
+`/admin/inventory` là workbench cho nhân viên có `manage_products`. Danh sách gọi
+`GET /admin/inventory/low-stock` với ngưỡng 0–1000 và sắp theo tồn khả dụng
+`stock_quantity - reserved_quantity` tăng dần; UI luôn hiển thị riêng tồn thực tế,
+đang giữ và khả dụng để tránh xem reservation như hàng có thể bán.
+
+Chọn biến thể mới enable form kiểm kê và `GET /admin/variants/{id}/stock-movements`.
+Điều chỉnh yêu cầu số nguyên khác 0, lý do tối thiểu 3 ký tự và idempotency key mới;
+server mới là boundary không cho giảm tồn thực tế xuống dưới lượng đang giữ. Sau thành
+công, React Query invalidate product list, low-stock list, movement ledger và dashboard.
+Dashboard tính low-stock vào hàng đợi cần xử lý và link thẳng đến workbench; lịch sử hiển
+thị actor, order liên quan, số trước/sau và không cung cấp thao tác sửa movement cũ.
 
 ## Cá nhân hóa hành trình trên Home
 
@@ -522,6 +536,13 @@ SEO 17; order 13; payment/idempotency completion 1; cart/stock 3; RBAC 34; room 
 mới cộng một cross-reference product editor; AI description 3 entry mới cộng một cross-reference; review 7;
 variant-option integrity 13. GLB bake, address default và outbox/expired reservation là backend-only trong
 inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn lại nằm ở Phụ lục A, tổng **330/330**.
+
+## Commerce core UI — 2026-08-21
+
+- Checkout/chi tiết đơn đọc fulfillment và payment độc lập, có fallback legacy trong migration.
+- Admin chuyển sang shipped qua modal bắt buộc đơn vị vận chuyển; shipped COD có action riêng giao và thu đủ tiền.
+- Dashboard tách tiền thực thu, hoàn tiền, net revenue và COD chờ thu theo khoảng ngày, kèm bảng định nghĩa.
+- Form biến thể tách cập nhật thông tin khỏi điều chỉnh kho; adjustment bắt buộc delta/lý do và hiển thị on-hand/reserved/available.
 
 ## Self-check reconciliation 2026-07-17
 
