@@ -104,12 +104,23 @@ export function useLowStockVariants({ threshold = 5, page = 1 } = {}) {
   })
 }
 
-export function useVariantStockMovements(id) {
+export function useInventoryVariants({ q = '', threshold = 5, lowStockOnly = false, page = 1 } = {}) {
   return useQuery({
-    queryKey: ['admin', 'variant', id, 'stock-movements'],
-    queryFn: () => productsApi.getVariantStockMovements(id),
+    queryKey: ['admin', 'inventory', 'variants', { q, threshold, lowStockOnly, page }],
+    queryFn: () => productsApi.getInventoryVariants({ q, threshold, low_stock_only: lowStockOnly ? 1 : 0, page }),
+  })
+}
+
+export function useVariantStockMovements(id, filters = {}) {
+  return useQuery({
+    queryKey: ['admin', 'variant', id, 'stock-movements', filters],
+    queryFn: () => productsApi.getVariantStockMovements(id, filters),
     enabled: Number.isFinite(id),
   })
+}
+
+export function useExportVariantStockMovements() {
+  return useMutation({ mutationFn: ({ id, filters }) => productsApi.exportVariantStockMovements(id, filters) })
 }
 
 export function usePresignVariantModel() {

@@ -6,10 +6,10 @@ export const adminOrderKeys = {
   detail: (id) => ['admin', 'orders', 'detail', id],
 }
 
-export function useAdminOrders(page, status, paymentMethod, paymentStatus) {
+export function useAdminOrders(page, status, paymentMethod, paymentStatus, returnStatus) {
   return useQuery({
-    queryKey: ['admin', 'orders', { page, status, paymentMethod, paymentStatus }],
-    queryFn: () => ordersApi.getOrders({ page, status, paymentMethod, paymentStatus }),
+    queryKey: ['admin', 'orders', { page, status, paymentMethod, paymentStatus, returnStatus }],
+    queryFn: () => ordersApi.getOrders({ page, status, paymentMethod, paymentStatus, returnStatus }),
     placeholderData: (previousData) => previousData,
   })
 }
@@ -78,4 +78,47 @@ export function useCollectCod() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
     },
   })
+}
+
+export function useReviewReturnRequest(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.reviewReturnRequest(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+    },
+  })
+}
+
+export function useReceiveReturnRequest(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.receiveReturnRequest(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+function useReturnMoneyMutation(orderId, mutationFn) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useRefundReturnRequest(orderId) {
+  return useReturnMoneyMutation(orderId, ({ id, ...payload }) => ordersApi.refundReturnRequest(id, payload))
+}
+
+export function useCompleteReturnRequest(orderId) {
+  return useReturnMoneyMutation(orderId, ({ id, ...payload }) => ordersApi.completeReturnRequest(id, payload))
 }

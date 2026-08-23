@@ -41,8 +41,16 @@ export function adjustVariantStock(id, payload) {
   return apiClient.post(`/admin/variants/${id}/stock-adjustments`, payload)
 }
 
-export function getVariantStockMovements(id) {
-  return apiClient.get(`/admin/variants/${id}/stock-movements`)
+export function getVariantStockMovements(id, params = {}) {
+  return apiClient.get(`/admin/variants/${id}/stock-movements`, { params })
+}
+
+export function exportVariantStockMovements(id, params = {}) {
+  return apiClient.get(`/admin/variants/${id}/stock-movements/export`, { params, responseType: 'blob' })
+}
+
+export function getInventoryVariants(params = {}) {
+  return apiClient.get('/admin/inventory/variants', { params })
 }
 
 export function getLowStockVariants({ threshold = 5, page = 1 } = {}) {

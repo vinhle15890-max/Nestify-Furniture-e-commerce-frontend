@@ -1,3 +1,5 @@
+/* Hallmark · macrostructure: Workbench · tone: decision-support · anchor hue: Nestify tokens */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast/mobile/tokens: pass */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -7,7 +9,7 @@ import { useCart, useUpdateCartItem, useRemoveCartItem, useApplyVoucher, useAvai
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { VerifyEmailGate } from '../../components/VerifyEmailGate'
-import { formatPrice } from '../../lib/format'
+import { formatDate, formatPrice } from '../../lib/format'
 import { isStaff } from '../../lib/roles'
 import { stockShortfall, cartHasStockShortfall } from '../../lib/stock'
 import { FeedbackState } from '../../components/FeedbackState'
@@ -496,6 +498,13 @@ export function CartPage() {
     })
   }
 
+  function clearVoucher() {
+    setVoucherCode('')
+    setVoucherResult(null)
+    setVoucherError(null)
+    setVoucherStaleNotice(false)
+  }
+
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <main className="mx-auto max-w-7xl px-6 pb-32 pt-8 lg:px-10 lg:pb-36">
@@ -584,6 +593,9 @@ export function CartPage() {
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Đây chưa phải tổng thanh toán cuối cùng.
                     </p>
+                    <button type="button" onClick={clearVoucher} className="text-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      Bỏ mã {voucherCode}
+                    </button>
                   </dl>
                 )}
               </div>
@@ -642,7 +654,17 @@ export function CartPage() {
                               onClick={() => chooseVoucher(voucher.code)}
                               className="flex min-h-20 min-w-0 items-center justify-between gap-4 rounded-control border border-border-strong bg-canvas px-4 py-3 text-left transition-[background-color,border-color,transform] duration-200 hover:border-foreground hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60"
                             >
-                              <span className="min-w-0"><span className="block font-semibold tracking-wide text-foreground">{voucher.code}</span><span className="mt-1 block text-sm text-muted-foreground">Giảm {formatPrice(voucher.discount_amount)}</span></span>
+                              <span className="min-w-0">
+                                <span className="flex flex-wrap items-center gap-2">
+                                  <span className="font-semibold tracking-wide text-foreground">{voucher.code}</span>
+                                  {voucher.is_best_value && <span className="rounded-full border border-border-strong px-2 py-0.5 text-xs font-medium text-foreground">Tiết kiệm nhất</span>}
+                                </span>
+                                <span className="mt-1 block text-sm text-foreground">Giảm {formatPrice(voucher.discount_amount)} · còn trả {formatPrice(voucher.final_total)}</span>
+                                <span className="mt-1 block text-xs text-muted-foreground">
+                                  {voucher.expires_at ? `Hết hạn ${formatDate(voucher.expires_at)}` : 'Không giới hạn ngày'}
+                                  {voucher.remaining_usage <= 10 ? ` · còn ${voucher.remaining_usage} lượt` : ''}
+                                </span>
+                              </span>
                               <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-foreground bg-foreground text-canvas' : 'border-border-strong text-transparent'}`}><Check size={15} /></span>
                             </button>
                           )

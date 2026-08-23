@@ -216,6 +216,24 @@ describe('CartPage', () => {
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 
+  it('explains the best voucher and lets the customer remove it before checkout', async () => {
+    useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
+    const voucher = { code: 'BEST50', discount_amount: 1500000, final_total: 8500000, is_best_value: true, remaining_usage: 4, expires_at: '2026-09-01T00:00:00Z' }
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: [voucher] })
+    cartApi.applyVoucher.mockResolvedValue({ data: voucher })
+    renderPage()
+
+    expect(await screen.findByText('Tiết kiệm nhất')).toBeInTheDocument()
+    expect(screen.getByText(/còn trả 8.500.000 ₫/)).toBeInTheDocument()
+    expect(screen.getByText(/còn 4 lượt/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: /BEST50/ }))
+    expect(await screen.findByRole('link', { name: 'Tiến hành thanh toán' })).toHaveAttribute('href', '/checkout?voucher=BEST50')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bỏ mã BEST50' }))
+    expect(screen.getByRole('link', { name: 'Tiến hành thanh toán' })).toHaveAttribute('href', '/checkout')
+    expect(screen.queryByText('Thành tiền dự kiến')).not.toBeInTheDocument()
+  })
+
   it('derives the preview total when an older apply-voucher response omits final_total', async () => {
     useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
     cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000 } })

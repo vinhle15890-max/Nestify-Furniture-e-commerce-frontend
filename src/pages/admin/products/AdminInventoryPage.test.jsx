@@ -33,7 +33,7 @@ function renderPage() {
 describe('AdminInventoryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    productsApi.getLowStockVariants.mockResolvedValue(lowStockResponse)
+    productsApi.getInventoryVariants.mockResolvedValue(lowStockResponse)
     productsApi.getVariantStockMovements.mockResolvedValue({
       data: { data: [{
         id: 11,
@@ -41,6 +41,9 @@ describe('AdminInventoryPage', () => {
         quantity_delta: 1,
         stock_before: 5,
         stock_after: 6,
+        reserved_before: 2,
+        reserved_after: 2,
+        reference: 'KK-T34-2026',
         reason: 'Kiểm kê kho tuần 34',
         actor: { id: 1, name: 'Admin' },
         order: null,
@@ -57,21 +60,64 @@ describe('AdminInventoryPage', () => {
     expect(screen.getByText(/thực tế 6 · đang giữ 2/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Sofa Nature/ }))
 
-    expect(await screen.findByText('Điều chỉnh kiểm kê')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Ghi phiếu kho' })).toBeInTheDocument()
     expect(await screen.findByText('Kiểm kê kho tuần 34')).toBeInTheDocument()
+    expect(screen.getByText('Chứng từ: KK-T34-2026')).toBeInTheDocument()
+    expect(screen.getByText('Khả dụng 3 → 4')).toBeInTheDocument()
   })
 
   it('requires a reason and sends an idempotent stock adjustment', async () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))
-    fireEvent.change(screen.getByLabelText('Số lượng tăng/giảm'), { target: { value: '2' } })
-    fireEvent.change(screen.getByLabelText('Lý do kiểm kê'), { target: { value: 'Nhập hàng tuần 34' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận điều chỉnh' }))
+    fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Mã phiếu / chứng từ (không bắt buộc)'), { target: { value: 'PN-2026-034' } })
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Nhập hàng tuần 34' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi phiếu kho' }))
 
     await waitFor(() => expect(productsApi.adjustVariantStock).toHaveBeenCalledWith(7, expect.objectContaining({
+      operation: 'stock_in',
       quantity_delta: 2,
+      reference: 'PN-2026-034',
       reason: 'Nhập hàng tuần 34',
       idempotency_key: expect.stringContaining('admin-inventory:7:'),
     })))
+  })
+
+  it('converts an outbound quantity to a negative ledger delta', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))
+    fireEvent.change(screen.getByLabelText('Nghiệp vụ'), { target: { value: 'inventory_loss' } })
+    fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Hư hỏng khi kiểm kê' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi phiếu kho' }))
+
+    await waitFor(() => expect(productsApi.adjustVariantStock).toHaveBeenCalledWith(7, expect.objectContaining({
+      operation: 'inventory_loss',
+      quantity_delta: -2,
+    })))
+  })
+
+  it('searches across all variants and can disable the low-stock-only scope', async () => {
+    renderPage()
+    await screen.findByText('Sofa Nature · Màu be')
+    fireEvent.change(screen.getByLabelText('Tìm theo SKU, sản phẩm hoặc tên biến thể'), { target: { value: 'SOFA-NATURE' } })
+    fireEvent.click(screen.getByLabelText('Chỉ hàng cần bổ sung'))
+
+    await waitFor(() => expect(productsApi.getInventoryVariants).toHaveBeenCalledWith(expect.objectContaining({
+      q: 'SOFA-NATURE',
+      low_stock_only: 0,
+    })))
+  })
+
+  it('warns before submitting a decrease below reserved stock', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))
+    fireEvent.change(screen.getByLabelText('Nghiệp vụ'), { target: { value: 'stock_out' } })
+    fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Xuất kho trưng bày' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi phiếu kho' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không thể giảm xuống 1 vì đang có 2 sản phẩm được giữ')
+    expect(productsApi.adjustVariantStock).not.toHaveBeenCalled()
   })
 })

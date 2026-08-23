@@ -117,6 +117,42 @@ describe('AdminOrderDetailPage', () => {
     expect(screen.getByRole('link', { name: 'Quay lại danh sách đơn hàng' })).toBeInTheDocument()
   })
 
+  it('reviews a customer return request without changing fulfillment automatically', async () => {
+    ordersApi.reviewReturnRequest.mockResolvedValue({ data: { id: 5, status: 'approved' } })
+    renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'requested', reason: 'Mặt bàn bị xước.', resolution_note: null } }, ['manage_orders'])
+
+    await userEvent.type(await screen.findByLabelText('Phản hồi cho khách'), 'Đã duyệt và sẽ liên hệ nhận hàng.')
+    await userEvent.click(screen.getByRole('button', { name: 'Duyệt yêu cầu' }))
+
+    expect(ordersApi.reviewReturnRequest).toHaveBeenCalledWith(5, { status: 'approved', resolution_note: 'Đã duyệt và sẽ liên hệ nhận hàng.' })
+  })
+
+  it('receives returned goods and explicitly chooses whether to restock', async () => {
+    ordersApi.receiveReturnRequest.mockResolvedValue({ data: { id: 5, status: 'received' } })
+    renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'in_transit', reason: 'Mặt bàn bị xước.', return_carrier: 'GHTK', return_tracking_number: 'RTN-001' } }, ['manage_orders'])
+
+    await userEvent.type(await screen.findByLabelText('Kết quả kiểm tra hàng'), 'Đã nhận đủ, có thể bán lại.')
+    await userEvent.click(screen.getByText(/Hàng đạt kiểm tra/))
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã nhận hàng' }))
+
+    expect(ordersApi.receiveReturnRequest).toHaveBeenCalledWith(5, { inspection_note: 'Đã nhận đủ, có thể bán lại.', restock: true })
+  })
+
+  it('records and completes return refund as separate money steps', async () => {
+    ordersApi.refundReturnRequest.mockResolvedValue({ data: { id: 5, status: 'refund_pending' } })
+    const { unmount } = renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'received', reason: 'Bị xước', inspection_note: 'Đã nhận đủ.', refund_amount: 0 } }, ['manage_orders', 'refund'])
+    await userEvent.type(await screen.findByLabelText('Lý do hoàn tiền (không bắt buộc)'), 'Hoàn đủ sau đổi trả')
+    await userEvent.click(screen.getByRole('button', { name: /Ghi nhận hoàn/ }))
+    expect(ordersApi.refundReturnRequest).toHaveBeenCalledWith(5, { reason: 'Hoàn đủ sau đổi trả' })
+    unmount()
+
+    ordersApi.completeReturnRequest.mockResolvedValue({ data: { id: 5, status: 'completed' } })
+    renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'refund_pending', reason: 'Bị xước', refund_amount: 7500000 } }, ['manage_orders', 'refund'])
+    await userEvent.type(await screen.findByLabelText('Mã tham chiếu chuyển tiền'), 'PAYOS-RETURN-001')
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã chuyển tiền' }))
+    expect(ordersApi.completeReturnRequest).toHaveBeenCalledWith(5, { reference: 'PAYOS-RETURN-001' })
+  })
+
   it('shows a recoverable error and retries a temporary detail failure', async () => {
     ordersApi.getOrder
       .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Mất kết nối đến máy chủ.', null))
@@ -212,6 +248,32 @@ describe('AdminOrderDetailPage', () => {
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hàng đã về' }))
     await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'returned_to_store'))
+  })
+
+  it('requires confirmation before recording a failed delivery', async () => {
+    const shippedOrder = { ...baseOrder, status: 'shipped' }
+    ordersApi.updateOrderStatus.mockResolvedValue({ data: { ...shippedOrder, status: 'delivery_failed' } })
+    renderPage(shippedOrder)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Giao không thành công' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận giao hàng thất bại' })
+    expect(within(dialog).getByText(/chưa được cộng lại tồn kho/)).toBeInTheDocument()
+    expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận' }))
+    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'delivery_failed'))
+  })
+
+  it('shows the fulfillment actor and evidence from the server timeline', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'shipped',
+      timeline: [{ id: 9, action: 'order.status_transition', status: 'shipped', actor: { id: 2, name: 'Nhân viên Lan' }, carrier_name: 'GHN', tracking_number: 'GHN-101', occurred_at: '2026-01-11T08:00:00Z' }],
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Tiến trình đơn hàng' })).toBeInTheDocument()
+    expect(screen.getByText(/Nhân viên Lan/)).toBeInTheDocument()
+    expect(screen.getByText('GHN · GHN-101')).toBeInTheDocument()
   })
 
   it('cancels only after explicit confirmation', async () => {

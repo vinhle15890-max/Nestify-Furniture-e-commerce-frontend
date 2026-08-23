@@ -25,3 +25,25 @@ export function useCancelOrder() {
     },
   })
 }
+
+export function useCreateReturnRequest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }) => ordersApi.createReturnRequest(id, reason),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders', String(id)] })
+    },
+  })
+}
+
+export function useShipReturnRequest(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.shipReturnRequest(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders', String(orderId)] })
+    },
+  })
+}

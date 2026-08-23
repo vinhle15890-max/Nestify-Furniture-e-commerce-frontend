@@ -10,7 +10,7 @@ import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
 import { Modal } from '../../../components/Modal'
 import { Spinner } from '../../../components/Spinner'
-import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useCompleteManualRefund, useCollectCod } from '../../../features/admin/orders/hooks'
+import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useCompleteManualRefund, useCollectCod, useReviewReturnRequest, useReceiveReturnRequest, useRefundReturnRequest, useCompleteReturnRequest } from '../../../features/admin/orders/hooks'
 import { ADMIN_ORDER_TRANSITIONS } from '../../../features/admin/orders/statusTransitions'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { useToastStore } from '../../../store/toastStore'
@@ -27,6 +27,29 @@ function findOrderInCache(queryClient, orderId) {
   return null
 }
 
+function buildTimeline(order) {
+  const events = [{ key: 'created', label: 'Đơn được tạo', occurred_at: order.created_at, actor: order.user?.name }]
+  const audited = (order.timeline ?? []).map((event) => ({
+    key: `audit-${event.id}`,
+    label: event.action === 'order.cod_collected'
+      ? 'Đã giao và thu đủ COD'
+      : ORDER_STATUS_LABELS[event.status]?.label ?? event.status,
+    occurred_at: event.occurred_at,
+    actor: event.actor?.name,
+    detail: [event.carrier_name, event.tracking_number, event.reason].filter(Boolean).join(' · '),
+  }))
+  if (audited.length > 0) return [...events, ...audited]
+
+  const fallback = [
+    ['shipped', 'Đang giao', order.fulfillment?.shipped_at, [order.fulfillment?.carrier_name, order.fulfillment?.tracking_number].filter(Boolean).join(' · ')],
+    ['delivery-failed', 'Giao thất bại', order.fulfillment?.delivery_failed_at],
+    ['returned', 'Hàng đã về cửa hàng', order.fulfillment?.returned_to_store_at],
+    ['delivered', 'Đã giao', order.fulfillment?.delivered_at],
+    ['cancelled', 'Đã hủy', order.cancellation?.cancelled_at, order.cancellation?.reason],
+  ].filter(([, , occurredAt]) => occurredAt).map(([key, label, occurred_at, detail]) => ({ key, label, occurred_at, detail }))
+  return [...events, ...fallback].sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at))
+}
+
 export function AdminOrderDetailPage() {
   const { id } = useParams()
   const location = useLocation()
@@ -40,6 +63,10 @@ export function AdminOrderDetailPage() {
   const refundOrder = useRefundOrder()
   const completeManualRefund = useCompleteManualRefund()
   const collectCod = useCollectCod()
+  const reviewReturnRequest = useReviewReturnRequest(orderId)
+  const receiveReturnRequest = useReceiveReturnRequest(orderId)
+  const refundReturnRequest = useRefundReturnRequest(orderId)
+  const completeReturnRequest = useCompleteReturnRequest(orderId)
   const addToast = useToastStore((state) => state.addToast)
   const user = useAuthStore((state) => state.user)
 
@@ -63,6 +90,13 @@ export function AdminOrderDetailPage() {
   const [carrierName, setCarrierName] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
   const [shippingError, setShippingError] = useState(null)
+  const [pendingTransition, setPendingTransition] = useState(null)
+  const [returnResolution, setReturnResolution] = useState('')
+  const [returnInspection, setReturnInspection] = useState('')
+  const [returnRestock, setReturnRestock] = useState(false)
+  const [returnRefundReason, setReturnRefundReason] = useState('')
+  const [returnRefundReference, setReturnRefundReference] = useState('')
+  const [returnRefundNote, setReturnRefundNote] = useState('')
 
   const validOrderId = Number.isInteger(orderId) && orderId > 0
 
@@ -133,6 +167,11 @@ export function AdminOrderDetailPage() {
     partially_refunded: 'Đã hoàn một phần',
     refunded: 'Đã ghi nhận hoàn đủ',
   }[order.payment?.status] ?? 'Chưa thanh toán'
+  const timeline = buildTimeline(order)
+  const terminalReason = {
+    delivered: 'Đơn đã hoàn tất. Nếu khách cần trả hàng, hãy dùng quy trình đổi trả riêng.',
+    cancelled: 'Đơn đã hủy là trạng thái kết thúc và không thể chuyển tiếp.',
+  }[order.status]
 
   const handleCollectCod = async () => {
     setCollectError(null)
@@ -172,7 +211,18 @@ export function AdminOrderDetailPage() {
       setReturnOpen(true)
       return
     }
+    if (nextStatus === 'delivery_failed' || nextStatus === 'delivered') {
+      setPendingTransition(nextStatus)
+      return
+    }
     handleTransition(nextStatus)
+  }
+
+  const handleConfirmedTransition = async () => {
+    const nextStatus = pendingTransition
+    if (!nextStatus) return
+    const error = await handleTransition(nextStatus)
+    if (!error) setPendingTransition(null)
   }
 
   const handleConfirmShipping = async () => {
@@ -272,6 +322,47 @@ export function AdminOrderDetailPage() {
     }
   }
 
+  const handleReturnReview = async (status) => {
+    try {
+      await reviewReturnRequest.mutateAsync({ id: order.return_request.id, status, resolution_note: returnResolution.trim() })
+      setReturnResolution('')
+      addToast({ title: status === 'approved' ? 'Đã duyệt yêu cầu đổi trả.' : 'Đã từ chối yêu cầu đổi trả.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể xử lý yêu cầu đổi trả.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleReturnReceipt = async () => {
+    try {
+      await receiveReturnRequest.mutateAsync({ id: order.return_request.id, inspection_note: returnInspection.trim(), restock: returnRestock })
+      setReturnInspection('')
+      addToast({ title: 'Đã xác nhận nhận hàng đổi trả.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể xác nhận nhận hàng.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleReturnRefund = async () => {
+    try {
+      await refundReturnRequest.mutateAsync({ id: order.return_request.id, ...(returnRefundReason.trim() ? { reason: returnRefundReason.trim() } : {}) })
+      setReturnRefundReason('')
+      addToast({ title: 'Đã ghi nhận khoản hoàn đổi trả.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể ghi nhận khoản hoàn.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleReturnCompletion = async () => {
+    try {
+      await completeReturnRequest.mutateAsync({ id: order.return_request.id, reference: returnRefundReference.trim(), ...(returnRefundNote.trim() ? { note: returnRefundNote.trim() } : {}) })
+      setReturnRefundReference('')
+      setReturnRefundNote('')
+      addToast({ title: 'Đã hoàn tất đổi trả và chuyển tiền.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể hoàn tất đổi trả.', description: error.message, variant: 'error' })
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {orderQuery.isError && (
@@ -282,7 +373,7 @@ export function AdminOrderDetailPage() {
           </Button>
         </div>
       )}
-      <BackLink to="/admin/orders">Quay lại danh sách đơn hàng</BackLink>
+      <BackLink to={location.state?.returnTo ?? '/admin/orders'}>Quay lại danh sách đơn hàng</BackLink>
       <div className="flex items-center justify-between gap-4">
         <h2 className="font-display text-2xl text-foreground">Đơn hàng {orderLabel}</h2>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
@@ -335,7 +426,52 @@ export function AdminOrderDetailPage() {
           {order.payment_method === 'cod' ? 'COD' : 'PayOS'} · {paymentStatusLabel}
         </p>
         {order.payment?.paid_at && <p className="text-sm text-muted-foreground">Ghi nhận: {formatDate(order.payment.paid_at)}</p>}
+        {canRefund && !mayRefund && <p className="text-sm text-muted-foreground">Tài khoản hiện tại không có quyền hoàn tiền; cần nhân viên có quyền “refund” xử lý.</p>}
       </Card>
+
+      <Card className="flex flex-col gap-4">
+        <div>
+          <h3 className="font-display text-xl text-foreground">Tiến trình đơn hàng</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Các mốc vận hành được lấy từ nhật ký hệ thống.</p>
+        </div>
+        <ol className="border-l border-border pl-5">
+          {timeline.map((event) => (
+            <li key={event.key} className="relative pb-5 last:pb-0">
+              <span className="absolute -left-6 top-1.5 size-2.5 rounded-full border-2 border-surface bg-secondary" aria-hidden="true" />
+              <p className="font-medium text-foreground">{event.label}</p>
+              <p className="text-sm text-muted-foreground">{formatDate(event.occurred_at)}{event.actor ? ` · ${event.actor}` : ''}</p>
+              {event.detail && <p className="mt-1 text-sm text-foreground">{event.detail}</p>}
+            </li>
+          ))}
+        </ol>
+        {order.payment?.paid_at && <p className="border-t border-border pt-3 text-sm text-muted-foreground">Thanh toán được ghi nhận lúc {formatDate(order.payment.paid_at)}.</p>}
+      </Card>
+
+      {order.return_request && (
+        <Card className="flex flex-col gap-4">
+          <div><h3 className="font-display text-xl text-foreground">Yêu cầu đổi trả</h3><p className="mt-1 text-sm text-muted-foreground">Trạng thái: {{ requested: 'Chờ xem xét', approved: 'Đã duyệt', rejected: 'Đã từ chối', in_transit: 'Hàng đang gửi về', received: 'Đã nhận, chờ ghi hoàn', refund_pending: 'Chờ xác nhận chuyển tiền', completed: 'Đã hoàn tất' }[order.return_request.status]}</p></div>
+          <p className="text-sm text-foreground">{order.return_request.reason}</p>
+          {order.return_request.status === 'requested' ? <div className="flex flex-col gap-3">
+            <label className="text-sm"><span className="text-muted-foreground">Phản hồi cho khách</span><textarea value={returnResolution} onChange={(event) => setReturnResolution(event.target.value)} rows={3} maxLength={1000} className="mt-1 w-full rounded-control border border-border bg-surface p-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+            <p className="text-sm text-muted-foreground">Duyệt yêu cầu chưa tự hoàn tiền hoặc cộng tồn; chỉ thực hiện các bước đó sau khi hàng thực tế quay về.</p>
+            <div className="flex flex-wrap gap-3"><Button onClick={() => handleReturnReview('approved')} disabled={returnResolution.trim().length < 5 || reviewReturnRequest.isPending}>Duyệt yêu cầu</Button><Button variant="secondary" onClick={() => handleReturnReview('rejected')} disabled={returnResolution.trim().length < 5 || reviewReturnRequest.isPending}>Từ chối</Button></div>
+          </div> : order.return_request.status === 'in_transit' ? <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <p className="text-sm text-muted-foreground">Vận đơn gửi trả: {order.return_request.return_carrier} · {order.return_request.return_tracking_number}</p>
+            <label className="text-sm"><span className="text-muted-foreground">Kết quả kiểm tra hàng</span><textarea value={returnInspection} onChange={(event) => setReturnInspection(event.target.value)} rows={3} maxLength={1000} className="mt-1 w-full rounded-control border border-border bg-surface p-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+            <label className="flex items-start gap-3 text-sm text-foreground"><input type="checkbox" checked={returnRestock} onChange={(event) => setReturnRestock(event.target.checked)} className="mt-1" /><span>Hàng đạt kiểm tra và có thể nhập lại kho bán. Chỉ chọn sau khi đã kiểm đếm thực tế.</span></label>
+            <div><Button onClick={handleReturnReceipt} disabled={returnInspection.trim().length < 5 || receiveReturnRequest.isPending}>{receiveReturnRequest.isPending ? 'Đang xác nhận...' : 'Xác nhận đã nhận hàng'}</Button></div>
+          </div> : order.return_request.status === 'received' && can(user, 'refund') ? <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <p className="text-sm text-muted-foreground">{order.return_request.inspection_note} · {order.return_request.restocked_at ? 'Đã nhập lại kho.' : 'Không nhập lại kho.'}</p>
+            <Input id="return-refund-reason" label="Lý do hoàn tiền (không bắt buộc)" value={returnRefundReason} onChange={(event) => setReturnRefundReason(event.target.value)} maxLength={500} />
+            <div><Button onClick={handleReturnRefund} disabled={refundReturnRequest.isPending}>{refundReturnRequest.isPending ? 'Đang ghi nhận...' : `Ghi nhận hoàn ${formatPrice(order.total)}`}</Button></div>
+          </div> : order.return_request.status === 'refund_pending' && can(user, 'refund') ? <div className="flex flex-col gap-3 border-t border-border pt-4">
+            <p className="text-sm text-muted-foreground">Đã ghi nhận hoàn {formatPrice(order.return_request.refund_amount)}. Chỉ hoàn tất sau khi tiền thực tế đã chuyển cho khách.</p>
+            <Input id="return-refund-reference" label="Mã tham chiếu chuyển tiền" value={returnRefundReference} onChange={(event) => setReturnRefundReference(event.target.value)} maxLength={255} required />
+            <Input id="return-refund-note" label="Ghi chú (không bắt buộc)" value={returnRefundNote} onChange={(event) => setReturnRefundNote(event.target.value)} maxLength={500} />
+            <div><Button onClick={handleReturnCompletion} disabled={!returnRefundReference.trim() || completeReturnRequest.isPending}>{completeReturnRequest.isPending ? 'Đang hoàn tất...' : 'Xác nhận đã chuyển tiền'}</Button></div>
+          </div> : <div className="text-sm text-muted-foreground">{order.return_request.resolution_note && <p>Phản hồi: {order.return_request.resolution_note}</p>}{order.return_request.inspection_note && <p className="mt-2">Kiểm tra: {order.return_request.inspection_note}</p>}{order.return_request.refund_reference && <p className="mt-2">Mã hoàn tiền: {order.return_request.refund_reference}</p>}</div>}
+        </Card>
+      )}
 
       {refundRecordedByCancellation && payment && (
         <Card className="flex flex-col gap-4">
@@ -366,15 +502,15 @@ export function AdminOrderDetailPage() {
                   Xác nhận đã chuyển tiền
                 </Button>
               )}
+              {!can(user, 'refund') && <p className="text-muted-foreground">Cần quyền “refund” để xác nhận khoản tiền đã chuyển.</p>}
             </div>
           )}
         </Card>
       )}
 
-      {transitions.length > 0 && (
-        <Card className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-4">
           <h3 className="font-display text-xl text-foreground">Cập nhật trạng thái</h3>
-          <div className="flex flex-wrap gap-4">
+          {transitions.length > 0 ? <div className="flex flex-wrap gap-4">
             {transitions.map((next) => (
               <Button
                 key={next}
@@ -385,9 +521,8 @@ export function AdminOrderDetailPage() {
                 {ORDER_STATUS_LABELS[next]?.label ?? next}
               </Button>
             ))}
-          </div>
+          </div> : <p className="text-sm text-muted-foreground">{terminalReason ?? 'Không có bước chuyển trạng thái hợp lệ ở thời điểm này.'}</p>}
         </Card>
-      )}
 
       {order.payment_method === 'cod' && order.status === 'shipped' && order.payment?.status === 'pending' && (
         <Card className="flex flex-col gap-3">
@@ -432,6 +567,25 @@ export function AdminOrderDetailPage() {
           </form>
         </Card>
       )}
+
+      <Modal
+        open={pendingTransition !== null}
+        onOpenChange={(open) => { if (!updateOrderStatus.isPending && !open) setPendingTransition(null) }}
+        title={pendingTransition === 'delivery_failed' ? 'Xác nhận giao hàng thất bại' : 'Xác nhận đã giao hàng'}
+        description={`Đơn hàng ${orderLabel}`}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-foreground">
+            {pendingTransition === 'delivery_failed'
+              ? 'Hàng vẫn đang ở bên vận chuyển và chưa được cộng lại tồn kho. Sau khi hàng thực tế quay về, cần xác nhận “Hàng đã về cửa hàng”.'
+              : 'Chỉ xác nhận khi khách đã nhận hàng. Trạng thái đơn sẽ hoàn tất; trạng thái thanh toán vẫn được quản lý độc lập.'}
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setPendingTransition(null)} disabled={updateOrderStatus.isPending}>Quay lại</Button>
+            <Button type="button" onClick={handleConfirmedTransition} disabled={updateOrderStatus.isPending}>{updateOrderStatus.isPending ? 'Đang cập nhật...' : 'Xác nhận'}</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={cancelOpen}

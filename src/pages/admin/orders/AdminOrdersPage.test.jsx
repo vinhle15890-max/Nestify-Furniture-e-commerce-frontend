@@ -65,6 +65,7 @@ describe('AdminOrdersPage', () => {
         status: 'processing',
         paymentMethod: '',
         paymentStatus: '',
+        returnStatus: '',
       }),
     )
   })
@@ -79,6 +80,35 @@ describe('AdminOrdersPage', () => {
       status: '',
       paymentMethod: 'cod',
       paymentStatus: 'pending',
+      returnStatus: '',
     })
+  })
+
+  it('hydrates a pending return queue from the dashboard drill-down link', async () => {
+    renderPage('/admin/orders?return_status=requested')
+
+    await screen.findByText('Bao Le')
+    expect(screen.getByLabelText('Lọc theo đổi trả')).toHaveValue('requested')
+    expect(ordersApi.getOrders).toHaveBeenCalledWith({ page: 1, status: '', paymentMethod: '', paymentStatus: '', returnStatus: 'requested' })
+  })
+
+  it('keeps page and filters in the URL and explains active filters', async () => {
+    renderPage('/admin/orders?status=processing&page=3')
+
+    await screen.findByText('Bao Le')
+    expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({ page: 3, status: 'processing' }))
+    expect(screen.getByLabelText('Bộ lọc đang áp dụng')).toHaveTextContent('Trạng thái: Đang xử lý')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa bộ lọc' }))
+    await waitFor(() => expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({ page: 1, status: '' })))
+  })
+
+  it('preserves the filtered-list URL when opening an order', async () => {
+    renderPage('/admin/orders?status=processing&page=2')
+
+    const link = await screen.findByRole('link', { name: 'Xem đơn hàng #101' })
+    expect(link).toHaveAttribute('href', '/admin/orders/101')
+    await userEvent.click(link)
+    expect(await screen.findByText('Trang chi tiết đơn hàng')).toBeInTheDocument()
   })
 })

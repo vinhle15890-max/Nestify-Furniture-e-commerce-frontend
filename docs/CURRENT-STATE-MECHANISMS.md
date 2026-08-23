@@ -39,12 +39,17 @@ security boundary. Tương tự, FE ẩn purchase với staff nhưng backend m�
 `stock_quantity - reserved_quantity` tăng dần; UI luôn hiển thị riêng tồn thực tế,
 đang giữ và khả dụng để tránh xem reservation như hàng có thể bán.
 
-Chọn biến thể mới enable form kiểm kê và `GET /admin/variants/{id}/stock-movements`.
-Điều chỉnh yêu cầu số nguyên khác 0, lý do tối thiểu 3 ký tự và idempotency key mới;
-server mới là boundary không cho giảm tồn thực tế xuống dưới lượng đang giữ. Sau thành
+Chọn biến thể mới enable form phiếu kho và `GET /admin/variants/{id}/stock-movements`.
+Nhân viên chọn `Nhập hàng`, `Xuất kho thủ công`, `Tăng sau kiểm kê` hoặc `Giảm sau kiểm kê/hư hỏng`,
+nhập số lượng dương; UI chuyển thành signed delta và xem trước tồn thực tế/khả dụng sau phiếu. Phiếu có
+mã chứng từ tùy chọn, lý do tối thiểu 3 ký tự và idempotency key mới; server kiểm tra lại chiều nghiệp vụ
+và là boundary không cho giảm tồn thực tế xuống dưới lượng đang giữ. Sau thành
 công, React Query invalidate product list, low-stock list, movement ledger và dashboard.
 Dashboard tính low-stock vào hàng đợi cần xử lý và link thẳng đến workbench; lịch sử hiển
-thị actor, order liên quan, số trước/sau và không cung cấp thao tác sửa movement cũ.
+thị actor, chứng từ, order liên quan, tồn thực tế/đang giữ/khả dụng trước–sau và không cung cấp thao tác sửa movement cũ.
+Danh sách có thể chuyển giữa low-stock và toàn bộ biến thể, tìm theo SKU/tên và phân trang. Ledger có bộ lọc
+nghiệp vụ, ngày, chứng từ, nhân viên, phân trang và xuất CSV theo đúng filter. Với phiếu giảm, UI tính trước
+`stock_after` và giải thích ngay nếu thấp hơn reserved; backend vẫn là correctness boundary cuối cùng.
 
 ## Cá nhân hóa hành trình trên Home
 
@@ -551,7 +556,10 @@ inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn l�
 
 - Checkout/chi tiết đơn đọc fulfillment và payment độc lập, có fallback legacy trong migration.
 - Admin chuyển sang shipped qua modal bắt buộc đơn vị vận chuyển; shipped COD có action riêng giao và thu đủ tiền.
-- Dashboard có preset 7 ngày/tháng hiện tại/90 ngày và khoảng tùy chọn; tách tiền thực thu, hoàn tiền, net revenue, COD chờ thu theo timezone Việt Nam. Nó đồng thời hiển thị on-hand/reserved/available, nhập–xuất theo ledger, bảng đối chiếu day/week/month và top seller chỉ từ đơn delivered. Operations queue truyền status/payment filter qua URL sang danh sách đơn; API vẫn là nguồn số liệu duy nhất.
+- Dashboard có preset 7 ngày/tháng hiện tại/90 ngày và khoảng tùy chọn; tách tiền thực thu, hoàn tiền, net revenue, COD chờ thu theo timezone Việt Nam. Nó đồng thời hiển thị on-hand/reserved/available, nhập–xuất theo ledger, bảng đối chiếu day/week/month và top seller chỉ từ đơn delivered. Workbench Flash Sale phân biệt quota/allocated/released/remaining hiện tại với số lượng và doanh thu đã giao trong kỳ, từng dòng link về sản phẩm quản trị. Operations queue truyền status/payment filter qua URL sang danh sách đơn; API vẫn là nguồn số liệu duy nhất.
+- Chi tiết đơn delivered cho phép owner gửi yêu cầu đổi trả toàn đơn trong 7 ngày và hiển thị phản hồi. Admin xử lý `requested -> approved|rejected` ngay trong order workbench; UI nói rõ duyệt chưa tự hoàn tiền/cộng tồn để không nhập nhằng intake với nhận hàng thực tế.
+- Khi đã duyệt, khách nhập đơn vị/mã vận đơn gửi trả; admin xem vận đơn, ghi kết quả kiểm tra và chủ động chọn có restock hay không. Danh sách đơn có filter đổi trả, dashboard link thẳng tới `requested`. Màn hình không ngụ ý đã hoàn tiền chỉ vì kho đã nhận lại hàng.
+- Sau receipt, workbench chỉ hiện action tiền cho quyền `refund`: ghi hoàn chuyển sang `refund_pending`, rồi nhập mã tham chiếu sau payout thật để `completed`. Dashboard và filter tách `received` khỏi `refund_pending`; khách thấy số tiền/mã tham chiếu khi có.
 - Form biến thể tách cập nhật thông tin khỏi điều chỉnh kho; adjustment bắt buộc delta/lý do và hiển thị on-hand/reserved/available.
 - Manual collections dùng `features/admin/collections` cho CRUD và `features/catalog` cho public reads; `/admin/collections` quản lý membership có thứ tự, `/collections/:collectionSlug` là landing page, Home chỉ render item `show_on_home`.
 - Variant option UI phân biệt `color` (hex) và `surface` (ảnh thư viện/URL + loại vân). Product detail render surface bằng ảnh và label; không suy vân gỗ/đá từ một màu phẳng.

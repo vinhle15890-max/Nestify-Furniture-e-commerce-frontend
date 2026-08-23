@@ -115,7 +115,7 @@ as each phase lands rather than creating duplicates.
 
 - [x] `features/cart/api.js` — `getCart`, `addItem`, `updateItem`, `removeItem`, `applyVoucher`
 - [x] `features/cart/hooks.js` — `useCart`, mutations invalidate `['cart']`; voucher preview as separate non-persisted query
-- [x] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
+- [x] `/cart` page — guest-visible shell, item list, qty controls; danh sách voucher chỉ gồm mã hợp lệ cho giỏ hiện tại, xếp theo tiết kiệm thực, hiện tổng còn trả/hạn/lượt còn lại và cho chọn hoặc bỏ mã trước Checkout
 - [x] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
 - [x] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
 - [x] `/wishlist` page — list, toggle restock notify, move-to-cart; handle `409 INSUFFICIENT_STOCK` và `409 INACTIVE_VARIANT` bằng trạng thái rõ ràng, giữ item để khách tự quyết định xóa
@@ -202,8 +202,9 @@ replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
 - [x] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
 - [x] Media: pick from the **Media Library** picker + reorder + per-image variant tag + **detach** ("Gỡ") — direct product upload now happens inside the picker's upload tab
 - [x] **Media Library** (`/admin/media`, `features/admin/media/`) — reusable image assets (WordPress-style): browse/search + offset pagination, upload-once-reuse, per-asset `usage_count`, hard-delete blocked while in use (`409 MEDIA_IN_USE`). Shared `MediaLibraryModal` picker reused by product edit (multi-select, attach) + category form (single-select, `media_asset_id`). BE splits `media_assets` from the `product_media` junction. Refs: BE `14-workflows.md` §10d, FE spec `docs/superpowers/specs/2026-07-08-media-library-design.md`.
-- [x] `/admin/orders`, `/admin/orders/:id` — offset list + detail
-- [x] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
+- [x] `/admin/orders`, `/admin/orders/:id` — offset list + canonical detail endpoint; filter/page nằm trên URL, link chi tiết giữ đường quay lại đúng danh sách đã lọc
+- [x] Order status transitions — chỉ render bước hợp lệ, giải thích trạng thái terminal/thiếu quyền, xác nhận trước các bước có hậu quả và hiển thị timeline audit actor/time/carrier/tracking/reason
+- [x] Return workflow — customer thấy hạn 7 ngày do server tính, chỉ được mở form khi `return_policy.can_request`; admin duyệt/từ chối, nhận hàng/restock và ghi/hoàn tất refund theo từng trạng thái riêng
 - [x] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
 - [x] Tests: admin product list + create form validation, order status transition options match current status
 
@@ -214,13 +215,10 @@ replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
    `{ids: [...]}` (a flat, ordered array of media IDs; `sort_order` = position in the array),
    not `media_order: [{id, sort_order}]` as documented. Confirmed against
    `ProductMediaController::reorder`'s validation rules. FE sends `{ids}`.
-2. **No admin detail endpoints** — `GET /admin/products/{id}` and `GET /admin/orders/{id}` are
-   not implemented (only `index`/`store`/`update`/`destroy` and
-   `index`/`updateStatus`/`refund` respectively). `AdminProductEditPage` and
-   `AdminOrderDetailPage` hydrate from `location.state` (passed by the list pages' "Sửa"/"Xem"
-   links) and fall back to searching the `['admin','products']` / `['admin','orders']` query
-   cache for a matching `id`; if neither yields data, the page shows a "not found" message with
-   a link back to the list.
+2. **Admin order detail đã có endpoint canonical** — `GET /admin/orders/{id}` trả latest payment,
+   cancellation, fulfillment và timeline audit allow-list. `AdminOrderDetailPage` vẫn hydrate tức thì
+   từ `location.state`/list cache, sau đó reconcile bằng endpoint; direct URL vì vậy tải được độc lập.
+   `GET /admin/products/{id}` vẫn chưa có và product edit tiếp tục dựa vào state/cache.
 
 ---
 

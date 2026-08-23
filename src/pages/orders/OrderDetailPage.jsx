@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { useOrder, useCancelOrder } from '../../features/orders/hooks'
+import { useOrder, useCancelOrder, useCreateReturnRequest, useShipReturnRequest } from '../../features/orders/hooks'
 import { useCreatePaymentSession } from '../../features/checkout/hooks'
 import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
 import { redirectToExternal } from '../../lib/navigation'
@@ -25,11 +25,17 @@ export function OrderDetailPage() {
   const queryClient = useQueryClient()
   const { data, error, isLoading, isError, isFetching, refetch } = useOrder(id)
   const cancelOrder = useCancelOrder()
+  const createReturnRequest = useCreateReturnRequest()
+  const shipReturnRequest = useShipReturnRequest(id)
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
   const gateway = 'payos' // PayOS is the only payment gateway
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+  const [returnOpen, setReturnOpen] = useState(false)
+  const [returnReason, setReturnReason] = useState('')
+  const [returnCarrier, setReturnCarrier] = useState('')
+  const [returnTracking, setReturnTracking] = useState('')
 
   if (isLoading) {
     return (
@@ -80,6 +86,10 @@ export function OrderDetailPage() {
   )
   const isFullyDiscounted = Number(order.total) === 0
   const canCancel = CANCELLABLE_STATUSES.includes(order.status)
+  const returnPolicy = order.return_policy
+  // Keep compatibility while the additive backend field rolls out.
+  const canRequestReturn = returnPolicy?.can_request ?? !order.return_request
+  const returnDeadline = returnPolicy?.eligible_until ? formatDate(returnPolicy.eligible_until) : null
   // A cancelled order refunds money only when an online payment was captured.
   const willRefund = !isFullyDiscounted && (
     order.payment?.status === 'paid'
@@ -107,6 +117,29 @@ export function OrderDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['orders', id] })
       }
       addToast({ title: 'Không thể tạo phiên thanh toán.', description: error.message, variant: 'error' })
+    }
+  }
+
+  async function handleReturnRequest() {
+    try {
+      await createReturnRequest.mutateAsync({ id: order.id, reason: returnReason.trim() })
+      setReturnOpen(false)
+      setReturnReason('')
+      addToast({ title: 'Đã gửi yêu cầu đổi trả.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể gửi yêu cầu đổi trả.', description: error.message, variant: 'error' })
+    }
+  }
+
+  async function handleReturnShipment(event) {
+    event.preventDefault()
+    try {
+      await shipReturnRequest.mutateAsync({ id: order.return_request.id, return_carrier: returnCarrier.trim(), return_tracking_number: returnTracking.trim() })
+      setReturnCarrier('')
+      setReturnTracking('')
+      addToast({ title: 'Đã ghi nhận vận đơn gửi trả.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể ghi nhận vận đơn.', description: error.message, variant: 'error' })
     }
   }
 
@@ -237,6 +270,42 @@ export function OrderDetailPage() {
         </section>
       )}
 
+      {order.status === 'delivered' && (
+        <section className={`mt-6 ${sectionClass}`} aria-labelledby="return-request-heading">
+          <h2 id="return-request-heading" className="font-display text-xl text-foreground">Đổi trả sau giao hàng</h2>
+          {order.return_request ? (
+            <div className="mt-3 text-sm">
+              <p className="font-medium text-foreground">{{ requested: 'Đang chờ Nestify xem xét', approved: 'Yêu cầu đã được duyệt', rejected: 'Yêu cầu không được duyệt', in_transit: 'Hàng đang gửi về Nestify', received: 'Nestify đã nhận và kiểm tra hàng', refund_pending: 'Khoản hoàn đang chờ chuyển tiền', completed: 'Đổi trả và hoàn tiền đã hoàn tất' }[order.return_request.status]}</p>
+              <p className="mt-2 text-muted-foreground">Lý do: {order.return_request.reason}</p>
+              {order.return_request.resolution_note && <p className="mt-2 text-muted-foreground">Phản hồi: {order.return_request.resolution_note}</p>}
+              {order.return_request.status === 'approved' && <form onSubmit={handleReturnShipment} className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2"><label><span className="text-muted-foreground">Đơn vị vận chuyển</span><input value={returnCarrier} onChange={(event) => setReturnCarrier(event.target.value)} maxLength={255} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label><label><span className="text-muted-foreground">Mã vận đơn gửi trả</span><input value={returnTracking} onChange={(event) => setReturnTracking(event.target.value)} maxLength={255} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label><div className="sm:col-span-2"><Button type="submit" disabled={!returnCarrier.trim() || !returnTracking.trim() || shipReturnRequest.isPending}>{shipReturnRequest.isPending ? 'Đang lưu...' : 'Xác nhận đã gửi hàng'}</Button></div></form>}
+              {order.return_request.return_tracking_number && <p className="mt-3 text-muted-foreground">Vận đơn: {order.return_request.return_carrier} · {order.return_request.return_tracking_number}</p>}
+              {order.return_request.inspection_note && <p className="mt-2 text-muted-foreground">Kết quả kiểm tra: {order.return_request.inspection_note}</p>}
+              {order.return_request.refund_amount > 0 && <p className="mt-2 text-muted-foreground">Số tiền hoàn: {formatPrice(order.return_request.refund_amount)}</p>}
+              {order.return_request.refund_reference && <p className="mt-2 text-muted-foreground">Mã tham chiếu: {order.return_request.refund_reference}</p>}
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+              <div className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+                {canRequestReturn ? (
+                  <>
+                    <p>Bạn có thể gửi yêu cầu trong {returnPolicy?.window_days ?? 7} ngày từ lúc nhận hàng. Gửi yêu cầu chưa đồng nghĩa đã được hoàn tiền hoặc nhận lại hàng.</p>
+                    {returnDeadline && <p className="mt-2 font-medium text-foreground">Hạn gửi yêu cầu: {returnDeadline}</p>}
+                  </>
+                ) : returnPolicy?.ineligible_reason === 'window_expired' ? (
+                  <p>Thời hạn yêu cầu đổi trả đã kết thúc{returnDeadline ? ` vào ${returnDeadline}` : ''}. Nếu sản phẩm có lỗi cần hỗ trợ, hãy liên hệ Nestify và cung cấp mã đơn hàng.</p>
+                ) : returnPolicy?.ineligible_reason === 'missing_delivery_evidence' ? (
+                  <p>Chưa có mốc giao hàng để xác định thời hạn đổi trả. Hãy liên hệ Nestify để được kiểm tra trước khi gửi hàng.</p>
+                ) : (
+                  <p>Đơn hàng này hiện không đủ điều kiện tạo yêu cầu đổi trả mới.</p>
+                )}
+              </div>
+              {canRequestReturn && <Button variant="secondary" onClick={() => setReturnOpen(true)}>Yêu cầu đổi trả</Button>}
+            </div>
+          )}
+        </section>
+      )}
+
       {isPendingPayment && (
         <div className={`mt-6 flex flex-col gap-4 ${sectionClass}`}>
           <h2 className="font-display text-xl text-foreground">Thanh toán</h2>
@@ -266,6 +335,14 @@ export function OrderDetailPage() {
           </Button>
         </div>
       )}
+
+      <BecomingModal open={returnOpen} onOpenChange={setReturnOpen} title="Yêu cầu đổi trả" description="Nestify sẽ xem xét và phản hồi trước khi bạn gửi hàng ngược lại.">
+        <label className="block text-sm">
+          <span className="text-muted-foreground">Lý do và tình trạng sản phẩm</span>
+          <textarea value={returnReason} onChange={(event) => setReturnReason(event.target.value)} rows={4} minLength={10} maxLength={1000} className="mt-1 w-full rounded-control border border-border bg-surface p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        </label>
+        <div className="mt-4 flex justify-end gap-3"><Button variant="ghost" onClick={() => setReturnOpen(false)}>Đóng</Button><Button onClick={handleReturnRequest} disabled={returnReason.trim().length < 10 || createReturnRequest.isPending}>{createReturnRequest.isPending ? 'Đang gửi...' : 'Gửi yêu cầu'}</Button></div>
+      </BecomingModal>
 
       <BecomingModal
         open={cancelOpen}
