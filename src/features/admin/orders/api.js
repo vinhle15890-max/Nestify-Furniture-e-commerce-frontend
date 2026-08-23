@@ -1,8 +1,10 @@
 import { apiClient } from '../../../lib/apiClient'
 
-export function getOrders({ page, status } = {}) {
+export function getOrders({ page, status, paymentMethod, paymentStatus } = {}) {
   const params = { page }
   if (status) params.status = status
+  if (paymentMethod) params.payment_method = paymentMethod
+  if (paymentStatus) params.payment_status = paymentStatus
 
   return apiClient.get('/admin/orders', { params })
 }

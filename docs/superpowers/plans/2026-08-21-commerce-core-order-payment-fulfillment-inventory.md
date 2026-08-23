@@ -126,6 +126,8 @@ loser re-check và không release/commit ngược), stale command không expire 
 
 ## Slice 6 — Cancellation/refund reconciliation
 
+**Trạng thái:** Đã triển khai ngày 2026-08-23.
+
 1. Refactor cancel logic theo inventory event thực tế thay vì legacy order status.
 2. COD pending cancel terminalizes payment mà không refund; shipped phải qua
    `delivery_failed -> returned_to_store -> cancelled`, chỉ restock khi hàng thực tế đã về.

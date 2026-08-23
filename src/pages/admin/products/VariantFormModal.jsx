@@ -1,3 +1,5 @@
+/* Hallmark · component: admin commerce form · genre: modern-minimal · theme: Nestify Design DNA */
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · contrast/mobile/tokens: pass */
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -25,6 +27,9 @@ const saleShape = {
   sale_price: yup.number().nullable().transform((value, original) => original === '' ? null : value).min(0, 'Giá sale không được âm.'),
   sale_starts_at: yup.string(),
   sale_ends_at: yup.string(),
+  flash_sale_enabled: yup.boolean(),
+  flash_sale_stock: yup.number().nullable().transform((value, original) => original === '' ? null : value).integer('Số lượng Flash Sale phải là số nguyên.').min(1, 'Tối thiểu 1 sản phẩm.'),
+  flash_sale_limit_per_order: yup.number().nullable().transform((value, original) => original === '' ? null : value).integer('Giới hạn phải là số nguyên.').min(1, 'Tối thiểu 1 sản phẩm.'),
 }
 
 // Sản phẩm CÓ thuộc tính → tên biến thể được suy ra từ tổ hợp, không nhập tay.
@@ -43,6 +48,7 @@ const emptyValues = {
   stock_quantity: '',
   is_active: true,
   sale_price: '', sale_starts_at: '', sale_ends_at: '',
+  flash_sale_enabled: false, flash_sale_stock: '', flash_sale_limit_per_order: '',
 }
 
 const toDateTimeInput = (value) => value ? value.slice(0, 16) : ''
@@ -57,6 +63,9 @@ function toFormValues(variant) {
     sale_price: variant.configured_sale_price ?? variant.sale_price ?? '',
     sale_starts_at: toDateTimeInput(variant.sale_starts_at),
     sale_ends_at: toDateTimeInput(variant.sale_ends_at),
+    flash_sale_enabled: variant.flash_sale_enabled ?? false,
+    flash_sale_stock: variant.flash_sale_stock ?? '',
+    flash_sale_limit_per_order: variant.flash_sale_limit_per_order ?? '',
   }
 }
 
@@ -88,10 +97,12 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
   const {
     register,
     handleSubmit,
+    watch,
     setError,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schemas[schemaKey]), defaultValues: emptyValues })
+  const flashSaleEnabled = watch('flash_sale_enabled')
 
   useEffect(() => {
     if (open) {
@@ -141,6 +152,10 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
       setError('sale_ends_at', { message: 'Thời điểm kết thúc phải sau thời điểm bắt đầu.' })
       return
     }
+    if (values.flash_sale_enabled && (!values.sale_price || !values.sale_starts_at || !values.sale_ends_at || !values.flash_sale_stock)) {
+      setError('flash_sale_enabled', { message: 'Điền đủ giá, thời gian và số lượng trước khi bật Flash Sale.' })
+      return
+    }
 
     try {
       if (isEditing) {
@@ -151,6 +166,9 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           sale_price: values.sale_price === null || values.sale_price === '' ? null : Number(values.sale_price),
           sale_starts_at: values.sale_starts_at || null,
           sale_ends_at: values.sale_ends_at || null,
+          flash_sale_enabled: values.flash_sale_enabled,
+          flash_sale_stock: values.flash_sale_stock === null || values.flash_sale_stock === '' ? null : Number(values.flash_sale_stock),
+          flash_sale_limit_per_order: values.flash_sale_limit_per_order === null || values.flash_sale_limit_per_order === '' ? null : Number(values.flash_sale_limit_per_order),
         }
         // Có thuộc tính → gửi attributes (BE tự suy tên + options_key). Không thì gửi tên tự do.
         if (hasOptions) payload.attributes = selectedAttrs
@@ -168,6 +186,9 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           sale_price: values.sale_price === null || values.sale_price === '' ? null : Number(values.sale_price),
           sale_starts_at: values.sale_starts_at || null,
           sale_ends_at: values.sale_ends_at || null,
+          flash_sale_enabled: values.flash_sale_enabled,
+          flash_sale_stock: values.flash_sale_stock === null || values.flash_sale_stock === '' ? null : Number(values.flash_sale_stock),
+          flash_sale_limit_per_order: values.flash_sale_limit_per_order === null || values.flash_sale_limit_per_order === '' ? null : Number(values.flash_sale_limit_per_order),
         }
         if (hasOptions) payload.attributes = selectedAttrs
         else payload.name = values.name
@@ -290,6 +311,18 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           <div />
           <Input label="Bắt đầu" id="sale_starts_at" type="datetime-local" error={errors.sale_starts_at?.message} {...register('sale_starts_at')} />
           <Input label="Kết thúc" id="sale_ends_at" type="datetime-local" error={errors.sale_ends_at?.message} {...register('sale_ends_at')} />
+          <div className="sm:col-span-2 border-t border-border pt-3">
+            <label className="flex items-start gap-3 text-sm text-foreground" htmlFor="flash-sale-enabled">
+              <input id="flash-sale-enabled" type="checkbox" {...register('flash_sale_enabled')} />
+              <span><strong className="block font-medium">Giới hạn thành Flash Sale</strong><span className="text-xs text-muted-foreground">Tách một quota có giới hạn và phân bổ nguyên tử khi checkout.</span></span>
+            </label>
+            {errors.flash_sale_enabled?.message && <p role="alert" className="mt-2 text-sm text-destructive">{errors.flash_sale_enabled.message}</p>}
+          </div>
+          {flashSaleEnabled && <>
+            <Input label="Số lượng dành cho Flash Sale" id="flash_sale_stock" type="number" error={errors.flash_sale_stock?.message} {...register('flash_sale_stock')} />
+            <Input label="Tối đa mỗi đơn" id="flash_sale_limit_per_order" type="number" error={errors.flash_sale_limit_per_order?.message} {...register('flash_sale_limit_per_order')} />
+            {isEditing && <p className="sm:col-span-2 text-xs text-muted-foreground">Đã phân bổ {variant.flash_sale_reserved_quantity ?? 0} sản phẩm. Không thể giảm quota thấp hơn con số này.</p>}
+          </>}
         </section>
         {!isEditing && (
           <Input

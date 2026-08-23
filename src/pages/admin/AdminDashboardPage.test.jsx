@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AdminDashboardPage } from './AdminDashboardPage'
@@ -21,13 +22,19 @@ const dashboardResponse = {
     },
     revenue: 150000,
     finance: {
+      date_from: '2026-08-01',
+      date_to: '2026-08-23',
+      interval: 'week',
       cash_collected: 160000,
       refunds: 10000,
       net_revenue: 150000,
       cod_receivable: 500000,
       units_sold: 3,
+      series: [{ period: '2026-08-17', cash_collected: 160000, refunds: 10000, net_revenue: 150000 }],
     },
-    operations: { delivery_failed: 0, low_stock: 2 },
+    inventory: { on_hand: 40, reserved: 5, available: 35, stock_in: 8, stock_out: 3, low_stock: 2, out_of_stock: 1, series: [{ period: '2026-08-17', stock_in: 8, stock_out: 3 }] },
+    top_sellers: [{ id: 7, name: 'Ghế bán chạy', units_sold: 3, delivered_value: 900000 }],
+    operations: { processing: 2, shipped: 1, delivery_failed: 1, cod_receivable_count: 2, low_stock: 2 },
     catalog: { products: 3, active_products: 3 },
     customers: 4,
     pending_reviews: 1,
@@ -99,5 +106,29 @@ describe('AdminDashboardPage', () => {
       'href',
       '/admin/inventory',
     )
+  })
+
+  it('renders inventory period evidence and delivered top sellers', async () => {
+    renderPage()
+
+    expect(await screen.findByText('Tồn kho và biến động trong kỳ')).toBeInTheDocument()
+    expect(screen.getByText('Đối chiếu theo kỳ')).toBeInTheDocument()
+    expect(screen.getByText('2026-08-17')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Ghế bán chạy/ })).toHaveAttribute('href', '/admin/products/7')
+  })
+
+  it('applies a seven-day preset through the dashboard API filters', async () => {
+    renderPage()
+    await screen.findByText('Tổng đơn hàng')
+    await userEvent.click(screen.getByRole('button', { name: '7 ngày' }))
+
+    expect(dashboardApi.getDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ interval: 'day' }))
+  })
+
+  it('drills operations queues into matching order filters', async () => {
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: /Đơn đang xử lý/ })).toHaveAttribute('href', '/admin/orders?status=processing')
+    expect(screen.getByRole('link', { name: /COD chờ thu/ })).toHaveAttribute('href', '/admin/orders?payment_method=cod&payment_status=pending')
   })
 })

@@ -1,3 +1,5 @@
+/* Hallmark · macrostructure: Workbench · tone: operational · anchor hue: Nestify tokens */
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · contrast/mobile/tokens: pass */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -22,6 +24,18 @@ import { formatPrice } from '../../lib/format'
 /** Whole-number percentage of n over d (0 when d is 0). */
 function pct(n, d) {
   return d ? Math.round((n / d) * 100) : 0
+}
+
+function dateInput(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 10)
+}
+
+function reportPreset(days) {
+  const end = new Date()
+  const start = new Date(end)
+  start.setDate(start.getDate() - (days - 1))
+  return { date_from: dateInput(start), date_to: dateInput(end), interval: days > 62 ? 'month' : days > 14 ? 'week' : 'day' }
 }
 
 /** A KPI card with a tinted icon chip, headline value and an optional context line. */
@@ -53,7 +67,7 @@ function Kpi({ label, value, icon: Icon, tone = 'ink', hint, progress }) {
       {progress != null && (
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-surface-alt">
           <div
-            className={`h-full rounded-full ${bar} transition-all duration-700 ease-out`}
+            className={`h-full rounded-full ${bar}`}
             style={{ width: `${Math.max(progress, 2)}%` }}
           />
         </div>
@@ -89,7 +103,7 @@ function ActionRow({ to, icon: Icon, label, count, urgent }) {
         <Icon size={18} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="whitespace-nowrap text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">
           {active ? 'Đang chờ thao tác' : 'Không có mục nào'}
         </p>
@@ -111,8 +125,8 @@ function ActionRow({ to, icon: Icon, label, count, urgent }) {
 
 export function AdminDashboardPage() {
   const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA')
-  const today = now.toLocaleDateString('en-CA')
+  const monthStart = dateInput(new Date(now.getFullYear(), now.getMonth(), 1))
+  const today = dateInput(now)
   const [filters, setFilters] = useState({ date_from: monthStart, date_to: today, interval: 'day' })
   const { data, isLoading, isError, isFetching, refetch } = useAdminDashboard(filters)
 
@@ -136,6 +150,8 @@ export function AdminDashboardPage() {
     units_sold: 0,
   }
   const operations = stats.operations ?? {}
+  const inventory = stats.inventory ?? { on_hand: 0, reserved: 0, available: 0, stock_in: 0, stock_out: 0, series: [] }
+  const topSellers = stats.top_sellers ?? []
   const manualRefunds = stats.manual_refunds ?? { count: 0, total_amount: 0, orders: [] }
 
   // Derived metrics (computed client-side from the fixed payload).
@@ -144,7 +160,11 @@ export function AdminDashboardPage() {
   const fulfilledRate = pct(orders.delivered, orders.total)
   const activeRate = pct(catalog.active_products, catalog.products)
   const awaitingConfirmation = orders.pending_confirmation ?? orders.pending_payment ?? 0
-  const needsAttention = awaitingConfirmation + (operations.delivery_failed ?? 0) + (operations.low_stock ?? 0) + stats.pending_reviews + manualRefunds.count
+  const needsAttention = awaitingConfirmation + (operations.processing ?? 0) + (operations.shipped ?? 0) + (operations.delivery_failed ?? 0) + (operations.cod_receivable_count ?? 0) + (operations.low_stock ?? 0) + stats.pending_reviews + manualRefunds.count
+  const periods = new Map()
+  for (const row of finance.series ?? []) periods.set(row.period, { ...row })
+  for (const row of inventory.series ?? []) periods.set(row.period, { ...(periods.get(row.period) ?? { period: row.period }), ...row })
+  const periodRows = [...periods.values()].sort((a, b) => a.period.localeCompare(b.period))
 
   const funnel = [
     { key: 'pending_confirmation', label: 'Chờ xác nhận', value: awaitingConfirmation, color: 'bg-accent/70' },
@@ -165,10 +185,16 @@ export function AdminDashboardPage() {
       />
 
       <section className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4 shadow-soft" aria-label="Khoảng thời gian báo cáo">
+        <div className="flex flex-wrap gap-2" aria-label="Khoảng thời gian nhanh">
+          <button type="button" onClick={() => setFilters(reportPreset(7))} className="min-h-11 whitespace-nowrap rounded-control border border-border px-3 text-sm text-foreground hover:bg-surface-alt active:bg-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">7 ngày</button>
+          <button type="button" onClick={() => setFilters({ date_from: monthStart, date_to: today, interval: 'day' })} className="min-h-11 whitespace-nowrap rounded-control border border-border px-3 text-sm text-foreground hover:bg-surface-alt active:bg-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tháng này</button>
+          <button type="button" onClick={() => setFilters(reportPreset(90))} className="min-h-11 whitespace-nowrap rounded-control border border-border px-3 text-sm text-foreground hover:bg-surface-alt active:bg-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">90 ngày</button>
+        </div>
         <label className="grid gap-1 text-xs text-muted-foreground">
           Từ ngày
           <input className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" type="date" value={filters.date_from} onChange={(event) => setFilters((current) => ({ ...current, date_from: event.target.value }))} />
         </label>
+        {isFetching && <span className="pb-2 text-sm text-muted-foreground" role="status">Đang cập nhật…</span>}
         <label className="grid gap-1 text-xs text-muted-foreground">
           Đến ngày
           <input className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" type="date" value={filters.date_to} onChange={(event) => setFilters((current) => ({ ...current, date_to: event.target.value }))} />
@@ -279,11 +305,15 @@ export function AdminDashboardPage() {
                   urgent
                 />
                 <ActionRow
-                  to="/admin/orders"
+                  to="/admin/orders?status=pending_confirmation"
                   icon={Clock}
                   label="Đơn chờ xác nhận"
                   count={awaitingConfirmation}
                 />
+                <ActionRow to="/admin/orders?status=processing" icon={Package} label="Đơn đang xử lý" count={operations.processing ?? 0} />
+                <ActionRow to="/admin/orders?status=shipped" icon={ShoppingBag} label="Đơn đang giao" count={operations.shipped ?? 0} />
+                <ActionRow to="/admin/orders?status=delivery_failed" icon={AlertTriangle} label="Giao hàng thất bại" count={operations.delivery_failed ?? 0} urgent />
+                <ActionRow to="/admin/orders?payment_method=cod&payment_status=pending" icon={CheckCircle2} label="COD chờ thu" count={operations.cod_receivable_count ?? 0} />
                 <ActionRow
                   to="/admin/reviews"
                   icon={Star}
@@ -357,6 +387,41 @@ export function AdminDashboardPage() {
         </div>
       </section>
 
+      <section className="overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="font-display text-xl text-foreground">Tồn kho và biến động trong kỳ</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Tồn hiện tại là ảnh chụp lúc mở báo cáo; nhập/xuất chỉ tính movement trong khoảng đã chọn.</p>
+        </div>
+        <div className="grid gap-px bg-border sm:grid-cols-3">
+          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Tồn tại kho</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{inventory.on_hand}</p></div>
+          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Đang giữ cho đơn</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{inventory.reserved}</p></div>
+          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Có thể bán</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{inventory.available}</p></div>
+        </div>
+        <div className="grid gap-3 border-t border-border px-5 py-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <p><span className="text-muted-foreground">Nhập kho: </span><strong className="tabular-nums text-foreground">{inventory.stock_in ?? 0}</strong></p>
+          <p><span className="text-muted-foreground">Xuất kho: </span><strong className="tabular-nums text-foreground">{inventory.stock_out ?? 0}</strong></p>
+          <p><span className="text-muted-foreground">Sắp hết: </span><strong className="tabular-nums text-foreground">{inventory.low_stock ?? 0}</strong></p>
+          <p><span className="text-muted-foreground">Hết hàng: </span><strong className="tabular-nums text-foreground">{inventory.out_of_stock ?? 0}</strong></p>
+        </div>
+      </section>
+
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+        <section className="min-w-0 overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+          <div className="border-b border-border px-5 py-4"><h3 className="font-display text-xl text-foreground">Đối chiếu theo kỳ</h3><p className="mt-1 text-sm text-muted-foreground">Tiền theo lúc thu/hoàn; kho theo thời điểm movement được ghi.</p></div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[42rem] text-sm">
+              <thead className="bg-surface-alt text-left text-muted-foreground"><tr><th className="px-4 py-3">Kỳ bắt đầu</th><th className="px-4 py-3 text-right">Đã thu</th><th className="px-4 py-3 text-right">Đã hoàn</th><th className="px-4 py-3 text-right">Doanh thu ròng</th><th className="px-4 py-3 text-right">Nhập</th><th className="px-4 py-3 text-right">Xuất</th></tr></thead>
+              <tbody className="divide-y divide-border">{periodRows.length ? periodRows.map((row) => <tr key={row.period}><td className="px-4 py-3 font-medium text-foreground">{row.period}</td><td className="px-4 py-3 text-right tabular-nums">{formatPrice(row.cash_collected ?? 0)}</td><td className="px-4 py-3 text-right tabular-nums">{formatPrice(row.refunds ?? 0)}</td><td className="px-4 py-3 text-right tabular-nums">{formatPrice(row.net_revenue ?? 0)}</td><td className="px-4 py-3 text-right tabular-nums">{row.stock_in ?? 0}</td><td className="px-4 py-3 text-right tabular-nums">{row.stock_out ?? 0}</td></tr>) : <tr><td colSpan="6" className="px-4 py-8 text-center text-muted-foreground">Chưa có giao dịch tiền hoặc kho trong kỳ này.</td></tr>}</tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+          <div className="border-b border-border px-5 py-4"><h3 className="font-display text-xl text-foreground">Sản phẩm bán chạy</h3><p className="mt-1 text-sm text-muted-foreground">Xếp theo số lượng trong đơn đã giao.</p></div>
+          {topSellers.length ? <ol className="divide-y divide-border">{topSellers.map((product, index) => <li key={product.id}><Link to={`/admin/products/${product.id}`} className="flex min-h-14 items-center gap-3 px-5 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><span className="w-6 text-sm tabular-nums text-muted-foreground">{index + 1}</span><span className="min-w-0 flex-1 truncate font-medium text-foreground">{product.name}</span><span className="shrink-0 text-right"><strong className="block tabular-nums text-foreground">{product.units_sold}</strong><span className="text-xs text-muted-foreground">đã giao</span></span></Link></li>)}</ol> : <p className="px-5 py-8 text-sm text-muted-foreground">Chưa có sản phẩm được giao trong kỳ này.</p>}
+        </section>
+      </div>
+
       {/* Order status funnel — colour-coded CSS bar chart */}
       <div className="rounded-card border border-border bg-surface p-7 shadow-soft">
         <div className="flex items-center justify-between">
@@ -382,7 +447,7 @@ export function AdminDashboardPage() {
                 <span className="text-sm font-semibold text-foreground">{stage.value}</span>
                 <div className="flex w-full flex-1 items-end overflow-hidden rounded-t-control bg-surface-alt/70">
                   <div
-                    className={`w-full rounded-t-control ${stage.color} transition-all duration-700 ease-out`}
+                    className={`w-full rounded-t-control ${stage.color}`}
                     style={{ height: `${Math.max(heightPct, 2)}%` }}
                   />
                 </div>

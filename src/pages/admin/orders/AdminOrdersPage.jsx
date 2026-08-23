@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Receipt } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
@@ -13,15 +13,37 @@ import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { formatPrice, formatDate } from '../../../lib/format'
 
 export function AdminOrdersPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [page, setPage] = useState(1)
-  const [status, setStatus] = useState('')
-  const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status)
+  const status = searchParams.get('status') ?? ''
+  const paymentMethod = searchParams.get('payment_method') ?? ''
+  const paymentStatus = searchParams.get('payment_status') ?? ''
+  const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status, paymentMethod, paymentStatus)
 
   const orders = data?.data ?? []
   const meta = data?.meta ?? { last_page: 1 }
 
   const handleStatusChange = (event) => {
-    setStatus(event.target.value)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      event.target.value ? next.set('status', event.target.value) : next.delete('status')
+      return next
+    })
+    setPage(1)
+  }
+
+  const handlePaymentChange = (event) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (event.target.value === 'cod_pending') {
+        next.set('payment_method', 'cod')
+        next.set('payment_status', 'pending')
+      } else {
+        next.delete('payment_method')
+        next.delete('payment_status')
+      }
+      return next
+    })
     setPage(1)
   }
 
@@ -31,7 +53,7 @@ export function AdminOrdersPage() {
         icon={Receipt}
         title="Đơn hàng"
         description="Theo dõi và cập nhật trạng thái đơn hàng của khách."
-        actions={
+        actions={<div className="flex flex-wrap gap-2">
           <select
             id="status-filter"
             value={status}
@@ -46,7 +68,16 @@ export function AdminOrdersPage() {
               </option>
             ))}
           </select>
-        }
+          <select
+            value={paymentMethod === 'cod' && paymentStatus === 'pending' ? 'cod_pending' : ''}
+            onChange={handlePaymentChange}
+            aria-label="Lọc theo thanh toán"
+            className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
+          >
+            <option value="">Tất cả thanh toán</option>
+            <option value="cod_pending">COD chờ thu</option>
+          </select>
+        </div>}
       />
 
       <div className="mt-6">

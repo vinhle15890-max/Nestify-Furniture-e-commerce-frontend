@@ -416,6 +416,8 @@ server reject. Dashboard chỉ render aggregate server; audit action chưa map v
 
 Promotion public nằm ở `/vouchers`; customer claim idempotent qua `features/promotions` và xem `/account/vouchers`. Guest được dẫn đăng nhập, staff không được mua/claim. UI nói rõ khả năng kết hợp sale-voucher, không countdown/fake urgency. Admin variant form cấu hình `sale_price/sale_starts_at/sale_ends_at`; admin voucher form cấu hình public/claim-required/stack-with-sale, còn mọi hiệu lực vẫn do API xác nhận.
 
+Flash Sale là chế độ quota của lịch sale, không phải countdown phía client. Admin nhập tổng quota và giới hạn mỗi đơn; catalog/detail chỉ hiện `is_flash_sale/remaining/limit` do API trả. FE giới hạn input để hỗ trợ người dùng nhưng checkout backend vẫn quyết định allocation và có thể yêu cầu refresh khi quota vừa thay đổi.
+
 ## Cơ chế platform khác
 
 - Cart/order/stock/price nguồn thật ở server. Checkout dùng idempotency key để retry không tạo order đôi;
@@ -549,7 +551,7 @@ inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn l�
 
 - Checkout/chi tiết đơn đọc fulfillment và payment độc lập, có fallback legacy trong migration.
 - Admin chuyển sang shipped qua modal bắt buộc đơn vị vận chuyển; shipped COD có action riêng giao và thu đủ tiền.
-- Dashboard tách tiền thực thu, hoàn tiền, net revenue và COD chờ thu theo khoảng ngày, kèm bảng định nghĩa.
+- Dashboard có preset 7 ngày/tháng hiện tại/90 ngày và khoảng tùy chọn; tách tiền thực thu, hoàn tiền, net revenue, COD chờ thu theo timezone Việt Nam. Nó đồng thời hiển thị on-hand/reserved/available, nhập–xuất theo ledger, bảng đối chiếu day/week/month và top seller chỉ từ đơn delivered. Operations queue truyền status/payment filter qua URL sang danh sách đơn; API vẫn là nguồn số liệu duy nhất.
 - Form biến thể tách cập nhật thông tin khỏi điều chỉnh kho; adjustment bắt buộc delta/lý do và hiển thị on-hand/reserved/available.
 - Manual collections dùng `features/admin/collections` cho CRUD và `features/catalog` cho public reads; `/admin/collections` quản lý membership có thứ tự, `/collections/:collectionSlug` là landing page, Home chỉ render item `show_on_home`.
 - Variant option UI phân biệt `color` (hex) và `surface` (ảnh thư viện/URL + loại vân). Product detail render surface bằng ảnh và label; không suy vân gỗ/đá từ một màu phẳng.
@@ -560,3 +562,8 @@ inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn l�
 có lặp constraint không; (2) direct API có scale được không; (3) presign/PUT/measure/calculate/bake GLB fail
 ở đâu và client còn state gì; (4) thảm có overlap và overlap có chặn save/cart không; (5) reload sau khi tạo
 order nhưng PayOS session lỗi có POST order lần hai không; (6) emoji làm hai SEO score lệch thế nào.
+### Failed delivery reconciliation (2026-08-23)
+
+- Admin order detail thực thi chuỗi `delivery_failed -> returned_to_store -> cancelled`; bước xác nhận hàng về có modal nêu rõ đây là thời điểm hoàn kho vật lý.
+- Modal hủy nhận lý do tùy chọn và giải thích riêng tác động COD/PayOS. Payment badge hiển thị rõ `failed`, `partially_refunded`, `refunded`, không gom thành “chưa thanh toán”.
+- Backend là nguồn thật cho restock/refund; FE không tự suy tồn kho hoặc trạng thái tiền từ fulfillment status.

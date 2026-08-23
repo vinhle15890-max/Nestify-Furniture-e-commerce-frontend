@@ -573,7 +573,7 @@ BE `14-workflows.md` §10.
   **Vai trò** (`/admin/roles`, RBAC Sub-project 2 — tạo/sửa/xoá role custom + tick ma trận permission; Sub-project 3
   thêm toggle **view Ma trận** read-only; Sub-project 5 thêm nút **"Xem thử vai trò"** mô phỏng nav/route-gate
   của role khác thuần phía client, xem chi tiết bên dưới); **Audit logs** (RBAC Sub-project 4 thêm lọc
-  theo hành động + nhãn tiếng Việt + tô nổi bật dòng truy cập bị chặn, xem chi tiết bên dưới); **Dashboard** thống kê.
+  theo hành động + nhãn tiếng Việt + tô nổi bật dòng truy cập bị chặn, xem chi tiết bên dưới); **Dashboard** nhận date range/interval, trình bày finance + inventory ledger + delivered top sellers và link các hàng đợi sang order filters.
 
 > **Phản biện:** (1) Trang admin detail ưu tiên product từ router state hoặc cache danh sách để render ngay; nếu không có
 > seed thì `useAdminProduct(id)` gọi `GET /admin/products/{id}`. Đây là tối ưu latency, không phải dependency vào cache.

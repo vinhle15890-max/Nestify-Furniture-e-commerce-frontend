@@ -63,4 +63,13 @@ describe('ProductCard', () => {
     await waitFor(() => expect(wishlistApi.addItem).toHaveBeenCalledWith({ variant_id: 42 }))
     expect(screen.getByTestId('location')).toHaveTextContent('/c/phong-khach')
   })
+
+  it('shows backend-confirmed flash sale quota without inventing a countdown', () => {
+    renderCard({ ...product, variants: [
+      { id: 42, price: 4990000, is_active: true, is_flash_sale: true, flash_sale_remaining: 4 },
+    ] })
+
+    expect(screen.getByText('Flash Sale · còn 4')).toBeInTheDocument()
+    expect(screen.queryByText(/00:00/)).not.toBeInTheDocument()
+  })
 })

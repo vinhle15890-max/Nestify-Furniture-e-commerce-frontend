@@ -22,11 +22,11 @@ const ordersResponse = {
   meta: { total: 1, page: 1, last_page: 1, per_page: 20 },
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/admin/orders') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/admin/orders']}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/orders/:id" element={<div>Trang chi tiết đơn hàng</div>} />
@@ -60,7 +60,25 @@ describe('AdminOrdersPage', () => {
     await userEvent.selectOptions(screen.getByLabelText('Lọc theo trạng thái'), 'processing')
 
     await waitFor(() =>
-      expect(ordersApi.getOrders).toHaveBeenCalledWith({ page: 1, status: 'processing' }),
+      expect(ordersApi.getOrders).toHaveBeenCalledWith({
+        page: 1,
+        status: 'processing',
+        paymentMethod: '',
+        paymentStatus: '',
+      }),
     )
+  })
+
+  it('hydrates COD receivable filters from a dashboard drill-down link', async () => {
+    renderPage('/admin/orders?payment_method=cod&payment_status=pending')
+
+    await screen.findByText('Bao Le')
+    expect(screen.getByLabelText('Lọc theo thanh toán')).toHaveValue('cod_pending')
+    expect(ordersApi.getOrders).toHaveBeenCalledWith({
+      page: 1,
+      status: '',
+      paymentMethod: 'cod',
+      paymentStatus: 'pending',
+    })
   })
 })

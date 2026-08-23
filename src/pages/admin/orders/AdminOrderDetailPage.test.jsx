@@ -191,12 +191,27 @@ describe('AdminOrderDetailPage', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Hủy đơn hàng' })
     expect(within(dialog).getByText(/#101/)).toBeInTheDocument()
-    expect(within(dialog).getByText(/không tự chuyển tiền/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/ghi nhận đủ số tiền cần hoàn/)).toBeInTheDocument()
     expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Quay lại' }))
     expect(screen.queryByRole('dialog', { name: 'Hủy đơn hàng' })).not.toBeInTheDocument()
     expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
+  })
+
+  it('requires explicit physical receipt confirmation before restocking a failed delivery', async () => {
+    const failedOrder = { ...baseOrder, status: 'delivery_failed' }
+    ordersApi.updateOrderStatus.mockResolvedValue({ data: { ...failedOrder, status: 'returned_to_store' } })
+    renderPage(failedOrder)
+    await screen.findByText('Đơn hàng #101')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hàng đã về cửa hàng' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận hàng đã về cửa hàng' })
+    expect(within(dialog).getByText(/hoàn số lượng.*vào tồn kho đúng một lần/)).toBeInTheDocument()
+    expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hàng đã về' }))
+    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'returned_to_store'))
   })
 
   it('cancels only after explicit confirmation', async () => {

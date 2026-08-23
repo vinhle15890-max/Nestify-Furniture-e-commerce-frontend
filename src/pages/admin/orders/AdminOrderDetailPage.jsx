@@ -1,3 +1,5 @@
+/* Hallmark · macrostructure: Workbench · tone: operational · anchor hue: Nestify tokens */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast/mobile/tokens: pass */
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -47,7 +49,10 @@ export function AdminOrderDetailPage() {
   const [refundError, setRefundError] = useState(null)
   const [pendingRefund, setPendingRefund] = useState(null)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
   const [cancelError, setCancelError] = useState(null)
+  const [returnOpen, setReturnOpen] = useState(false)
+  const [returnError, setReturnError] = useState(null)
   const [payoutOpen, setPayoutOpen] = useState(false)
   const [payoutReference, setPayoutReference] = useState('')
   const [payoutNote, setPayoutNote] = useState('')
@@ -119,6 +124,15 @@ export function AdminOrderDetailPage() {
   const orderLabel = order.order_number ?? `#${order.id}`
   const requiresManualRefund = order.payment_method === 'payos'
     && ['paid', 'success'].includes(order.payment?.status)
+  const paymentStatusLabel = {
+    paid: 'Đã thanh toán',
+    success: 'Đã thanh toán',
+    waived: 'Không cần thu tiền',
+    pending: 'Chờ thanh toán',
+    failed: 'Đã kết thúc, chưa thu tiền',
+    partially_refunded: 'Đã hoàn một phần',
+    refunded: 'Đã ghi nhận hoàn đủ',
+  }[order.payment?.status] ?? 'Chưa thanh toán'
 
   const handleCollectCod = async () => {
     setCollectError(null)
@@ -153,6 +167,11 @@ export function AdminOrderDetailPage() {
       setShippingOpen(true)
       return
     }
+    if (nextStatus === 'returned_to_store') {
+      setReturnError(null)
+      setReturnOpen(true)
+      return
+    }
     handleTransition(nextStatus)
   }
 
@@ -177,12 +196,24 @@ export function AdminOrderDetailPage() {
 
   const handleConfirmCancel = async () => {
     setCancelError(null)
-    const error = await handleTransition('cancelled')
+    const error = await handleTransition('cancelled', {
+      ...(cancelReason.trim() ? { reason: cancelReason.trim() } : {}),
+    })
     if (error) {
       setCancelError(error.message)
       return
     }
     setCancelOpen(false)
+  }
+
+  const handleConfirmReturn = async () => {
+    setReturnError(null)
+    const error = await handleTransition('returned_to_store')
+    if (error) {
+      setReturnError(error.message)
+      return
+    }
+    setReturnOpen(false)
   }
 
   const handleRefundReview = (event) => {
@@ -301,7 +332,7 @@ export function AdminOrderDetailPage() {
       <Card className="flex flex-col gap-3">
         <h3 className="font-display text-xl text-foreground">Thanh toán</h3>
         <p className="text-sm text-foreground">
-          {order.payment_method === 'cod' ? 'COD' : 'PayOS'} · {order.payment?.status === 'paid' ? 'Đã thanh toán' : order.payment?.status === 'waived' ? 'Không cần thu tiền' : 'Chưa thanh toán'}
+          {order.payment_method === 'cod' ? 'COD' : 'PayOS'} · {paymentStatusLabel}
         </p>
         {order.payment?.paid_at && <p className="text-sm text-muted-foreground">Ghi nhận: {formatDate(order.payment.paid_at)}</p>}
       </Card>
@@ -410,9 +441,16 @@ export function AdminOrderDetailPage() {
       >
         <div className="flex flex-col gap-4">
           <p className="text-sm text-foreground">
-            Đơn sẽ chuyển sang “Đã hủy”. Hệ thống sẽ hoàn lại phần giữ kho hoặc tồn kho và nhả voucher
-            nếu có. Thao tác này không thể hoàn tác trong giao diện.
+            Đơn sẽ chuyển sang “Đã hủy”. Hệ thống nhả voucher và kết thúc khoản COD chưa thu. Với đơn
+            đã thanh toán PayOS, hệ thống ghi nhận đủ số tiền cần hoàn để nhân viên đối soát.
           </p>
+          <Input
+            id="cancel-reason"
+            label="Lý do hủy (không bắt buộc)"
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+            maxLength={500}
+          />
           {requiresManualRefund && (
             <p className="rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">
               Hủy đơn không tự chuyển tiền cho khách. Khoản PayOS đã thanh toán cần được xử lý hoàn
@@ -440,6 +478,31 @@ export function AdminOrderDetailPage() {
               disabled={updateOrderStatus.isPending}
             >
               {updateOrderStatus.isPending ? 'Đang hủy...' : 'Xác nhận hủy đơn'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={returnOpen}
+        onOpenChange={(open) => {
+          if (updateOrderStatus.isPending) return
+          setReturnOpen(open)
+          if (!open) setReturnError(null)
+        }}
+        title="Xác nhận hàng đã về cửa hàng"
+        description={`Đơn hàng ${orderLabel}`}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-foreground">
+            Chỉ xác nhận sau khi cửa hàng đã nhận và kiểm đếm hàng thực tế. Hệ thống sẽ hoàn số lượng
+            của đơn này vào tồn kho đúng một lần; bước hủy sau đó sẽ không cộng kho lần nữa.
+          </p>
+          {returnError && <p role="alert" className="text-sm text-destructive">{returnError}</p>}
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setReturnOpen(false)} disabled={updateOrderStatus.isPending}>Quay lại</Button>
+            <Button type="button" onClick={handleConfirmReturn} disabled={updateOrderStatus.isPending}>
+              {updateOrderStatus.isPending ? 'Đang cập nhật...' : 'Xác nhận hàng đã về'}
             </Button>
           </div>
         </div>

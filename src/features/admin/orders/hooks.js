@@ -6,10 +6,10 @@ export const adminOrderKeys = {
   detail: (id) => ['admin', 'orders', 'detail', id],
 }
 
-export function useAdminOrders(page, status) {
+export function useAdminOrders(page, status, paymentMethod, paymentStatus) {
   return useQuery({
-    queryKey: ['admin', 'orders', { page, status }],
-    queryFn: () => ordersApi.getOrders({ page, status }),
+    queryKey: ['admin', 'orders', { page, status, paymentMethod, paymentStatus }],
+    queryFn: () => ordersApi.getOrders({ page, status, paymentMethod, paymentStatus }),
     placeholderData: (previousData) => previousData,
   })
 }
