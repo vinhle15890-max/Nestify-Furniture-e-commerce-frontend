@@ -376,7 +376,7 @@ ownership/delivery/duplicate. Comment trim rỗng và map field errors; review l
 
 ## Cart, checkout, payment và order
 
-Cart/query cache phản chiếu server. Mutation invalidate cart; client không tự tính giá authoritative. Nó chặn
+Cart/query cache phản chiếu server. Mutation invalidate cart; client không tự tính giá authoritative. Variant trả `price` hiệu lực cùng `regular_price/is_on_sale`; cart được server reprice khi đọc/checkout để sale hết hạn không bị giữ. Nó chặn
 checkout khi quantity vượt `available_stock` quan sát và nói rõ chưa reserve hàng; backend kiểm kho lại khi
 tạo order. Voucher hoàn toàn do API tính; FE chỉ dịch một số code exhausted/not-applicable/network.
 
@@ -385,7 +385,7 @@ tab restore, storage bị chặn thì degrade memory. POST order gửi `Idempote
 declaration để retry; chống duplicate thật nằm ở backend.
 
 Trước submit, client khóa declaration gồm cart basis (item/variant/qty/price/subtotal/total), địa chỉ, payment
-và voucher. Cart tải các voucher áp dụng được cho subtotal/user hiện tại và là nơi duy nhất cho khách chọn mã; Checkout nhận mã qua query string rồi xác minh lại, không lặp editor. CTA Cart và Checkout nằm trong action bar cố định theo viewport, có khoảng đệm đáy để không che nội dung. Địa chỉ chỉ thành snapshot sau server create; stock chưa reserve. Recovery record giữ order ID để
+và voucher. Cart tải các voucher áp dụng được cho subtotal/user hiện tại và là nơi duy nhất cho khách chọn mã; mã bắt buộc claim chỉ xuất hiện sau khi lưu vào ví và mã không `stack_with_sale` bị loại khi cart có sale. Checkout nhận mã qua query string rồi xác minh lại, không lặp editor. CTA Cart và Checkout nằm trong action bar cố định theo viewport, có khoảng đệm đáy để không che nội dung. Địa chỉ chỉ thành snapshot sau server create; stock chưa reserve. Recovery record giữ order ID để
 reload fetch chính order cũ thay vì POST lại. COD dừng ở order created. PayOS tạo order pending trước, rồi mở
 session; FE chỉ gửi `gateway`, còn backend tự tạo PayOS return/cancel URL từ cấu hình + order ID. Session lỗi/rate-limit
 giữ order và retry chỉ gọi payment-session, không tạo order thứ hai.
@@ -413,6 +413,8 @@ DELETE được trình bày/đặt tên là archive, không nên gọi hard dele
 Category/product/voucher/role/user/review/order/audit/media CRUD đều qua API + query invalidation. Route/nav
 permission là UX-only; protected-role, self-lock, last-admin, delete-in-use và transition invariant phải do
 server reject. Dashboard chỉ render aggregate server; audit action chưa map vẫn cần fallback dữ liệu thô.
+
+Promotion public nằm ở `/vouchers`; customer claim idempotent qua `features/promotions` và xem `/account/vouchers`. Guest được dẫn đăng nhập, staff không được mua/claim. UI nói rõ khả năng kết hợp sale-voucher, không countdown/fake urgency. Admin variant form cấu hình `sale_price/sale_starts_at/sale_ends_at`; admin voucher form cấu hình public/claim-required/stack-with-sale, còn mọi hiệu lực vẫn do API xác nhận.
 
 ## Cơ chế platform khác
 
@@ -483,7 +485,7 @@ authorization cuối cùng ở Laravel trừ khi entry nói khác.
 - `productSchema`, `flattenCategories`, `toProductPayload` — Yup feedback, flatten tree cho select và chuẩn hóa
   form payload; server vẫn là validator canonical.
 - `AdminVouchersPage`, `VoucherFormModal`; voucher `get/create/update/delete` APIs và bốn hooks — CRUD cấu hình
-  voucher, không quyết định applicability/usage tại client.
+  voucher cùng cờ phân phối/kết hợp, không quyết định applicability/usage tại client.
 - `AdminDashboardPage`, `AdminProductsPage`, `AdminCategoriesPage`, `AdminVouchersPage` chỉ render action theo
   permission UX; direct API vẫn do middleware chặn.
 - `AdminAuditLogsPage` không tạo audit log và không bảo đảm completeness của log sink.

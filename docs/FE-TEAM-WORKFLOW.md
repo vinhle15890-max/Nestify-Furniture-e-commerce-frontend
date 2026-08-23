@@ -269,7 +269,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 - **Chọn biến thể:** sản phẩm cũ → hàng nút phẳng theo `variant.name`. Sản phẩm có **`variant_options`** (Shopify-style) →
   `pages/product/ProductOptions`: mỗi option 1 hàng, option `color` vẽ **swatch hex thật**, `text` là nút; chọn đủ thuộc
   tính → `lib/variantOptions.resolveVariant(selected, variants, options)` ra variant; tổ hợp hết hàng/không tồn tại → disabled.
-- **Giá & tồn kho** theo `selectedVariant.available_stock`; gallery ảnh/video theo `sort_order`; `description` (HTML) **sanitize
+- **Giá** theo `selectedVariant.price` do server tính (sale đang active), giá gốc lấy `regular_price` và chỉ gạch khi `is_on_sale`; **tồn kho** theo `selectedVariant.available_stock`; gallery ảnh/video theo `sort_order`; `description` (HTML) **sanitize
   bằng DOMPurify** trước khi render. SEO: phát **Product JSON-LD** + `<title>`/meta.
 - **Gate mua hàng:** `token && isStaff(user)` → hiện thông báo "tài khoản quản trị không mua được"; chưa đăng nhập → nút
   "Đăng nhập để mua".
@@ -291,7 +291,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 **Trigger:** `CartPage`, cart drawer hoặc badge cần dữ liệu. **Path:** component → `useCart()` →
 `cartApi.getCart()` → `GET /cart`. Query key `['cart']`, chỉ enabled khi có token.
 
-**Render:** dòng hàng dùng variant, quantity, `unit_price_snapshot`, giá hiện hành và tồn khả dụng do resource trả.
+**Render:** dòng hàng dùng variant, quantity, `unit_price_snapshot`, giá hiện hành và tồn khả dụng do resource trả. Server reprice snapshot khi đọc nên sale đã hết hạn không tồn tại dai trong cart.
 Giá/tồn ở UI là tín hiệu để giải thích và disable sớm; không phải lock. Empty cart là trạng thái hợp lệ, không phải lỗi.
 
 ### 4.2 Thêm / đổi số lượng / xóa item
@@ -312,11 +312,13 @@ về input nếu payload sai; `401` đi qua interceptor và xóa phiên.
 invalidate cart**, vì response chỉ là phép tính preview; voucher chưa được gắn bền vững/consume ở bước này. Checkout
 vẫn gửi code và BE kiểm tra lại trong transaction tạo order.
 
-> **Phản biện:** Giá hiển thị minh bạch theo snapshot lúc thêm; **giá thanh toán = `unit_price_snapshot` trong cart**
-> (BE `OrderService::create` dòng 108 tính subtotal từ snapshot của cart, không đọc lại giá variant hiện hành).
-> Vì vậy thay đổi giá sau khi item vào cart không tự đổi số tiền — đây là cơ chế snapshot giá, không phải khóa giá.
+> **Phản biện:** **Giá thanh toán = `unit_price_snapshot` vừa được server reprice theo cửa sổ sale**.
+> Vì vậy client không giữ giá sale đã hết hạn và cũng không tự suy luận thời gian/giá authoritative.
 > Chống race khi nhiều người dùng cùng voucher → BE atomic consume lúc đặt (FE chỉ preview).
-> *Sửa ngày 2026-07-22: tài liệu cũ ghi "giá thanh toán = giá hiện tại lúc đặt" — đã xác minh code và sửa lại.*
+
+### 4.4 Thu thập voucher — `/vouchers` và `/account/vouchers`
+
+`features/promotions` sở hữu API/query. Trang public dùng `useVoucherCampaigns`; customer verified gọi `useClaimVoucher`, thành công invalidate ví và voucher khả dụng của cart. `/account/vouchers` dùng `useVoucherWallet` để hiển thị mã đã lưu. Guest được dẫn tới đăng nhập; staff không có CTA claim. FE chỉ diễn giải `claim_required` và `stack_with_sale`; quyền claim, cửa sổ active, quota và khả năng kết hợp đều do server quyết định. Không dùng countdown hay copy khẩn cấp giả.
 
 **Code evidence:** `features/cart/{api,hooks}.js`, `pages/cart/CartPage.jsx`, `components/layout/CartDrawer.jsx`,
 `lib/apiClient.js`; invariant server xem BE `14-workflows.md` §3, §4.1 và §13.

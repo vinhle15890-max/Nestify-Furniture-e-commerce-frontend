@@ -29,6 +29,8 @@ const ForgotPasswordPage = named(() => import('../pages/auth/ForgotPasswordPage'
 const ResetPasswordPage = named(() => import('../pages/auth/ResetPasswordPage'), 'ResetPasswordPage')
 const VerifyEmailPage = named(() => import('../pages/auth/VerifyEmailPage'), 'VerifyEmailPage')
 const AccountPage = named(() => import('../pages/account/AccountPage'), 'AccountPage')
+const VoucherWalletPage = named(() => import('../pages/account/VoucherWalletPage'), 'VoucherWalletPage')
+const VoucherCampaignsPage = named(() => import('../pages/promotions/VoucherCampaignsPage'), 'VoucherCampaignsPage')
 const AddressesPage = named(() => import('../pages/account/AddressesPage'), 'AddressesPage')
 const MyRoomsPage = named(() => import('../pages/account/MyRoomsPage'), 'MyRoomsPage')
 const CheckoutPage = named(() => import('../pages/checkout/CheckoutPage'), 'CheckoutPage')
@@ -83,6 +85,7 @@ const appRoutes = [
       { path: 'returns', element: lazyPage(<ReturnsPage />) },
       { path: 'privacy', element: lazyPage(<PrivacyPage />) },
       { path: 'contact', element: lazyPage(<ContactPage />) },
+      { path: 'vouchers', element: lazyPage(<VoucherCampaignsPage />) },
       { path: 'c/:categorySlug', element: lazyPage(<CategoryPage />) },
       { path: 'p/:productSlug', element: lazyPage(<ProductPage />) },
       { path: 'collections/:collectionSlug', element: lazyPage(<CollectionPage />) },
@@ -98,6 +101,7 @@ const appRoutes = [
           { path: 'account', element: lazyPage(<AccountPage />) },
           { path: 'account/addresses', element: lazyPage(<AddressesPage />) },
           { path: 'account/rooms', element: lazyPage(<MyRoomsPage />) },
+          { path: 'account/vouchers', element: lazyPage(<VoucherWalletPage />) },
           { path: 'wishlist', element: lazyPage(<WishlistPage />) },
           { path: 'checkout', element: lazyPage(<CheckoutPage />) },
           { path: 'checkout/return', element: lazyPage(<CheckoutReturnPage />) },

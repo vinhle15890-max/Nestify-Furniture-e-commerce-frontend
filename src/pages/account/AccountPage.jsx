@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Box, ChevronRight, Heart, MapPin, Package, UserRound } from 'lucide-react'
+import { Box, ChevronRight, Heart, MapPin, Package, Ticket, UserRound } from 'lucide-react'
 import { Badge } from '../../components/Badge'
 import { Button } from '../../components/Button'
 import { LoadErrorState } from '../../components/LoadErrorState'
@@ -97,6 +97,7 @@ export function AccountPage() {
               <div className="mt-4 divide-y divide-unbuilt border-y border-unbuilt">
                 <Link to="/account/rooms" className="group flex items-center justify-between py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Box size={19} aria-hidden="true" /><span>Phòng đã lưu</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
                 <Link to="/wishlist" className="group flex items-center justify-between py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Heart size={19} aria-hidden="true" /><span>Sản phẩm yêu thích</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
+                <Link to="/account/vouchers" className="group flex items-center justify-between py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="flex items-center gap-3"><Ticket size={19} aria-hidden="true" /><span>Ví voucher</span></span><ChevronRight size={16} aria-hidden="true" /></Link>
               </div>
             </section>
 

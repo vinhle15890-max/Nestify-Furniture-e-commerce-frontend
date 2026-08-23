@@ -10,6 +10,7 @@ const groups = [
       { label: 'Tất cả sản phẩm', to: '/c/all' },
       { label: 'Sản phẩm yêu thích', to: '/wishlist' },
       { label: 'Giỏ hàng', to: '/cart' },
+      { label: 'Voucher đang mở', to: '/vouchers' },
     ],
   },
   {

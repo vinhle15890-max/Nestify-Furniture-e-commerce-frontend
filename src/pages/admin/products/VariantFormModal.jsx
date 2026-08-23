@@ -21,14 +21,19 @@ const priceStockShape = {
 }
 const nameShape = { name: yup.string().required('Vui lòng nhập tên biến thể.').max(255, 'Tối đa 255 ký tự.') }
 const skuShape = { sku: yup.string().max(100, 'Tối đa 100 ký tự.') }
+const saleShape = {
+  sale_price: yup.number().nullable().transform((value, original) => original === '' ? null : value).min(0, 'Giá sale không được âm.'),
+  sale_starts_at: yup.string(),
+  sale_ends_at: yup.string(),
+}
 
 // Sản phẩm CÓ thuộc tính → tên biến thể được suy ra từ tổ hợp, không nhập tay.
 // Sản phẩm KHÔNG thuộc tính → biến thể tự do, bắt buộc nhập tên.
 const schemas = {
-  createSimple: yup.object({ ...skuShape, ...nameShape, ...priceStockShape }),
-  createOption: yup.object({ ...skuShape, ...priceStockShape }),
-  updateSimple: yup.object({ ...nameShape, price: priceStockShape.price, is_active: yup.boolean() }),
-  updateOption: yup.object({ price: priceStockShape.price, is_active: yup.boolean() }),
+  createSimple: yup.object({ ...skuShape, ...nameShape, ...priceStockShape, ...saleShape }),
+  createOption: yup.object({ ...skuShape, ...priceStockShape, ...saleShape }),
+  updateSimple: yup.object({ ...nameShape, price: priceStockShape.price, is_active: yup.boolean(), ...saleShape }),
+  updateOption: yup.object({ price: priceStockShape.price, is_active: yup.boolean(), ...saleShape }),
 }
 
 const emptyValues = {
@@ -37,7 +42,10 @@ const emptyValues = {
   price: '',
   stock_quantity: '',
   is_active: true,
+  sale_price: '', sale_starts_at: '', sale_ends_at: '',
 }
+
+const toDateTimeInput = (value) => value ? value.slice(0, 16) : ''
 
 function toFormValues(variant) {
   return {
@@ -46,6 +54,9 @@ function toFormValues(variant) {
     price: variant.price ?? '',
     stock_quantity: variant.available_stock ?? '',
     is_active: variant.is_active ?? true,
+    sale_price: variant.configured_sale_price ?? variant.sale_price ?? '',
+    sale_starts_at: toDateTimeInput(variant.sale_starts_at),
+    sale_ends_at: toDateTimeInput(variant.sale_ends_at),
   }
 }
 
@@ -122,6 +133,14 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
 
   const onSubmit = async (values) => {
     if (hasOptions && !validateAttributes()) return
+    if (values.sale_price !== null && values.sale_price !== '' && Number(values.sale_price) >= Number(values.price)) {
+      setError('sale_price', { message: 'Giá sale phải thấp hơn giá thường.' })
+      return
+    }
+    if (values.sale_starts_at && values.sale_ends_at && new Date(values.sale_ends_at) <= new Date(values.sale_starts_at)) {
+      setError('sale_ends_at', { message: 'Thời điểm kết thúc phải sau thời điểm bắt đầu.' })
+      return
+    }
 
     try {
       if (isEditing) {
@@ -129,6 +148,9 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           id: variant.id,
           price: Number(values.price),
           is_active: values.is_active,
+          sale_price: values.sale_price === null || values.sale_price === '' ? null : Number(values.sale_price),
+          sale_starts_at: values.sale_starts_at || null,
+          sale_ends_at: values.sale_ends_at || null,
         }
         // Có thuộc tính → gửi attributes (BE tự suy tên + options_key). Không thì gửi tên tự do.
         if (hasOptions) payload.attributes = selectedAttrs
@@ -143,6 +165,9 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           sku: values.sku?.trim() || undefined,
           price: Number(values.price),
           stock_quantity: Number(values.stock_quantity),
+          sale_price: values.sale_price === null || values.sale_price === '' ? null : Number(values.sale_price),
+          sale_starts_at: values.sale_starts_at || null,
+          sale_ends_at: values.sale_ends_at || null,
         }
         if (hasOptions) payload.attributes = selectedAttrs
         else payload.name = values.name
@@ -259,6 +284,13 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
         )}
 
         <Input label="Giá" id="variant-price" type="number" error={errors.price?.message} {...register('price')} />
+        <section className="grid gap-3 rounded-control border border-border p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><h3 className="font-medium text-foreground">Lịch giảm giá</h3><p className="mt-1 text-xs text-muted-foreground">Server tự áp dụng trong khoảng thời gian này; để trống giá sale để tắt.</p></div>
+          <Input label="Giá sale" id="sale_price" type="number" error={errors.sale_price?.message} {...register('sale_price')} />
+          <div />
+          <Input label="Bắt đầu" id="sale_starts_at" type="datetime-local" error={errors.sale_starts_at?.message} {...register('sale_starts_at')} />
+          <Input label="Kết thúc" id="sale_ends_at" type="datetime-local" error={errors.sale_ends_at?.message} {...register('sale_ends_at')} />
+        </section>
         {!isEditing && (
           <Input
             label="Số lượng kho"

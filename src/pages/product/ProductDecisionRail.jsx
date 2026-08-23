@@ -19,7 +19,11 @@ export function ProductDecisionRail({ product, variants, variantOptions, selecte
 
       <section data-testid="transaction-runway" aria-labelledby="transaction-runway-title" className="border-t-2 border-ink/15 pt-6">
         <h2 id="transaction-runway-title" className="sr-only">Mua sản phẩm</h2>
-        <p className={`text-2xl font-medium text-ink ${numericClassName}`}>{formatPrice(price)}</p>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <p className={`text-2xl font-medium text-ink ${numericClassName}`}>{formatPrice(price)}</p>
+          {selectedVariant?.is_on_sale && <p className={`text-sm text-muted-foreground line-through ${numericClassName}`}>{formatPrice(selectedVariant.regular_price)}</p>}
+        </div>
+        {selectedVariant?.is_on_sale && <p className="mt-1 text-sm text-muted-foreground">Giá ưu đãi đang được hệ thống áp dụng.</p>}
         <div className="mt-5 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/60">Số lượng<input type="number" min={1} max={maxQuantity} value={quantity} disabled={outOfStock} onChange={(event) => onQuantityChange(Number(event.target.value))} className={`w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${numericClassName}`} /></label>
           {token && staff ? <p className="text-sm leading-6 text-ink/65">Tài khoản quản trị không thể mua hàng.</p> : token ? <><Button onClick={onAddToCart} disabled={!selectedVariant || outOfStock || adding} className="px-6 py-3">Thêm vào giỏ</Button><Button type="button" variant="secondary" aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'} aria-pressed={isWishlisted} onClick={onToggleWishlist} disabled={!selectedVariant || wishlistPending} className="px-4 py-3"><Heart size={18} className={isWishlisted ? 'fill-current text-accent' : ''} /></Button></> : <Link to="/login" className="inline-flex items-center rounded-control bg-ink px-6 py-3 text-sm font-medium text-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Đăng nhập để mua hàng</Link>}
