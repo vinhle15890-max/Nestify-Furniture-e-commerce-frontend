@@ -52,6 +52,19 @@ export function ProductOptions({ options, variants, selected, onSelect }) {
                   }`}
                   style={{ backgroundColor: v.hex }}
                 />
+              ) : option.type === 'surface' ? (
+                <button
+                  key={v.label}
+                  type="button"
+                  aria-label={accessibleLabel}
+                  aria-pressed={active}
+                  disabled={!exists}
+                  onClick={() => onSelect(option.name, v.label)}
+                  className={`flex min-w-28 items-center gap-2 rounded-control border p-1.5 pr-3 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30 ${active ? 'border-ink bg-unbuilt/35' : 'border-border hover:border-border-strong'}`}
+                >
+                  <img src={v.image_url} alt="" className="size-11 shrink-0 rounded-control object-cover" />
+                  <span>{v.label}{exists && !inStock ? <span className="block text-xs text-muted-foreground">Hết hàng</span> : null}</span>
+                </button>
               ) : (
                 <button
                   key={v.label}

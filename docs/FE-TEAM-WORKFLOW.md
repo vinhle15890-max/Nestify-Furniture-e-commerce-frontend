@@ -207,10 +207,11 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 - **Error:** Retry 1 lần (TanStack default). Toast nếu network error persistent.
 - **queryKey:** `['products', filters]` — thay đổi filter → tự reset cursor + refetch.
 
-### 2.3 Best sellers (L2)
-- **Hook:** `useBestSellers(limit=8)` (query, `queryKey: ['products', 'best-sellers', limit]`).
-- **API:** `GET /products/best-sellers?limit=`. Limit clamp 1–24.
-- **Render:** `HomePage` → `ProductCard[]` trong grid. Không pagination. Auto-hide nếu empty.
+### 2.3 Featured và best sellers (L2)
+- **Home hook:** `useFeaturedProducts(limit=8)` (query key `['products', 'featured', limit]`) → `GET /products/featured?limit=`. Đây là sản phẩm do staff chọn và sắp thứ tự, không phải lời khẳng định bán chạy.
+- **Best-seller hook:** `useBestSellers(limit=8)` → `GET /products/best-sellers?limit=`. Ranking chỉ tính item thuộc đơn `delivered`; không tính paid/processing/shipped.
+- **Admin:** create/edit product gửi `is_featured` và `featured_position`; danh sách product hiển thị vị trí để kiểm tra nhanh.
+- **Render Home:** section discovery dùng featured `ProductCard[]`, không pagination; empty state nói chưa có sản phẩm được giới thiệu.
 
 ### 2.4 Chi tiết sản phẩm (L3)
 - **Hook:** `useProduct(slug)` (query, `queryKey: ['products', slug]`, enabled khi slug có).
@@ -845,6 +846,8 @@ chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail 
 | Review | `pages/product/ProductPage` (form) | `features/reviews` |
 | AI Chat | `ChatWidget`/`ChatPanel` | `features/chat`, `store/chatStore` |
 | Admin | `pages/admin/*` | `features/admin/*` |
+| Bộ sưu tập | `pages/catalog/CollectionPage`, `pages/admin/collections/*` | `features/catalog`, `features/admin/collections` |
+| Swatch biến thể | `pages/admin/products/VariantOptionsPanel`, `pages/product/ProductOptions` | `variant_options` trong catalog/admin product API |
 | Hạ tầng dùng chung | — | `lib/{apiClient,errors,formErrors,pagination,roles}`, `routes/*`, `app/router.jsx` |
 
 ---

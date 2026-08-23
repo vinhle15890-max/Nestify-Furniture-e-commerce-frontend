@@ -27,10 +27,11 @@ describe('HomePage', () => {
     catalogApi.getCategories.mockResolvedValue({
       data: [{ id: 1, name: 'Phòng khách', slug: 'phong-khach', image_url: null }],
     })
+    catalogApi.getCollections.mockResolvedValue({ data: [] })
   })
 
   it('renders the hero headline and key editorial sections', async () => {
-    catalogApi.getBestSellers.mockResolvedValue({
+    catalogApi.getFeaturedProducts.mockResolvedValue({
       data: [
         {
           id: 1,
@@ -57,10 +58,12 @@ describe('HomePage', () => {
     // Lookbook-specific CTA remains absent.
     expect(screen.queryByRole('link', { name: 'Xem Lookbook' })).not.toBeInTheDocument()
     expect(await screen.findByText('Ghế sofa da')).toBeInTheDocument()
+    expect(catalogApi.getFeaturedProducts).toHaveBeenCalledWith({ limit: 8 })
+    expect(catalogApi.getBestSellers).not.toHaveBeenCalled()
   })
 
   it('puts products before the story payoff and planner invitation', () => {
-    catalogApi.getBestSellers.mockResolvedValue({ data: [] })
+    catalogApi.getFeaturedProducts.mockResolvedValue({ data: [] })
 
     const { container } = renderPage()
     const sectionNames = [...container.querySelectorAll('section[data-home-section]')]
@@ -76,7 +79,7 @@ describe('HomePage', () => {
   })
 
   it('shows an empty state in best sellers when there are no products', async () => {
-    catalogApi.getBestSellers.mockResolvedValue({ data: [] })
+    catalogApi.getFeaturedProducts.mockResolvedValue({ data: [] })
 
     renderPage()
 

@@ -37,6 +37,8 @@ export const productSchema = yup.object({
     Object.fromEntries(PRODUCT_ATTRIBUTE_FIELDS.map(({ key }) => [key, yup.string().max(1000, 'Tối đa 1000 ký tự.')])),
   ),
   status: yup.string().oneOf(['active', 'archived']),
+  is_featured: yup.boolean(),
+  featured_position: yup.number().nullable().transform((value, original) => original === '' ? null : value).integer('Thứ tự phải là số nguyên.').min(1, 'Thứ tự bắt đầu từ 1.').max(9999, 'Thứ tự tối đa là 9999.'),
 })
 
 // Flatten the category tree into a list of {id, name, depth} for a <select>.
@@ -73,5 +75,7 @@ export function toProductPayload(values, existingAttributes = {}) {
     focus_keyword: values.focus_keyword || null,
     attributes,
     status: values.status,
+    is_featured: Boolean(values.is_featured),
+    featured_position: values.is_featured && values.featured_position !== '' ? Number(values.featured_position) : null,
   }
 }

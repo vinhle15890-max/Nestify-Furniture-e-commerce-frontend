@@ -28,6 +28,8 @@ const emptyValues = {
   focus_keyword: '',
   product_attributes: emptyProductAttributes,
   status: 'active',
+  is_featured: false,
+  featured_position: '',
 }
 
 // "New product" page — same rich layout as the editor, but variants and media
@@ -57,6 +59,7 @@ export function AdminProductCreatePage() {
   const [tone, setTone] = useState('sang_trong')
   const [variations, setVariations] = useState(null)
   const nameValue = watch('name')
+  const isFeatured = watch('is_featured')
 
   useEffect(() => {
     if (slugTouched) return
@@ -194,6 +197,17 @@ export function AdminProductCreatePage() {
                   </p>
                 )}
               </div>
+
+              <fieldset className="rounded-control border border-border p-4">
+                <legend className="px-1 text-sm font-medium text-foreground">Tuyển chọn trên trang chủ</legend>
+                <label className="flex min-h-12 items-center gap-3 text-sm text-foreground">
+                  <input type="checkbox" className="size-4 accent-primary" {...register('is_featured')} />
+                  Đưa sản phẩm vào danh sách do Nestify tuyển chọn
+                </label>
+                {isFeatured && (
+                  <Input label="Thứ tự ưu tiên" id="featured_position" type="number" min="1" max="9999" helper="Số nhỏ hiển thị trước; để trống sẽ xếp sau các sản phẩm có thứ tự." error={errors.featured_position?.message} {...register('featured_position')} />
+                )}
+              </fieldset>
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="status" className="text-sm font-medium text-foreground">

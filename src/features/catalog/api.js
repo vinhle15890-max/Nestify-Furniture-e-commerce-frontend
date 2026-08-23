@@ -8,6 +8,14 @@ export function getCategory(slug) {
   return apiClient.get(`/categories/${slug}`)
 }
 
+export function getCollections() {
+  return apiClient.get('/collections')
+}
+
+export function getCollection(slug) {
+  return apiClient.get(`/collections/${slug}`)
+}
+
 export function getProducts({ category, brand, woodType, priceMin, priceMax, sort, cursor, limit, search } = {}) {
   const params = {}
   if (category) params['filter[category]'] = category
@@ -28,6 +36,13 @@ export function getBestSellers({ limit } = {}) {
   if (limit) params.limit = limit
 
   return apiClient.get('/products/best-sellers', { params })
+}
+
+export function getFeaturedProducts({ limit } = {}) {
+  const params = {}
+  if (limit) params.limit = limit
+
+  return apiClient.get('/products/featured', { params })
 }
 
 // `config` lets a caller pass a request-scoped axios config (e.g. a per-call

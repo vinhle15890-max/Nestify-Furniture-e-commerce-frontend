@@ -1,8 +1,9 @@
 import { Hero } from '../../components/home/Hero'
 import { FeaturedCategories } from '../../components/home/FeaturedCategories'
 import { BecomingStates } from '../../components/home/BecomingStates'
-import { BestSellers } from '../../components/home/BestSellers'
+import { FeaturedProducts } from '../../components/home/BestSellers'
 import { PlannerInvite } from '../../components/home/PlannerInvite'
+import { CuratedCollections } from '../../components/home/CuratedCollections'
 import { JourneyContinuation } from '../../components/personalization/JourneyContinuation'
 import { SeoHead } from '../../components/SeoHead'
 import { createHomeJsonLd, HOME_SEO } from './homeSeo'
@@ -17,11 +18,11 @@ import { createHomeJsonLd, HOME_SEO } from './homeSeo'
  *   Hero (Threshold, pre-arc — empty room)
  *   → FeaturedCategories (Chapter 1 — Possibility)
  *   → JourneyContinuation (customer-only echo — unfinished work first)
- *   → BestSellers        (Chapter 2 — Discover, reframed away from social proof)
+ *   → FeaturedProducts   (Chapter 2 — Discover, staff-curated without social-proof claims)
  *   → BecomingStates     (Chapter 3→4 — clarity proof after products)
  *   → PlannerInvite      (Chapter 4 pointer — closes the arc: Home → Planner)
  *
- * Section-background rhythm: BestSellers introduces an `emerging` discovery
+ * Section-background rhythm: FeaturedProducts introduces an `emerging` discovery
  * band; PlannerInvite earns a restrained `imagined` band at Future Home.
  *
  * Relocated out of Home: MaterialStory + BrandStory → About (Brand Layer);
@@ -44,7 +45,8 @@ export function HomePage() {
       <Hero />
       <FeaturedCategories />
       <JourneyContinuation />
-      <BestSellers />
+      <FeaturedProducts />
+      <CuratedCollections />
       <BecomingStates />
       <PlannerInvite />
     </div>

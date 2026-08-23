@@ -150,11 +150,14 @@ function ProductEditor({ initialProduct }) {
           focus_keyword: product.focus_keyword ?? '',
           product_attributes: productAttributeDefaults(product.attributes),
           status: product.status ?? 'active',
+          is_featured: Boolean(product.is_featured),
+          featured_position: product.featured_position ?? '',
         }
       : undefined,
   })
 
   const [activeTab, setActiveTab] = useState('thong-tin')
+  const isFeatured = watch('is_featured')
 
   const erroredTabs = new Set(
     Object.keys(errors)
@@ -433,6 +436,17 @@ function ProductEditor({ initialProduct }) {
                   </p>
                 )}
               </div>
+
+              <fieldset className="rounded-control border border-border p-4">
+                <legend className="px-1 text-sm font-medium text-foreground">Tuyển chọn trên trang chủ</legend>
+                <label className="flex min-h-12 items-center gap-3 text-sm text-foreground">
+                  <input type="checkbox" className="size-4 accent-primary" {...register('is_featured')} />
+                  Đưa sản phẩm vào danh sách do Nestify tuyển chọn
+                </label>
+                {isFeatured && (
+                  <Input label="Thứ tự ưu tiên" id="featured_position" type="number" min="1" max="9999" helper="Số nhỏ hiển thị trước; để trống sẽ xếp sau các sản phẩm có thứ tự." error={errors.featured_position?.message} {...register('featured_position')} />
+                )}
+              </fieldset>
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="status" className="text-sm font-medium text-foreground">

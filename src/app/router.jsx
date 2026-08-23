@@ -20,6 +20,7 @@ const PrivacyPage = named(() => import('../pages/support/SupportPages'), 'Privac
 const ContactPage = named(() => import('../pages/support/SupportPages'), 'ContactPage')
 const CategoryPage = named(() => import('../pages/catalog/CategoryPage'), 'CategoryPage')
 const ProductPage = named(() => import('../pages/product/ProductPage'), 'ProductPage')
+const CollectionPage = named(() => import('../pages/catalog/CollectionPage'), 'CollectionPage')
 const CartPage = named(() => import('../pages/cart/CartPage'), 'CartPage')
 const WishlistPage = named(() => import('../pages/wishlist/WishlistPage'), 'WishlistPage')
 const LoginPage = named(() => import('../pages/auth/LoginPage'), 'LoginPage')
@@ -38,6 +39,7 @@ const AdminLayout = named(() => import('../pages/admin/AdminLayout'), 'AdminLayo
 const AdminHome = named(() => import('../pages/admin/AdminHome'), 'AdminHome')
 const AdminCategoriesPage = named(() => import('../pages/admin/categories/AdminCategoriesPage'), 'AdminCategoriesPage')
 const AdminProductsPage = named(() => import('../pages/admin/products/AdminProductsPage'), 'AdminProductsPage')
+const AdminCollectionsPage = named(() => import('../pages/admin/collections/AdminCollectionsPage'), 'AdminCollectionsPage')
 const AdminProductCreatePage = named(() => import('../pages/admin/products/AdminProductCreatePage'), 'AdminProductCreatePage')
 const AdminProductEditPage = named(() => import('../pages/admin/products/AdminProductEditPage'), 'AdminProductEditPage')
 const AdminSeoReviewPage = named(() => import('../pages/admin/products/AdminSeoReviewPage'), 'AdminSeoReviewPage')
@@ -83,6 +85,7 @@ const appRoutes = [
       { path: 'contact', element: lazyPage(<ContactPage />) },
       { path: 'c/:categorySlug', element: lazyPage(<CategoryPage />) },
       { path: 'p/:productSlug', element: lazyPage(<ProductPage />) },
+      { path: 'collections/:collectionSlug', element: lazyPage(<CollectionPage />) },
       { path: 'cart', element: lazyPage(<CartPage />) },
       { path: 'login', element: lazyPage(<LoginPage />) },
       { path: 'register', element: lazyPage(<RegisterPage />) },
@@ -139,6 +142,7 @@ const appRoutes = [
             element: <RequirePermission slug="manage_products" />,
             children: [
               { path: 'products', element: lazyPage(<AdminProductsPage />) },
+              { path: 'collections', element: lazyPage(<AdminCollectionsPage />) },
               { path: 'products/new', element: lazyPage(<AdminProductCreatePage />) },
               { path: 'products/seo', element: lazyPage(<AdminSeoReviewPage />) },
               { path: 'inventory', element: lazyPage(<AdminInventoryPage />) },

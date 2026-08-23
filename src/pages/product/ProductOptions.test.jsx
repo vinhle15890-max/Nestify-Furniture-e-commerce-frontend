@@ -28,4 +28,15 @@ describe('ProductOptions', () => {
     await userEvent.click(outOfStockOption)
     expect(onSelect).toHaveBeenCalledWith('Kích thước', 'M')
   })
+
+  it('hiển thị ảnh vân vật liệu thay vì giả lập bằng một màu phẳng', async () => {
+    const onSelect = vi.fn()
+    const surfaceOptions = [{ name: 'Bề mặt', type: 'surface', values: [{ label: 'Đá Carrara', material_kind: 'stone', image_url: 'https://images.example.com/carrara.jpg' }] }]
+    const surfaceVariants = [{ id: 3, attributes: { 'Bề mặt': 'Đá Carrara' }, available_stock: 2 }]
+    render(<ProductOptions options={surfaceOptions} variants={surfaceVariants} selected={{}} onSelect={onSelect} />)
+    const swatch = screen.getByRole('button', { name: 'Đá Carrara' })
+    expect(swatch.querySelector('img')).toHaveAttribute('src', 'https://images.example.com/carrara.jpg')
+    await userEvent.click(swatch)
+    expect(onSelect).toHaveBeenCalledWith('Bề mặt', 'Đá Carrara')
+  })
 })

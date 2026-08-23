@@ -12,6 +12,7 @@ import {
   Sparkles,
   KeyRound,
   Warehouse,
+  Layers3,
 } from 'lucide-react'
 import { can, canAny } from '../../lib/roles'
 
@@ -25,6 +26,7 @@ export const navGroups = [
     items: [
       { to: '/admin/categories', label: 'Danh mục', icon: FolderTree, permission: 'manage_categories' },
       { to: '/admin/products', label: 'Sản phẩm', icon: Package, end: true, permission: 'manage_products' },
+      { to: '/admin/collections', label: 'Bộ sưu tập', icon: Layers3, permission: 'manage_products' },
       { to: '/admin/inventory', label: 'Tồn kho', icon: Warehouse, permission: 'manage_products' },
       { to: '/admin/products/seo', label: 'Duyệt SEO', icon: Sparkles, permission: 'manage_products' },
       { to: '/admin/media', label: 'Thư viện ảnh', icon: Images, permission: 'manage_products' },

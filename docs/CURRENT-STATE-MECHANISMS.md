@@ -48,6 +48,12 @@ thị actor, order liên quan, số trước/sau và không cung cấp thao tác
 
 ## Cá nhân hóa hành trình trên Home
 
+Home discovery lấy `GET /products/featured`, không suy “nổi bật” từ đơn đang xử lý. Staff chọn product bằng
+`is_featured` và thứ tự nullable `featured_position`; API public chỉ trả product active và không lộ hai field
+merchandising. `GET /products/best-sellers` là nguồn độc lập, xếp theo tổng quantity của order đúng trạng thái
+`delivered`; paid/processing/shipped không được coi là đã bán. Vì vậy biên tập nội dung và bằng chứng bán hàng
+không thể ghi đè lẫn nhau.
+
 `useJourneyContext` chỉ enable cho customer có token và `email_verified_at`, đồng thời loại staff bằng `isStaff`.
 Nó dùng một contract chung `GET /me/journey-context`; backend chịu trách nhiệm tổng hợp phòng, wishlist,
 recently-viewed và sản phẩm đã đặt, đồng thời trả continuation, category signals, discovery candidates và lý do.
@@ -543,6 +549,8 @@ inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn l�
 - Admin chuyển sang shipped qua modal bắt buộc đơn vị vận chuyển; shipped COD có action riêng giao và thu đủ tiền.
 - Dashboard tách tiền thực thu, hoàn tiền, net revenue và COD chờ thu theo khoảng ngày, kèm bảng định nghĩa.
 - Form biến thể tách cập nhật thông tin khỏi điều chỉnh kho; adjustment bắt buộc delta/lý do và hiển thị on-hand/reserved/available.
+- Manual collections dùng `features/admin/collections` cho CRUD và `features/catalog` cho public reads; `/admin/collections` quản lý membership có thứ tự, `/collections/:collectionSlug` là landing page, Home chỉ render item `show_on_home`.
+- Variant option UI phân biệt `color` (hex) và `surface` (ảnh thư viện/URL + loại vân). Product detail render surface bằng ảnh và label; không suy vân gỗ/đá từ một màu phẳng.
 
 ## Self-check reconciliation 2026-07-17
 
