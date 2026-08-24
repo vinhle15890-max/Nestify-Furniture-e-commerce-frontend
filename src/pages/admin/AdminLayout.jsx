@@ -157,7 +157,15 @@ export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const title = activeTitle(pathname)
-  const handleLogout = () => logout.mutate()
+  const handleLogout = async () => {
+    try {
+      await logout.mutateAsync()
+    } finally {
+      // useLogout clears the local session even when the server is unavailable.
+      // Keep the back-office redirect separate from the customer login journey.
+      navigate('/admin/login', { replace: true })
+    }
+  }
   const groups = visibleGroups(effectiveUser)
 
   function handleExitPreview() {

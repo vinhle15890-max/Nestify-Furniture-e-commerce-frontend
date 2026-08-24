@@ -45,6 +45,7 @@ describe('AdminEmployeesPage', () => {
     usersApi.getUsers.mockResolvedValue(staffResponse)
     usersApi.getRoles.mockResolvedValue(rolesResponse)
     usersApi.assignUserRoles.mockResolvedValue({ data: { ...staffResponse.data[0], roles: ['admin', 'order_staff'], role_ids: [10, 11] } })
+    usersApi.createStaff.mockResolvedValue({ data: { id: 2 }, meta: { invitation_sent: true } })
   })
 
   it('lists staff with localized role badges and filters by type=staff', async () => {
@@ -83,7 +84,25 @@ describe('AdminEmployeesPage', () => {
     await screen.findByText('Bao Le')
     await user.click(screen.getByRole('button', { name: /Thêm nhân viên/ }))
 
-    expect(await screen.findByText(/Tìm một người dùng hiện có/)).toBeInTheDocument()
+    expect(await screen.findByText(/Nhân viên sẽ nhận email/)).toBeInTheDocument()
+  })
+
+  it('creates a new staff account using a server-defined role', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Bao Le')
+    await user.click(screen.getByRole('button', { name: /Thêm nhân viên/ }))
+    const dialog = await screen.findByRole('dialog')
+    await user.type(within(dialog).getByLabelText('Họ tên'), 'Nhân viên mới')
+    await user.type(within(dialog).getByLabelText('Email'), 'staff.new@example.com')
+    await user.selectOptions(within(dialog).getByLabelText('Vai trò'), '11')
+    await user.click(within(dialog).getByRole('button', { name: 'Tạo và gửi lời mời' }))
+
+    expect(usersApi.createStaff).toHaveBeenCalledWith(
+      { name: 'Nhân viên mới', email: 'staff.new@example.com', role_id: 11 },
+      expect.anything(),
+    )
   })
 
   it('renders a lock action for a staff row', async () => {

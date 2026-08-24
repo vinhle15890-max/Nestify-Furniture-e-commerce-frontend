@@ -24,6 +24,7 @@ const CollectionPage = named(() => import('../pages/catalog/CollectionPage'), 'C
 const CartPage = named(() => import('../pages/cart/CartPage'), 'CartPage')
 const WishlistPage = named(() => import('../pages/wishlist/WishlistPage'), 'WishlistPage')
 const LoginPage = named(() => import('../pages/auth/LoginPage'), 'LoginPage')
+const AdminLoginPage = named(() => import('../pages/auth/AdminLoginPage'), 'AdminLoginPage')
 const RegisterPage = named(() => import('../pages/auth/RegisterPage'), 'RegisterPage')
 const ForgotPasswordPage = named(() => import('../pages/auth/ForgotPasswordPage'), 'ForgotPasswordPage')
 const ResetPasswordPage = named(() => import('../pages/auth/ResetPasswordPage'), 'ResetPasswordPage')
@@ -129,6 +130,15 @@ const appRoutes = [
     // Public read-only shared scene — no auth, no storefront chrome.
     path: '/room-planner/shared/:token',
     element: lazyPage(<SharedRoomPage />),
+  },
+  {
+    path: '/admin/login',
+    element: lazyPage(<AdminLoginPage />),
+  },
+  {
+    // There is intentionally no public staff registration journey.
+    path: '/admin/register',
+    element: <Navigate to="/admin/login" replace />,
   },
   {
     // Admin is a standalone back-office shell (no storefront Header/Footer).

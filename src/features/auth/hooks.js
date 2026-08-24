@@ -27,6 +27,17 @@ export function useLogin() {
   })
 }
 
+export function useAdminLogin() {
+  const login = useAuthStore((state) => state.login)
+  return useMutation({
+    mutationFn: (payload) => authApi.adminLogin(payload),
+    onSuccess: ({ data }) => {
+      queryClient.clear()
+      login(data.token, data.user)
+    },
+  })
+}
+
 export function useLogout() {
   const logout = useAuthStore((state) => state.logout)
 

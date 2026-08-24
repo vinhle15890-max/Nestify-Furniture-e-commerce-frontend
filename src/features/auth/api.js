@@ -8,6 +8,10 @@ export function login({ email, password }) {
   return apiClient.post('/auth/login', { email, password })
 }
 
+export function adminLogin({ email, password }) {
+  return apiClient.post('/auth/admin/login', { email, password })
+}
+
 export function logout() {
   return apiClient.post('/auth/logout')
 }

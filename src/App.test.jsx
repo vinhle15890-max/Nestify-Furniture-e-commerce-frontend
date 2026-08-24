@@ -123,11 +123,15 @@ describe('App routes', () => {
     expect(await screen.findByRole('heading', { name: 'Xin chào, Bao' })).toBeInTheDocument()
   })
 
-  it('redirects /admin to home for a non-admin user', async () => {
+  it('redirects /admin to the staff login for a customer', async () => {
     renderAt('/admin', { id: 1, name: 'Bao', roles: ['customer'] })
-    expect(
-      await screen.findByRole('heading', { name: 'Điều gì phù hợp với căn phòng của bạn?', level: 1 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Đăng nhập quản trị' })).toBeInTheDocument()
+  })
+
+  it('does not expose a public admin registration route', async () => {
+    renderAt('/admin/register')
+    expect(await screen.findByRole('heading', { name: 'Đăng nhập quản trị' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Đăng ký' })).toBeNull()
   })
 
   it('renders the admin dashboard for a super_admin user', async () => {
