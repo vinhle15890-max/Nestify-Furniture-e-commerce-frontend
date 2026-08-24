@@ -28,12 +28,23 @@ export function useLogin() {
 }
 
 export function useAdminLogin() {
-  const login = useAuthStore((state) => state.login)
+  const adminLogin = useAuthStore((state) => state.adminLogin)
   return useMutation({
     mutationFn: (payload) => authApi.adminLogin(payload),
     onSuccess: ({ data }) => {
       queryClient.clear()
-      login(data.token, data.user)
+      adminLogin(data.token, data.user)
+    },
+  })
+}
+
+export function useAdminLogout() {
+  const adminLogout = useAuthStore((state) => state.adminLogout)
+  return useMutation({
+    mutationFn: () => authApi.adminLogout(),
+    onSettled: () => {
+      queryClient.clear()
+      adminLogout()
     },
   })
 }
@@ -57,6 +68,15 @@ export function useMe() {
     queryKey: ['auth', 'me'],
     queryFn: authApi.getMe,
     enabled: !!token,
+  })
+}
+
+export function useAdminMe() {
+  const adminToken = useAuthStore((state) => state.adminToken)
+  return useQuery({
+    queryKey: ['auth', 'admin-me'],
+    queryFn: authApi.getAdminMe,
+    enabled: !!adminToken,
   })
 }
 

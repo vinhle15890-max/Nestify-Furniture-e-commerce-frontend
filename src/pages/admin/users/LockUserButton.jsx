@@ -11,7 +11,7 @@ import { useAuthStore } from '../../../store/authStore'
 // onSuccess (tùy chọn): gọi sau khi đổi status thành công — dùng ở drawer để đóng
 // panel, tránh hiển thị snapshot cũ (badge/nút không khớp trạng thái vừa đổi).
 export function LockUserButton({ user, onSuccess }) {
-  const currentUser = useAuthStore((state) => state.user)
+  const currentUser = useAuthStore((state) => state.adminUser ?? state.user)
   const updateStatus = useUpdateUserStatus()
   const addToast = useToastStore((state) => state.addToast)
   const [confirmOpen, setConfirmOpen] = useState(false)

@@ -4,8 +4,8 @@ import { isStaff } from '../lib/roles'
 import { SeoHead } from '../components/SeoHead'
 
 export function AdminRoute() {
-  const token = useAuthStore((state) => state.token)
-  const user = useAuthStore((state) => state.user)
+  const token = useAuthStore((state) => state.adminToken)
+  const user = useAuthStore((state) => state.adminUser)
   const location = useLocation()
 
   if (!token) {

@@ -19,7 +19,7 @@ function renderPage() {
 }
 
 describe('AdminLoginPage', () => {
-  beforeEach(() => { vi.clearAllMocks(); useAuthStore.setState({ token: null, user: null }) })
+  beforeEach(() => { vi.clearAllMocks(); useAuthStore.setState({ token: 'customer-token', user: { id: 1, roles: ['customer'] }, adminToken: null, adminUser: null }) })
 
   it('uses the staff endpoint and redirects a successful staff login to /admin', async () => {
     authApi.adminLogin.mockResolvedValue({ data: { token: 'staff-token', user: { id: 2, roles: ['order_staff'] } } })
@@ -29,6 +29,8 @@ describe('AdminLoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Vào trang quản trị' }))
     await waitFor(() => expect(screen.getByText('Admin home')).toBeInTheDocument())
     expect(authApi.adminLogin).toHaveBeenCalledWith({ email: 'staff@example.com', password: 'password123' })
+    expect(useAuthStore.getState().token).toBe('customer-token')
+    expect(useAuthStore.getState().adminToken).toBe('staff-token')
   })
 
   it('shows one generic error for invalid credentials or access intent', async () => {

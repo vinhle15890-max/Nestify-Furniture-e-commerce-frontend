@@ -9,7 +9,7 @@ export function login({ email, password }) {
 }
 
 export function adminLogin({ email, password }) {
-  return apiClient.post('/auth/admin/login', { email, password })
+  return apiClient.post('/auth/admin/login', { email, password }, { authScope: 'admin' })
 }
 
 export function logout() {
@@ -18,6 +18,14 @@ export function logout() {
 
 export function getMe() {
   return apiClient.get('/auth/me')
+}
+
+export function adminLogout() {
+  return apiClient.post('/auth/logout', undefined, { authScope: 'admin' })
+}
+
+export function getAdminMe() {
+  return apiClient.get('/auth/me', { authScope: 'admin' })
 }
 
 export function updateProfile({ name, current_password, password, password_confirmation }) {

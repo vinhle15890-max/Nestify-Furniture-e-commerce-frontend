@@ -6,13 +6,16 @@ import { Providers } from './app/providers'
 import { useAuthStore } from './store/authStore'
 import * as catalogApi from './features/catalog/api'
 import * as cartApi from './features/cart/api'
+import { isStaff } from './lib/roles'
 
 vi.mock('./features/catalog/api')
 vi.mock('./features/cart/api')
 
 function renderAt(initialPath, user = null) {
   if (user) {
-    useAuthStore.setState({ token: 'abc', user })
+    useAuthStore.setState(isStaff(user)
+      ? { adminToken: 'admin-abc', adminUser: user }
+      : { token: 'customer-abc', user })
   }
   const router = createMemoryRouter(routes, { initialEntries: [initialPath] })
   return render(
@@ -25,7 +28,7 @@ function renderAt(initialPath, user = null) {
 describe('App routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    useAuthStore.setState({ token: null, user: null })
+    useAuthStore.setState({ token: null, user: null, adminToken: null, adminUser: null })
     catalogApi.getCategories.mockResolvedValue({ data: [] })
     catalogApi.getBestSellers.mockResolvedValue({ data: [] })
     catalogApi.getCategory.mockResolvedValue({
@@ -76,6 +79,17 @@ describe('App routes', () => {
     })
 
     expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
+  })
+
+  it('keeps the root as storefront when customer and admin sessions coexist', async () => {
+    useAuthStore.setState({
+      token: 'customer-token',
+      user: { id: 1, roles: ['customer'] },
+      adminToken: 'admin-token',
+      adminUser: { id: 2, roles: ['super_admin'] },
+    })
+    renderAt('/')
+    expect(await screen.findByRole('heading', { name: 'Điều gì phù hợp với căn phòng của bạn?', level: 1 })).toBeInTheDocument()
   })
 
   it('renders a category page at "/c/:categorySlug"', async () => {

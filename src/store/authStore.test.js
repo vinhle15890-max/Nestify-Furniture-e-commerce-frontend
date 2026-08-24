@@ -3,7 +3,7 @@ import { useAuthStore } from './authStore'
 
 describe('authStore', () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null })
+    useAuthStore.setState({ token: null, user: null, adminToken: null, adminUser: null })
     localStorage.clear()
   })
 
@@ -45,5 +45,21 @@ describe('authStore', () => {
     const stored = JSON.parse(localStorage.getItem('nestify-auth'))
     expect(stored.state.token).toBe('abc123')
     expect(stored.state.user).toEqual({ id: 1, name: 'Bao' })
+  })
+
+  it('keeps customer and admin sessions independently in the same browser', () => {
+    useAuthStore.getState().login('customer-token', { id: 1, roles: ['customer'] })
+    useAuthStore.getState().adminLogin('admin-token', { id: 2, roles: ['super_admin'] })
+
+    expect(useAuthStore.getState()).toMatchObject({
+      token: 'customer-token',
+      user: { id: 1 },
+      adminToken: 'admin-token',
+      adminUser: { id: 2 },
+    })
+
+    useAuthStore.getState().adminLogout()
+    expect(useAuthStore.getState().token).toBe('customer-token')
+    expect(useAuthStore.getState().adminToken).toBeNull()
   })
 })

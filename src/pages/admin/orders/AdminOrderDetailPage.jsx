@@ -106,7 +106,9 @@ export function AdminOrderDetailPage() {
   const refundReturnRequest = useRefundReturnRequest(orderId)
   const completeReturnRequest = useCompleteReturnRequest(orderId)
   const addToast = useToastStore((state) => state.addToast)
-  const user = useAuthStore((state) => state.user)
+  // Fallback keeps direct-render/legacy snapshots compatible during the one-time
+  // persisted-store migration; AdminRoute still requires a real admin session.
+  const user = useAuthStore((state) => state.adminUser ?? state.user)
 
   const [reason, setReason] = useState('')
   const [refundResult, setRefundResult] = useState(null)

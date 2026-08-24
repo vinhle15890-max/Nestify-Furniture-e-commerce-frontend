@@ -12,12 +12,12 @@ const { mockUseMe, mockLogout } = vi.hoisted(() => ({
 }))
 
 vi.mock('../../features/auth/hooks', () => ({
-  useLogout: () => mockLogout,
-  useMe: mockUseMe,
+  useAdminLogout: () => mockLogout,
+  useAdminMe: mockUseMe,
 }))
 
 function renderLayout(user) {
-  useAuthStore.setState({ token: 't', user })
+  useAuthStore.setState({ adminToken: 't', adminUser: user })
   return render(
     <MemoryRouter initialEntries={['/admin']}>
       <AdminLayout />
@@ -27,7 +27,7 @@ function renderLayout(user) {
 
 describe('AdminLayout sidebar gating', () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null })
+    useAuthStore.setState({ adminToken: null, adminUser: null })
     usePreviewStore.setState({ previewRole: null })
     mockUseMe.mockReturnValue({ data: undefined })
   })
@@ -91,7 +91,7 @@ describe('AdminLayout sidebar gating', () => {
 
   it('đăng xuất khỏi admin chuyển về /admin/login', async () => {
     mockLogout.mutateAsync.mockResolvedValue({})
-    useAuthStore.setState({ token: 't', user: { name: 'Bao', email: 'bao@example.com', permissions: [] } })
+    useAuthStore.setState({ adminToken: 't', adminUser: { name: 'Bao', email: 'bao@example.com', permissions: [] } })
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>

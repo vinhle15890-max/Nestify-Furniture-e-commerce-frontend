@@ -10,7 +10,7 @@ describe('apiClient', () => {
 
   beforeEach(() => {
     mock = new MockAdapter(apiClient)
-    useAuthStore.setState({ token: null, user: null })
+    useAuthStore.setState({ token: null, user: null, adminToken: null, adminUser: null })
     queryClient.clear()
   })
 
@@ -38,6 +38,21 @@ describe('apiClient', () => {
     await apiClient.get('/categories')
   })
 
+  it('uses the admin token for admin APIs without overwriting the customer token', async () => {
+    useAuthStore.setState({ token: 'customer-token', adminToken: 'admin-token' })
+    mock.onGet('/admin/orders').reply((config) => {
+      expect(config.headers.Authorization).toBe('Bearer admin-token')
+      return [200, { data: [] }]
+    })
+    mock.onGet('/orders').reply((config) => {
+      expect(config.headers.Authorization).toBe('Bearer customer-token')
+      return [200, { data: [] }]
+    })
+
+    await apiClient.get('/admin/orders')
+    await apiClient.get('/orders')
+  })
+
   it('normalizes a BE error envelope into an ApiError', async () => {
     mock.onPost('/cart/items').reply(409, {
       error: { code: 'INSUFFICIENT_STOCK', message: 'Không đủ hàng', details: { available: 2 } },
@@ -62,6 +77,20 @@ describe('apiClient', () => {
     expect(useAuthStore.getState().token).toBeNull()
     expect(useAuthStore.getState().user).toBeNull()
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
+  })
+
+  it('clears only the admin session when an admin API returns 401', async () => {
+    useAuthStore.setState({
+      token: 'customer-token', user: { id: 1 },
+      adminToken: 'admin-token', adminUser: { id: 2 },
+    })
+    mock.onGet('/admin/orders').reply(401, {
+      error: { code: 'UNAUTHENTICATED', message: 'Unauthorized' },
+    })
+
+    await expect(apiClient.get('/admin/orders')).rejects.toBeInstanceOf(ApiError)
+    expect(useAuthStore.getState().adminToken).toBeNull()
+    expect(useAuthStore.getState().token).toBe('customer-token')
   })
 
   it('does not clear auth on 401 from /auth/* routes', async () => {

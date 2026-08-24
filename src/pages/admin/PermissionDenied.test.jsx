@@ -5,7 +5,7 @@ import { PermissionDenied } from './PermissionDenied'
 import { useAuthStore } from '../../store/authStore'
 
 function renderDenied(props, user) {
-  useAuthStore.setState({ token: 't', user })
+  useAuthStore.setState({ adminToken: 't', adminUser: user })
   return render(
     <MemoryRouter>
       <PermissionDenied {...props} />
@@ -14,7 +14,7 @@ function renderDenied(props, user) {
 }
 
 describe('PermissionDenied', () => {
-  beforeEach(() => useAuthStore.setState({ token: null, user: null }))
+  beforeEach(() => useAuthStore.setState({ token: null, user: null, adminToken: null, adminUser: null }))
 
   it('hiện nhãn quyền còn thiếu', () => {
     renderDenied({ missing: 'manage_vouchers' }, { permissions: ['manage_orders'] })

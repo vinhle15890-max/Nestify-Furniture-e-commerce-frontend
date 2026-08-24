@@ -482,7 +482,7 @@ lọc pending như một biện pháp bảo mật vì pending vốn không nên 
 
 > **Liên kết bảo vệ `J4`:** [Kịch bản Chương 4B–5](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4b--an-tìm-hiểu-và-thử-nghiệm) · [BE §10](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10-ai-chatbot-rag-tính-năng-phân-biệt-2) · Bảo/BE1 ↔ FE3.
 
-**Actor:** Customer verified. **Entry:** floating bubble `ChatWidget`/`ChatPanel`. **Feature:** `features/chat`, `store/chatStore`.
+**Actor:** Khách vãng lai hoặc Customer. **Entry:** floating bubble `ChatWidget`/`ChatPanel`. **Feature:** `features/chat`, `store/chatStore`.
 
 ### 9.1 Gửi message có ngữ cảnh
 
@@ -573,7 +573,7 @@ BE `14-workflows.md` §10.
   **Vai trò** (`/admin/roles`, RBAC Sub-project 2 — tạo/sửa/xoá role custom + tick ma trận permission; Sub-project 3
   thêm toggle **view Ma trận** read-only; Sub-project 5 thêm nút **"Xem thử vai trò"** mô phỏng nav/route-gate
   của role khác thuần phía client, xem chi tiết bên dưới); **Audit logs** (RBAC Sub-project 4 thêm lọc
-  theo hành động + nhãn tiếng Việt + tô nổi bật dòng truy cập bị chặn, xem chi tiết bên dưới); **Dashboard** nhận date range/interval, trình bày finance + inventory ledger + delivered top sellers và link các hàng đợi sang order filters.
+  theo hành động + nhãn tiếng Việt + tô nổi bật dòng truy cập bị chặn, xem chi tiết bên dưới); **Dashboard** nhận date range/interval, tách hàng đợi đơn/hoàn tiền khỏi phân tích tiền bán hàng, sản phẩm, voucher và khách hàng. Tồn theo biến thể vẫn nằm trong quản lý sản phẩm và commerce-core, không được quảng bá như một phân hệ kho riêng.
 
 > **Phản biện:** (1) Trang admin detail ưu tiên product từ router state hoặc cache danh sách để render ngay; nếu không có
 > seed thì `useAdminProduct(id)` gọi `GET /admin/products/{id}`. Đây là tối ưu latency, không phải dependency vào cache.
