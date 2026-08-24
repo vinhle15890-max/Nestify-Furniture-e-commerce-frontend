@@ -143,8 +143,8 @@ describe('AdminDashboardPage', () => {
 
     expect(await screen.findByRole('link', { name: /Đơn đang xử lý/ })).toHaveAttribute('href', '/admin/orders?status=processing')
     expect(screen.getByRole('link', { name: /COD chờ thu/ })).toHaveAttribute('href', '/admin/orders?payment_method=cod&payment_status=pending')
-    expect(screen.getByRole('link', { name: /Yêu cầu đổi trả/ })).toHaveAttribute('href', '/admin/orders?return_status=requested')
-    expect(screen.getByRole('link', { name: /Đổi trả chờ ghi hoàn/ })).toHaveAttribute('href', '/admin/orders?return_status=received')
-    expect(screen.getByRole('link', { name: /Đổi trả chờ chuyển tiền/ })).toHaveAttribute('href', '/admin/orders?return_status=refund_pending')
+    expect(screen.getByRole('link', { name: /Yêu cầu đổi trả/ })).toHaveAttribute('href', '/admin/returns?status=requested')
+    expect(screen.getByRole('link', { name: /Đổi trả chờ ghi hoàn/ })).toHaveAttribute('href', '/admin/returns?status=received')
+    expect(screen.getByRole('link', { name: /Đổi trả chờ chuyển tiền/ })).toHaveAttribute('href', '/admin/returns?status=refund_pending')
   })
 })

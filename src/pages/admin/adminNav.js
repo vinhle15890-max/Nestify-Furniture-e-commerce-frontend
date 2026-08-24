@@ -13,6 +13,7 @@ import {
   KeyRound,
   Warehouse,
   Layers3,
+  RotateCcw,
 } from 'lucide-react'
 import { can, canAny } from '../../lib/roles'
 
@@ -36,6 +37,7 @@ export const navGroups = [
     title: 'Bán hàng',
     items: [
       { to: '/admin/orders', label: 'Đơn hàng', icon: Receipt, permission: 'manage_orders' },
+      { to: '/admin/returns', label: 'Đổi trả', icon: RotateCcw, permission: 'manage_orders' },
       { to: '/admin/vouchers', label: 'Voucher', icon: Ticket, permission: 'manage_vouchers' },
     ],
   },

@@ -66,6 +66,9 @@ export function Header() {
           <NavLink to="/c/all" className={navLinkClass}>
             Sản phẩm
           </NavLink>
+          <NavLink to="/vouchers" className={navLinkClass}>
+            Ưu đãi
+          </NavLink>
           <NavLink to="/room-planner" className={navLinkClass}>
             Phòng của bạn
           </NavLink>

@@ -61,6 +61,9 @@ describe('AdminInventoryPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sofa Nature/ }))
 
     expect(await screen.findByRole('heading', { name: 'Ghi phiếu kho' })).toBeInTheDocument()
+    expect(screen.getByText('Có thể bán')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '+ Nhập hàng' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Hàng mới thực tế vào kho')).toBeInTheDocument()
     expect(await screen.findByText('Kiểm kê kho tuần 34')).toBeInTheDocument()
     expect(screen.getByText('Chứng từ: KK-T34-2026')).toBeInTheDocument()
     expect(screen.getByText('Khả dụng 3 → 4')).toBeInTheDocument()
@@ -86,7 +89,7 @@ describe('AdminInventoryPage', () => {
   it('converts an outbound quantity to a negative ledger delta', async () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))
-    fireEvent.change(screen.getByLabelText('Nghiệp vụ'), { target: { value: 'inventory_loss' } })
+    fireEvent.click(screen.getByRole('button', { name: '− Hao hụt / hư hỏng' }))
     fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '2' } })
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Hư hỏng khi kiểm kê' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ghi phiếu kho' }))
@@ -101,7 +104,7 @@ describe('AdminInventoryPage', () => {
     renderPage()
     await screen.findByText('Sofa Nature · Màu be')
     fireEvent.change(screen.getByLabelText('Tìm theo SKU, sản phẩm hoặc tên biến thể'), { target: { value: 'SOFA-NATURE' } })
-    fireEvent.click(screen.getByLabelText('Chỉ hàng cần bổ sung'))
+    fireEvent.click(screen.getByRole('button', { name: 'Tất cả tồn kho' }))
 
     await waitFor(() => expect(productsApi.getInventoryVariants).toHaveBeenCalledWith(expect.objectContaining({
       q: 'SOFA-NATURE',
@@ -113,6 +116,7 @@ describe('AdminInventoryPage', () => {
     renderPage()
 
     expect(await screen.findByText('Trang 1/2 · 9 biến thể')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Biến thể tồn kho thấp' })).toHaveClass('flex-1', 'overflow-y-auto')
     fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
 
     await waitFor(() => expect(productsApi.getInventoryVariants).toHaveBeenCalledWith(expect.objectContaining({
@@ -124,7 +128,7 @@ describe('AdminInventoryPage', () => {
   it('warns before submitting a decrease below reserved stock', async () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))
-    fireEvent.change(screen.getByLabelText('Nghiệp vụ'), { target: { value: 'stock_out' } })
+    fireEvent.click(screen.getByRole('button', { name: '− Xuất kho' }))
     fireEvent.change(screen.getByLabelText('Số lượng'), { target: { value: '5' } })
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Xuất kho trưng bày' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ghi phiếu kho' }))

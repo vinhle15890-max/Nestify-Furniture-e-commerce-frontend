@@ -67,6 +67,17 @@ describe('App routes', () => {
     ).toBeInTheDocument()
   })
 
+  it('resumes the admin area when a staff session reopens the domain root', async () => {
+    renderAt('/', {
+      id: 1,
+      name: 'NV',
+      roles: ['order_staff'],
+      permissions: ['view_dashboard'],
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
+  })
+
   it('renders a category page at "/c/:categorySlug"', async () => {
     renderAt('/c/phong-khach')
     expect(await screen.findByRole('heading', { name: 'Phòng khách' })).toBeInTheDocument()

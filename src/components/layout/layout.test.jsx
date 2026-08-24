@@ -68,6 +68,12 @@ describe('Header', () => {
 
     expect(screen.queryByRole('navigation', { name: 'Danh mục sản phẩm' })).not.toBeInTheDocument()
   })
+
+  it('exposes the public voucher collection page from the primary navigation', () => {
+    renderWithProviders(<Header />)
+
+    expect(screen.getByRole('link', { name: 'Ưu đãi' })).toHaveAttribute('href', '/vouchers')
+  })
 })
 
 describe('Footer', () => {
@@ -157,6 +163,7 @@ describe('Layout', () => {
     await user.click(screen.getByRole('button', { name: 'Mở menu' }))
     expect(screen.getByRole('dialog', { name: 'Menu' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Điều hướng di động' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Voucher đang mở' })).toHaveAttribute('href', '/vouchers')
 
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument()

@@ -90,6 +90,7 @@ function HeroStat({ label, value }) {
 /** An actionable queue row that links to the relevant admin screen. */
 function ActionRow({ to, icon: Icon, label, count, urgent }) {
   const active = count > 0
+  if (!active) return null
   return (
     <Link
       to={to}
@@ -315,9 +316,9 @@ export function AdminDashboardPage() {
                 <ActionRow to="/admin/orders?status=shipped" icon={ShoppingBag} label="Đơn đang giao" count={operations.shipped ?? 0} />
                 <ActionRow to="/admin/orders?status=delivery_failed" icon={AlertTriangle} label="Giao hàng thất bại" count={operations.delivery_failed ?? 0} urgent />
                 <ActionRow to="/admin/orders?payment_method=cod&payment_status=pending" icon={CheckCircle2} label="COD chờ thu" count={operations.cod_receivable_count ?? 0} />
-                <ActionRow to="/admin/orders?return_status=requested" icon={Package} label="Yêu cầu đổi trả" count={operations.return_requests_pending ?? 0} urgent />
-                <ActionRow to="/admin/orders?return_status=received" icon={CheckCircle2} label="Đổi trả chờ ghi hoàn" count={operations.return_refunds_pending ?? 0} urgent />
-                <ActionRow to="/admin/orders?return_status=refund_pending" icon={CheckCircle2} label="Đổi trả chờ chuyển tiền" count={operations.return_payouts_pending ?? 0} urgent />
+                <ActionRow to="/admin/returns?status=requested" icon={Package} label="Yêu cầu đổi trả" count={operations.return_requests_pending ?? 0} urgent />
+                <ActionRow to="/admin/returns?status=received" icon={CheckCircle2} label="Đổi trả chờ ghi hoàn" count={operations.return_refunds_pending ?? 0} urgent />
+                <ActionRow to="/admin/returns?status=refund_pending" icon={CheckCircle2} label="Đổi trả chờ chuyển tiền" count={operations.return_payouts_pending ?? 0} urgent />
                 <ActionRow to="/admin/payment-exceptions" icon={AlertTriangle} label="Thanh toán ngoại lệ" count={operations.payment_exceptions ?? 0} urgent />
                 <ActionRow
                   to="/admin/reviews"

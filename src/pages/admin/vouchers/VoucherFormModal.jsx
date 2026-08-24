@@ -216,6 +216,8 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
       }}
       title={isEditing ? 'Sửa voucher' : 'Thêm voucher mới'}
       description={isEditing ? `Cập nhật điều kiện và thời hạn của voucher ${voucher.code}.` : 'Thiết lập mã, giá trị và điều kiện sử dụng voucher mới.'}
+      contentClassName="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden"
+      bodyClassName="min-h-0 overflow-y-auto pr-1"
     >
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <div className="flex items-end gap-2">
@@ -270,7 +272,7 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
 
         <fieldset className="space-y-3 rounded-control border border-border p-4">
           <legend className="px-1 text-sm font-medium text-foreground">Phân phối và kết hợp</legend>
-          <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('is_public')} /><span><strong className="block font-medium">Hiển thị ở nơi nhận voucher</strong><span className="text-muted-foreground">Khách có thể tìm thấy campaign công khai.</span></span></label>
+          <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('is_public')} /><span><strong className="block font-medium">Hiển thị tại trang Ưu đãi</strong><span className="text-muted-foreground">Khách có thể tìm voucher tại mục Ưu đãi trên menu và đường dẫn /vouchers.</span></span></label>
           <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('claim_required')} /><span><strong className="block font-medium">Phải lưu vào ví trước khi dùng</strong><span className="text-muted-foreground">Không chấp nhận chỉ nhập mã khi chưa nhận.</span></span></label>
           <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('stack_with_sale')} /><span><strong className="block font-medium">Cho phép dùng cùng giá sale</strong><span className="text-muted-foreground">Nếu tắt, giỏ có sản phẩm sale sẽ không áp dụng mã này.</span></span></label>
         </fieldset>

@@ -16,6 +16,8 @@ const ordersResponse = {
       total: 7500000,
       created_at: '2026-01-10T08:00:00Z',
       user: { id: 1, name: 'Bao Le', email: 'bao@example.com' },
+      payment_method: 'payos',
+      payment: { status: 'paid' },
       items: [],
     },
   ],
@@ -30,6 +32,7 @@ function renderPage(initialEntry = '/admin/orders') {
         <Routes>
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
           <Route path="/admin/orders/:id" element={<div>Trang chi tiết đơn hàng</div>} />
+          <Route path="/admin/returns" element={<div>Trang đổi trả riêng</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -53,19 +56,37 @@ describe('AdminOrdersPage', () => {
     expect(screen.getByRole('link', { name: 'Xem đơn hàng #101' })).toBeInTheDocument()
   })
 
+  it('shows the voucher snapshot beside the discounted order total', async () => {
+    ordersApi.getOrders.mockResolvedValue({
+      ...ordersResponse,
+      data: [{
+        ...ordersResponse.data[0],
+        voucher_code: 'NESTIFY100',
+        discount_amount: 100000,
+      }],
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Mã NESTIFY100 · -100.000 ₫')).toBeInTheDocument()
+  })
+
   it('re-queries when the status filter changes', async () => {
     renderPage()
     await screen.findByText('Bao Le')
 
-    await userEvent.selectOptions(screen.getByLabelText('Lọc theo trạng thái'), 'processing')
+    await userEvent.click(screen.getByRole('button', { name: 'Đang xử lý' }))
 
     await waitFor(() =>
       expect(ordersApi.getOrders).toHaveBeenCalledWith({
         page: 1,
         status: 'processing',
+        statusGroup: '',
         paymentMethod: '',
         paymentStatus: '',
+        paymentQueue: '',
         returnStatus: '',
+        hasReturn: false,
       }),
     )
   })
@@ -74,22 +95,73 @@ describe('AdminOrdersPage', () => {
     renderPage('/admin/orders?payment_method=cod&payment_status=pending')
 
     await screen.findByText('Bao Le')
-    expect(screen.getByLabelText('Lọc theo thanh toán')).toHaveValue('cod_pending')
+    expect(screen.getByRole('button', { name: 'COD cần thu' })).toHaveAttribute('aria-pressed', 'true')
     expect(ordersApi.getOrders).toHaveBeenCalledWith({
       page: 1,
       status: '',
+      statusGroup: '',
       paymentMethod: 'cod',
       paymentStatus: 'pending',
+      paymentQueue: '',
       returnStatus: '',
+      hasReturn: false,
     })
   })
 
-  it('hydrates a pending return queue from the dashboard drill-down link', async () => {
-    renderPage('/admin/orders?return_status=requested')
+  it('keeps pending payment separate from failed collection outcomes', async () => {
+    ordersApi.getOrders.mockResolvedValue({
+      ...ordersResponse,
+      data: [
+        { ...ordersResponse.data[0], id: 201, payment_method: 'cod', payment: { status: 'pending' } },
+        { ...ordersResponse.data[0], id: 202, payment_method: 'cod', payment: { status: 'failed' } },
+        { ...ordersResponse.data[0], id: 203, payment_method: 'payos', payment: { status: 'pending' } },
+        { ...ordersResponse.data[0], id: 204, payment_method: 'payos', payment: { status: 'failed' } },
+      ],
+    })
 
+    renderPage()
+
+    expect(await screen.findByText('COD · Chưa thu tiền')).toBeInTheDocument()
+    expect(screen.getByText('COD · Không thu được tiền')).toBeInTheDocument()
+    expect(screen.getByText('PayOS · Chờ khách thanh toán')).toBeInTheDocument()
+    expect(screen.getByText('PayOS · Thanh toán thất bại / hết hạn')).toBeInTheDocument()
+    expect(screen.queryByText(/Chưa thu \/ thất bại/)).not.toBeInTheDocument()
+  })
+
+  it('uses one operational filter for completed unsuccessful payment attempts', async () => {
+    renderPage()
     await screen.findByText('Bao Le')
-    expect(screen.getByLabelText('Lọc theo đổi trả')).toHaveValue('requested')
-    expect(ordersApi.getOrders).toHaveBeenCalledWith({ page: 1, status: '', paymentMethod: '', paymentStatus: '', returnStatus: 'requested' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Không thành công' }))
+    await waitFor(() => expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({
+      paymentMethod: '',
+      paymentStatus: 'failed',
+    })))
+  })
+
+  it('separates actionable PayOS payments from cancelled legacy records', async () => {
+    ordersApi.getOrders.mockResolvedValue({
+      ...ordersResponse,
+      data: [{
+        ...ordersResponse.data[0],
+        status: 'cancelled',
+        payment_method: 'payos',
+        payment: { status: 'pending', terminal_reason: null },
+      }],
+    })
+    renderPage('/admin/orders?payment_method=payos&payment_status=pending&payment_queue=legacy_cancelled_pending')
+
+    expect(await screen.findByText('PayOS · Đơn cũ cần đối soát')).toBeInTheDocument()
+    expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({
+      paymentMethod: 'payos',
+      paymentStatus: 'pending',
+      paymentQueue: 'legacy_cancelled_pending',
+    }))
+  })
+
+  it('redirects legacy return links to the dedicated return flow', async () => {
+    renderPage('/admin/orders?return_status=requested')
+    expect(await screen.findByText('Trang đổi trả riêng')).toBeInTheDocument()
   })
 
   it('keeps page and filters in the URL and explains active filters', async () => {
@@ -97,9 +169,9 @@ describe('AdminOrdersPage', () => {
 
     await screen.findByText('Bao Le')
     expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({ page: 3, status: 'processing' }))
-    expect(screen.getByLabelText('Bộ lọc đang áp dụng')).toHaveTextContent('Trạng thái: Đang xử lý')
+    expect(screen.getByRole('button', { name: 'Đang xử lý' })).toHaveAttribute('aria-pressed', 'true')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Xóa bộ lọc' }))
+    await userEvent.click(screen.getAllByRole('button', { name: 'Tất cả' })[0])
     await waitFor(() => expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({ page: 1, status: '' })))
   })
 

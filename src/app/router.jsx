@@ -7,6 +7,7 @@ import { RequirePermission } from '../routes/RequirePermission'
 import { Spinner } from '../components/Spinner'
 import { DiagnosticRouteErrorBoundary } from '../pages/dev/DiagnosticRouteErrorBoundary'
 import { RootRoute } from '../routes/RootRoute'
+import { HomeEntryRoute } from '../routes/HomeEntryRoute'
 
 // Route-level code splitting: pages load on demand so the initial bundle stays small
 // (admin pages, in particular, ship in their own chunks behind the AdminRoute guard).
@@ -49,6 +50,7 @@ const AdminSeoReviewPage = named(() => import('../pages/admin/products/AdminSeoR
 const AdminInventoryPage = named(() => import('../pages/admin/products/AdminInventoryPage'), 'AdminInventoryPage')
 const AdminMediaLibraryPage = named(() => import('../pages/admin/media/AdminMediaLibraryPage'), 'AdminMediaLibraryPage')
 const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPage'), 'AdminOrdersPage')
+const AdminReturnsPage = named(() => import('../pages/admin/orders/AdminReturnsPage'), 'AdminReturnsPage')
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
 const AdminPaymentExceptionsPage = named(() => import('../pages/admin/orders/AdminPaymentExceptionsPage'), 'AdminPaymentExceptionsPage')
 const AdminReviewsPage = named(() => import('../pages/admin/reviews/AdminReviewsPage'), 'AdminReviewsPage')
@@ -81,7 +83,7 @@ const appRoutes = [
     path: '/',
     element: <Layout />,
     children: [
-      { index: true, element: lazyPage(<HomePage />) },
+      { index: true, element: <HomeEntryRoute>{lazyPage(<HomePage />)}</HomeEntryRoute> },
       { path: 'about', element: lazyPage(<AboutPage />) },
       { path: 'shipping', element: lazyPage(<ShippingPage />) },
       { path: 'returns', element: lazyPage(<ReturnsPage />) },
@@ -172,6 +174,7 @@ const appRoutes = [
             element: <RequirePermission slug="manage_orders" />,
             children: [
               { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
+              { path: 'returns', element: lazyPage(<AdminReturnsPage />) },
               { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
             ],
           },

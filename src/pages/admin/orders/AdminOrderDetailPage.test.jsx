@@ -26,6 +26,15 @@ const baseOrder = {
   total: 7500000,
   created_at: '2026-01-10T08:00:00Z',
   user: { id: 1, name: 'Bao Le', email: 'bao@example.com' },
+  shipping_address: {
+    recipient_name: 'Bảo Lê',
+    phone: '0901234567',
+    address_line1: '12 Nguyễn Huệ',
+    address_line2: null,
+    city: 'Quận 1',
+    province: 'TP. Hồ Chí Minh',
+    postal_code: null,
+  },
   items: [
     {
       id: 1,
@@ -81,6 +90,17 @@ describe('AdminOrderDetailPage', () => {
 
     resolveOrder({ data: { ...baseOrder, status: 'shipped' } })
     expect(await screen.findByRole('button', { name: 'Đã giao' })).toBeInTheDocument()
+  })
+
+  it('shows the operational summary, recipient and complete item pricing', async () => {
+    renderPage(baseOrder)
+
+    expect(await screen.findByText('Chuẩn bị hàng và nhập thông tin vận chuyển.')).toBeInTheDocument()
+    expect(screen.getByText('Bảo Lê')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '0901234567' })).toHaveAttribute('href', 'tel:0901234567')
+    expect(screen.getByText('12 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh')).toBeInTheDocument()
+    expect(screen.getByText('7.500.000 ₫ × 1')).toBeInTheDocument()
+    expect(screen.getByText('SKU: SOFA-NAU')).toBeInTheDocument()
   })
 
   it('loads a direct order URL without router state or list cache', async () => {
@@ -260,8 +280,27 @@ describe('AdminOrderDetailPage', () => {
     expect(within(dialog).getByText(/chưa được cộng lại tồn kho/)).toBeInTheDocument()
     expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
 
+    await userEvent.type(within(dialog).getByLabelText('Lý do giao không thành công'), 'Khách không nhận hàng')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận' }))
-    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'delivery_failed'))
+    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'delivery_failed', { reason: 'Khách không nhận hàng' }))
+  })
+
+  it('lets staff repair a legacy delivered COD order whose cash is still pending', async () => {
+    const order = {
+      ...baseOrder,
+      status: 'delivered',
+      payment_method: 'cod',
+      payment: { ...baseOrder.payment, gateway: 'cod', status: 'pending' },
+    }
+    ordersApi.collectCod.mockResolvedValue({ data: { ...order, payment: { ...order.payment, status: 'paid' } } })
+    renderPage(order)
+
+    expect(await screen.findByText(/đã được ghi nhận giao hàng nhưng chưa ghi nhận thu/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã thu đủ tiền COD' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận đã thu đủ tiền COD' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận' }))
+
+    await waitFor(() => expect(ordersApi.collectCod).toHaveBeenCalledWith(101, { collected_amount: 7500000 }))
   })
 
   it('shows the fulfillment actor and evidence from the server timeline', async () => {
@@ -433,9 +472,9 @@ describe('AdminOrderDetailPage', () => {
       },
     })
 
-    expect(await screen.findByText('Yêu cầu hoàn tiền của khách')).toBeInTheDocument()
+    const refundSection = (await screen.findByText('Yêu cầu hoàn tiền của khách')).parentElement
     expect(screen.getByText('Không còn nhu cầu')).toBeInTheDocument()
-    expect(screen.getAllByText(/10.000/)).toHaveLength(2)
+    expect(within(refundSection).getAllByText(/10.000/)).toHaveLength(1)
     expect(screen.getByText(/Xử lý tài khoản nhận và kết quả chuyển tiền/)).toBeInTheDocument()
     expect(screen.queryByLabelText('Số tiền hoàn')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Tiếp tục hoàn tiền' })).not.toBeInTheDocument()

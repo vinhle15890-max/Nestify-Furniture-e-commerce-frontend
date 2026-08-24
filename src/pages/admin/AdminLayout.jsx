@@ -106,7 +106,7 @@ function UserMenu({ user, onLogout }) {
       {open && (
         <div role="menu" className="absolute bottom-full left-0 z-20 mb-2 w-full rounded-card border border-border bg-surface p-1.5 shadow-card">
           <Link
-            to="/"
+            to="/c/all"
             role="menuitem"
             className="flex items-center gap-2.5 rounded-control px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground"
           >

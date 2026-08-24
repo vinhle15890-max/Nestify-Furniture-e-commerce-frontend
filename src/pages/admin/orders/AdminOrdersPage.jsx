@@ -1,4 +1,4 @@
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Receipt } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
@@ -8,162 +8,97 @@ import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminOrders } from '../../../features/admin/orders/hooks'
+import { adminPaymentLabel } from '../../../features/admin/orders/paymentLabels'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { formatPrice, formatDate } from '../../../lib/format'
+
+const ORDER_FILTERS = [
+  { value: '', label: 'Tất cả' },
+  { value: 'pending_confirmation', label: 'Chờ xác nhận' },
+  { value: 'processing', label: 'Đang xử lý' },
+  { value: 'shipped', label: 'Đang giao' },
+  { value: 'delivered', label: 'Đã giao' },
+  { value: 'closed', label: 'Đã hủy', group: true },
+]
+
+const PAYMENT_FILTERS = [
+  { value: '', label: 'Tất cả' },
+  { value: 'cod_pending', label: 'COD cần thu', method: 'cod', status: 'pending' },
+  { value: 'payos_pending', label: 'PayOS chờ khách thanh toán', method: 'payos', status: 'pending', queue: 'payos_pending_actionable' },
+  { value: 'paid', label: 'Đã thanh toán', status: 'paid' },
+  { value: 'failed', label: 'Không thành công', status: 'failed' },
+  { value: 'refunded', label: 'Đã ghi nhận hoàn', status: 'refunded' },
+]
+
+function paymentFilterValue(method, status, queue) {
+  if (queue === 'payos_pending_actionable') return 'payos_pending'
+  if (method === 'cod' && status === 'pending') return 'cod_pending'
+  if (method === 'payos' && status === 'pending') return 'payos_pending'
+  return status
+}
+
+function FilterButton({ active, children, onClick }) {
+  return (
+    <button type="button" aria-pressed={active} onClick={onClick} className={`rounded-control border px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? 'border-foreground bg-foreground text-surface' : 'border-border bg-surface text-foreground hover:border-border-strong'}`}>
+      {children}
+    </button>
+  )
+}
 
 export function AdminOrdersPage() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1', 10) || 1)
   const status = searchParams.get('status') ?? ''
+  const statusGroup = searchParams.get('status_group') ?? ''
   const paymentMethod = searchParams.get('payment_method') ?? ''
   const paymentStatus = searchParams.get('payment_status') ?? ''
-  const returnStatus = searchParams.get('return_status') ?? ''
-  const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status, paymentMethod, paymentStatus, returnStatus)
-
+  const paymentQueue = searchParams.get('payment_queue') ?? ''
+  const legacyReturnStatus = searchParams.get('return_status') ?? ''
+  const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status, paymentMethod, paymentStatus, '', { statusGroup, paymentQueue })
   const orders = data?.data ?? []
   const meta = data?.meta?.pagination ?? data?.meta ?? { last_page: 1 }
-  const activeFilters = [
-    status && `Trạng thái: ${ORDER_STATUS_LABELS[status]?.label ?? status}`,
-    paymentMethod === 'cod' && paymentStatus === 'pending' && 'Thanh toán: COD chờ thu',
-    returnStatus && `Đổi trả: ${{ requested: 'Chờ xem xét', in_transit: 'Hàng đang gửi về', received: 'Chờ ghi hoàn', refund_pending: 'Chờ chuyển tiền', completed: 'Đã hoàn tất' }[returnStatus] ?? returnStatus}`,
-  ].filter(Boolean)
+  const selectedOrderFilter = statusGroup || status
+  const selectedPaymentFilter = paymentFilterValue(paymentMethod, paymentStatus, paymentQueue)
 
-  const updateFilter = (mutate) => {
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current)
-      mutate(next)
-      next.delete('page')
-      return next
-    })
-  }
+  if (legacyReturnStatus) return <Navigate to={`/admin/returns?status=${encodeURIComponent(legacyReturnStatus)}`} replace />
 
-  const handleStatusChange = (event) => {
-    updateFilter((next) => {
-      event.target.value ? next.set('status', event.target.value) : next.delete('status')
-    })
-  }
+  const updateFilter = (mutate) => setSearchParams((current) => {
+    const next = new URLSearchParams(current)
+    mutate(next)
+    next.delete('page')
+    return next
+  })
+  const selectOrderFilter = (filter) => updateFilter((next) => {
+    next.delete('status')
+    next.delete('status_group')
+    if (filter.value) next.set(filter.group ? 'status_group' : 'status', filter.value)
+  })
+  const selectPaymentFilter = (filter) => updateFilter((next) => {
+    next.delete('payment_method')
+    next.delete('payment_status')
+    next.delete('payment_queue')
+    if (filter.method) next.set('payment_method', filter.method)
+    if (filter.status) next.set('payment_status', filter.status)
+    if (filter.queue) next.set('payment_queue', filter.queue)
+  })
 
-  const handlePaymentChange = (event) => {
-    updateFilter((next) => {
-      if (event.target.value === 'cod_pending') {
-        next.set('payment_method', 'cod')
-        next.set('payment_status', 'pending')
-      } else {
-        next.delete('payment_method')
-        next.delete('payment_status')
-      }
-    })
-  }
-
-  return (
-    <div>
-      <PageHeader
-        icon={Receipt}
-        title="Đơn hàng"
-        description="Theo dõi và cập nhật trạng thái đơn hàng của khách."
-        actions={<div className="flex flex-wrap gap-2">
-          <select
-            id="status-filter"
-            value={status}
-            onChange={handleStatusChange}
-            aria-label="Lọc theo trạng thái"
-            className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
-          >
-            <option value="">Tất cả trạng thái</option>
-            {Object.entries(ORDER_STATUS_LABELS).map(([value, info]) => (
-              <option key={value} value={value}>
-                {info.label}
-              </option>
-            ))}
-          </select>
-          <select value={returnStatus} onChange={(event) => updateFilter((next) => { event.target.value ? next.set('return_status', event.target.value) : next.delete('return_status') })} aria-label="Lọc theo đổi trả" className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface">
-            <option value="">Tất cả đổi trả</option><option value="requested">Chờ xem xét</option><option value="in_transit">Hàng đang gửi về</option><option value="received">Chờ ghi hoàn</option><option value="refund_pending">Chờ chuyển tiền</option><option value="completed">Đã hoàn tất</option>
-          </select>
-          <select
-            value={paymentMethod === 'cod' && paymentStatus === 'pending' ? 'cod_pending' : ''}
-            onChange={handlePaymentChange}
-            aria-label="Lọc theo thanh toán"
-            className="rounded-control border border-border bg-surface px-3 py-2 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
-          >
-            <option value="">Tất cả thanh toán</option>
-            <option value="cod_pending">COD chờ thu</option>
-          </select>
-        </div>}
-      />
-
-      {activeFilters.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm" aria-label="Bộ lọc đang áp dụng">
-          <span className="text-muted-foreground">Đang lọc:</span>
-          {activeFilters.map((filter) => <span key={filter} className="rounded-full border border-border bg-surface-alt px-3 py-1 text-foreground">{filter}</span>)}
-          <button type="button" onClick={() => setSearchParams({})} className="font-medium text-foreground underline-offset-4 hover:text-accent hover:underline">Xóa bộ lọc</button>
-        </div>
-      )}
-
-      <div className="mt-6">
-        {isLoading ? (
-          <Spinner label="Đang tải đơn hàng..." />
-        ) : isError && !data ? (
-          <LoadErrorState title="Chưa thể tải đơn hàng" description="Bộ lọc hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} />
-        ) : orders.length === 0 ? (
-          <Card>
-            <EmptyState
-              illustration="package"
-              title={activeFilters.length > 0 ? 'Không có đơn phù hợp' : 'Chưa có đơn hàng nào'}
-              description={activeFilters.length > 0 ? 'Hãy thay đổi hoặc xóa bộ lọc đang áp dụng.' : 'Đơn hàng của khách sẽ xuất hiện ở đây.'}
-            />
-          </Card>
-        ) : (
-          <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
-            <table className="w-full text-left text-sm">
-              <caption className="sr-only">Danh sách đơn hàng</caption>
-              <thead>
-                <tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                  <th className="px-4 py-3">Mã đơn</th>
-                  <th className="px-4 py-3">Khách hàng</th>
-                  <th className="px-4 py-3">Trạng thái</th>
-                  <th className="px-4 py-3">Tổng tiền</th>
-                  <th className="px-4 py-3">Ngày tạo</th>
-                  <th className="px-4 py-3"><span className="sr-only">Thao tác</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => {
-                  const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
-                  return (
-                    <tr key={order.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
-                      <td className="px-4 py-3 font-medium text-foreground">{order.order_number ?? `#${order.id}`}</td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-foreground">{order.user?.name}</p>
-                        <p className="text-muted-foreground">{order.user?.email}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-foreground">{formatPrice(order.total)}</td>
-                      <td className="px-4 py-3 text-foreground">{formatDate(order.created_at)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          to={`/admin/orders/${order.id}`}
-                          state={{ order, returnTo: `${location.pathname}${location.search}` }}
-                          aria-label={`Xem đơn hàng ${order.order_number ?? `#${order.id}`}`}
-                          className="font-medium text-foreground transition-colors hover:text-accent"
-                        >
-                          Xem
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6">
-        <Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={(nextPage) => setSearchParams((current) => { const next = new URLSearchParams(current); nextPage > 1 ? next.set('page', String(nextPage)) : next.delete('page'); return next })} />
-      </div>
+  return <div>
+    <PageHeader icon={Receipt} title="Đơn hàng" description="Trạng thái xử lý đơn và trạng thái tiền được theo dõi độc lập." />
+    <div className="mt-5 grid gap-4 rounded-card border border-border bg-surface p-4 shadow-soft">
+      <fieldset><legend className="text-sm font-medium text-foreground">Trạng thái đơn hàng</legend><div className="mt-2 flex flex-wrap gap-2">{ORDER_FILTERS.map((filter) => <FilterButton key={filter.value || 'all-orders'} active={selectedOrderFilter === filter.value} onClick={() => selectOrderFilter(filter)}>{filter.label}</FilterButton>)}</div></fieldset>
+      <fieldset className="border-t border-border pt-4"><legend className="text-sm font-medium text-foreground">Trạng thái thanh toán</legend><div className="mt-2 flex flex-wrap gap-2">{PAYMENT_FILTERS.map((filter) => <FilterButton key={filter.value || 'all-payments'} active={selectedPaymentFilter === filter.value} onClick={() => selectPaymentFilter(filter)}>{filter.label}</FilterButton>)}</div></fieldset>
     </div>
-  )
+    <div className="mt-6">
+      {isLoading ? <Spinner label="Đang tải đơn hàng..." /> : isError && !data ? <LoadErrorState title="Chưa thể tải đơn hàng" description="Bộ lọc hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} /> : orders.length === 0 ? <Card><EmptyState illustration="package" title="Không có đơn phù hợp" description="Hãy chọn trạng thái khác hoặc xóa bộ lọc." /></Card> : <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
+        <table className="w-full text-left text-sm"><caption className="sr-only">Danh sách đơn hàng</caption><thead><tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground"><th className="px-4 py-3">Mã đơn</th><th className="px-4 py-3">Khách hàng</th><th className="px-4 py-3">Đơn hàng</th><th className="px-4 py-3">Thanh toán</th><th className="px-4 py-3">Tổng tiền</th><th className="px-4 py-3">Ngày tạo</th><th className="px-4 py-3"><span className="sr-only">Thao tác</span></th></tr></thead>
+          <tbody>{orders.map((order) => {
+            const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, tone: 'neutral' }
+            const reason = order.cancellation?.reason || order.delivery_failure_reason
+            return <tr key={order.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40"><td className="px-4 py-3 font-medium text-foreground">{order.order_number ?? `#${order.id}`}</td><td className="px-4 py-3"><p className="font-medium text-foreground">{order.user?.name}</p><p className="text-muted-foreground">{order.user?.email}</p></td><td className="px-4 py-3"><Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>{reason && <p className="mt-1 max-w-56 text-xs text-muted-foreground">Lý do: {reason}</p>}</td><td className="px-4 py-3 text-foreground">{adminPaymentLabel(order)}</td><td className="px-4 py-3 text-foreground"><p>{formatPrice(order.total)}</p>{Number(order.discount_amount) > 0 && <p className="mt-1 text-xs text-muted-foreground">{order.voucher_code ? `Mã ${order.voucher_code}` : 'Mã giảm giá cũ'} · -{formatPrice(order.discount_amount)}</p>}</td><td className="px-4 py-3 text-foreground">{formatDate(order.created_at)}</td><td className="px-4 py-3 text-right"><Link to={`/admin/orders/${order.id}`} state={{ order, returnTo: `${location.pathname}${location.search}` }} aria-label={`Xem đơn hàng ${order.order_number ?? `#${order.id}`}`} className="font-medium text-foreground transition-colors hover:text-accent">Xem</Link></td></tr>
+          })}</tbody></table>
+      </div>}
+    </div>
+    <div className="mt-6"><Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={(nextPage) => setSearchParams((current) => { const next = new URLSearchParams(current); nextPage > 1 ? next.set('page', String(nextPage)) : next.delete('page'); return next })} /></div>
+  </div>
 }

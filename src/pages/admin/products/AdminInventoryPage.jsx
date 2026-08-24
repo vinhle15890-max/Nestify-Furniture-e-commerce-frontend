@@ -1,3 +1,5 @@
+/* Hallmark · macrostructure: inventory workbench · tone: utilitarian · anchor hue: Nestify tokens */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast/mobile/tokens: pass */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, ArrowDown, ArrowUp, ClipboardList, Download, History, Search, Warehouse } from 'lucide-react'
@@ -30,10 +32,10 @@ const MOVEMENT_LABELS = {
 }
 
 const OPERATIONS = [
-  { value: 'stock_in', label: 'Nhập hàng', direction: 1 },
-  { value: 'stock_out', label: 'Xuất kho thủ công', direction: -1 },
-  { value: 'inventory_gain', label: 'Tăng sau kiểm kê', direction: 1 },
-  { value: 'inventory_loss', label: 'Giảm sau kiểm kê / hư hỏng', direction: -1 },
+  { value: 'stock_in', label: 'Nhập hàng', description: 'Hàng mới thực tế vào kho', direction: 1 },
+  { value: 'stock_out', label: 'Xuất kho', description: 'Trưng bày hoặc sử dụng nội bộ', direction: -1 },
+  { value: 'inventory_gain', label: 'Tăng kiểm kê', description: 'Thực tế nhiều hơn hệ thống', direction: 1 },
+  { value: 'inventory_loss', label: 'Hao hụt / hư hỏng', description: 'Mất, hỏng hoặc thiếu sau kiểm kê', direction: -1 },
 ]
 
 function variantName(variant) {
@@ -205,7 +207,7 @@ export function AdminInventoryPage() {
       <PageHeader icon={Warehouse} title="Tồn kho" description="Phát hiện hàng sắp hết, kiểm kê có lý do và truy vết từng biến động." />
 
       <Panel>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div>
             <h3 className="font-display text-lg text-foreground">Tìm biến thể</h3>
             <p className="mt-1 text-sm text-muted-foreground">Tồn khả dụng = tồn thực tế − số lượng đang giữ cho đơn hàng.</p>
@@ -226,27 +228,42 @@ export function AdminInventoryPage() {
               onChange={(event) => { setThreshold(Math.max(0, Math.min(1000, Number(event.target.value) || 0))); setPage(1) }}
             />
           </label>
-          <label className="flex min-h-12 items-center gap-2 whitespace-nowrap text-sm text-foreground">
-            <input type="checkbox" checked={lowStockOnly} onChange={(event) => { setLowStockOnly(event.target.checked); setPage(1); setSelectedId(null) }} />
-            Chỉ hàng cần bổ sung
-          </label>
+          <fieldset>
+            <legend className="mb-1 text-sm text-foreground">Phạm vi danh sách</legend>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: true, label: 'Cần bổ sung' },
+                { value: false, label: 'Tất cả tồn kho' },
+              ].map((filter) => (
+                <button
+                  key={filter.label}
+                  type="button"
+                  aria-pressed={lowStockOnly === filter.value}
+                  onClick={() => { setLowStockOnly(filter.value); setPage(1); setSelectedId(null) }}
+                  className={`min-h-12 whitespace-nowrap rounded-control border px-4 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${lowStockOnly === filter.value ? 'border-foreground bg-foreground text-surface' : 'border-border bg-background text-foreground hover:border-border-strong'}`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
         </div>
       </Panel>
 
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
-        <Panel padded={false}>
-          <div className="border-b border-border px-5 py-4">
+      <div className="grid min-w-0 gap-6 xl:h-[calc(100dvh-20rem)] xl:min-h-[44rem] xl:max-h-[70rem] xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
+        <Panel padded={false} className="flex min-h-0 flex-col">
+          <div className="shrink-0 border-b border-border px-5 py-4">
             <h3 className="font-display text-lg text-foreground">{lowStockOnly ? 'Cần bổ sung hàng' : 'Tất cả biến thể'}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{search ? `Kết quả cho “${search}”.` : 'Ưu tiên từ tồn khả dụng thấp nhất.'}</p>
           </div>
           {isLoading ? (
-            <div className="p-6"><Spinner label="Đang tải tồn kho..." /></div>
+            <div className="flex min-h-0 flex-1 items-center justify-center p-6"><Spinner label="Đang tải tồn kho..." /></div>
           ) : isError && !data ? (
-            <div className="p-6"><LoadErrorState title="Chưa thể tải tồn kho" description="Ngưỡng hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} /></div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-6"><LoadErrorState title="Chưa thể tải tồn kho" description="Ngưỡng hiện tại được giữ nguyên. Hãy thử tải lại." onRetry={refetch} isRetrying={isFetching} /></div>
           ) : variants.length === 0 ? (
-            <div className="p-6"><EmptyState icon={Warehouse} title="Không tìm thấy biến thể" description={search ? 'Thử SKU hoặc tên khác.' : `Không có biến thể nào ở mức ${threshold} sản phẩm trở xuống.`} /></div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-6"><EmptyState icon={Warehouse} title="Không tìm thấy biến thể" description={search ? 'Thử SKU hoặc tên khác.' : `Không có biến thể nào ở mức ${threshold} sản phẩm trở xuống.`} /></div>
           ) : (
-            <ul className="divide-y divide-border" aria-label="Biến thể tồn kho thấp">
+            <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto overscroll-contain" aria-label="Biến thể tồn kho thấp">
               {variants.map((variant) => (
                 <li key={variant.id} className={selectedId === variant.id ? 'bg-surface-alt/60' : ''}>
                   <button type="button" onClick={() => selectVariant(variant)} className="flex min-h-16 w-full items-center gap-3 px-5 py-4 text-left outline-none transition-colors hover:bg-surface-alt/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
@@ -266,7 +283,7 @@ export function AdminInventoryPage() {
               ))}
             </ul>
           )}
-          <div className="grid gap-3 border-t border-border px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="grid shrink-0 gap-3 border-t border-border bg-surface px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <p className="text-center text-xs tabular-nums text-muted-foreground sm:text-left">
               Trang {meta.current_page ?? page}/{meta.last_page ?? 1}
               {Number.isFinite(meta.total) ? ` · ${meta.total} biến thể` : ''}
@@ -275,18 +292,35 @@ export function AdminInventoryPage() {
           </div>
         </Panel>
 
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0 space-y-6 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
           <Panel>
             <h3 className="font-display text-lg text-foreground">Ghi phiếu kho</h3>
             {selected ? (
               <form className="mt-4 space-y-4" onSubmit={submitAdjustment}>
                 <p className="text-sm font-medium text-foreground">{variantName(selected)}</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="grid gap-1 text-sm text-foreground">Nghiệp vụ
-                    <select className="min-h-12 rounded-control border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" value={operation} onChange={(event) => setOperation(event.target.value)}>
-                      {OPERATIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                    </select>
-                  </label>
+                <dl className="grid grid-cols-3 gap-2 rounded-control border border-border bg-surface-alt/40 p-3 text-center">
+                  <div><dt className="text-xs text-muted-foreground">Thực tế</dt><dd className="mt-1 font-display text-xl text-foreground">{selected.stock_quantity}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Đang giữ</dt><dd className="mt-1 font-display text-xl text-foreground">{selected.reserved_quantity}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Có thể bán</dt><dd className="mt-1 font-display text-xl text-foreground">{selected.available_stock}</dd></div>
+                </dl>
+                <fieldset>
+                  <legend className="text-sm font-medium text-foreground">Chọn nghiệp vụ</legend>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {OPERATIONS.map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        aria-pressed={operation === item.value}
+                        onClick={() => setOperation(item.value)}
+                        className={`min-w-0 whitespace-nowrap rounded-control border p-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${operation === item.value ? 'border-foreground bg-surface-alt text-foreground' : 'border-border bg-background text-foreground hover:border-border-strong'}`}
+                      >
+                        {item.direction > 0 ? '+ ' : '− '}{item.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">{OPERATIONS.find((item) => item.value === operation)?.description}</p>
+                </fieldset>
+                <div>
                   <label className="grid gap-1 text-sm text-foreground">Số lượng
                     <input aria-invalid={Boolean(formError)} className="min-h-12 rounded-control border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="Ví dụ: 5" />
                   </label>

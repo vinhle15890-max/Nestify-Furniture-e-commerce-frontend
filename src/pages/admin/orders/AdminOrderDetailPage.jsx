@@ -13,6 +13,7 @@ import { Spinner } from '../../../components/Spinner'
 import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useRefundWorkflow, useRefundPayoutDetails, useCollectCod, useReviewReturnRequest, useReceiveReturnRequest, useRefundReturnRequest, useCompleteReturnRequest } from '../../../features/admin/orders/hooks'
 import { ADMIN_ORDER_TRANSITIONS } from '../../../features/admin/orders/statusTransitions'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
+import { adminPaymentLabel } from '../../../features/admin/orders/paymentLabels'
 import { useToastStore } from '../../../store/toastStore'
 import { useAuthStore } from '../../../store/authStore'
 import { can } from '../../../lib/roles'
@@ -48,6 +49,42 @@ function buildTimeline(order) {
     ['cancelled', 'Đã hủy', order.cancellation?.cancelled_at, order.cancellation?.reason],
   ].filter(([, , occurredAt]) => occurredAt).map(([key, label, occurred_at, detail]) => ({ key, label, occurred_at, detail }))
   return [...events, ...fallback].sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at))
+}
+
+function nextOperationalStep(order) {
+  const openException = (order.payment_exceptions ?? []).some((item) => item.status !== 'resolved')
+  if (openException) return 'Xử lý ngoại lệ thanh toán trước khi tiếp tục đơn.'
+  if (order.return_request) {
+    return {
+      requested: 'Xem xét yêu cầu đổi trả của khách.',
+      approved: 'Chờ khách gửi hàng về cửa hàng.',
+      in_transit: 'Theo dõi hàng trả và xác nhận khi nhận thực tế.',
+      received: 'Kiểm tra hàng và ghi nhận nghĩa vụ hoàn tiền.',
+      refund_pending: 'Chuyển tiền hoàn và lưu mã tham chiếu.',
+      completed: 'Đổi trả đã hoàn tất.',
+      rejected: 'Yêu cầu đổi trả đã được kết thúc.',
+    }[order.return_request.status] ?? 'Kiểm tra yêu cầu đổi trả.'
+  }
+  if (order.status === 'pending_confirmation') return 'Xác nhận đơn để bắt đầu chuẩn bị hàng.'
+  if (order.status === 'processing') return 'Chuẩn bị hàng và nhập thông tin vận chuyển.'
+  if (order.status === 'shipped' && order.payment_method === 'cod' && order.payment?.status === 'pending') return 'Theo dõi giao hàng; xác nhận COD sau khi đã thu đủ tiền.'
+  if (order.status === 'shipped') return 'Theo dõi vận chuyển và cập nhật kết quả giao hàng.'
+  if (order.status === 'delivered' && order.payment_method === 'cod' && order.payment?.status === 'pending') return 'Đối chiếu thực tế và xác nhận đã thu đủ tiền COD.'
+  if (order.status === 'delivered') return 'Đơn đã hoàn tất; chỉ xử lý thêm nếu có yêu cầu đổi trả.'
+  if (order.status === 'cancelled') return 'Đơn đã kết thúc; kiểm tra khoản hoàn tiền nếu đã thu tiền.'
+  return 'Kiểm tra trạng thái và lịch sử đơn trước khi thao tác.'
+}
+
+function ShippingAddress({ address }) {
+  if (!address) return <p className="text-sm text-muted-foreground">Đơn chưa có snapshot địa chỉ nhận hàng.</p>
+  const locality = [address.address_line1, address.address_line2, address.city, address.province, address.postal_code].filter(Boolean).join(', ')
+  return (
+    <div className="grid gap-2 text-sm">
+      <p className="font-medium text-foreground">{address.recipient_name}</p>
+      <a className="w-fit text-foreground underline-offset-4 hover:underline" href={`tel:${address.phone}`}>{address.phone}</a>
+      <p className="max-w-prose text-muted-foreground">{locality}</p>
+    </div>
+  )
 }
 
 export function AdminOrderDetailPage() {
@@ -87,6 +124,7 @@ export function AdminOrderDetailPage() {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [shippingError, setShippingError] = useState(null)
   const [pendingTransition, setPendingTransition] = useState(null)
+  const [deliveryFailureReason, setDeliveryFailureReason] = useState('')
   const [returnResolution, setReturnResolution] = useState('')
   const [returnInspection, setReturnInspection] = useState('')
   const [returnRestock, setReturnRestock] = useState(false)
@@ -165,20 +203,12 @@ export function AdminOrderDetailPage() {
   const orderLabel = order.order_number ?? `#${order.id}`
   const requiresManualRefund = order.payment_method === 'payos'
     && ['paid', 'success'].includes(order.payment?.status)
-  const paymentStatusLabel = {
-    paid: 'Đã thanh toán',
-    success: 'Đã thanh toán',
-    waived: 'Không cần thu tiền',
-    pending: 'Chờ thanh toán',
-    failed: 'Đã kết thúc, chưa thu tiền',
-    partially_refunded: 'Đã hoàn một phần',
-    refunded: 'Đã ghi nhận nghĩa vụ hoàn đủ',
-  }[order.payment?.status] ?? 'Chưa thanh toán'
   const timeline = buildTimeline(order)
   const terminalReason = {
     delivered: 'Đơn đã hoàn tất. Nếu khách cần trả hàng, hãy dùng quy trình đổi trả riêng.',
     cancelled: 'Đơn đã hủy là trạng thái kết thúc và không thể chuyển tiếp.',
   }[order.status]
+  const nextStep = nextOperationalStep(order)
 
   const handleCollectCod = async () => {
     setCollectError(null)
@@ -219,6 +249,7 @@ export function AdminOrderDetailPage() {
       return
     }
     if (nextStatus === 'delivery_failed' || nextStatus === 'delivered') {
+      if (nextStatus === 'delivery_failed') setDeliveryFailureReason('')
       setPendingTransition(nextStatus)
       return
     }
@@ -228,7 +259,8 @@ export function AdminOrderDetailPage() {
   const handleConfirmedTransition = async () => {
     const nextStatus = pendingTransition
     if (!nextStatus) return
-    const error = await handleTransition(nextStatus)
+    if (nextStatus === 'delivery_failed' && deliveryFailureReason.trim().length < 3) return
+    const error = await handleTransition(nextStatus, nextStatus === 'delivery_failed' ? { reason: deliveryFailureReason.trim() } : {})
     if (!error) setPendingTransition(null)
   }
 
@@ -445,30 +477,49 @@ export function AdminOrderDetailPage() {
         </div>
       )}
       <BackLink to={location.state?.returnTo ?? '/admin/orders'}>Quay lại danh sách đơn hàng</BackLink>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="font-display text-2xl text-foreground">Đơn hàng {orderLabel}</h2>
-        <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm text-muted-foreground">Tạo lúc {formatDate(order.created_at)}</p>
+          <h2 className="mt-1 [overflow-wrap:anywhere] font-display text-2xl text-foreground">Đơn hàng {orderLabel}</h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
+          <span className="rounded-control border border-border bg-surface px-3 py-1.5 text-sm text-foreground">{adminPaymentLabel(order)}</span>
+        </div>
       </div>
 
-      <Card className="flex flex-col gap-2">
-        <h3 className="font-display text-xl text-foreground">Khách hàng</h3>
-        <p className="text-sm text-foreground">{order.user?.name}</p>
-        <p className="text-sm text-muted-foreground">{order.user?.email}</p>
-        <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
-      </Card>
+      <section className="grid overflow-hidden rounded-card border border-border bg-surface shadow-soft sm:grid-cols-2 xl:grid-cols-4" aria-label="Tóm tắt đơn hàng">
+        <div className="p-4 sm:border-r sm:border-border"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Đơn hàng</p><p className="mt-2 font-medium text-foreground">{statusInfo.label}</p></div>
+        <div className="border-t border-border p-4 sm:border-r sm:border-t-0"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Thanh toán</p><p className="mt-2 font-medium text-foreground">{adminPaymentLabel(order)}</p></div>
+        <div className="border-t border-border p-4 xl:border-r xl:border-t-0"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Khách phải trả</p><p className="mt-2 font-display text-xl tabular-nums text-foreground">{formatPrice(order.total)}</p></div>
+        <div className="border-t border-border bg-surface-alt/50 p-4 xl:border-t-0"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Việc tiếp theo</p><p className="mt-2 text-sm font-medium text-foreground">{nextStep}</p></div>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card className="flex flex-col gap-3">
+          <h3 className="font-display text-xl text-foreground">Khách đặt hàng</h3>
+          <p className="font-medium text-foreground">{order.user?.name || '—'}</p>
+          <a className="w-fit text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href={`mailto:${order.user?.email}`}>{order.user?.email || '—'}</a>
+        </Card>
+        <Card className="flex flex-col gap-3">
+          <h3 className="font-display text-xl text-foreground">Người nhận hàng</h3>
+          <ShippingAddress address={order.shipping_address} />
+        </Card>
+      </div>
 
       <Card className="flex flex-col gap-4">
         <h3 className="font-display text-xl text-foreground">Sản phẩm</h3>
         <ul className="flex flex-col gap-3">
           {(order.items ?? []).map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-4 text-sm">
-              <div>
+            <li key={item.id} className="grid gap-3 border-b border-border pb-3 text-sm last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+              <div className="min-w-0">
                 <p className="font-medium text-foreground">{item.variant_snapshot?.name}</p>
                 <p className="text-muted-foreground">
-                  {item.variant_snapshot?.sku} · x{item.quantity}
+                  SKU: {item.variant_snapshot?.sku || '—'}
                 </p>
               </div>
-              <p className="font-medium text-foreground">{formatPrice(item.subtotal)}</p>
+              <p className="text-muted-foreground sm:text-right">{formatPrice(item.unit_price)} × {item.quantity}</p>
+              <p className="font-medium tabular-nums text-foreground sm:min-w-28 sm:text-right">{formatPrice(item.subtotal)}</p>
             </li>
           ))}
         </ul>
@@ -480,7 +531,7 @@ export function AdminOrderDetailPage() {
           </div>
           {order.discount_amount > 0 && (
             <div className="flex items-center justify-between text-foreground">
-              <span>Giảm giá</span>
+              <span>Giảm giá{order.voucher_code ? ` · ${order.voucher_code}` : ' · Không còn dữ liệu mã'}</span>
               <span>-{formatPrice(order.discount_amount)}</span>
             </div>
           )}
@@ -494,9 +545,15 @@ export function AdminOrderDetailPage() {
       <Card className="flex flex-col gap-3">
         <h3 className="font-display text-xl text-foreground">Thanh toán</h3>
         <p className="text-sm text-foreground">
-          {order.payment_method === 'cod' ? 'COD' : 'PayOS'} · {paymentStatusLabel}
+          {adminPaymentLabel(order)}
         </p>
         {order.payment?.paid_at && <p className="text-sm text-muted-foreground">Ghi nhận: {formatDate(order.payment.paid_at)}</p>}
+        <dl className="grid gap-2 border-t border-border pt-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
+          <dt className="text-muted-foreground">Số tiền thanh toán</dt><dd className="font-medium text-foreground sm:text-right">{formatPrice(order.payment?.amount ?? order.total)}</dd>
+          <dt className="text-muted-foreground">Đã ghi nhận thu</dt><dd className="text-foreground sm:text-right">{formatPrice(order.payment?.paid_amount ?? 0)}</dd>
+          <dt className="text-muted-foreground">Đã ghi nhận hoàn</dt><dd className="text-foreground sm:text-right">{formatPrice(order.payment?.refunded_amount ?? 0)}</dd>
+        </dl>
+        {order.notes && <div className="border-t border-border pt-3"><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Ghi chú của khách</p><p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{order.notes}</p></div>}
         {canRefund && !mayRefund && <p className="text-sm text-muted-foreground">Tài khoản hiện tại không có quyền hoàn tiền; cần nhân viên có quyền “refund” xử lý.</p>}
       </Card>
 
@@ -513,7 +570,7 @@ export function AdminOrderDetailPage() {
         </Card>
       ))}
 
-      <Card className="flex flex-col gap-4">
+      <Card id="order-actions" className="flex flex-col gap-4">
         <div>
           <h3 className="font-display text-xl text-foreground">Tiến trình đơn hàng</h3>
           <p className="mt-1 text-sm text-muted-foreground">Các mốc vận hành được lấy từ nhật ký hệ thống.</p>
@@ -644,11 +701,15 @@ export function AdminOrderDetailPage() {
           </div> : <p className="text-sm text-muted-foreground">{terminalReason ?? 'Không có bước chuyển trạng thái hợp lệ ở thời điểm này.'}</p>}
         </Card>
 
-      {order.payment_method === 'cod' && order.status === 'shipped' && order.payment?.status === 'pending' && (
+      {order.payment_method === 'cod' && ['shipped', 'delivered'].includes(order.status) && order.payment?.status === 'pending' && (
         <Card className="flex flex-col gap-3">
-          <h3 className="font-display text-xl text-foreground">Giao hàng và thu COD</h3>
-          <p className="text-sm text-muted-foreground">Chỉ xác nhận sau khi khách đã nhận hàng và cửa hàng thu đủ {formatPrice(order.total)}.</p>
-          <div><Button type="button" onClick={() => setCollectOpen(true)}>Xác nhận giao và thu đủ tiền</Button></div>
+          <h3 className="font-display text-xl text-foreground">COD chờ thu</h3>
+          <p className="text-sm text-muted-foreground">
+            {order.status === 'delivered'
+              ? `Đơn đã được ghi nhận giao hàng nhưng chưa ghi nhận thu ${formatPrice(order.total)} COD. Hãy đối chiếu thực tế trước khi xác nhận.`
+              : `Chỉ xác nhận sau khi khách đã nhận hàng và cửa hàng thu đủ ${formatPrice(order.total)}.`}
+          </p>
+          <div><Button type="button" onClick={() => setCollectOpen(true)}>Xác nhận đã thu đủ tiền COD</Button></div>
         </Card>
       )}
 
@@ -692,9 +753,20 @@ export function AdminOrderDetailPage() {
               ? 'Hàng vẫn đang ở bên vận chuyển và chưa được cộng lại tồn kho. Sau khi hàng thực tế quay về, cần xác nhận “Hàng đã về cửa hàng”.'
               : 'Chỉ xác nhận khi khách đã nhận hàng. Trạng thái đơn sẽ hoàn tất; trạng thái thanh toán vẫn được quản lý độc lập.'}
           </p>
+          {pendingTransition === 'delivery_failed' && (
+            <Input
+              id="delivery-failure-reason"
+              label="Lý do giao không thành công"
+              value={deliveryFailureReason}
+              onChange={(event) => setDeliveryFailureReason(event.target.value)}
+              minLength={3}
+              maxLength={500}
+              required
+            />
+          )}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setPendingTransition(null)} disabled={updateOrderStatus.isPending}>Quay lại</Button>
-            <Button type="button" onClick={handleConfirmedTransition} disabled={updateOrderStatus.isPending}>{updateOrderStatus.isPending ? 'Đang cập nhật...' : 'Xác nhận'}</Button>
+            <Button type="button" onClick={handleConfirmedTransition} disabled={updateOrderStatus.isPending || (pendingTransition === 'delivery_failed' && deliveryFailureReason.trim().length < 3)}>{updateOrderStatus.isPending ? 'Đang cập nhật...' : 'Xác nhận'}</Button>
           </div>
         </div>
       </Modal>
@@ -787,9 +859,9 @@ export function AdminOrderDetailPage() {
         </div>
       </Modal>
 
-      <Modal open={collectOpen} onOpenChange={setCollectOpen} title="Xác nhận giao hàng và thu COD" description={`Đơn hàng ${orderLabel}`}>
+      <Modal open={collectOpen} onOpenChange={setCollectOpen} title="Xác nhận đã thu đủ tiền COD" description={`Đơn hàng ${orderLabel}`}>
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-foreground">Hệ thống sẽ ghi nhận đã giao và đã thu đủ {formatPrice(order.total)}. Thao tác này làm phát sinh doanh thu COD.</p>
+          <p className="text-sm text-foreground">Hệ thống sẽ ghi nhận đã thu đủ {formatPrice(order.total)}. Nếu đơn vẫn đang giao, đơn đồng thời chuyển sang “Đã giao”; nếu đơn đã giao thì chỉ sửa sự thật thanh toán.</p>
           {collectError && <p role="alert" className="text-sm text-destructive">{collectError}</p>}
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setCollectOpen(false)} disabled={collectCod.isPending}>Quay lại</Button>
