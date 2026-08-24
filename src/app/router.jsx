@@ -49,6 +49,7 @@ const AdminInventoryPage = named(() => import('../pages/admin/products/AdminInve
 const AdminMediaLibraryPage = named(() => import('../pages/admin/media/AdminMediaLibraryPage'), 'AdminMediaLibraryPage')
 const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPage'), 'AdminOrdersPage')
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
+const AdminPaymentExceptionsPage = named(() => import('../pages/admin/orders/AdminPaymentExceptionsPage'), 'AdminPaymentExceptionsPage')
 const AdminReviewsPage = named(() => import('../pages/admin/reviews/AdminReviewsPage'), 'AdminReviewsPage')
 const AdminVouchersPage = named(() => import('../pages/admin/vouchers/AdminVouchersPage'), 'AdminVouchersPage')
 const AdminEmployeesPage = named(() => import('../pages/admin/users/AdminEmployeesPage'), 'AdminEmployeesPage')
@@ -167,6 +168,10 @@ const appRoutes = [
           {
             element: <RequirePermission slug="manage_vouchers" />,
             children: [{ path: 'vouchers', element: lazyPage(<AdminVouchersPage />) }],
+          },
+          {
+            element: <RequirePermission slug="refund" />,
+            children: [{ path: 'payment-exceptions', element: lazyPage(<AdminPaymentExceptionsPage />) }],
           },
           {
             element: <RequirePermission slug="moderate_reviews" />,

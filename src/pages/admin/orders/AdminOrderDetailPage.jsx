@@ -70,7 +70,6 @@ export function AdminOrderDetailPage() {
   const addToast = useToastStore((state) => state.addToast)
   const user = useAuthStore((state) => state.user)
 
-  const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
   const [refundResult, setRefundResult] = useState(null)
   const [refundError, setRefundError] = useState(null)
@@ -97,6 +96,8 @@ export function AdminOrderDetailPage() {
   const [returnRefundReason, setReturnRefundReason] = useState('')
   const [returnRefundReference, setReturnRefundReference] = useState('')
   const [returnRefundNote, setReturnRefundNote] = useState('')
+  const [refundIdempotencyKey, setRefundIdempotencyKey] = useState(null)
+  const [returnRefundIdempotencyKey, setReturnRefundIdempotencyKey] = useState(null)
 
   const validOrderId = Number.isInteger(orderId) && orderId > 0
 
@@ -153,7 +154,9 @@ export function AdminOrderDetailPage() {
     : 0
   const refundRecordedByCancellation = order.cancellation?.refund_recorded === true
   const manualRefundCompleted = Boolean(payment?.manual_refund?.completed_at)
-  const canRefund = ['paid', 'success', 'partially_refunded'].includes(payment?.status) && remainingRefund > 0
+  const canRefund = ['paid', 'success'].includes(payment?.status)
+    && ['pending_confirmation', 'pending_payment', 'paid', 'processing'].includes(order.status)
+    && remainingRefund > 0
   const mayRefund = canRefund && can(user, 'refund')
   const orderLabel = order.order_number ?? `#${order.id}`
   const requiresManualRefund = order.payment_method === 'payos'
@@ -271,9 +274,10 @@ export function AdminOrderDetailPage() {
     setRefundError(null)
     setRefundResult(null)
 
-    const payload = { amount: Number(amount) }
+    const payload = { amount: remainingRefund }
     const trimmedReason = reason.trim()
     if (trimmedReason) payload.reason = trimmedReason
+    if (!refundIdempotencyKey) setRefundIdempotencyKey(crypto.randomUUID())
     setPendingRefund(payload)
   }
 
@@ -292,12 +296,13 @@ export function AdminOrderDetailPage() {
     try {
       const response = await refundOrder.mutateAsync({
         id: order.id,
+        idempotencyKey: refundIdempotencyKey,
         ...pendingRefund,
       })
       setRefundResult(response.data)
       setPendingRefund(null)
-      setAmount('')
       setReason('')
+      setRefundIdempotencyKey(null)
       addToast({ title: 'Đã ghi nhận hoàn tiền.', variant: 'success' })
     } catch (error) {
       setRefundError(error.message)
@@ -344,8 +349,11 @@ export function AdminOrderDetailPage() {
 
   const handleReturnRefund = async () => {
     try {
-      await refundReturnRequest.mutateAsync({ id: order.return_request.id, ...(returnRefundReason.trim() ? { reason: returnRefundReason.trim() } : {}) })
+      const idempotencyKey = returnRefundIdempotencyKey ?? crypto.randomUUID()
+      setReturnRefundIdempotencyKey(idempotencyKey)
+      await refundReturnRequest.mutateAsync({ id: order.return_request.id, idempotencyKey, ...(returnRefundReason.trim() ? { reason: returnRefundReason.trim() } : {}) })
       setReturnRefundReason('')
+      setReturnRefundIdempotencyKey(null)
       addToast({ title: 'Đã ghi nhận khoản hoàn đổi trả.', variant: 'success' })
     } catch (error) {
       addToast({ title: 'Không thể ghi nhận khoản hoàn.', description: error.message, variant: 'error' })
@@ -429,6 +437,14 @@ export function AdminOrderDetailPage() {
         {canRefund && !mayRefund && <p className="text-sm text-muted-foreground">Tài khoản hiện tại không có quyền hoàn tiền; cần nhân viên có quyền “refund” xử lý.</p>}
       </Card>
 
+      {(order.payment_exceptions ?? []).filter((item) => item.status !== 'resolved').map((item) => (
+        <Card key={item.id} className="flex flex-col gap-3 border-destructive/40 bg-destructive/[0.04]">
+          <h3 className="font-display text-xl text-destructive">Thanh toán đến sau khi đơn đã hủy</h3>
+          <p className="text-sm text-foreground">PayOS đã xác minh {formatPrice(item.amount)} sau khi đơn trở thành trạng thái kết thúc. Tồn kho và voucher không được tự động khôi phục.</p>
+          <p className="text-sm text-muted-foreground">Mã giao dịch: {item.gateway_transaction_id} · Trạng thái xử lý: {item.status === 'refund_pending' ? 'Chờ chuyển tiền hoàn' : 'Cần xử lý'}</p>
+        </Card>
+      ))}
+
       <Card className="flex flex-col gap-4">
         <div>
           <h3 className="font-display text-xl text-foreground">Tiến trình đơn hàng</h3>
@@ -470,6 +486,21 @@ export function AdminOrderDetailPage() {
             <Input id="return-refund-note" label="Ghi chú (không bắt buộc)" value={returnRefundNote} onChange={(event) => setReturnRefundNote(event.target.value)} maxLength={500} />
             <div><Button onClick={handleReturnCompletion} disabled={!returnRefundReference.trim() || completeReturnRequest.isPending}>{completeReturnRequest.isPending ? 'Đang hoàn tất...' : 'Xác nhận đã chuyển tiền'}</Button></div>
           </div> : <div className="text-sm text-muted-foreground">{order.return_request.resolution_note && <p>Phản hồi: {order.return_request.resolution_note}</p>}{order.return_request.inspection_note && <p className="mt-2">Kiểm tra: {order.return_request.inspection_note}</p>}{order.return_request.refund_reference && <p className="mt-2">Mã hoàn tiền: {order.return_request.refund_reference}</p>}</div>}
+        </Card>
+      )}
+
+      {(order.refunds ?? []).length > 0 && (
+        <Card className="flex flex-col gap-4">
+          <div><h3 className="font-display text-xl text-foreground">Các khoản hoàn tiền</h3><p className="mt-1 text-sm text-muted-foreground">Mỗi dòng là một nghĩa vụ hoàn tiền độc lập; “đã chuyển” chỉ xuất hiện khi có mã tham chiếu.</p></div>
+          {(order.refunds ?? []).map((refund) => (
+            <div key={refund.id} className="rounded-control border border-border p-3 text-sm">
+              <p className="font-medium text-foreground">Hoàn tiền #{refund.id} · {formatPrice(refund.amount)}</p>
+              <p className="mt-1 text-muted-foreground">{{ requested: 'Chờ chuyển tiền', processing: 'Đang xử lý', succeeded: 'Đã chuyển', failed: 'Thất bại', cancelled: 'Đã hủy', legacy_unknown: 'Dữ liệu cũ — chưa rõ đã chuyển' }[refund.status] ?? refund.status}</p>
+              {refund.reason && <p className="mt-1 text-foreground">Lý do: {refund.reason}</p>}
+              <p className="mt-1 text-muted-foreground">Yêu cầu: {formatDate(refund.requested_at)}{refund.requested_by?.name ? ` · ${refund.requested_by.name}` : ''}</p>
+              {refund.external_reference && <p className="mt-1 text-muted-foreground">Tham chiếu: {refund.external_reference} · {formatDate(refund.completed_at)}</p>}
+            </div>
+          ))}
         </Card>
       )}
 
@@ -536,15 +567,7 @@ export function AdminOrderDetailPage() {
         <Card className="flex flex-col gap-4">
           <h3 className="font-display text-xl text-foreground">Hoàn tiền</h3>
           <form onSubmit={handleRefundReview} className="flex flex-col gap-4">
-            <Input
-              label="Số tiền hoàn"
-              id="refund-amount"
-              type="number"
-              min={1000}
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              required
-            />
+            <p className="text-sm text-foreground">Hoàn toàn bộ số tiền còn lại: <strong>{formatPrice(remainingRefund)}</strong></p>
             <Input
               label="Lý do (không bắt buộc)"
               id="refund-reason"
@@ -555,7 +578,7 @@ export function AdminOrderDetailPage() {
 
             {refundResult && (
               <p role="status" className="text-sm text-secondary">
-                Đã hoàn {formatPrice(refundResult.refunded_amount)} · Trạng thái: {refundResult.status}
+                Đã tạo khoản hoàn {formatPrice(refundResult.amount)} · Trạng thái: {refundResult.status}
               </p>
             )}
 

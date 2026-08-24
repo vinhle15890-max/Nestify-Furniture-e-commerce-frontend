@@ -18,8 +18,8 @@ export function updateOrderStatus(id, status, metadata = {}) {
   return apiClient.patch(`/admin/orders/${id}/status`, { status, ...metadata })
 }
 
-export function refundOrder(id, payload) {
-  return apiClient.post(`/admin/orders/${id}/refund`, payload)
+export function refundOrder(id, payload, idempotencyKey) {
+  return apiClient.post(`/admin/orders/${id}/refund`, payload, { headers: { 'Idempotency-Key': idempotencyKey } })
 }
 
 export function completeManualRefund(id, payload) {
@@ -38,8 +38,8 @@ export function receiveReturnRequest(id, payload) {
   return apiClient.patch(`/admin/return-requests/${id}/receive`, payload)
 }
 
-export function refundReturnRequest(id, payload) {
-  return apiClient.post(`/admin/return-requests/${id}/refund`, payload)
+export function refundReturnRequest(id, payload, idempotencyKey) {
+  return apiClient.post(`/admin/return-requests/${id}/refund`, payload, { headers: { 'Idempotency-Key': idempotencyKey } })
 }
 
 export function completeReturnRequest(id, payload) {

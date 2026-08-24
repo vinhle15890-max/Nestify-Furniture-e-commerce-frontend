@@ -575,3 +575,6 @@ order nhưng PayOS session lỗi có POST order lần hai không; (6) emoji làm
 - Admin order detail thực thi chuỗi `delivery_failed -> returned_to_store -> cancelled`; bước xác nhận hàng về có modal nêu rõ đây là thời điểm hoàn kho vật lý.
 - Modal hủy nhận lý do tùy chọn và giải thích riêng tác động COD/PayOS. Payment badge hiển thị rõ `failed`, `partially_refunded`, `refunded`, không gom thành “chưa thanh toán”.
 - Backend là nguồn thật cho restock/refund; FE không tự suy tồn kho hoặc trạng thái tiền từ fulfillment status.
+## Sales remediation state — 2026-08-24
+
+Sales Admin now renders order, payment, return, refunds, and payment exceptions as separate facts. Refund creation uses a stable per-operation idempotency key; each logical refund displays its own amount, status, reason, request actor/time, transfer reference, and completion actor/time. “Transferred” is shown only for a succeeded refund with recorded evidence. Dashboard values distinguish order value, collected cash, refund pending transfer, refund transferred, and net collected cash; AOV uses one delivered-order commercial cohort.

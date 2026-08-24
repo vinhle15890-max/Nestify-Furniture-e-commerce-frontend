@@ -157,11 +157,11 @@ export function AdminDashboardPage() {
 
   // Derived metrics (computed client-side from the fixed payload).
   const revenueOrders = orders.delivered
-  const avgOrderValue = revenueOrders ? finance.net_revenue / revenueOrders : 0
+  const avgOrderValue = revenueOrders ? (finance.delivered_order_value ?? 0) / revenueOrders : 0
   const fulfilledRate = pct(orders.delivered, orders.total)
   const activeRate = pct(catalog.active_products, catalog.products)
   const awaitingConfirmation = orders.pending_confirmation ?? orders.pending_payment ?? 0
-  const needsAttention = awaitingConfirmation + (operations.processing ?? 0) + (operations.shipped ?? 0) + (operations.delivery_failed ?? 0) + (operations.cod_receivable_count ?? 0) + (operations.low_stock ?? 0) + (operations.return_requests_pending ?? 0) + (operations.return_refunds_pending ?? 0) + (operations.return_payouts_pending ?? 0) + stats.pending_reviews + manualRefunds.count
+  const needsAttention = awaitingConfirmation + (operations.processing ?? 0) + (operations.shipped ?? 0) + (operations.delivery_failed ?? 0) + (operations.cod_receivable_count ?? 0) + (operations.low_stock ?? 0) + (operations.return_requests_pending ?? 0) + (operations.return_refunds_pending ?? 0) + (operations.return_payouts_pending ?? 0) + (operations.payment_exceptions ?? 0) + stats.pending_reviews + manualRefunds.count
   const periods = new Map()
   for (const row of finance.series ?? []) periods.set(row.period, { ...row })
   for (const row of inventory.series ?? []) periods.set(row.period, { ...(periods.get(row.period) ?? { period: row.period }), ...row })
@@ -270,10 +270,10 @@ export function AdminDashboardPage() {
               Tiền thực thu
             </div>
             <p className="mt-4 font-display text-[clamp(2.25rem,4vw,3.25rem)] leading-none">
-              {formatPrice(finance.net_revenue)}
+              {formatPrice(finance.net_collected_cash ?? finance.net_revenue)}
             </p>
             <p className="mt-3 text-sm text-surface/60">
-              Đã thu {formatPrice(finance.cash_collected)} · hoàn {formatPrice(finance.refunds)}
+              Đã thu {formatPrice(finance.cash_collected)} · đã chuyển hoàn {formatPrice(finance.refund_transferred ?? finance.refunds)}
             </p>
 
             <div className="mt-auto grid grid-cols-3 gap-4 border-t border-surface/15 pt-6 sm:max-w-md">
@@ -318,6 +318,7 @@ export function AdminDashboardPage() {
                 <ActionRow to="/admin/orders?return_status=requested" icon={Package} label="Yêu cầu đổi trả" count={operations.return_requests_pending ?? 0} urgent />
                 <ActionRow to="/admin/orders?return_status=received" icon={CheckCircle2} label="Đổi trả chờ ghi hoàn" count={operations.return_refunds_pending ?? 0} urgent />
                 <ActionRow to="/admin/orders?return_status=refund_pending" icon={CheckCircle2} label="Đổi trả chờ chuyển tiền" count={operations.return_payouts_pending ?? 0} urgent />
+                <ActionRow to="/admin/payment-exceptions" icon={AlertTriangle} label="Thanh toán ngoại lệ" count={operations.payment_exceptions ?? 0} urgent />
                 <ActionRow
                   to="/admin/reviews"
                   icon={Star}
@@ -384,7 +385,8 @@ export function AdminDashboardPage() {
             <tbody className="divide-y divide-border">
               <tr><td className="px-5 py-3">Giá trị đơn phát sinh</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.order_value ?? 0)}</td><td className="px-5 py-3 text-muted-foreground">Đơn tạo trong kỳ, chưa trừ tiền chưa thu</td></tr>
               <tr><td className="px-5 py-3">Tiền đã thu</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.cash_collected)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm thanh toán</td></tr>
-              <tr><td className="px-5 py-3">Tiền đã hoàn</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.refunds)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm hoàn tiền</td></tr>
+              <tr><td className="px-5 py-3">Hoàn chờ chuyển</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.refund_pending_transfer ?? 0)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm ghi nhận nghĩa vụ</td></tr>
+              <tr><td className="px-5 py-3">Tiền đã chuyển hoàn</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.refund_transferred ?? finance.refunds)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm xác nhận chuyển tiền</td></tr>
               <tr><td className="px-5 py-3">COD chờ thu</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.cod_receivable)}</td><td className="px-5 py-3 text-muted-foreground">Khoản phải thu, chưa phải doanh thu</td></tr>
             </tbody>
           </table>

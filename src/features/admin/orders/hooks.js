@@ -50,7 +50,7 @@ export function useRefundOrder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, ...payload }) => ordersApi.refundOrder(id, payload),
+    mutationFn: ({ id, idempotencyKey, ...payload }) => ordersApi.refundOrder(id, payload, idempotencyKey),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: adminOrderKeys.all }),
   })
 }
@@ -116,7 +116,7 @@ function useReturnMoneyMutation(orderId, mutationFn) {
 }
 
 export function useRefundReturnRequest(orderId) {
-  return useReturnMoneyMutation(orderId, ({ id, ...payload }) => ordersApi.refundReturnRequest(id, payload))
+  return useReturnMoneyMutation(orderId, ({ id, idempotencyKey, ...payload }) => ordersApi.refundReturnRequest(id, payload, idempotencyKey))
 }
 
 export function useCompleteReturnRequest(orderId) {

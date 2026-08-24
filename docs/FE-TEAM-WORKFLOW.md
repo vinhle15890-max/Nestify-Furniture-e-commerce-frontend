@@ -855,3 +855,6 @@ chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail 
 ---
 
 _Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-27._
+## Sales Admin contract update — 2026-08-24
+
+When changing Sales Admin, preserve the independent order/payment/return/refund/exception presentation. A refund request owns one stable client idempotency key across HTTP retries. UI status and buttons are projections only: backend transition checks, refund capacity, authorization, and transfer evidence remain authoritative. Payment exceptions are operational P0 work and must remain visible until audited resolution.

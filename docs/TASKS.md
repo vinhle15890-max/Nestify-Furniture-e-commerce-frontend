@@ -333,3 +333,9 @@ From spec Section I:
 - Run `npm run lint` and `npm test -- --run` before opening a PR — both must be clean.
 - Reuse design tokens (`src/styles/tokens.css`) and shared components — don't introduce raw hex colors or duplicate Button/Card/etc. variants.
 - Vietnamese-language UI throughout (per spec — no i18n in scope).
+## Completed sales remediation — 2026-08-24
+
+- Added immutable multi-refund presentation and manual-transfer evidence flow.
+- Added urgent paid-after-cancellation exception queue and order warning.
+- Corrected dashboard labels/cohorts for collected cash, pending/transferred refunds, net collected cash, and AOV.
+- Kept one-shipment and whole-order-return scope; no marketplace/accounting expansion.
