@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -74,6 +74,45 @@ describe('OrderDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Hủy đơn' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Thanh toán lại' })).toBeInTheDocument()
     expect(screen.queryByText(/Hãy để lại đánh giá/)).not.toBeInTheDocument()
+  })
+
+  it('lets the customer submit a payout destination for their refund', async () => {
+    ordersApi.getOrder.mockResolvedValue({ data: {
+      ...baseOrder,
+      status: 'cancelled',
+      payment_method: 'payos',
+      refunds: [{ id: 7, amount: 500000, status: 'requested', payout_destination: null }],
+    } })
+    ordersApi.submitRefundPayoutDetails.mockResolvedValue({ data: { status: 'submitted', account_number_masked: '******6789' } })
+    renderPage()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Cung cấp tài khoản' }))
+    const dialog = screen.getByRole('dialog', { name: 'Tài khoản nhận hoàn tiền' })
+    await userEvent.type(within(dialog).getByText('Ngân hàng').closest('label').querySelector('input'), 'MB Bank')
+    await userEvent.type(within(dialog).getByText('Tên chủ tài khoản').closest('label').querySelector('input'), 'NGUYEN VAN A')
+    await userEvent.type(within(dialog).getByText('Số tài khoản').closest('label').querySelector('input'), '0123456789')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận tài khoản nhận hoàn' }))
+
+    await waitFor(() => expect(ordersApi.submitRefundPayoutDetails).toHaveBeenCalledWith(7, {
+      bank_name: 'MB Bank', account_holder_name: 'NGUYEN VAN A', account_number: '0123456789',
+    }))
+  })
+
+  it('shows a correction reason without exposing the full account number', async () => {
+    ordersApi.getOrder.mockResolvedValue({ data: {
+      ...baseOrder,
+      status: 'cancelled',
+      refunds: [{ id: 7, amount: 500000, status: 'requested', payout_destination: {
+        status: 'correction_required', bank_name: 'MB Bank', account_holder_name: 'NGUYEN VAN A',
+        account_number_masked: '******6789', correction_reason: 'Tên chủ tài khoản không khớp.',
+      } }],
+    } })
+    renderPage()
+
+    expect(await screen.findByText(/Tên chủ tài khoản không khớp/)).toBeInTheDocument()
+    expect(screen.getByText('******6789')).toBeInTheDocument()
+    expect(screen.queryByText('0123456789')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cập nhật tài khoản' })).toBeInTheDocument()
   })
 
   it('hides cancel and retry actions and links delivered products to their review form', async () => {
@@ -183,7 +222,7 @@ describe('OrderDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn' }))
 
     // Paid orders warn about the refund.
-    expect(screen.getByText(/sẽ được hoàn tiền/)).toBeInTheDocument()
+    expect(screen.getByText(/cung cấp tài khoản nhận hoàn/)).toBeInTheDocument()
 
     await userEvent.type(screen.getByPlaceholderText(/đặt nhầm/), 'Đổi ý')
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy' }))

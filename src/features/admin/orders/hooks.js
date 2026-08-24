@@ -68,6 +68,39 @@ export function useCompleteManualRefund() {
   })
 }
 
+export function useRefundWorkflow(orderId) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ refundId, action, payload = {} }) => {
+      if (action === 'processing') return ordersApi.startRefund(refundId)
+      if (action === 'succeeded') return ordersApi.completeRefund(refundId, payload)
+      if (action === 'failed') return ordersApi.failRefund(refundId, payload)
+      if (action === 'needs_review') return ordersApi.markRefundNeedsReview(refundId, payload)
+      throw new Error('Thao tác hoàn tiền không hợp lệ.')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useRefundPayoutDetails(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ refundId, action, reason }) => action === 'verify'
+      ? ordersApi.verifyRefundPayoutDetails(refundId)
+      : ordersApi.requestRefundPayoutCorrection(refundId, { reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
 export function useCollectCod() {
   const queryClient = useQueryClient()
   return useMutation({

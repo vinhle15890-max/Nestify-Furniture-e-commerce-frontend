@@ -141,7 +141,7 @@ describe('App routes', () => {
   })
 
   it('renders the admin dashboard for a non-super-admin staff user', async () => {
-    renderAt('/admin', { id: 1, name: 'NV', roles: ['order_staff'] })
+    renderAt('/admin', { id: 1, name: 'NV', roles: ['order_staff'], permissions: ['view_dashboard'] })
     expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
   })
 })

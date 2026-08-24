@@ -47,3 +47,14 @@ export function useShipReturnRequest(orderId) {
     },
   })
 }
+
+export function useSubmitRefundPayoutDetails(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ refundId, ...payload }) => ordersApi.submitRefundPayoutDetails(refundId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders', String(orderId)] })
+    },
+  })
+}

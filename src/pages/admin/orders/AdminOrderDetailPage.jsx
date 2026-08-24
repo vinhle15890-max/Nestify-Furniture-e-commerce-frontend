@@ -10,7 +10,7 @@ import { Button } from '../../../components/Button'
 import { Input } from '../../../components/Input'
 import { Modal } from '../../../components/Modal'
 import { Spinner } from '../../../components/Spinner'
-import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useCompleteManualRefund, useCollectCod, useReviewReturnRequest, useReceiveReturnRequest, useRefundReturnRequest, useCompleteReturnRequest } from '../../../features/admin/orders/hooks'
+import { useAdminOrder, useUpdateOrderStatus, useRefundOrder, useRefundWorkflow, useRefundPayoutDetails, useCollectCod, useReviewReturnRequest, useReceiveReturnRequest, useRefundReturnRequest, useCompleteReturnRequest } from '../../../features/admin/orders/hooks'
 import { ADMIN_ORDER_TRANSITIONS } from '../../../features/admin/orders/statusTransitions'
 import { ORDER_STATUS_LABELS } from '../../../features/orders/statusLabels'
 import { useToastStore } from '../../../store/toastStore'
@@ -61,7 +61,8 @@ export function AdminOrderDetailPage() {
   const order = orderQuery.data?.data
   const updateOrderStatus = useUpdateOrderStatus()
   const refundOrder = useRefundOrder()
-  const completeManualRefund = useCompleteManualRefund()
+  const refundWorkflow = useRefundWorkflow(orderId)
+  const refundPayoutDetails = useRefundPayoutDetails(orderId)
   const collectCod = useCollectCod()
   const reviewReturnRequest = useReviewReturnRequest(orderId)
   const receiveReturnRequest = useReceiveReturnRequest(orderId)
@@ -79,10 +80,6 @@ export function AdminOrderDetailPage() {
   const [cancelError, setCancelError] = useState(null)
   const [returnOpen, setReturnOpen] = useState(false)
   const [returnError, setReturnError] = useState(null)
-  const [payoutOpen, setPayoutOpen] = useState(false)
-  const [payoutReference, setPayoutReference] = useState('')
-  const [payoutNote, setPayoutNote] = useState('')
-  const [payoutError, setPayoutError] = useState(null)
   const [collectOpen, setCollectOpen] = useState(false)
   const [collectError, setCollectError] = useState(null)
   const [shippingOpen, setShippingOpen] = useState(false)
@@ -98,6 +95,13 @@ export function AdminOrderDetailPage() {
   const [returnRefundNote, setReturnRefundNote] = useState('')
   const [refundIdempotencyKey, setRefundIdempotencyKey] = useState(null)
   const [returnRefundIdempotencyKey, setReturnRefundIdempotencyKey] = useState(null)
+  const [refundAction, setRefundAction] = useState(null)
+  const [refundActionReference, setRefundActionReference] = useState('')
+  const [refundActionNote, setRefundActionNote] = useState('')
+  const [refundActionError, setRefundActionError] = useState(null)
+  const [payoutCorrectionRefund, setPayoutCorrectionRefund] = useState(null)
+  const [payoutCorrectionReason, setPayoutCorrectionReason] = useState('')
+  const [payoutCorrectionError, setPayoutCorrectionError] = useState(null)
 
   const validOrderId = Number.isInteger(orderId) && orderId > 0
 
@@ -168,7 +172,7 @@ export function AdminOrderDetailPage() {
     pending: 'Chờ thanh toán',
     failed: 'Đã kết thúc, chưa thu tiền',
     partially_refunded: 'Đã hoàn một phần',
-    refunded: 'Đã ghi nhận hoàn đủ',
+    refunded: 'Đã ghi nhận nghĩa vụ hoàn đủ',
   }[order.payment?.status] ?? 'Chưa thanh toán'
   const timeline = buildTimeline(order)
   const terminalReason = {
@@ -309,21 +313,80 @@ export function AdminOrderDetailPage() {
     }
   }
 
-  const handleCompletePayout = async (event) => {
-    event.preventDefault()
-    if (completeManualRefund.isPending) return
-    setPayoutError(null)
-
+  const startRefundTransfer = async (refund) => {
     try {
-      await completeManualRefund.mutateAsync({
-        id: order.id,
-        reference: payoutReference.trim(),
-        ...(payoutNote.trim() ? { note: payoutNote.trim() } : {}),
-      })
-      setPayoutOpen(false)
-      addToast({ title: 'Đã xác nhận chuyển tiền hoàn cho khách.', variant: 'success' })
+      await refundWorkflow.mutateAsync({ refundId: refund.id, action: 'processing' })
+      addToast({ title: refund.status === 'failed' ? 'Đã mở lại lần chuyển tiền.' : 'Đã bắt đầu xử lý chuyển tiền.', variant: 'success' })
     } catch (error) {
-      setPayoutError(error.message)
+      addToast({ title: 'Không thể bắt đầu chuyển tiền.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const verifyPayoutDestination = async (refund) => {
+    try {
+      await refundPayoutDetails.mutateAsync({ refundId: refund.id, action: 'verify' })
+      addToast({ title: 'Đã xác minh tài khoản nhận hoàn.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể xác minh tài khoản.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const requestPayoutCorrection = async (event) => {
+    event.preventDefault()
+    if (!payoutCorrectionRefund || refundPayoutDetails.isPending) return
+    setPayoutCorrectionError(null)
+    try {
+      await refundPayoutDetails.mutateAsync({ refundId: payoutCorrectionRefund.id, action: 'correction', reason: payoutCorrectionReason.trim() })
+      setPayoutCorrectionRefund(null)
+      setPayoutCorrectionReason('')
+      addToast({ title: 'Đã yêu cầu khách cập nhật tài khoản nhận hoàn.', variant: 'success' })
+    } catch (error) {
+      setPayoutCorrectionError(error.message)
+    }
+  }
+
+  const openRefundAction = (refund, action) => {
+    setRefundAction({ refund, action })
+    setRefundActionReference(refund.external_reference ?? '')
+    setRefundActionNote('')
+    setRefundActionError(null)
+  }
+
+  const closeRefundAction = (force = false) => {
+    if (refundWorkflow.isPending && !force) return
+    setRefundAction(null)
+    setRefundActionReference('')
+    setRefundActionNote('')
+    setRefundActionError(null)
+  }
+
+  const submitRefundAction = async (event) => {
+    event.preventDefault()
+    if (!refundAction || refundWorkflow.isPending) return
+
+    const { refund, action } = refundAction
+    const note = refundActionNote.trim()
+    const reference = refundActionReference.trim()
+    const payload = action === 'succeeded'
+      ? { reference, ...(note ? { note } : {}) }
+      : action === 'failed'
+        ? { failure_reason: note }
+        : { note, ...(reference ? { external_reference: reference } : {}) }
+
+    setRefundActionError(null)
+    try {
+      await refundWorkflow.mutateAsync({ refundId: refund.id, action, payload })
+      closeRefundAction(true)
+      addToast({
+        title: action === 'succeeded'
+          ? 'Đã xác nhận tiền hoàn được chuyển.'
+          : action === 'failed'
+            ? 'Đã ghi nhận lần chuyển tiền thất bại.'
+            : 'Đã khóa khoản hoàn để chờ xác minh.',
+        variant: action === 'failed' ? 'error' : 'success',
+      })
+    } catch (error) {
+      setRefundActionError(error.message)
     }
   }
 
@@ -506,6 +569,35 @@ export function AdminOrderDetailPage() {
               {refund.external_reference && <p className="mt-1 text-muted-foreground">Tham chiếu: {refund.external_reference} · {formatDate(refund.completed_at)}</p>}
               {refund.failure_reason && <p className="mt-1 text-destructive">Ghi chú xử lý: {refund.failure_reason}</p>}
               {refund.needs_review_at && <p className="mt-1 font-medium text-destructive">Không được chuyển lại trước khi xác minh giao dịch bên ngoài ({formatDate(refund.needs_review_at)}).</p>}
+              {!refund.payout_destination && ['requested', 'failed'].includes(refund.status) && <p className="mt-2 rounded-control border border-border bg-surface-alt p-3 text-muted-foreground">Đang chờ khách cung cấp tài khoản nhận hoàn.</p>}
+              {refund.payout_destination && <div className="mt-3 rounded-control border border-border bg-surface-alt p-3">
+                <p className="font-medium text-foreground">Tài khoản nhận hoàn · {{ submitted: 'Chờ xác minh', verified: 'Đã xác minh', correction_required: 'Chờ khách sửa' }[refund.payout_destination.status]}</p>
+                <dl className="mt-2 grid gap-1 text-muted-foreground sm:grid-cols-[auto_1fr] sm:gap-x-4">
+                  {refund.payout_destination.account_holder_name && <><dt>Người nhận</dt><dd className="text-foreground sm:text-right">{refund.payout_destination.account_holder_name}</dd></>}
+                  <dt>Ngân hàng</dt><dd className="text-foreground sm:text-right">{refund.payout_destination.bank_name}</dd>
+                  <dt>Số tài khoản</dt><dd className="font-mono text-foreground sm:text-right">{refund.payout_destination.account_number ?? refund.payout_destination.account_number_masked}</dd>
+                </dl>
+                {refund.payout_destination.correction_reason && <p className="mt-2 text-destructive">Yêu cầu sửa: {refund.payout_destination.correction_reason}</p>}
+                {refund.payout_destination.verified_at && <p className="mt-2 text-muted-foreground">Xác minh: {formatDate(refund.payout_destination.verified_at)}{refund.payout_destination.verified_by?.name ? ` · ${refund.payout_destination.verified_by.name}` : ''}</p>}
+                {can(user, 'refund') && refund.payout_destination.status === 'submitted' && <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3"><Button type="button" onClick={() => verifyPayoutDestination(refund)} disabled={refundPayoutDetails.isPending}>Xác minh tài khoản</Button><Button type="button" variant="secondary" onClick={() => { setPayoutCorrectionRefund(refund); setPayoutCorrectionReason(''); setPayoutCorrectionError(null) }} disabled={refundPayoutDetails.isPending}>Yêu cầu sửa</Button></div>}
+              </div>}
+              {can(user, 'refund') && (
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+                  {['requested', 'failed'].includes(refund.status) && refund.payout_destination?.status === 'verified' && (
+                    <Button type="button" onClick={() => startRefundTransfer(refund)} disabled={refundWorkflow.isPending}>
+                      {refund.status === 'failed' ? 'Thử chuyển lại' : 'Bắt đầu chuyển tiền'}
+                    </Button>
+                  )}
+                  {refund.status === 'processing' && <>
+                    <Button type="button" onClick={() => openRefundAction(refund, 'succeeded')} disabled={refundWorkflow.isPending}>Xác nhận đã chuyển</Button>
+                    <Button type="button" variant="secondary" onClick={() => openRefundAction(refund, 'needs_review')} disabled={refundWorkflow.isPending}>Chưa rõ kết quả</Button>
+                    <Button type="button" variant="destructive" onClick={() => openRefundAction(refund, 'failed')} disabled={refundWorkflow.isPending}>Ghi nhận thất bại</Button>
+                  </>}
+                  {refund.status === 'needs_review' && (
+                    <Button type="button" onClick={() => openRefundAction(refund, 'succeeded')} disabled={refundWorkflow.isPending}>Xác nhận kết quả đã chuyển</Button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </Card>
@@ -532,17 +624,7 @@ export function AdminOrderDetailPage() {
               </p>
               {payment.manual_refund.note && <p className="mt-1 text-muted-foreground">{payment.manual_refund.note}</p>}
             </div>
-          ) : (
-            <div className="flex flex-col gap-3 rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
-              <p>Khoản hoàn đã được ghi nhận nhưng vẫn cần chuyển trả thủ công qua PayOS.</p>
-              {can(user, 'refund') && (
-                <Button type="button" onClick={() => setPayoutOpen(true)} className="shrink-0">
-                  Xác nhận đã chuyển tiền
-                </Button>
-              )}
-              {!can(user, 'refund') && <p className="text-muted-foreground">Cần quyền “refund” để xác nhận khoản tiền đã chuyển.</p>}
-            </div>
-          )}
+          ) : <p className="rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">Xử lý tài khoản nhận và kết quả chuyển tiền theo đúng phiếu trong mục “Các khoản hoàn tiền” phía trên.</p>}
         </Card>
       )}
 
@@ -717,30 +799,72 @@ export function AdminOrderDetailPage() {
       </Modal>
 
       <Modal
-        open={payoutOpen}
-        onOpenChange={(open) => {
-          if (completeManualRefund.isPending) return
-          setPayoutOpen(open)
-          if (!open) setPayoutError(null)
-        }}
-        title="Xác nhận đã chuyển tiền"
-        description={`Khoản hoàn của đơn ${orderLabel}`}
+        open={payoutCorrectionRefund !== null}
+        onOpenChange={(open) => { if (!refundPayoutDetails.isPending && !open) setPayoutCorrectionRefund(null) }}
+        title="Yêu cầu khách sửa tài khoản"
+        description={payoutCorrectionRefund ? `Hoàn tiền #${payoutCorrectionRefund.id}` : ''}
       >
-        <form onSubmit={handleCompletePayout} className="flex flex-col gap-4">
-          <p className="text-sm text-foreground">
-            Chỉ xác nhận sau khi giao dịch hoàn tiền đã hoàn tất trên PayOS hoặc tài khoản ngân hàng.
-            Thao tác sẽ đóng nhắc việc trên dashboard và được lưu vào nhật ký kiểm toán.
-          </p>
-          <Input id="payout-reference" label="Mã giao dịch hoặc tham chiếu" value={payoutReference} onChange={(event) => setPayoutReference(event.target.value)} maxLength={255} required />
-          <Input id="payout-note" label="Ghi chú (không bắt buộc)" value={payoutNote} onChange={(event) => setPayoutNote(event.target.value)} maxLength={500} />
-          {payoutError && <p role="alert" className="text-sm text-destructive">{payoutError}</p>}
-          <div className="flex flex-wrap justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={() => setPayoutOpen(false)} disabled={completeManualRefund.isPending}>Quay lại</Button>
-            <Button type="submit" disabled={completeManualRefund.isPending || !payoutReference.trim()}>
-              {completeManualRefund.isPending ? 'Đang xác nhận...' : 'Xác nhận đã chuyển tiền'}
-            </Button>
-          </div>
+        <form onSubmit={requestPayoutCorrection} className="flex flex-col gap-4">
+          <p className="text-sm text-foreground">Nêu rõ thông tin nào chưa hợp lệ. Khách phải nhập lại đầy đủ; số tài khoản cũ không được dùng để chuyển tiền.</p>
+          <label className="text-sm text-foreground"><span className="text-muted-foreground">Lý do yêu cầu sửa</span><textarea value={payoutCorrectionReason} onChange={(event) => setPayoutCorrectionReason(event.target.value)} rows={3} minLength={5} maxLength={1000} required className="mt-1 w-full resize-y rounded-control border border-border bg-surface p-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+          {payoutCorrectionError && <p role="alert" className="text-sm text-destructive">{payoutCorrectionError}</p>}
+          <div className="flex flex-wrap justify-end gap-3"><Button type="button" variant="secondary" onClick={() => setPayoutCorrectionRefund(null)} disabled={refundPayoutDetails.isPending}>Quay lại</Button><Button type="submit" disabled={refundPayoutDetails.isPending || payoutCorrectionReason.trim().length < 5}>{refundPayoutDetails.isPending ? 'Đang gửi...' : 'Gửi yêu cầu sửa'}</Button></div>
         </form>
+      </Modal>
+
+      <Modal
+        open={refundAction !== null}
+        onOpenChange={(open) => { if (!open) closeRefundAction() }}
+        title={{
+          succeeded: 'Xác nhận đã chuyển tiền',
+          failed: 'Ghi nhận chuyển tiền thất bại',
+          needs_review: 'Ghi nhận kết quả chưa rõ',
+        }[refundAction?.action] ?? 'Cập nhật khoản hoàn'}
+        description={refundAction ? `Hoàn tiền #${refundAction.refund.id} · ${formatPrice(refundAction.refund.amount)}` : ''}
+      >
+        {refundAction && (
+          <form onSubmit={submitRefundAction} className="flex flex-col gap-4">
+            <p className="text-sm text-foreground">
+              {refundAction.action === 'succeeded'
+                ? 'Chỉ xác nhận khi đã kiểm tra tiền thực tế được chuyển. Mã tham chiếu là bằng chứng bắt buộc.'
+                : refundAction.action === 'failed'
+                  ? 'Khoản hoàn vẫn được giữ lại để có thể thử chuyển lại trên cùng phiếu sau khi xử lý nguyên nhân.'
+                  : 'Dùng khi đã thao tác bên ngoài nhưng chưa biết giao dịch thành công hay thất bại. Hệ thống sẽ giữ số tiền và không cho chuyển lại.'}
+            </p>
+            {refundAction.action !== 'failed' && (
+              <Input
+                id="refund-action-reference"
+                label={refundAction.action === 'succeeded' ? 'Mã giao dịch hoặc tham chiếu' : 'Mã tham chiếu (nếu có)'}
+                value={refundActionReference}
+                onChange={(event) => setRefundActionReference(event.target.value)}
+                maxLength={255}
+                required={refundAction.action === 'succeeded'}
+              />
+            )}
+            <label className="text-sm text-foreground">
+              <span className="text-muted-foreground">{refundAction.action === 'failed' ? 'Lý do thất bại' : refundAction.action === 'needs_review' ? 'Thông tin cần xác minh' : 'Ghi chú (không bắt buộc)'}</span>
+              <textarea
+                value={refundActionNote}
+                onChange={(event) => setRefundActionNote(event.target.value)}
+                rows={3}
+                maxLength={1000}
+                required={refundAction.action !== 'succeeded'}
+                className="mt-1 w-full resize-y rounded-control border border-border bg-surface p-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </label>
+            {refundActionError && <p role="alert" className="text-sm text-destructive">{refundActionError}</p>}
+            <div className="flex flex-wrap justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={closeRefundAction} disabled={refundWorkflow.isPending}>Quay lại</Button>
+              <Button
+                type="submit"
+                variant={refundAction.action === 'failed' ? 'destructive' : 'primary'}
+                disabled={refundWorkflow.isPending || (refundAction.action === 'succeeded' ? !refundActionReference.trim() : !refundActionNote.trim())}
+              >
+                {refundWorkflow.isPending ? 'Đang lưu...' : refundAction.action === 'succeeded' ? 'Xác nhận đã chuyển' : refundAction.action === 'failed' ? 'Lưu thất bại' : 'Chuyển sang cần xác minh'}
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       <Modal

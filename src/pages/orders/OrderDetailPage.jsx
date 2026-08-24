@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { useOrder, useCancelOrder, useCreateReturnRequest, useShipReturnRequest } from '../../features/orders/hooks'
+import { useOrder, useCancelOrder, useCreateReturnRequest, useShipReturnRequest, useSubmitRefundPayoutDetails } from '../../features/orders/hooks'
 import { useCreatePaymentSession } from '../../features/checkout/hooks'
 import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
 import { redirectToExternal } from '../../lib/navigation'
@@ -27,6 +27,7 @@ export function OrderDetailPage() {
   const cancelOrder = useCancelOrder()
   const createReturnRequest = useCreateReturnRequest()
   const shipReturnRequest = useShipReturnRequest(id)
+  const submitRefundPayoutDetails = useSubmitRefundPayoutDetails(id)
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
   const gateway = 'payos' // PayOS is the only payment gateway
@@ -36,6 +37,11 @@ export function OrderDetailPage() {
   const [returnReason, setReturnReason] = useState('')
   const [returnCarrier, setReturnCarrier] = useState('')
   const [returnTracking, setReturnTracking] = useState('')
+  const [payoutRefund, setPayoutRefund] = useState(null)
+  const [payoutBank, setPayoutBank] = useState('')
+  const [payoutHolder, setPayoutHolder] = useState('')
+  const [payoutAccount, setPayoutAccount] = useState('')
+  const [payoutError, setPayoutError] = useState(null)
 
   if (isLoading) {
     return (
@@ -140,6 +146,33 @@ export function OrderDetailPage() {
       addToast({ title: 'Đã ghi nhận vận đơn gửi trả.', variant: 'success' })
     } catch (error) {
       addToast({ title: 'Không thể ghi nhận vận đơn.', description: error.message, variant: 'error' })
+    }
+  }
+
+  function openPayoutDetails(refund) {
+    setPayoutRefund(refund)
+    setPayoutBank(refund.payout_destination?.bank_name ?? '')
+    setPayoutHolder(refund.payout_destination?.account_holder_name ?? '')
+    setPayoutAccount('')
+    setPayoutError(null)
+  }
+
+  async function handlePayoutDetails(event) {
+    event.preventDefault()
+    if (!payoutRefund || submitRefundPayoutDetails.isPending) return
+    setPayoutError(null)
+    try {
+      await submitRefundPayoutDetails.mutateAsync({
+        refundId: payoutRefund.id,
+        bank_name: payoutBank.trim(),
+        account_holder_name: payoutHolder.trim(),
+        account_number: payoutAccount.trim(),
+      })
+      setPayoutRefund(null)
+      setPayoutAccount('')
+      addToast({ title: 'Đã gửi thông tin nhận hoàn để Nestify xác minh.', variant: 'success' })
+    } catch (error) {
+      setPayoutError(error.message)
     }
   }
 
@@ -270,6 +303,39 @@ export function OrderDetailPage() {
         </section>
       )}
 
+      {(order.refunds ?? []).length > 0 && (
+        <section className={`mt-6 ${sectionClass}`} aria-labelledby="refund-destination-heading">
+          <h2 id="refund-destination-heading" className="font-display text-xl text-foreground">Thông tin nhận hoàn tiền</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Nestify chỉ chuyển tiền vào tài khoản bạn xác nhận tại đây. Thông tin giao hàng không được dùng để suy đoán tài khoản ngân hàng.</p>
+          <div className="mt-4 flex flex-col gap-3">
+            {(order.refunds ?? []).map((refund) => {
+              const destination = refund.payout_destination
+              const maySubmit = ['requested', 'failed'].includes(refund.status)
+                && (!destination || destination.status === 'correction_required')
+              return (
+                <div key={refund.id} className="rounded-control border border-border bg-surface-alt p-4 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-foreground">Khoản hoàn #{refund.id} · {formatPrice(refund.amount)}</p>
+                      {!destination && <p className="mt-1 text-muted-foreground">Đang chờ bạn cung cấp tài khoản nhận tiền.</p>}
+                      {destination?.status === 'submitted' && <p className="mt-1 text-muted-foreground">Nestify đang xác minh thông tin nhận hoàn.</p>}
+                      {destination?.status === 'verified' && <p className="mt-1 font-medium text-secondary">Tài khoản nhận hoàn đã được xác minh.</p>}
+                      {destination?.status === 'correction_required' && <p className="mt-1 text-destructive">Cần cập nhật: {destination.correction_reason}</p>}
+                    </div>
+                    {maySubmit && <Button type="button" onClick={() => openPayoutDetails(refund)}>{destination ? 'Cập nhật tài khoản' : 'Cung cấp tài khoản'}</Button>}
+                  </div>
+                  {destination && <dl className="mt-3 grid gap-1 border-t border-border pt-3 text-muted-foreground sm:grid-cols-[auto_1fr] sm:gap-x-4">
+                    <dt>Ngân hàng</dt><dd className="text-foreground sm:text-right">{destination.bank_name}</dd>
+                    <dt>Chủ tài khoản</dt><dd className="text-foreground sm:text-right">{destination.account_holder_name}</dd>
+                    <dt>Số tài khoản</dt><dd className="text-foreground sm:text-right">{destination.account_number_masked}</dd>
+                  </dl>}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
       {order.status === 'delivered' && (
         <section className={`mt-6 ${sectionClass}`} aria-labelledby="return-request-heading">
           <h2 id="return-request-heading" className="font-display text-xl text-foreground">Đổi trả sau giao hàng</h2>
@@ -345,6 +411,22 @@ export function OrderDetailPage() {
       </BecomingModal>
 
       <BecomingModal
+        open={payoutRefund !== null}
+        onOpenChange={(open) => { if (!submitRefundPayoutDetails.isPending && !open) setPayoutRefund(null) }}
+        title="Tài khoản nhận hoàn tiền"
+        description={payoutRefund ? `Khoản hoàn #${payoutRefund.id} · ${formatPrice(payoutRefund.amount)}` : ''}
+      >
+        <form onSubmit={handlePayoutDetails} className="flex flex-col gap-4">
+          <p className="text-sm leading-relaxed text-muted-foreground">Kiểm tra kỹ tên chủ tài khoản và số tài khoản. Sau khi Nestify xác minh và bắt đầu chuyển tiền, thông tin này không thể thay đổi.</p>
+          <label className="text-sm"><span className="text-muted-foreground">Ngân hàng</span><input value={payoutBank} onChange={(event) => setPayoutBank(event.target.value)} minLength={2} maxLength={120} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+          <label className="text-sm"><span className="text-muted-foreground">Tên chủ tài khoản</span><input value={payoutHolder} onChange={(event) => setPayoutHolder(event.target.value)} minLength={2} maxLength={150} required autoComplete="name" className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+          <label className="text-sm"><span className="text-muted-foreground">Số tài khoản</span><input value={payoutAccount} onChange={(event) => setPayoutAccount(event.target.value.replace(/\D/g, ''))} minLength={6} maxLength={20} inputMode="numeric" pattern="[0-9]{6,20}" required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 font-mono text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
+          {payoutError && <p role="alert" className="text-sm text-destructive">{payoutError}</p>}
+          <div className="flex flex-wrap justify-end gap-3"><Button type="button" variant="ghost" onClick={() => setPayoutRefund(null)} disabled={submitRefundPayoutDetails.isPending}>Đóng</Button><Button type="submit" disabled={submitRefundPayoutDetails.isPending || payoutBank.trim().length < 2 || payoutHolder.trim().length < 2 || !/^[0-9]{6,20}$/.test(payoutAccount)}>{submitRefundPayoutDetails.isPending ? 'Đang gửi...' : 'Xác nhận tài khoản nhận hoàn'}</Button></div>
+        </form>
+      </BecomingModal>
+
+      <BecomingModal
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         title="Hủy đơn hàng"
@@ -352,7 +434,7 @@ export function OrderDetailPage() {
       >
         {willRefund && (
           <p className="mb-4 rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">
-            Đơn đã thanh toán sẽ được hoàn tiền; bộ phận CSKH sẽ liên hệ xử lý hoàn tiền cho bạn.
+            Đơn đã thanh toán sẽ được ghi nhận hoàn tiền. Sau khi hủy, hãy cung cấp tài khoản nhận hoàn ngay trong trang chi tiết đơn hàng này.
           </p>
         )}
         <label className="block text-sm">

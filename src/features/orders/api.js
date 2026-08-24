@@ -19,3 +19,7 @@ export function createReturnRequest(id, reason) {
 export function shipReturnRequest(id, payload) {
   return apiClient.patch(`/return-requests/${id}/ship`, payload)
 }
+
+export function submitRefundPayoutDetails(refundId, payload) {
+  return apiClient.put(`/refunds/${refundId}/payout-details`, payload)
+}

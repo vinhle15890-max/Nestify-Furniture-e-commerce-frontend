@@ -266,7 +266,13 @@ export function AdminInventoryPage() {
               ))}
             </ul>
           )}
-          <div className="border-t border-border p-4"><Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={(next) => { setPage(next); setSelectedId(null) }} /></div>
+          <div className="grid gap-3 border-t border-border px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <p className="text-center text-xs tabular-nums text-muted-foreground sm:text-left">
+              Trang {meta.current_page ?? page}/{meta.last_page ?? 1}
+              {Number.isFinite(meta.total) ? ` · ${meta.total} biến thể` : ''}
+            </p>
+            <Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={(next) => { setPage(next); setSelectedId(null) }} />
+          </div>
         </Panel>
 
         <div className="min-w-0 space-y-6">

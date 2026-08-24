@@ -436,13 +436,12 @@ describe('AdminOrderDetailPage', () => {
     expect(await screen.findByText('Yêu cầu hoàn tiền của khách')).toBeInTheDocument()
     expect(screen.getByText('Không còn nhu cầu')).toBeInTheDocument()
     expect(screen.getAllByText(/10.000/)).toHaveLength(2)
-    expect(screen.getByText(/cần chuyển trả thủ công qua PayOS/)).toBeInTheDocument()
+    expect(screen.getByText(/Xử lý tài khoản nhận và kết quả chuyển tiền/)).toBeInTheDocument()
     expect(screen.queryByLabelText('Số tiền hoàn')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Tiếp tục hoàn tiền' })).not.toBeInTheDocument()
   })
 
-  it('closes a manual refund with a required transaction reference', async () => {
-    ordersApi.completeManualRefund.mockResolvedValue({ data: { reference: 'PAYOS-REF-001' } })
+  it('does not expose the legacy direct-completion shortcut', async () => {
     renderPage({
       ...baseOrder,
       status: 'cancelled',
@@ -450,13 +449,82 @@ describe('AdminOrderDetailPage', () => {
       cancellation: { reason: 'Đổi ý', refund_recorded: true },
     })
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận đã chuyển tiền' }))
-    const submit = screen.getByRole('button', { name: 'Xác nhận đã chuyển tiền' })
-    expect(submit).toBeDisabled()
-    await userEvent.type(screen.getByLabelText('Mã giao dịch hoặc tham chiếu'), 'PAYOS-REF-001')
-    await userEvent.click(submit)
+    expect(await screen.findByText(/Xử lý tài khoản nhận và kết quả chuyển tiền/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Xác nhận đã chuyển tiền' })).not.toBeInTheDocument()
+  })
 
-    await waitFor(() => expect(ordersApi.completeManualRefund).toHaveBeenCalledWith(101, { reference: 'PAYOS-REF-001' }))
+  it('moves a requested refund into processing before staff records the transfer result', async () => {
+    ordersApi.startRefund.mockResolvedValue({ data: { id: 6, status: 'processing' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'requested', requested_at: '2026-08-24T10:00:00Z', payout_destination: { status: 'verified', bank_name: 'MB Bank', account_holder_name: 'NGUYEN VAN A', account_number: '0123456789', account_number_masked: '******6789' } }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu chuyển tiền' }))
+
+    await waitFor(() => expect(ordersApi.startRefund).toHaveBeenCalledWith(6))
+  })
+
+  it('requires payout details verification before transfer can start', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'requested', requested_at: '2026-08-24T10:00:00Z', payout_destination: null }],
+    })
+
+    expect(await screen.findByText('Đang chờ khách cung cấp tài khoản nhận hoàn.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bắt đầu chuyển tiền' })).not.toBeInTheDocument()
+  })
+
+  it('lets refund staff verify submitted payout details', async () => {
+    ordersApi.verifyRefundPayoutDetails.mockResolvedValue({ data: { id: 6, payout_destination: { status: 'verified' } } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'requested', requested_at: '2026-08-24T10:00:00Z', payout_destination: { status: 'submitted', bank_name: 'MB Bank', account_holder_name: 'NGUYEN VAN A', account_number: '0123456789', account_number_masked: '******6789' } }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xác minh tài khoản' }))
+    await waitFor(() => expect(ordersApi.verifyRefundPayoutDetails).toHaveBeenCalledWith(6))
+  })
+
+  it('records the result against the selected refund with transfer evidence', async () => {
+    ordersApi.completeRefund.mockResolvedValue({ data: { id: 6, status: 'succeeded' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'processing', requested_at: '2026-08-24T10:00:00Z' }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận đã chuyển' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận đã chuyển tiền' })
+    expect(within(dialog).getByRole('button', { name: 'Xác nhận đã chuyển' })).toBeDisabled()
+    await userEvent.type(within(dialog).getByLabelText('Mã giao dịch hoặc tham chiếu'), 'FT-REFUND-006')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận đã chuyển' }))
+
+    await waitFor(() => expect(ordersApi.completeRefund).toHaveBeenCalledWith(6, { reference: 'FT-REFUND-006' }))
+  })
+
+  it('protects an uncertain transfer from being retried blindly', async () => {
+    ordersApi.markRefundNeedsReview.mockResolvedValue({ data: { id: 6, status: 'needs_review' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'processing', requested_at: '2026-08-24T10:00:00Z' }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Chưa rõ kết quả' }))
+    const dialog = screen.getByRole('dialog', { name: 'Ghi nhận kết quả chưa rõ' })
+    await userEvent.type(within(dialog).getByText('Thông tin cần xác minh').closest('label').querySelector('textarea'), 'Đã gửi lệnh nhưng ngân hàng chưa trả kết quả')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Chuyển sang cần xác minh' }))
+
+    await waitFor(() => expect(ordersApi.markRefundNeedsReview).toHaveBeenCalledWith(6, { note: 'Đã gửi lệnh nhưng ngân hàng chưa trả kết quả' }))
   })
 
   it('ẩn nút Hoàn tiền khi user không có quyền refund', () => {

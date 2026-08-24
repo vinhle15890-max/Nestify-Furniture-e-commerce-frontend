@@ -63,6 +63,14 @@ export function uploadMedia(productId, formData) {
   })
 }
 
+// Development R2 diagnostic uses the generic authenticated upload endpoint.
+// The production variant editor uses the presign → measure → confirm workflow below.
+export function uploadModel(formData) {
+  return apiClient.post('/admin/uploads', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
 export function presignVariantModel(variantId) {
   return apiClient.post(`/admin/variants/${variantId}/model/presign`)
 }

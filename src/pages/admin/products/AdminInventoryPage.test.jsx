@@ -17,7 +17,7 @@ const lowStockResponse = {
     reserved_quantity: 2,
     available_stock: 4,
   }],
-  meta: { current_page: 1, last_page: 1 },
+  meta: { current_page: 1, last_page: 2, total: 9 },
   threshold: 5,
 }
 
@@ -106,6 +106,18 @@ describe('AdminInventoryPage', () => {
     await waitFor(() => expect(productsApi.getInventoryVariants).toHaveBeenCalledWith(expect.objectContaining({
       q: 'SOFA-NATURE',
       low_stock_only: 0,
+    })))
+  })
+
+  it('shows the replenishment page count and requests the next server page', async () => {
+    renderPage()
+
+    expect(await screen.findByText('Trang 1/2 · 9 biến thể')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
+
+    await waitFor(() => expect(productsApi.getInventoryVariants).toHaveBeenCalledWith(expect.objectContaining({
+      low_stock_only: 1,
+      page: 2,
     })))
   })
 
