@@ -441,7 +441,12 @@ export function AdminOrderDetailPage() {
         <Card key={item.id} className="flex flex-col gap-3 border-destructive/40 bg-destructive/[0.04]">
           <h3 className="font-display text-xl text-destructive">Thanh toán đến sau khi đơn đã hủy</h3>
           <p className="text-sm text-foreground">PayOS đã xác minh {formatPrice(item.amount)} sau khi đơn trở thành trạng thái kết thúc. Tồn kho và voucher không được tự động khôi phục.</p>
-          <p className="text-sm text-muted-foreground">Mã giao dịch: {item.gateway_transaction_id} · Trạng thái xử lý: {item.status === 'refund_pending' ? 'Chờ chuyển tiền hoàn' : 'Cần xử lý'}</p>
+          <div className="mt-1 grid gap-1 text-sm text-muted-foreground">
+            <p>Mã yêu cầu PayOS: {item.gateway_order_code || '—'}</p>
+            <p>Payment Link ID: {item.gateway_payment_link_id || '—'}</p>
+            <p>Tham chiếu giao dịch PayOS: {item.gateway_transaction_reference || '—'}</p>
+            <p>Trạng thái xử lý: {item.status === 'refund_pending' ? 'Chờ chuyển tiền hoàn' : 'Cần xử lý'}</p>
+          </div>
         </Card>
       ))}
 
@@ -495,10 +500,12 @@ export function AdminOrderDetailPage() {
           {(order.refunds ?? []).map((refund) => (
             <div key={refund.id} className="rounded-control border border-border p-3 text-sm">
               <p className="font-medium text-foreground">Hoàn tiền #{refund.id} · {formatPrice(refund.amount)}</p>
-              <p className="mt-1 text-muted-foreground">{{ requested: 'Chờ chuyển tiền', processing: 'Đang xử lý', succeeded: 'Đã chuyển', failed: 'Thất bại', cancelled: 'Đã hủy', legacy_unknown: 'Dữ liệu cũ — chưa rõ đã chuyển' }[refund.status] ?? refund.status}</p>
+              <p className="mt-1 text-muted-foreground">{{ requested: 'Chờ chuyển tiền', processing: 'Đang xử lý', needs_review: 'Kết quả chuyển tiền cần xác minh', succeeded: 'Đã chuyển', failed: 'Thất bại', cancelled: 'Đã hủy', legacy_unknown: 'Dữ liệu cũ — chưa rõ đã chuyển' }[refund.status] ?? refund.status}</p>
               {refund.reason && <p className="mt-1 text-foreground">Lý do: {refund.reason}</p>}
               <p className="mt-1 text-muted-foreground">Yêu cầu: {formatDate(refund.requested_at)}{refund.requested_by?.name ? ` · ${refund.requested_by.name}` : ''}</p>
               {refund.external_reference && <p className="mt-1 text-muted-foreground">Tham chiếu: {refund.external_reference} · {formatDate(refund.completed_at)}</p>}
+              {refund.failure_reason && <p className="mt-1 text-destructive">Ghi chú xử lý: {refund.failure_reason}</p>}
+              {refund.needs_review_at && <p className="mt-1 font-medium text-destructive">Không được chuyển lại trước khi xác minh giao dịch bên ngoài ({formatDate(refund.needs_review_at)}).</p>}
             </div>
           ))}
         </Card>

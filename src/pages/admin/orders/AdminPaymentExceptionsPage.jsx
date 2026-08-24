@@ -35,7 +35,12 @@ export function AdminPaymentExceptionsPage() {
     {items.length === 0 ? <Card><p className="text-sm text-muted-foreground">Không có ngoại lệ cần xử lý.</p></Card> : items.map((item) => <Card key={item.id} className="flex flex-col gap-3 border-destructive/30">
       <div className="flex flex-wrap items-start justify-between gap-3"><div><Link className="font-medium text-foreground hover:text-accent" to={`/admin/orders/${item.order.id}`}>{item.order.order_number}</Link><p className="text-sm text-muted-foreground">{item.order.customer?.name} · {item.order.customer?.email}</p></div><strong>{formatPrice(item.amount)}</strong></div>
       <p className="text-sm text-foreground">{item.reason}</p>
-      <p className="text-sm text-muted-foreground">PayOS: {item.gateway_transaction_id} · {formatDate(item.created_at)} · {item.status === 'refund_pending' ? 'Chờ chuyển tiền hoàn' : 'Chưa xử lý'}</p>
+      <div className="text-sm text-muted-foreground">
+        <p>PayOS order code: {item.gateway_order_code}</p>
+        <p>Payment link ID: {item.gateway_payment_link_id || '—'}</p>
+        <p>Transaction reference: {item.gateway_transaction_reference}</p>
+        <p>{formatDate(item.created_at)} · {item.status === 'refund_pending' ? 'Chờ chuyển tiền hoàn' : 'Chưa xử lý'}</p>
+      </div>
       {item.status === 'open' && <div><Button onClick={() => requestRefund(item.id)} disabled={resolve.isPending}>Tạo nghĩa vụ hoàn tiền</Button></div>}
     </Card>)}
   </div>

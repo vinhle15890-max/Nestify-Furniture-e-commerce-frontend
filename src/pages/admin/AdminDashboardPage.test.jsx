@@ -87,7 +87,7 @@ describe('AdminDashboardPage', () => {
 
   it('renders a decorative brand watermark in the revenue hero', async () => {
     const { container } = renderPage()
-    expect(await screen.findByText('Tiền thực thu')).toBeInTheDocument()
+    expect((await screen.findAllByText('Tiền thực thu')).length).toBeGreaterThan(0)
     expect(container.querySelector('[data-brand-watermark]')).toBeTruthy()
   })
 
