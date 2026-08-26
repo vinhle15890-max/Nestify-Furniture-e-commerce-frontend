@@ -14,11 +14,14 @@ import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
+import { customerOrderNextAction } from './customerOrderNextAction'
+import { RETURN_REASON_CATEGORIES } from '../../features/orders/returnReasonCategories'
 
 // Orders can be cancelled by their owner any time before they ship.
 const CANCELLABLE_STATUSES = ['pending_confirmation', 'pending_payment', 'paid', 'processing']
 
 const sectionClass = 'rounded-card border border-border bg-surface p-6'
+const CANCELLATION_REASONS = ['Đặt nhầm', 'Muốn đổi sản phẩm', 'Không còn nhu cầu']
 
 export function OrderDetailPage() {
   const { id } = useParams()
@@ -35,6 +38,7 @@ export function OrderDetailPage() {
   const [cancelReason, setCancelReason] = useState('')
   const [returnOpen, setReturnOpen] = useState(false)
   const [returnReason, setReturnReason] = useState('')
+  const [returnReasonCategory, setReturnReasonCategory] = useState('')
   const [returnCarrier, setReturnCarrier] = useState('')
   const [returnTracking, setReturnTracking] = useState('')
   const [payoutRefund, setPayoutRefund] = useState(null)
@@ -102,6 +106,9 @@ export function OrderDetailPage() {
     || (!order.payment && paymentMethod === 'payos' && order.status === 'paid')
   )
   const address = order.shipping_address
+  const nextAction = customerOrderNextAction(order)
+  const savedReturnCarrier = order.return_request?.return_carrier ?? ''
+  const resolvedReturnCarrier = returnCarrier.trim() || savedReturnCarrier
 
   async function handleCancel() {
     try {
@@ -128,8 +135,9 @@ export function OrderDetailPage() {
 
   async function handleReturnRequest() {
     try {
-      await createReturnRequest.mutateAsync({ id: order.id, reason: returnReason.trim() })
+      await createReturnRequest.mutateAsync({ id: order.id, reason_category: returnReasonCategory, reason: returnReason.trim() })
       setReturnOpen(false)
+      setReturnReasonCategory('')
       setReturnReason('')
       addToast({ title: 'Đã gửi yêu cầu đổi trả.', variant: 'success' })
     } catch (error) {
@@ -140,12 +148,22 @@ export function OrderDetailPage() {
   async function handleReturnShipment(event) {
     event.preventDefault()
     try {
-      await shipReturnRequest.mutateAsync({ id: order.return_request.id, return_carrier: returnCarrier.trim(), return_tracking_number: returnTracking.trim() })
+      await shipReturnRequest.mutateAsync({ id: order.return_request.id, return_carrier: resolvedReturnCarrier, return_tracking_number: returnTracking.trim() })
       setReturnCarrier('')
       setReturnTracking('')
       addToast({ title: 'Đã ghi nhận vận đơn gửi trả.', variant: 'success' })
     } catch (error) {
       addToast({ title: 'Không thể ghi nhận vận đơn.', description: error.message, variant: 'error' })
+    }
+  }
+
+  async function handleSaveReturnCarrier() {
+    if (!returnCarrier.trim()) return
+    try {
+      await shipReturnRequest.mutateAsync({ id: order.return_request.id, return_carrier: returnCarrier.trim() })
+      addToast({ title: 'Đã lưu đơn vị vận chuyển.', variant: 'success' })
+    } catch (error) {
+      addToast({ title: 'Không thể lưu đơn vị vận chuyển.', description: error.message, variant: 'error' })
     }
   }
 
@@ -195,6 +213,24 @@ export function OrderDetailPage() {
           <> · {order.payment_method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán online (PayOS)'}</>
         )}
       </p>
+
+      <section data-testid="customer-next-action" aria-labelledby="customer-next-action-title" className={`mt-6 ${sectionClass}`}>
+        <h2 id="customer-next-action-title" className="font-display text-xl text-foreground">Bạn cần làm gì tiếp theo</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{nextAction.label}</p>
+        <div className="mt-4">
+          {nextAction.kind === 'payment' ? (
+            <Button onClick={handleRetryPayment} disabled={createPaymentSession.isPending}>
+              {createPaymentSession.isPending ? 'Đang xử lý...' : nextAction.label}
+            </Button>
+          ) : nextAction.kind === 'payout' ? (
+            <Button type="button" onClick={() => openPayoutDetails(nextAction.refund)}>{nextAction.label}</Button>
+          ) : nextAction.kind === 'detail' ? (
+            <span className="text-sm text-muted-foreground">Không có thao tác bắt buộc ở thời điểm này.</span>
+          ) : (
+            <a href={nextAction.hash} className="inline-flex min-h-11 items-center rounded-control border border-border-strong px-4 text-sm font-medium text-foreground hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{nextAction.label}</a>
+          )}
+        </div>
+      </section>
 
       {/* Ownership echo (Ch5) — deliberately typographic. The order status above
           carries the operational truth; this line adds narrative continuity
@@ -270,6 +306,16 @@ export function OrderDetailPage() {
 
       </div>
 
+      {order.status === 'shipped' && (
+        <section id="shipment" className={`mt-6 scroll-mt-24 ${sectionClass}`} aria-labelledby="shipment-heading">
+          <h2 id="shipment-heading" className="font-display text-xl text-foreground">Vận chuyển</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {order.fulfillment?.carrier_name || 'Đơn vị vận chuyển chưa được cung cấp'}
+            {order.fulfillment?.tracking_number ? ` · ${order.fulfillment.tracking_number}` : ''}
+          </p>
+        </section>
+      )}
+
       {order.status === 'delivered' && (
         <section className={`mt-6 ${sectionClass}`} aria-labelledby="order-reviews-heading">
           <h2 id="order-reviews-heading" className="font-display text-xl text-foreground">Đánh giá sản phẩm</h2>
@@ -304,7 +350,7 @@ export function OrderDetailPage() {
       )}
 
       {(order.refunds ?? []).length > 0 && (
-        <section className={`mt-6 ${sectionClass}`} aria-labelledby="refund-destination-heading">
+        <section id="refund-payout" className={`mt-6 scroll-mt-24 ${sectionClass}`} aria-labelledby="refund-destination-heading">
           <h2 id="refund-destination-heading" className="font-display text-xl text-foreground">Thông tin nhận hoàn tiền</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Nestify chỉ chuyển tiền vào tài khoản bạn xác nhận tại đây. Thông tin giao hàng không được dùng để suy đoán tài khoản ngân hàng.</p>
           <div className="mt-4 flex flex-col gap-3">
@@ -337,14 +383,41 @@ export function OrderDetailPage() {
       )}
 
       {order.status === 'delivered' && (
-        <section className={`mt-6 ${sectionClass}`} aria-labelledby="return-request-heading">
+        <section id="return-request" className={`mt-6 scroll-mt-24 ${sectionClass}`} aria-labelledby="return-request-heading">
           <h2 id="return-request-heading" className="font-display text-xl text-foreground">Đổi trả sau giao hàng</h2>
           {order.return_request ? (
             <div className="mt-3 text-sm">
               <p className="font-medium text-foreground">{{ requested: 'Đang chờ Nestify xem xét', approved: 'Yêu cầu đã được duyệt', rejected: 'Yêu cầu không được duyệt', in_transit: 'Hàng đang gửi về Nestify', received: 'Nestify đã nhận và kiểm tra hàng', refund_pending: 'Khoản hoàn đang chờ chuyển tiền', completed: 'Đổi trả và hoàn tiền đã hoàn tất' }[order.return_request.status]}</p>
               <p className="mt-2 text-muted-foreground">Lý do: {order.return_request.reason}</p>
               {order.return_request.resolution_note && <p className="mt-2 text-muted-foreground">Phản hồi: {order.return_request.resolution_note}</p>}
-              {order.return_request.status === 'approved' && <form onSubmit={handleReturnShipment} className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2"><label><span className="text-muted-foreground">Đơn vị vận chuyển</span><input value={returnCarrier} onChange={(event) => setReturnCarrier(event.target.value)} maxLength={255} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label><label><span className="text-muted-foreground">Mã vận đơn gửi trả</span><input value={returnTracking} onChange={(event) => setReturnTracking(event.target.value)} maxLength={255} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label><div className="sm:col-span-2"><Button type="submit" disabled={!returnCarrier.trim() || !returnTracking.trim() || shipReturnRequest.isPending}>{shipReturnRequest.isPending ? 'Đang lưu...' : 'Xác nhận đã gửi hàng'}</Button></div></form>}
+              {order.return_request.status === 'approved' && (
+                <form onSubmit={handleReturnShipment} className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+                  <label>
+                    <span className="text-muted-foreground">Đơn vị vận chuyển</span>
+                    <input
+                      value={returnCarrier}
+                      onChange={(event) => setReturnCarrier(event.target.value)}
+                      placeholder={savedReturnCarrier || undefined}
+                      maxLength={255}
+                      required={!savedReturnCarrier}
+                      className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    {savedReturnCarrier && <span className="mt-1 block text-xs text-muted-foreground">Đã lưu: {savedReturnCarrier}</span>}
+                  </label>
+                  <label>
+                    <span className="text-muted-foreground">Mã vận đơn gửi trả</span>
+                    <input value={returnTracking} onChange={(event) => setReturnTracking(event.target.value)} maxLength={255} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                  </label>
+                  <div className="flex flex-wrap gap-3 sm:col-span-2">
+                    <Button type="button" variant="secondary" onClick={handleSaveReturnCarrier} disabled={!returnCarrier.trim() || shipReturnRequest.isPending}>
+                      {shipReturnRequest.isPending ? 'Đang lưu...' : 'Lưu đơn vị vận chuyển'}
+                    </Button>
+                    <Button type="submit" disabled={!resolvedReturnCarrier || !returnTracking.trim() || shipReturnRequest.isPending}>
+                      {shipReturnRequest.isPending ? 'Đang lưu...' : 'Xác nhận đã gửi hàng'}
+                    </Button>
+                  </div>
+                </form>
+              )}
               {order.return_request.return_tracking_number && <p className="mt-3 text-muted-foreground">Vận đơn: {order.return_request.return_carrier} · {order.return_request.return_tracking_number}</p>}
               {order.return_request.inspection_note && <p className="mt-2 text-muted-foreground">Kết quả kiểm tra: {order.return_request.inspection_note}</p>}
               {order.return_request.refund_amount > 0 && <p className="mt-2 text-muted-foreground">Số tiền hoàn: {formatPrice(order.return_request.refund_amount)}</p>}
@@ -373,16 +446,13 @@ export function OrderDetailPage() {
       )}
 
       {isPendingPayment && (
-        <div className={`mt-6 flex flex-col gap-4 ${sectionClass}`}>
+        <div id="payment" className={`mt-6 scroll-mt-24 flex flex-col gap-4 ${sectionClass}`}>
           <h2 className="font-display text-xl text-foreground">Thanh toán</h2>
           <div className="flex items-center gap-3 rounded-control border border-foreground bg-surface-alt p-3 text-sm">
             <span className="font-medium text-foreground">PayOS</span>
             <span className="text-muted-foreground">Thanh toán online qua cổng PayOS</span>
           </div>
           <div className="flex flex-wrap gap-4">
-            <Button onClick={handleRetryPayment} disabled={createPaymentSession.isPending}>
-              {createPaymentSession.isPending ? 'Đang xử lý...' : 'Thanh toán lại'}
-            </Button>
             <Button variant="secondary" onClick={() => setCancelOpen(true)} disabled={cancelOrder.isPending}>
               Hủy đơn
             </Button>
@@ -404,10 +474,17 @@ export function OrderDetailPage() {
 
       <BecomingModal open={returnOpen} onOpenChange={setReturnOpen} title="Yêu cầu đổi trả" description="Nestify sẽ xem xét và phản hồi trước khi bạn gửi hàng ngược lại.">
         <label className="block text-sm">
-          <span className="text-muted-foreground">Lý do và tình trạng sản phẩm</span>
+          <span className="text-muted-foreground">Nhóm lý do</span>
+          <select value={returnReasonCategory} onChange={(event) => setReturnReasonCategory(event.target.value)} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <option value="">Chọn nhóm lý do</option>
+            {RETURN_REASON_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="text-muted-foreground">Mô tả tình trạng sản phẩm</span>
           <textarea value={returnReason} onChange={(event) => setReturnReason(event.target.value)} rows={4} minLength={10} maxLength={1000} className="mt-1 w-full rounded-control border border-border bg-surface p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         </label>
-        <div className="mt-4 flex justify-end gap-3"><Button variant="ghost" onClick={() => setReturnOpen(false)}>Đóng</Button><Button onClick={handleReturnRequest} disabled={returnReason.trim().length < 10 || createReturnRequest.isPending}>{createReturnRequest.isPending ? 'Đang gửi...' : 'Gửi yêu cầu'}</Button></div>
+        <div className="mt-4 flex justify-end gap-3"><Button variant="ghost" onClick={() => setReturnOpen(false)}>Đóng</Button><Button onClick={handleReturnRequest} disabled={!returnReasonCategory || returnReason.trim().length < 10 || createReturnRequest.isPending}>{createReturnRequest.isPending ? 'Đang gửi...' : 'Gửi yêu cầu'}</Button></div>
       </BecomingModal>
 
       <BecomingModal
@@ -432,13 +509,18 @@ export function OrderDetailPage() {
         title="Hủy đơn hàng"
         description="Bạn có chắc muốn hủy đơn hàng này? Thao tác không thể hoàn tác."
       >
-        {willRefund && (
-          <p className="mb-4 rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">
-            Đơn đã thanh toán sẽ được ghi nhận hoàn tiền. Sau khi hủy, hãy cung cấp tài khoản nhận hoàn ngay trong trang chi tiết đơn hàng này.
-          </p>
-        )}
+        <p className="mb-4 rounded-control border border-border bg-surface-alt p-3 text-sm text-foreground">
+          {willRefund
+            ? 'Đơn PayOS đã thanh toán sẽ được ghi nhận hoàn tiền. Sau khi hủy, hãy cung cấp tài khoản nhận hoàn ngay trong trang chi tiết đơn hàng này.'
+            : paymentMethod === 'cod'
+              ? 'Đơn COD chưa thu tiền nên không có khoản hoàn tiền.'
+              : 'Đơn PayOS này chưa phát sinh khoản tiền cần hoàn.'}
+        </p>
         <label className="block text-sm">
           <span className="text-muted-foreground">Lý do hủy (không bắt buộc)</span>
+          <span className="mt-2 flex flex-wrap gap-2">
+            {CANCELLATION_REASONS.map((reason) => <button key={reason} type="button" onClick={() => setCancelReason(reason)} className="min-h-9 rounded-full border border-border px-3 text-xs text-foreground hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{reason}</button>)}
+          </span>
           <textarea
             value={cancelReason}
             onChange={(event) => setCancelReason(event.target.value)}

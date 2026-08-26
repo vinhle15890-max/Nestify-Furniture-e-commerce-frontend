@@ -251,11 +251,11 @@ function TransactionEvidence({ declaration, stockConflictVariantId }) {
         })}
       </ul>
 
-      <div className="border-t-2 border-foreground py-5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-8">
+      <div data-testid="checkout-amount-summary" className="border-t-2 border-foreground py-5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-8">
         <div>
           <p className="text-sm text-muted-foreground">Tổng thanh toán</p>
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Số tiền được tính lại từ giỏ hàng và mã giảm giá đã xác minh. Phí giao hàng hoặc thuế chưa được cung cấp.
+            Số tiền được tính lại từ giỏ hàng và mã giảm giá đã xác minh. Phí giao hàng: chưa áp dụng. Thuế bổ sung: không có. Số tiền đang hiển thị gồm sản phẩm và mã giảm giá dự kiến. Với PayOS, thanh toán được xác nhận ở bước tiếp theo; với COD, đơn hàng được tiếp nhận để xử lý.
           </p>
         </div>
         <dl className="mt-4 min-w-56 space-y-2 tabular-nums sm:mt-0">
@@ -464,23 +464,23 @@ function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempt
     <CheckoutShell width="max-w-4xl">
       <BackLink to={`/orders/${order.id}`}>Mở đơn hàng</BackLink>
       <div className="mt-7 max-w-3xl">
-        <p className="text-sm text-muted-foreground">Sự thật từ Order đã tạo</p>
+        <p className="text-sm text-muted-foreground">Sự thật từ Order đã tạo · {orderLabel(order)}</p>
         <h1 className="mt-2 font-display text-[clamp(2rem,5vw,3.5rem)] leading-tight text-foreground">
-          Đơn hàng {orderLabel(order)} đã được tạo.
+          {isAwaitingPayment ? 'Đơn đã được tạo — chưa thanh toán.' : `Đơn hàng ${orderLabel(order)} đã được tạo.`}
         </h1>
         {isFullyDiscounted ? (
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
             Mã giảm giá đã thanh toán toàn bộ giá trị đơn. Đơn được chuyển thẳng sang xử lý và không cần mở PayOS.
           </p>
-        ) : isPayos ? (
+        ) : isPayos && !isAwaitingPayment ? (
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
             Đơn hiện tồn tại độc lập với Cart. Thanh toán PayOS chưa được gọi là thành công cho tới khi trạng thái được xác nhận từ hệ thống thanh toán.
           </p>
-        ) : (
+        ) : !isPayos ? (
           <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
             Đơn đã ghi nhận phương thức thanh toán khi nhận hàng và đang ở trạng thái {status || 'xử lý'}. Không có thanh toán online nào được xác nhận.
           </p>
-        )}
+        ) : null}
       </div>
 
       <CreatedOrderEvidence order={order} />
@@ -511,27 +511,33 @@ function CreatedOrderState({ order, sessionError, sessionPending, sessionAttempt
               <Spinner />
               <span>Đang tạo phiên PayOS cho đơn {orderLabel(order)}…</span>
             </div>
-          ) : sessionError ? (
-            <FactStatus className="mt-4">{sessionError}</FactStatus>
-          ) : (
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              {sessionAttempted
-                ? 'Phiên PayOS đã được yêu cầu. Nếu chuyển hướng không tiếp tục, bạn có thể mở lại trên chính đơn này.'
-                : 'Trang đã khôi phục đơn sau khi quay lại hoặc tải lại. Mở PayOS từ đơn hiện có; không đặt lại.'}
-            </p>
-          )}
+          ) : null}
           {!sessionPending && !handoffPending && (
-            <div className="mt-5 flex flex-wrap gap-4">
-              <Button type="button" onClick={onRetry}>
-                {sessionError ? 'Thử mở lại PayOS' : 'Mở PayOS cho đơn này'}
-              </Button>
-              <Link
-                to={`/orders/${order.id}`}
-                className="inline-flex items-center text-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-              >
-                Xem chi tiết đơn hàng
-              </Link>
-            </div>
+            <>
+              <div className="mt-5 flex flex-wrap gap-4">
+                <Button type="button" onClick={onRetry}>
+                  {sessionError ? 'Thử mở lại PayOS' : 'Mở PayOS cho đơn này'}
+                </Button>
+                <Link
+                  to={`/orders/${order.id}`}
+                  className="inline-flex items-center text-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                >
+                  Xem chi tiết đơn hàng
+                </Link>
+              </div>
+              {sessionError ? (
+                <FactStatus className="mt-4">{sessionError}</FactStatus>
+              ) : (
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                  {sessionAttempted
+                    ? 'Phiên PayOS đã được yêu cầu. Nếu chuyển hướng không tiếp tục, bạn có thể mở lại trên chính đơn này.'
+                    : 'Trang đã khôi phục đơn sau khi quay lại hoặc tải lại. Mở PayOS từ đơn hiện có; không đặt lại.'}
+                </p>
+              )}
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Đơn hiện tồn tại độc lập với Cart. Thanh toán PayOS chỉ được xác nhận khi hệ thống thanh toán trả về trạng thái thành công.
+              </p>
+            </>
           )}
         </section>
       )}
@@ -576,7 +582,7 @@ export function CheckoutPage() {
   const createPaymentSession = useCreatePaymentSession()
   const user = useAuthStore((state) => state.user)
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
   const [recoveryRecord, setRecoveryRecord] = useState(() => readCheckoutRecovery())
@@ -592,7 +598,7 @@ export function CheckoutPage() {
   const [editingAddress, setEditingAddress] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('payos')
   const [paymentEditing, setPaymentEditing] = useState(false)
-  const [voucherCode] = useState(() => searchParams.get('voucher')?.trim() ?? '')
+  const [voucherCode, setVoucherCode] = useState(() => searchParams.get('voucher')?.trim() ?? '')
   const [voucherResult, setVoucherResult] = useState(null)
   const [voucherBasis, setVoucherBasis] = useState(null)
   const [voucherError, setVoucherError] = useState(null)
@@ -832,6 +838,18 @@ export function CheckoutPage() {
     setOrderError(null)
   }
 
+  function clearCheckoutVoucher() {
+    setVoucherCode('')
+    setVoucherResult(null)
+    setVoucherBasis(null)
+    setVoucherError(null)
+    setVoucherStaleNotice(false)
+
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.delete('voucher')
+    setSearchParams(nextSearchParams, { replace: true })
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
 
@@ -975,19 +993,12 @@ export function CheckoutPage() {
               <h2 id="checkout-voucher-heading" className="font-medium text-foreground">Mã giảm giá từ giỏ hàng</h2>
               {applyVoucher.isPending && <p role="status" className="mt-2 text-sm text-muted-foreground">Đang xác minh lại {voucherCode}…</p>}
               {voucherResult && <p className="mt-2 text-sm text-foreground"><span className="font-semibold">{voucherCode}</span> · giảm {formatPrice(voucherResult.discount_amount)}</p>}
-              {voucherError && <FactStatus className="mt-3">{voucherError} <Link to="/cart" className="underline underline-offset-4">Chọn lại trong giỏ hàng.</Link></FactStatus>}
-              {voucherStaleNotice && <FactStatus role="status" className="mt-3">Giỏ hàng đã thay đổi; mã này không còn được dùng. <Link to="/cart" className="underline underline-offset-4">Chọn lại trong giỏ hàng.</Link></FactStatus>}
+              {voucherError && <FactStatus className="mt-3">{voucherError} <button type="button" onClick={clearCheckoutVoucher} className="font-medium underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Bỏ mã</button> · <Link to="/cart" className="underline underline-offset-4">Chọn mã khác trong giỏ hàng.</Link></FactStatus>}
+              {voucherStaleNotice && <FactStatus role="status" className="mt-3">Giỏ hàng đã thay đổi; mã này không còn được dùng. <button type="button" onClick={clearCheckoutVoucher} className="font-medium underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Bỏ mã</button> · <Link to="/cart" className="underline underline-offset-4">Chọn mã khác trong giỏ hàng.</Link></FactStatus>}
             </section>
           )}
 
-        <section aria-labelledby="checkout-certainty-heading" className="mt-4 max-w-5xl border-t-2 border-foreground pt-5">
-          <div className="max-w-3xl">
-            <h2 id="checkout-certainty-heading" className="text-xl font-semibold text-foreground">Trước khi tạo đơn hàng</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Phí giao hàng và thuế chưa được cung cấp. Số tiền đang hiển thị gồm sản phẩm và mã giảm giá dự kiến. Với PayOS, thanh toán được xác nhận ở bước tiếp theo; với COD, đơn hàng được tiếp nhận để xử lý.
-            </p>
-          </div>
-
+        <div className="mt-4 max-w-5xl">
           {createOrder.isPending && (
             <FactStatus role="status" className="mt-5">
               Đang tạo đơn với địa chỉ, phương thức thanh toán và mã giảm giá bạn vừa kiểm tra. Bạn chưa thể thay đổi thông tin trong lúc này.
@@ -1030,7 +1041,7 @@ export function CheckoutPage() {
               </button>
             )}
           </div>
-        </section>
+        </div>
         </div>
       </form>
 

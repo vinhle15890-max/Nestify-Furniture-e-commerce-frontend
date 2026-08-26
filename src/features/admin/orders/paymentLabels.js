@@ -17,8 +17,8 @@ export function adminPaymentLabel(order) {
     success: isCod ? 'Đã thu tiền' : 'Đã thanh toán',
     failed: isCod ? 'Không thu được tiền' : 'Thanh toán thất bại / hết hạn',
     waived: 'Không cần thanh toán',
-    refunded: 'Đã ghi nhận hoàn',
-    partially_refunded: 'Đã hoàn một phần',
+    refunded: 'Đã chuyển hoàn',
+    partially_refunded: 'Đã chuyển hoàn một phần',
   }[status] ?? 'Trạng thái chưa rõ'
 
   return `${method} · ${label}`

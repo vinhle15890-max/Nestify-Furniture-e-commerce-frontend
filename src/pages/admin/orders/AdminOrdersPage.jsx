@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Receipt } from 'lucide-react'
 import { Card } from '../../../components/Card'
@@ -27,7 +28,7 @@ const PAYMENT_FILTERS = [
   { value: 'payos_pending', label: 'PayOS chờ khách thanh toán', method: 'payos', status: 'pending', queue: 'payos_pending_actionable' },
   { value: 'paid', label: 'Đã thanh toán', status: 'paid' },
   { value: 'failed', label: 'Không thành công', status: 'failed' },
-  { value: 'refunded', label: 'Đã ghi nhận hoàn', status: 'refunded' },
+  { value: 'refunded', label: 'Đã chuyển hoàn', status: 'refunded' },
 ]
 
 function paymentFilterValue(method, status, queue) {
@@ -54,12 +55,17 @@ export function AdminOrdersPage() {
   const paymentMethod = searchParams.get('payment_method') ?? ''
   const paymentStatus = searchParams.get('payment_status') ?? ''
   const paymentQueue = searchParams.get('payment_queue') ?? ''
+  const confirmationQueue = searchParams.get('confirmation_queue') ?? ''
+  const query = searchParams.get('q') ?? ''
+  const [searchDraft, setSearchDraft] = useState(query)
   const legacyReturnStatus = searchParams.get('return_status') ?? ''
-  const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status, paymentMethod, paymentStatus, '', { statusGroup, paymentQueue })
+  const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status, paymentMethod, paymentStatus, '', { q: query, statusGroup, paymentQueue, confirmationQueue })
   const orders = data?.data ?? []
   const meta = data?.meta?.pagination ?? data?.meta ?? { last_page: 1 }
   const selectedOrderFilter = statusGroup || status
   const selectedPaymentFilter = paymentFilterValue(paymentMethod, paymentStatus, paymentQueue)
+
+  useEffect(() => setSearchDraft(query), [query])
 
   if (legacyReturnStatus) return <Navigate to={`/admin/returns?status=${encodeURIComponent(legacyReturnStatus)}`} replace />
 
@@ -82,10 +88,26 @@ export function AdminOrdersPage() {
     if (filter.status) next.set('payment_status', filter.status)
     if (filter.queue) next.set('payment_queue', filter.queue)
   })
+  const submitSearch = (event) => {
+    event.preventDefault()
+    updateFilter((next) => {
+      const value = searchDraft.trim()
+      value ? next.set('q', value) : next.delete('q')
+    })
+  }
 
   return <div>
     <PageHeader icon={Receipt} title="Đơn hàng" description="Trạng thái xử lý đơn và trạng thái tiền được theo dõi độc lập." />
     <div className="mt-5 grid gap-4 rounded-card border border-border bg-surface p-4 shadow-soft">
+      <form role="search" aria-label="Tìm đơn hàng" onSubmit={submitSearch} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <label className="min-w-0 flex-1 text-sm font-medium text-foreground">Tìm theo mã đơn, khách hàng hoặc vận đơn
+          <input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} maxLength={100} placeholder="Mã đơn, tên, email hoặc mã vận đơn" className="mt-2 min-h-11 w-full rounded-control border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        </label>
+        <div className="flex gap-2">
+          <button type="submit" className="min-h-11 rounded-control bg-foreground px-4 text-sm font-medium text-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tìm đơn</button>
+          {query && <button type="button" onClick={() => { setSearchDraft(''); updateFilter((next) => next.delete('q')) }} className="min-h-11 rounded-control border border-border px-4 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Xóa tìm kiếm</button>}
+        </div>
+      </form>
       <fieldset><legend className="text-sm font-medium text-foreground">Trạng thái đơn hàng</legend><div className="mt-2 flex flex-wrap gap-2">{ORDER_FILTERS.map((filter) => <FilterButton key={filter.value || 'all-orders'} active={selectedOrderFilter === filter.value} onClick={() => selectOrderFilter(filter)}>{filter.label}</FilterButton>)}</div></fieldset>
       <fieldset className="border-t border-border pt-4"><legend className="text-sm font-medium text-foreground">Trạng thái thanh toán</legend><div className="mt-2 flex flex-wrap gap-2">{PAYMENT_FILTERS.map((filter) => <FilterButton key={filter.value || 'all-payments'} active={selectedPaymentFilter === filter.value} onClick={() => selectPaymentFilter(filter)}>{filter.label}</FilterButton>)}</div></fieldset>
     </div>

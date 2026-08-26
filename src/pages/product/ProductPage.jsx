@@ -226,7 +226,7 @@ export function ProductPage() {
     [reviewsQuery.data],
   )
 
-  const { data: ordersData } = useOrders({ enabled: !!token })
+  const { data: ordersData } = useOrders(1, { enabled: !!token })
   const createReview = useCreateReview()
 
   const [reviewRating, setReviewRating] = useState(0)

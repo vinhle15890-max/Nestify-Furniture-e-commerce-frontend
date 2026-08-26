@@ -6,10 +6,10 @@ export const adminOrderKeys = {
   detail: (id) => ['admin', 'orders', 'detail', id],
 }
 
-export function useAdminOrders(page, status, paymentMethod, paymentStatus, returnStatus, { statusGroup = '', paymentQueue = '', hasReturn = false } = {}) {
+export function useAdminOrders(page, status, paymentMethod, paymentStatus, returnStatus, { q = '', statusGroup = '', paymentQueue = '', confirmationQueue = '', hasReturn = false } = {}) {
   return useQuery({
-    queryKey: ['admin', 'orders', { page, status, statusGroup, paymentMethod, paymentStatus, paymentQueue, returnStatus, hasReturn }],
-    queryFn: () => ordersApi.getOrders({ page, status, statusGroup, paymentMethod, paymentStatus, paymentQueue, returnStatus, hasReturn }),
+    queryKey: ['admin', 'orders', { page, q, status, statusGroup, paymentMethod, paymentStatus, paymentQueue, confirmationQueue, returnStatus, hasReturn }],
+    queryFn: () => ordersApi.getOrders({ page, ...(q ? { q } : {}), status, statusGroup, paymentMethod, paymentStatus, paymentQueue, ...(confirmationQueue ? { confirmationQueue } : {}), returnStatus, hasReturn }),
     placeholderData: (previousData) => previousData,
   })
 }
@@ -40,6 +40,21 @@ export function useUpdateOrderStatus() {
           ...current,
           data: { ...current.data, ...response.data },
         }
+      })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+    },
+  })
+}
+
+export function useUpdateShipmentMetadata() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.updateShipmentMetadata(id, payload),
+    onSuccess: (response, { id }) => {
+      queryClient.setQueryData(adminOrderKeys.detail(id), (current) => {
+        if (!current) return response
+        return { ...current, data: { ...current.data, ...response.data } }
       })
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
     },

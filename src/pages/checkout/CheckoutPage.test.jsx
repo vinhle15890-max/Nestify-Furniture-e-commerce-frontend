@@ -223,6 +223,55 @@ describe('CheckoutPage', () => {
     expect(within(transaction).getByText(/^9\.000\.000/, { selector: 'dd' })).toBeInTheDocument()
   })
 
+  it('keeps the final checkout limitation once inside the amount summary before submission', async () => {
+    renderPage()
+
+    const transaction = await screen.findByTestId('checkout-transaction-evidence')
+    const amountSummary = within(transaction).getByTestId('checkout-amount-summary')
+    const limitation = within(amountSummary).getByText(/Với PayOS, thanh toán được xác nhận ở bước tiếp theo; với COD, đơn hàng được tiếp nhận để xử lý\./)
+    const submit = screen.getByRole('button', { name: 'Đặt hàng' })
+
+    expect(screen.getAllByText(/Với PayOS, thanh toán được xác nhận ở bước tiếp theo; với COD, đơn hàng được tiếp nhận để xử lý\./)).toHaveLength(1)
+    expect(within(amountSummary).getByText(/Phí giao hàng: chưa áp dụng\./)).toBeInTheDocument()
+    expect(within(amountSummary).getByText(/Thuế bổ sung: không có\./)).toBeInTheDocument()
+    expect(screen.queryByText(/Phí giao hàng và thuế chưa được cung cấp/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Trước khi tạo đơn hàng' })).not.toBeInTheDocument()
+    expect(limitation.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('lets the customer clear an invalid voucher without returning to Cart', async () => {
+    cartApi.applyVoucher.mockRejectedValue(new ApiError('VOUCHER_NOT_APPLICABLE', 'Không áp dụng.', null, 422))
+    renderPage('/checkout?voucher=OLD10')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mã giảm giá không áp dụng được cho giỏ hàng này.')
+    await userEvent.click(screen.getByRole('button', { name: 'Bỏ mã' }))
+
+    expect(screen.queryByRole('heading', { name: 'Mã giảm giá từ giỏ hàng' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Đặt hàng' })).toBeInTheDocument()
+    expect(checkoutApi.createOrder).not.toHaveBeenCalled()
+  })
+
+  it('lets the customer clear a voucher made stale by a Cart change', async () => {
+    cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })
+    const { queryClient } = renderPage('/checkout?voucher=GIAM10')
+    expect(await screen.findByText(/giảm 1.000.000/)).toHaveTextContent('GIAM10')
+
+    act(() => {
+      queryClient.setQueryData(['cart'], {
+        data: {
+          ...sampleCart.data,
+          items: [{ ...sampleCart.data.items[0], quantity: 1, subtotal: 5000000 }],
+          total: 5000000,
+        },
+      })
+    })
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Giỏ hàng đã thay đổi; mã này không còn được dùng')
+    await userEvent.click(screen.getByRole('button', { name: 'Bỏ mã' }))
+    expect(screen.queryByRole('heading', { name: 'Mã giảm giá từ giỏ hàng' })).not.toBeInTheDocument()
+    expect(checkoutApi.createOrder).not.toHaveBeenCalled()
+  })
+
   it.skip('orders narrow DOM flow as transaction evidence, address, payment, voucher, certainty, action', async () => {
     renderPage()
     await screen.findByText('Sofa Mây')
@@ -352,10 +401,11 @@ describe('CheckoutPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
 
-    expect(await screen.findByText(/Đơn hàng NES-260713-0099 đã được tạo/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Đơn đã được tạo — chưa thanh toán.' })).toBeInTheDocument()
+    expect(screen.getAllByText(/NES-260713-0099/).length).toBeGreaterThan(0)
     expect(screen.getByText('Đang chuyển đến PayOS')).toBeInTheDocument()
     expect(screen.getByText(/Bạn sẽ rời Nestify tạm thời/)).toBeInTheDocument()
-    expect(screen.getByText(/chưa được gọi là thành công/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Đơn đã được tạo — chưa thanh toán.' })).toBeInTheDocument()
     expect(screen.queryByText(/thanh toán thành công/i)).not.toBeInTheDocument()
     await waitFor(() => expect(navigation.redirectToExternal).toHaveBeenCalledWith('https://pay.example/session/99'))
   })
@@ -402,7 +452,12 @@ describe('CheckoutPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đặt hàng' }))
     expect(await screen.findByText(/chưa thể mở phiên PayOS/)).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Thử mở lại PayOS' }))
+    const retry = screen.getByRole('button', { name: 'Thử mở lại PayOS' })
+    const technicalExplanation = screen.getByText(/chưa thể mở phiên PayOS/)
+    expect(screen.getByRole('heading', { name: 'Đơn đã được tạo — chưa thanh toán.' })).toBeInTheDocument()
+    expect(retry.compareDocumentPosition(technicalExplanation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await userEvent.click(retry)
 
     expect(checkoutApi.createOrder).toHaveBeenCalledTimes(1)
     expect(checkoutApi.createPaymentSession).toHaveBeenCalledTimes(2)
@@ -415,7 +470,7 @@ describe('CheckoutPage', () => {
     ordersApi.getOrder.mockResolvedValue({ data: createdPayosOrder })
     renderPage()
 
-    expect(await screen.findByText(/Đơn hàng NES-260713-0099 đã được tạo/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Đơn đã được tạo — chưa thanh toán.' })).toBeInTheDocument()
     expect(screen.queryByText(/Giỏ hàng đang trống/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Mở PayOS cho đơn này' })).toBeInTheDocument()
     expect(ordersApi.getOrder).toHaveBeenCalledWith(99)

@@ -65,6 +65,12 @@ function renderPage() {
   )
 }
 
+async function openVoucherDiscovery() {
+  const disclosure = await screen.findByTestId('voucher-discovery')
+  await userEvent.click(within(disclosure).getByText('Xem mã phù hợp'))
+  return disclosure
+}
+
 describe('CartPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -132,9 +138,10 @@ describe('CartPage', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Phòng khách' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Phòng khách' })).toHaveAttribute('href', '/room-planner/7')
     expect(screen.getByRole('list', { name: 'Sản phẩm từ phòng Phòng khách' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Sản phẩm chọn riêng' })).toBeInTheDocument()
-    expect(screen.queryByText(/xác nhận vừa|phù hợp|vừa với phòng/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/xác nhận vừa|vừa với phòng/i)).not.toBeInTheDocument()
   })
 
   it('increments quantity and removes an item', async () => {
@@ -146,7 +153,8 @@ describe('CartPage', () => {
         total: 15000000,
       },
     })
-    cartApi.removeItem.mockResolvedValue({})
+    cartApi.removeItem.mockResolvedValue({ meta: { removal: { restore_token: 'restore-token', expires_at: '2026-08-26T10:05:00Z' } } })
+    cartApi.restoreRemovedItem.mockResolvedValue(sampleCart)
     renderPage()
 
     await screen.findByText('Sofa Mây')
@@ -156,6 +164,11 @@ describe('CartPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Xóa Sofa Mây' }))
     expect(cartApi.removeItem).toHaveBeenCalledWith(10)
+    expect(await screen.findByText('Đã xóa Sofa Mây khỏi giỏ.')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hoàn tác' }))
+    expect(cartApi.restoreRemovedItem).toHaveBeenCalledWith('restore-token')
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Hoàn tác' })).not.toBeInTheDocument())
   })
 
   it('shows an inline message and clamps quantity on insufficient stock', async () => {
@@ -207,6 +220,7 @@ describe('CartPage', () => {
     renderPage()
 
     await screen.findByText('Sofa Mây')
+    await openVoucherDiscovery()
 
     await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
 
@@ -216,6 +230,23 @@ describe('CartPage', () => {
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 
+  it('keeps direct voucher entry visible while optional discovery is closed', async () => {
+    useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
+    cartApi.applyVoucher.mockResolvedValue({ data: { discount_amount: 1000000, final_total: 9000000 } })
+    cartApi.getAvailableVouchers.mockResolvedValue({ data: [{ code: 'GIAM10', discount_amount: 1000000, final_total: 9000000 }] })
+    renderPage()
+
+    const discovery = await screen.findByTestId('voucher-discovery')
+    expect(discovery).not.toHaveAttribute('open')
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Nhập mã giảm giá' }), ' GIAM10 ')
+    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng mã' }))
+
+    expect(cartApi.applyVoucher).toHaveBeenCalledWith('GIAM10')
+    expect(await screen.findByText('9.000.000 ₫')).toBeInTheDocument()
+    expect(discovery).not.toHaveAttribute('open')
+  })
+
   it('explains the best voucher and lets the customer remove it before checkout', async () => {
     useAuthStore.setState({ token: 'abc', user: verifiedCustomer })
     const voucher = { code: 'BEST50', discount_amount: 1500000, final_total: 8500000, is_best_value: true, remaining_usage: 4, expires_at: '2026-09-01T00:00:00Z' }
@@ -223,6 +254,7 @@ describe('CartPage', () => {
     cartApi.applyVoucher.mockResolvedValue({ data: voucher })
     renderPage()
 
+    await openVoucherDiscovery()
     expect(await screen.findByText('Tiết kiệm nhất')).toBeInTheDocument()
     expect(screen.getByText(/còn trả 8.500.000 ₫/)).toBeInTheDocument()
     expect(screen.getByText(/còn 4 lượt/)).toBeInTheDocument()
@@ -240,6 +272,7 @@ describe('CartPage', () => {
     cartApi.getAvailableVouchers.mockResolvedValue({ data: [{ code: 'GIAM10', discount_amount: 1000000, final_total: 9000000 }] })
     renderPage()
 
+    await openVoucherDiscovery()
     await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
 
     expect(await screen.findByText('9.000.000 ₫')).toBeInTheDocument()
@@ -259,6 +292,11 @@ describe('CartPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Tóm tắt giỏ hàng' })).toBeInTheDocument()
     expect(screen.queryByText('Hệ quả hiện tại')).not.toBeInTheDocument()
+    const discovery = await screen.findByTestId('voucher-discovery')
+    expect(discovery).not.toHaveAttribute('open')
+    expect(screen.getByRole('textbox', { name: 'Nhập mã giảm giá' })).toBeVisible()
+    await userEvent.click(within(discovery).getByText('Xem mã phù hợp'))
+    expect(discovery).toHaveAttribute('open')
     expect(await screen.findByText('MA-001')).toBeInTheDocument()
     expect(screen.getByText('MA-006')).toBeInTheDocument()
     expect(screen.queryByText('MA-007')).not.toBeInTheDocument()
@@ -332,6 +370,7 @@ describe('CartPage', () => {
     renderPage()
 
     await screen.findByText('Sofa Mây')
+    await openVoucherDiscovery()
     await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
     expect(await screen.findByText('9.000.000 ₫')).toBeInTheDocument()
 
@@ -358,6 +397,7 @@ describe('CartPage', () => {
     renderPage()
 
     await screen.findByText('Bàn Gỗ')
+    await openVoucherDiscovery()
     await userEvent.click(await screen.findByRole('radio', { name: /GIAM10/ }))
     expect(await screen.findByText('11.000.000 ₫')).toBeInTheDocument()
 

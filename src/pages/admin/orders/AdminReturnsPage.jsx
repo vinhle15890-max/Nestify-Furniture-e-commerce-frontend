@@ -8,7 +8,7 @@ import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
 import { EmptyState } from '../../../components/admin/EmptyState'
 import { useAdminOrders } from '../../../features/admin/orders/hooks'
-import { formatDate } from '../../../lib/format'
+import { returnReasonCategoryLabel } from '../../../features/orders/returnReasonCategories'
 
 const RETURN_FILTERS = [
   { value: '', label: 'Tất cả' },
@@ -29,6 +29,22 @@ const RETURN_STATUS = {
   refund_pending: { label: 'Chờ chuyển tiền', tone: 'out-of-stock' },
   completed: { label: 'Hoàn tất', tone: 'in-stock' },
   rejected: { label: 'Từ chối', tone: 'out-of-stock' },
+}
+
+function orderItemName(item) {
+  const snapshot = item?.variant_snapshot ?? item?.variant ?? {}
+  return snapshot.product_name ?? snapshot.name ?? item?.product_name ?? item?.name ?? 'Sản phẩm'
+}
+
+function returnProductSummary(items = []) {
+  if (items.length === 0) return '—'
+  return `${orderItemName(items[0])}${items.length > 1 ? ` +${items.length - 1}` : ''}`
+}
+
+function waitingDays(value) {
+  const createdAt = new Date(value).getTime()
+  if (!Number.isFinite(createdAt)) return null
+  return Math.max(0, Math.floor((Date.now() - createdAt) / 86_400_000))
 }
 
 export function AdminReturnsPage() {
@@ -77,18 +93,19 @@ export function AdminReturnsPage() {
           <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-soft">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Danh sách đổi trả</caption>
-              <thead><tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground"><th className="px-4 py-3">Mã đơn</th><th className="px-4 py-3">Khách hàng</th><th className="px-4 py-3">Trạng thái đổi trả</th><th className="px-4 py-3">Lý do</th><th className="px-4 py-3">Ngày yêu cầu</th><th className="px-4 py-3"><span className="sr-only">Thao tác</span></th></tr></thead>
+              <thead><tr className="border-b border-border bg-surface-alt/50 text-xs uppercase tracking-[0.12em] text-muted-foreground"><th className="px-4 py-3">Mã đơn</th><th className="px-4 py-3">Sản phẩm</th><th className="px-4 py-3">Khách hàng</th><th className="px-4 py-3">Trạng thái đổi trả</th><th className="px-4 py-3">Lý do</th><th className="px-4 py-3">Thời gian chờ</th><th className="px-4 py-3"><span className="sr-only">Thao tác</span></th></tr></thead>
               <tbody>{orders.map((order) => {
                 const request = order.return_request
                 const statusInfo = RETURN_STATUS[request?.status] ?? { label: request?.status ?? 'Chưa rõ', tone: 'neutral' }
                 return (
                   <tr key={order.id} className="border-b border-border last:border-b-0 transition-colors hover:bg-surface-alt/40">
                     <td className="px-4 py-3 font-medium text-foreground">{order.order_number ?? `#${order.id}`}</td>
+                    <td className="max-w-56 px-4 py-3 text-foreground">{returnProductSummary(order.items)}</td>
                     <td className="px-4 py-3"><p className="font-medium text-foreground">{order.user?.name}</p><p className="text-muted-foreground">{order.user?.email}</p></td>
                     <td className="px-4 py-3"><Badge tone={statusInfo.tone}>{statusInfo.label}</Badge></td>
-                    <td className="max-w-80 px-4 py-3 text-foreground">{request?.reason || '—'}</td>
-                    <td className="px-4 py-3 text-foreground">{formatDate(request?.requested_at ?? request?.created_at)}</td>
-                    <td className="px-4 py-3 text-right"><Link to={`/admin/orders/${order.id}`} state={{ order, returnTo: `${location.pathname}${location.search}` }} className="font-medium text-foreground transition-colors hover:text-accent">Xử lý</Link></td>
+                    <td className="max-w-80 px-4 py-3 text-foreground">{request?.reason_category && <p className="mb-1 text-xs font-medium text-muted-foreground">{returnReasonCategoryLabel(request.reason_category) ?? request.reason_category}</p>}{request?.reason || '—'}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-foreground">{waitingDays(request?.requested_at ?? request?.created_at) == null ? '—' : `Chờ ${waitingDays(request?.requested_at ?? request?.created_at)} ngày`}</td>
+                    <td className="px-4 py-3 text-right"><Link to={`/admin/orders/${order.id}#return-request`} state={{ order, returnTo: `${location.pathname}${location.search}` }} className="font-medium text-foreground transition-colors hover:text-accent">Xử lý</Link></td>
                   </tr>
                 )
               })}</tbody>

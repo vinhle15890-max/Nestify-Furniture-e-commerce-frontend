@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ArrowRight, Check, CircleAlert, Minus, Plus, Search, Ticket, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, Minus, Plus, Search, Ticket, Trash2 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
-import { useCart, useUpdateCartItem, useRemoveCartItem, useApplyVoucher, useAvailableVouchers } from '../../features/cart/hooks'
+import { useCart, useUpdateCartItem, useRemoveCartItem, useRestoreCartItem, useApplyVoucher, useAvailableVouchers } from '../../features/cart/hooks'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
 import { VerifyEmailGate } from '../../components/VerifyEmailGate'
@@ -296,6 +296,7 @@ export function CartPage() {
   const { data, isLoading, isError, isFetching } = cartQuery
   const updateCartItem = useUpdateCartItem()
   const removeCartItem = useRemoveCartItem()
+  const restoreCartItem = useRestoreCartItem()
   const applyVoucher = useApplyVoucher()
   const availableVouchersQuery = useAvailableVouchers(Boolean(token && user?.email_verified_at && !isStaff(user)))
 
@@ -305,11 +306,14 @@ export function CartPage() {
   const [stockErrors, setStockErrors] = useState({})
   const [mutationErrors, setMutationErrors] = useState({})
   const [voucherCode, setVoucherCode] = useState('')
+  const [voucherDraft, setVoucherDraft] = useState('')
   const [voucherResult, setVoucherResult] = useState(null)
   const [voucherError, setVoucherError] = useState(null)
   const [voucherStaleNotice, setVoucherStaleNotice] = useState(false)
   const [voucherSearch, setVoucherSearch] = useState('')
   const [voucherPage, setVoucherPage] = useState(0)
+  const [lastRemoval, setLastRemoval] = useState(null)
+  const [undoError, setUndoError] = useState('')
 
   if (!token) {
     return (
@@ -463,7 +467,7 @@ export function CartPage() {
     setItemPending(setPendingRemovals, item.id, true)
 
     removeCartItem.mutate(item.id, {
-      onSuccess: () => {
+      onSuccess: (response) => {
         queryClient.setQueryData(['cart'], (previous) => {
           if (!previous?.data) return previous
           const nextItems = previous.data.items.filter((current) => current.id !== item.id)
@@ -473,6 +477,9 @@ export function CartPage() {
           )
           return { ...previous, data: { ...previous.data, items: nextItems, total: nextTotal } }
         })
+        const removal = response?.meta?.removal
+        setLastRemoval(removal?.restore_token ? { ...removal, productName: productName(item) } : null)
+        setUndoError('')
         invalidateVoucherPreview()
       },
       onError: (error) => {
@@ -485,8 +492,27 @@ export function CartPage() {
     })
   }
 
+  function undoRemoval() {
+    if (!lastRemoval || restoreCartItem.isPending) return
+    setUndoError('')
+    restoreCartItem.mutate(lastRemoval.restore_token, {
+      onSuccess: (response) => {
+        queryClient.setQueryData(['cart'], response)
+        setLastRemoval(null)
+        invalidateVoucherPreview()
+      },
+      onError: (error) => {
+        setUndoError(mutationMessage(error, 'Chưa thể hoàn tác. Hãy kiểm tra tồn kho và thử lại.'))
+        if (['CART_RESTORE_EXPIRED', 'CART_ALREADY_RESTORED', 'CART_RESTORE_NOT_FOUND'].includes(error.code)) {
+          setLastRemoval(null)
+        }
+      },
+    })
+  }
+
   function chooseVoucher(code) {
     setVoucherCode(code)
+    setVoucherDraft(code)
     setVoucherError(null)
     setVoucherStaleNotice(false)
     applyVoucher.mutate(code, {
@@ -500,6 +526,7 @@ export function CartPage() {
 
   function clearVoucher() {
     setVoucherCode('')
+    setVoucherDraft('')
     setVoucherResult(null)
     setVoucherError(null)
     setVoucherStaleNotice(false)
@@ -516,6 +543,16 @@ export function CartPage() {
             </p>
           )}
         </div>
+
+        {(lastRemoval || undoError) && (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-control border border-border bg-surface px-4 py-3" role="status">
+            <div>
+              {lastRemoval && <p className="text-sm font-medium text-foreground">Đã xóa {lastRemoval.productName} khỏi giỏ.</p>}
+              {undoError && <p className="mt-1 text-sm text-destructive">{undoError}</p>}
+            </div>
+            {lastRemoval && <button type="button" onClick={undoRemoval} disabled={restoreCartItem.isPending} className="min-h-11 text-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">{restoreCartItem.isPending ? 'Đang hoàn tác…' : 'Hoàn tác'}</button>}
+          </div>
+        )}
 
         {isError && data?.data && (
           <LoadErrorState
@@ -541,7 +578,7 @@ export function CartPage() {
             {itemGroups.map((group) => <section key={group.key} aria-labelledby={`cart-group-${group.key}`}>
               <div className="mb-3 flex items-center gap-4 border-b-2 border-foreground/40 pb-4">
                 {group.room?.preview_url && <img src={group.room.preview_url} alt={`Ảnh phòng ${group.room.name}`} className="h-20 w-28 shrink-0 object-cover" />}
-                <div><h2 id={`cart-group-${group.key}`} className="text-lg font-medium text-foreground">{group.room ? group.room.name : 'Sản phẩm chọn riêng'}</h2>{group.room && <p className="mt-1 text-sm text-muted-foreground">Các món được thêm cùng nhau từ phòng đã lưu này.</p>}</div>
+                <div><h2 id={`cart-group-${group.key}`} className="text-lg font-medium text-foreground">{group.room ? <Link to={`/room-planner/${group.room.id}`} className="underline decoration-border-strong underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{group.room.name}</Link> : 'Sản phẩm chọn riêng'}</h2>{group.room && <p className="mt-1 text-sm text-muted-foreground">Các món được thêm cùng nhau từ phòng đã lưu này.</p>}</div>
               </div>
             <ul aria-label={group.room ? `Sản phẩm từ phòng ${group.room.name}` : 'Các lựa chọn riêng trong giỏ hàng'} className="space-y-2">
               {group.items.map((item) => (
@@ -601,12 +638,59 @@ export function CartPage() {
               </div>
             </section>
 
-            <section aria-labelledby="available-vouchers-heading" className="grid border-t border-border md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]">
+            <section aria-labelledby="voucher-code-heading" className="grid border-t border-border md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]">
               <div className="py-6 md:pr-8">
-                <h2 id="available-vouchers-heading" className="flex items-center gap-2 text-lg font-medium text-foreground">
-                  <Ticket aria-hidden="true" size={19} /> Mã giảm giá có thể dùng
+                <h2 id="voucher-code-heading" className="flex items-center gap-2 text-lg font-medium text-foreground">
+                  <Ticket aria-hidden="true" size={19} /> Mã giảm giá
                 </h2>
-                {availableVouchersQuery.isLoading ? (
+                <form
+                  className="mt-4 max-w-xl"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    const code = voucherDraft.trim()
+                    if (code) chooseVoucher(code)
+                  }}
+                >
+                  <label htmlFor="voucher-code" className="block text-sm font-medium text-foreground">
+                    Nhập mã giảm giá
+                  </label>
+                  <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                    <input
+                      id="voucher-code"
+                      type="text"
+                      value={voucherDraft}
+                      onChange={(event) => setVoucherDraft(event.target.value)}
+                      placeholder="Ví dụ: NEST10"
+                      autoComplete="off"
+                      className="min-h-12 min-w-0 flex-1 rounded-control border border-border-strong bg-canvas px-4 py-3 text-foreground outline outline-2 outline-offset-1 outline-transparent transition-colors placeholder:text-muted-foreground hover:bg-unbuilt/15 focus:border-foreground focus:outline-ring"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!voucherDraft.trim() || applyVoucher.isPending}
+                      className="inline-flex min-h-12 items-center justify-center rounded-control border border-foreground px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-unbuilt/20 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {applyVoucher.isPending ? 'Đang áp dụng…' : 'Áp dụng mã'}
+                    </button>
+                  </div>
+                </form>
+                {voucherError && <div className="mt-4"><ItemStatus>{voucherError}</ItemStatus></div>}
+                {voucherStaleNotice && (
+                  <p role="status" className="mt-4 max-w-md border-l-2 border-foreground pl-3 text-sm leading-relaxed text-foreground">
+                    Giỏ hàng đã thay đổi. Hãy áp dụng lại mã để xem số tiền mới.
+                  </p>
+                )}
+              </div>
+              <div aria-hidden="true" className="hidden border-l-2 border-foreground/25 md:block" />
+            </section>
+
+            <details data-testid="voucher-discovery" className="group border-t border-border">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center gap-2"><Ticket aria-hidden="true" size={18} /> Xem mã phù hợp</span>
+                <ChevronDown aria-hidden="true" size={18} className="shrink-0 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="grid border-t border-border md:grid-cols-[minmax(0,1fr)_minmax(13rem,0.3fr)]">
+                <div className="py-6 md:pr-8">
+                  {availableVouchersQuery.isLoading ? (
                   <p role="status" className="mt-3 text-sm text-muted-foreground">Đang tìm mã phù hợp với giỏ hàng…</p>
                 ) : availableVouchersQuery.isError ? (
                   <button type="button" onClick={() => availableVouchersQuery.refetch()} className="mt-3 text-sm text-foreground underline underline-offset-4">Chưa tải được mã. Thử lại</button>
@@ -693,16 +777,11 @@ export function CartPage() {
                       </nav>
                     )}
                   </div>
-                )}
-                  {voucherError && <ItemStatus>{voucherError}</ItemStatus>}
-                  {voucherStaleNotice && (
-                    <p role="status" className="mt-4 max-w-md border-l-2 border-foreground pl-3 text-sm leading-relaxed text-foreground">
-                      Giỏ hàng đã thay đổi. Hãy áp dụng lại mã để xem số tiền mới.
-                    </p>
                   )}
+                </div>
+                <div aria-hidden="true" className="hidden border-l-2 border-foreground/25 md:block" />
               </div>
-              <div aria-hidden="true" className="hidden border-l-2 border-foreground/25 md:block" />
-            </section>
+            </details>
 
             <div
               data-quiet-zone="reconsideration-interval"

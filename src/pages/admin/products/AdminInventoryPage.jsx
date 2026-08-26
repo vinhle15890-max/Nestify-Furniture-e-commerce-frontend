@@ -1,6 +1,6 @@
 /* Hallmark · macrostructure: inventory workbench · tone: utilitarian · anchor hue: Nestify tokens */
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast/mobile/tokens: pass */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, ArrowDown, ArrowUp, ClipboardList, Download, History, Search, Warehouse } from 'lucide-react'
 import { Button } from '../../../components/Button'
@@ -150,6 +150,7 @@ export function AdminInventoryPage() {
   const [reference, setReference] = useState('')
   const [reason, setReason] = useState('')
   const [formError, setFormError] = useState('')
+  const [selectionMessage, setSelectionMessage] = useState('')
   const { data, isLoading, isError, isFetching, refetch } = useInventoryVariants({ q: search.trim(), threshold, lowStockOnly, page })
   const adjust = useAdjustVariantStock()
   const addToast = useToastStore((state) => state.addToast)
@@ -157,8 +158,17 @@ export function AdminInventoryPage() {
   const meta = data?.meta ?? { last_page: 1 }
   const selected = variants.find((variant) => variant.id === selectedId) ?? null
 
+  useEffect(() => {
+    if (!selectedId || isLoading || !data) return
+    if (!(data.data ?? []).some((variant) => variant.id === selectedId)) {
+      setSelectedId(null)
+      setSelectionMessage('Lựa chọn trước đã được bỏ vì không có trên trang này.')
+    }
+  }, [data, isLoading, selectedId])
+
   const selectVariant = (variant) => {
     setSelectedId(variant.id)
+    setSelectionMessage('')
     setOperation('stock_in')
     setQuantity('')
     setReference('')
@@ -288,8 +298,9 @@ export function AdminInventoryPage() {
               Trang {meta.current_page ?? page}/{meta.last_page ?? 1}
               {Number.isFinite(meta.total) ? ` · ${meta.total} biến thể` : ''}
             </p>
-            <Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={(next) => { setPage(next); setSelectedId(null) }} />
+            <Pagination page={page} lastPage={meta.last_page ?? 1} onPageChange={(next) => { setSelectionMessage(''); setPage(next) }} />
           </div>
+          {selectionMessage && <p className="shrink-0 border-t border-border px-4 py-2 text-xs text-muted-foreground" role="status">{selectionMessage}</p>}
         </Panel>
 
         <div className="min-w-0 space-y-6 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
@@ -325,9 +336,12 @@ export function AdminInventoryPage() {
                     <input aria-invalid={Boolean(formError)} className="min-h-12 rounded-control border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="Ví dụ: 5" />
                   </label>
                 </div>
-                <label className="grid gap-1 text-sm text-foreground">Mã phiếu / chứng từ (không bắt buộc)
-                  <input className="min-h-12 rounded-control border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" maxLength="100" value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ví dụ: PN-2026-034" />
-                </label>
+                <div className="grid gap-1">
+                  <label className="grid gap-1 text-sm text-foreground">Mã phiếu / chứng từ (không bắt buộc)
+                    <input className="min-h-12 rounded-control border border-border bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" maxLength="100" value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ví dụ: PN-2026-034" />
+                  </label>
+                  {operation === 'stock_in' && <span className="text-xs text-muted-foreground">Nên nhập số phiếu nhập</span>}
+                </div>
                 <label className="grid gap-1 text-sm text-foreground">Lý do
                   <textarea aria-invalid={Boolean(formError)} className="min-h-24 resize-y rounded-control border border-border bg-background px-3 py-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ví dụ: Kiểm kê kho tuần 34" />
                 </label>

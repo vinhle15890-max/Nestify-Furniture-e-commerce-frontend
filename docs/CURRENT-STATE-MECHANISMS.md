@@ -551,11 +551,11 @@ inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn l�
 
 ## Commerce core UI — 2026-08-21
 
-- Checkout/chi tiết đơn đọc fulfillment và payment độc lập, có fallback legacy trong migration.
+- Checkout/chi tiết đơn đọc fulfillment và payment độc lập, có fallback legacy trong migration. Danh sách đơn dùng shipment summary sẵn có trên list resource để hiện carrier/tracking và link “Xem vận chuyển”, không fan-out request detail.
 - Admin chuyển sang shipped qua modal bắt buộc đơn vị vận chuyển; shipped COD có action riêng giao và thu đủ tiền.
 - Dashboard có preset 7 ngày/tháng hiện tại/90 ngày và khoảng tùy chọn; tách giá trị đơn, tiền đã thu, hoàn đã chuyển và **tiền thực thu** (tiền đã thu trừ hoàn đã chuyển), cùng COD chờ thu theo timezone Việt Nam. Nó đồng thời hiển thị on-hand/reserved/available, nhập–xuất theo ledger, bảng đối chiếu day/week/month và top seller chỉ từ đơn delivered. Workbench Flash Sale phân biệt quota/allocated/released/remaining hiện tại với số lượng và doanh thu đã giao trong kỳ, từng dòng link về sản phẩm quản trị. Operations queue truyền bộ lọc qua URL: đơn/thanh toán vào `/admin/orders`, đổi trả vào `/admin/returns`; API vẫn là nguồn số liệu duy nhất.
 - Chi tiết đơn delivered cho phép owner gửi yêu cầu đổi trả toàn đơn trong 7 ngày và hiển thị phản hồi. Admin xử lý `requested -> approved|rejected` ngay trong order workbench; UI nói rõ duyệt chưa tự hoàn tiền/cộng tồn để không nhập nhằng intake với nhận hàng thực tế.
-- Khi đã duyệt, khách nhập đơn vị/mã vận đơn gửi trả; admin xem vận đơn, ghi kết quả kiểm tra và chủ động chọn có restock hay không. Danh sách đơn có filter đổi trả, dashboard link thẳng tới `requested`. Màn hình không ngụ ý đã hoàn tiền chỉ vì kho đã nhận lại hàng.
+- Khi đã duyệt, khách có thể lưu đơn vị vận chuyển trước; yêu cầu vẫn ở `approved` cho tới khi có mã vận đơn và chỉ lúc đó mới chuyển `in_transit`. Admin xem vận đơn, ghi kết quả kiểm tra và chủ động chọn có restock hay không. Danh sách đơn có filter đổi trả, dashboard link thẳng tới `requested`. Màn hình không ngụ ý đã gửi hàng hoặc hoàn tiền chỉ vì mới lưu carrier hay kho đã nhận lại hàng.
 - Sau receipt, workbench chỉ hiện action tiền cho quyền `refund`: ghi hoàn chuyển sang `refund_pending`, rồi nhập mã tham chiếu sau payout thật để `completed`. Dashboard và filter tách `received` khỏi `refund_pending`; khách thấy số tiền/mã tham chiếu khi có.
 - Form biến thể tách cập nhật thông tin khỏi điều chỉnh kho; adjustment bắt buộc delta/lý do và hiển thị on-hand/reserved/available.
 - Manual collections dùng `features/admin/collections` cho CRUD và `features/catalog` cho public reads; `/admin/collections` quản lý membership có thứ tự, `/collections/:collectionSlug` là landing page, Home chỉ render item `show_on_home`.
@@ -586,3 +586,10 @@ Voucher discovery is an in-product journey: desktop navigation exposes `Ưu đã
 The domain-root entry is role-intent aware. Reopening `/` with only a persisted staff/admin session resumes `/admin`; when Customer and Admin sessions coexist, `/` remains the storefront and `/admin` remains the back office. Staff can deliberately inspect the storefront through the Admin user menu, whose `Về cửa hàng` action targets `/c/all`.
 
 Customer order detail now owns payout-destination collection for each manual refund. The customer submits bank, account holder, and account number; subsequent reads show only a masked account. Sales Admin with `refund` permission verifies it or requests correction. Transfer actions remain unavailable until verification, and the destination is locked once processing starts. The backend—not the button state—enforces this rule. PayOS automatic refund is not implied.
+
+## Commerce correctness hardening — 2026-08-26
+
+- Checkout được serialize theo cart row; variant inactive và VND có phần lẻ bị BE chặn tại correctness boundary.
+- Payment hiển thị riêng đã chuyển hoàn, nghĩa vụ đang mở và số còn có thể hoàn; refunded chỉ sau Refund `succeeded`.
+- Dashboard dùng `net_collected_cash`; queue xác nhận tách PayOS đang chờ khỏi đơn thực sự sẵn sàng xử lý.
+- Lịch sử order customer truyền `page` và render pagination từ API meta.

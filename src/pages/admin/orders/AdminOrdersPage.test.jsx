@@ -91,6 +91,30 @@ describe('AdminOrdersPage', () => {
     )
   })
 
+  it('searches orders through the server contract while preserving active filters', async () => {
+    renderPage('/admin/orders?status=processing&page=3')
+    await screen.findByText('Bao Le')
+
+    await userEvent.type(screen.getByLabelText('Tìm theo mã đơn, khách hàng hoặc vận đơn'), 'GHN-7788')
+    await userEvent.click(screen.getByRole('button', { name: 'Tìm đơn' }))
+
+    await waitFor(() => expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({
+      page: 1,
+      q: 'GHN-7788',
+      status: 'processing',
+    })))
+    expect(screen.getByRole('button', { name: 'Xóa tìm kiếm' })).toBeInTheDocument()
+  })
+
+  it('hydrates and clears an order search from the URL', async () => {
+    renderPage('/admin/orders?q=bao%40example.com')
+
+    expect(await screen.findByLabelText('Tìm theo mã đơn, khách hàng hoặc vận đơn')).toHaveValue('bao@example.com')
+    expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({ q: 'bao@example.com' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xóa tìm kiếm' }))
+    await waitFor(() => expect(ordersApi.getOrders).toHaveBeenLastCalledWith(expect.not.objectContaining({ q: expect.anything() })))
+  })
+
   it('hydrates COD receivable filters from a dashboard drill-down link', async () => {
     renderPage('/admin/orders?payment_method=cod&payment_status=pending')
 

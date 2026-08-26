@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronRight, Package } from 'lucide-react'
 import { useOrders } from '../../features/orders/hooks'
 import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
@@ -6,10 +6,14 @@ import { Badge } from '../../components/Badge'
 import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { ProductThumb } from '../../components/ProductThumb'
+import { Pagination } from '../../components/Pagination'
 import { formatPrice, formatDate } from '../../lib/format'
+import { customerOrderNextAction } from './customerOrderNextAction'
 
 export function OrdersPage() {
-  const ordersQuery = useOrders()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const page = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1', 10) || 1)
+  const ordersQuery = useOrders(page)
   const { data, isLoading, isError, isFetching } = ordersQuery
 
   if (isLoading) {
@@ -57,6 +61,7 @@ export function OrdersPage() {
           className="mt-6"
         />
       )}
+      <div className="mt-8"><Pagination page={page} lastPage={data?.meta?.last_page ?? 1} onPageChange={(nextPage) => setSearchParams(nextPage > 1 ? { page: String(nextPage) } : {})} /></div>
 
       {orders.length === 0 ? (
         <div className="mt-10 rounded-card border border-border bg-surface p-12 text-center">
@@ -75,12 +80,10 @@ export function OrdersPage() {
             const items = order.items ?? []
             const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
             const previews = items.slice(0, 4)
+            const nextAction = customerOrderNextAction(order)
             return (
-              <li key={order.id}>
-                <Link
-                  to={`/orders/${order.id}`}
-                  className="group flex flex-wrap items-center justify-between gap-4 rounded-card border border-border bg-surface p-6 transition-colors duration-200 hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
+              <li key={order.id} className="rounded-card border border-border bg-surface p-6 transition-colors duration-200 hover:border-border-strong">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     {previews.length > 0 && (
                       <div className="flex -space-x-3">
@@ -96,20 +99,30 @@ export function OrdersPage() {
                       </div>
                     )}
                     <div>
-                      <p className="font-display text-lg text-foreground">
+                      <Link to={`/orders/${order.id}`} className="font-display text-lg text-foreground hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         Đơn hàng {order.order_number ?? `#${order.id}`}
-                      </p>
+                      </Link>
                       <p className="text-sm text-muted-foreground">
                         {formatDate(order.created_at)} · {totalQuantity} sản phẩm
                       </p>
+                      {order.status === 'shipped' && (order.fulfillment?.carrier_name || order.fulfillment?.tracking_number) && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Vận chuyển: {[order.fulfillment.carrier_name, order.fulfillment.tracking_number].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
                   <div className="flex items-center gap-3">
                     <p className="font-medium text-foreground">{formatPrice(order.total)}</p>
-                    <ChevronRight size={16} className="text-border-strong transition-transform duration-200 group-hover:translate-x-1" />
                   </div>
-                </Link>
+                </div>
+                <div className="mt-4 flex justify-end border-t border-border pt-4">
+                  <Link to={`/orders/${order.id}${nextAction.hash}`} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-border-strong px-4 text-sm font-medium text-foreground hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    {nextAction.label}
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </Link>
+                </div>
               </li>
             )
           })}

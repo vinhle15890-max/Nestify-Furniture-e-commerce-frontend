@@ -125,6 +125,36 @@ describe('AdminInventoryPage', () => {
     })))
   })
 
+  it('preserves the selected variant when it is still present on the next page', async () => {
+    productsApi.getInventoryVariants.mockImplementation(({ page }) => Promise.resolve({
+      ...lowStockResponse,
+      meta: { current_page: page, last_page: 2, total: 9 },
+    }))
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))
+    expect(screen.getByText('Nên nhập số phiếu nhập')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
+
+    await waitFor(() => expect(productsApi.getInventoryVariants).toHaveBeenCalledWith(expect.objectContaining({ page: 2 })))
+    expect((await screen.findAllByText('Sofa Nature · Màu be')).length).toBeGreaterThan(1)
+    expect(screen.queryByText(/Lựa chọn trước đã được bỏ/)).not.toBeInTheDocument()
+  })
+
+  it('announces when pagination clears a selection missing from the returned page', async () => {
+    productsApi.getInventoryVariants.mockImplementation(({ page }) => Promise.resolve(page === 1 ? lowStockResponse : {
+      data: [{ ...lowStockResponse.data[0], id: 8, sku: 'TABLE-OAK', name: 'Gỗ sồi', product_name: 'Bàn Oak' }],
+      meta: { current_page: 2, last_page: 2, total: 9 },
+    }))
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
+
+    expect(await screen.findByText('Lựa chọn trước đã được bỏ vì không có trên trang này.')).toBeInTheDocument()
+    expect(screen.getByText('Chọn một biến thể trong danh sách để kiểm kê.')).toBeInTheDocument()
+  })
+
   it('warns before submitting a decrease below reserved stock', async () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: /Sofa Nature/ }))

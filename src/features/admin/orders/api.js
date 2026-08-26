@@ -1,12 +1,14 @@
 import { apiClient } from '../../../lib/apiClient'
 
-export function getOrders({ page, status, statusGroup, paymentMethod, paymentStatus, paymentQueue, returnStatus, hasReturn } = {}) {
+export function getOrders({ page, q, status, statusGroup, paymentMethod, paymentStatus, paymentQueue, confirmationQueue, returnStatus, hasReturn } = {}) {
   const params = { page }
+  if (q) params.q = q
   if (status) params.status = status
   if (statusGroup) params.status_group = statusGroup
   if (paymentMethod) params.payment_method = paymentMethod
   if (paymentStatus) params.payment_status = paymentStatus
   if (paymentQueue) params.payment_queue = paymentQueue
+  if (confirmationQueue) params.confirmation_queue = confirmationQueue
   if (returnStatus) params.return_status = returnStatus
   if (hasReturn) params.has_return = 1
 
@@ -19,6 +21,10 @@ export function getOrder(id) {
 
 export function updateOrderStatus(id, status, metadata = {}) {
   return apiClient.patch(`/admin/orders/${id}/status`, { status, ...metadata })
+}
+
+export function updateShipmentMetadata(id, payload) {
+  return apiClient.patch(`/admin/orders/${id}/shipment`, payload)
 }
 
 export function refundOrder(id, payload, idempotencyKey) {

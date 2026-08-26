@@ -197,7 +197,7 @@ export function CheckoutReturnPage() {
               </p>
               <div className="mt-5 flex flex-col items-start gap-3 sm:flex-row">
                 <Button type="button" onClick={retryReconciliation} disabled={isFetching}>
-                  {isFetching ? 'Đang xác minh...' : 'Xác minh lại'}
+                  {isFetching ? 'Đang kiểm tra...' : 'Kiểm tra lại trạng thái'}
                 </Button>
                 <Link to={`/orders/${orderId}`} className={`${linkClass} inline-flex items-center justify-center px-3 py-2`}>
                   Xem chi tiết đơn hàng
@@ -216,7 +216,7 @@ export function CheckoutReturnPage() {
                 Chưa thể kết luận trạng thái thanh toán. Bạn có thể xác minh lại hoặc mở đơn hàng để kiểm tra.
               </p>
               <Button type="button" onClick={retryReconciliation} disabled={isFetching} className="mt-5">
-                {isFetching ? 'Đang xác minh...' : 'Xác minh lại'}
+                {isFetching ? 'Đang kiểm tra...' : 'Kiểm tra lại trạng thái'}
               </Button>
             </>
           )}

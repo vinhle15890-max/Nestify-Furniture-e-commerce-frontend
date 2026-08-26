@@ -35,7 +35,18 @@ export function useRemoveCartItem() {
 
   return useMutation({
     mutationFn: (itemId) => cartApi.removeItem(itemId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
+    onSuccess: (response) => {
+      if (response?.data) queryClient.setQueryData(['cart'], response)
+    },
+  })
+}
+
+export function useRestoreCartItem() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (token) => cartApi.restoreRemovedItem(token),
+    onSuccess: (response) => queryClient.setQueryData(['cart'], response),
   })
 }
 

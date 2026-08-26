@@ -86,6 +86,8 @@ describe('CategoryPage', () => {
     renderPage()
 
     expect(await screen.findByText(/được đưa lên trước/)).toBeInTheDocument()
+    expect(screen.getByText(/được đưa lên trước/).closest('aside')).toHaveAttribute('aria-label', 'Lọc và sắp xếp sản phẩm')
+    expect(screen.getByRole('button', { name: 'Dùng thứ tự mặc định' })).toBeInTheDocument()
     const units = await screen.findAllByTestId('discover-product-unit')
     expect(within(units[0]).getByText('Ghế theo hành trình')).toBeInTheDocument()
     expect(units).toHaveLength(2)
@@ -227,6 +229,14 @@ describe('CategoryPage', () => {
     )
     expect(screen.getByRole('complementary', { name: 'Lọc và sắp xếp sản phẩm' })).toBeInTheDocument()
     expect(screen.queryByText(/đề xuất|bán chạy|phù hợp nhất/i)).not.toBeInTheDocument()
+  })
+
+  it('keeps the filter drawer trigger mobile-only and the sidebar desktop-only', async () => {
+    renderPage()
+    await screen.findByText('Ghế sofa')
+
+    expect(screen.getByRole('button', { name: 'Mở tìm kiếm, lọc và sắp xếp' })).toHaveClass('md:hidden')
+    expect(screen.getByRole('complementary', { name: 'Lọc và sắp xếp sản phẩm' })).toHaveClass('hidden', 'md:block')
   })
 
   it('does not present loaded-product wood values as authoritative facets', async () => {

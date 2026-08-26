@@ -29,6 +29,13 @@ describe('ProductOptions', () => {
     expect(onSelect).toHaveBeenCalledWith('Kích thước', 'M')
   })
 
+  it('vô hiệu hóa option không thuộc bất kỳ tổ hợp variant nào', () => {
+    render(<ProductOptions options={options} variants={variants} selected={{}} onSelect={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Xanh' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Đỏ' })).toBeEnabled()
+  })
+
   it('hiển thị ảnh vân vật liệu thay vì giả lập bằng một màu phẳng', async () => {
     const onSelect = vi.fn()
     const surfaceOptions = [{ name: 'Bề mặt', type: 'surface', values: [{ label: 'Đá Carrara', material_kind: 'stone', image_url: 'https://images.example.com/carrara.jpg' }] }]

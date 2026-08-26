@@ -121,10 +121,10 @@ describe('CheckoutReturnPage', () => {
     }
 
     expect(screen.getByText(/vẫn đang xác nhận thanh toán/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Xác minh lại' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Kiểm tra lại trạng thái' })).toBeInTheDocument()
     expect(checkoutApi.reconcilePayment).toHaveBeenCalledTimes(10)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Xác minh lại' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra lại trạng thái' }))
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
     })
