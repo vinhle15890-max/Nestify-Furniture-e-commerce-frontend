@@ -3,13 +3,15 @@ import { SectionHeading } from './SectionHeading'
 import { Reveal } from '../Reveal'
 import { ProductCard } from '../ProductCard'
 import { LoadErrorState } from '../LoadErrorState'
-import { useBestSellers } from '../../features/catalog/hooks'
+import { useFeaturedProducts } from '../../features/catalog/hooks'
 import { CatalogSkeleton } from '../LoadingStates'
 import { FeedbackState } from '../FeedbackState'
 import { ButtonLink } from '../Button'
 
-export function BestSellers() {
-  const query = useBestSellers(8)
+// Kept in the legacy filename to avoid a destructive file move; the runtime
+// concept is explicitly FeaturedProducts and is independent from best-seller ranking.
+export function FeaturedProducts() {
+  const query = useFeaturedProducts(8)
   const products = query.data?.data ?? []
 
   return (
@@ -17,7 +19,7 @@ export function BestSellers() {
       <div className="relative mx-auto max-w-7xl px-6 py-20 md:py-24 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
-            eyebrow="Thiết kế nổi bật"
+            eyebrow="Nestify tuyển chọn"
             title="Những thiết kế đáng để bắt đầu"
             intro="So sánh hình dáng, vật liệu và mức giá trước khi đi sâu vào món phù hợp với căn phòng của bạn."
           />
@@ -32,7 +34,7 @@ export function BestSellers() {
         {query.isLoading ? (
           <CatalogSkeleton />
         ) : query.isError && !query.data ? (
-          <LoadErrorState className="mt-10" compact title="Chưa thể tải các thiết kế tiêu biểu" description="Bạn vẫn có thể xem toàn bộ sản phẩm hoặc thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
+          <LoadErrorState className="mt-10" compact title="Chưa thể tải các thiết kế được tuyển chọn" description="Bạn vẫn có thể xem toàn bộ sản phẩm hoặc thử tải lại." onRetry={query.refetch} isRetrying={query.isFetching} />
         ) : products.length === 0 ? (
           <FeedbackState className="mt-10" compact title="Chưa có sản phẩm để giới thiệu" description="Bạn vẫn có thể xem toàn bộ danh mục." />
         ) : (

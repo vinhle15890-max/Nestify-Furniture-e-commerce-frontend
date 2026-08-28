@@ -17,7 +17,7 @@ export const usePreviewStore = create((set) => ({
 // (and anything built on them — nav, route guards, the 403 page) render
 // exactly as that role would. No preview → the real user, unchanged.
 export function useEffectiveUser() {
-  const user = useAuthStore((state) => state.user)
+  const user = useAuthStore((state) => state.adminUser)
   const previewRole = usePreviewStore((state) => state.previewRole)
   return previewRole ? { ...user, permissions: previewRole.permissions ?? [] } : user
 }

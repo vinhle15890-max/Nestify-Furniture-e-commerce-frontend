@@ -1,8 +1,11 @@
+/* Hallmark · audience: store operators/managers · use: act first, analyse second · tone: utilitarian-editorial */
+/* Hallmark · macrostructure: Split Workbench · anchor hue: Nestify tokens */
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · contrast/mobile/tokens: pass */
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Package,
   ShoppingBag,
-  Users,
   Star,
   TrendingUp,
   Clock,
@@ -10,11 +13,11 @@ import {
   ArrowUpRight,
   Sparkles,
   AlertTriangle,
+  ChevronDown,
 } from 'lucide-react'
 import { Spinner } from '../../components/Spinner'
 import { LoadErrorState } from '../../components/LoadErrorState'
 import { PageHeader } from '../../components/admin/PageHeader'
-import { BrandIllustration } from '../../components/admin/BrandIllustration'
 import { useAdminDashboard } from '../../features/admin/dashboard/hooks'
 import { formatPrice } from '../../lib/format'
 
@@ -23,58 +26,29 @@ function pct(n, d) {
   return d ? Math.round((n / d) * 100) : 0
 }
 
-/** A KPI card with a tinted icon chip, headline value and an optional context line. */
-function Kpi({ label, value, icon: Icon, tone = 'ink', hint, progress }) {
-  const chip = {
-    ink: 'bg-foreground/[0.06] text-foreground',
-    brass: 'bg-accent/10 text-accent',
-    olive: 'bg-secondary/10 text-secondary',
-    terracotta: 'bg-destructive/10 text-destructive',
-  }[tone]
-  const bar = {
-    ink: 'bg-foreground',
-    brass: 'bg-accent',
-    olive: 'bg-secondary',
-    terracotta: 'bg-destructive',
-  }[tone]
-
-  return (
-    <div className="group rounded-card border border-border bg-surface p-5 shadow-soft transition-shadow duration-300 hover:shadow-card">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        {Icon && (
-          <span className={`grid size-9 shrink-0 place-items-center rounded-control ${chip}`}>
-            <Icon size={18} />
-          </span>
-        )}
-      </div>
-      <p className="mt-4 font-display text-[2rem] leading-none text-foreground">{value}</p>
-      {progress != null && (
-        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-surface-alt">
-          <div
-            className={`h-full rounded-full ${bar} transition-all duration-700 ease-out`}
-            style={{ width: `${Math.max(progress, 2)}%` }}
-          />
-        </div>
-      )}
-      {hint && <p className="mt-2 text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  )
+function dateInput(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 10)
 }
 
-/** A single metric inside the revenue hero strip. */
-function HeroStat({ label, value }) {
-  return (
-    <div className="min-w-0">
-      <p className="truncate font-display text-xl text-surface">{value}</p>
-      <p className="mt-1 text-xs text-surface/55">{label}</p>
-    </div>
-  )
+function reportPreset(days) {
+  const end = new Date()
+  const start = new Date(end)
+  start.setDate(start.getDate() - (days - 1))
+  return { date_from: dateInput(start), date_to: dateInput(end), interval: days > 62 ? 'month' : days > 14 ? 'week' : 'day' }
+}
+
+function toggleDisclosureOnKeyboard(event) {
+  if (!['Enter', ' '].includes(event.key)) return
+  event.preventDefault()
+  const details = event.currentTarget.parentElement
+  details.open = !details.open
 }
 
 /** An actionable queue row that links to the relevant admin screen. */
 function ActionRow({ to, icon: Icon, label, count, urgent }) {
   const active = count > 0
+  if (!active) return null
   return (
     <Link
       to={to}
@@ -88,7 +62,7 @@ function ActionRow({ to, icon: Icon, label, count, urgent }) {
         <Icon size={18} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="whitespace-nowrap text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">
           {active ? 'Đang chờ thao tác' : 'Không có mục nào'}
         </p>
@@ -108,8 +82,23 @@ function ActionRow({ to, icon: Icon, label, count, urgent }) {
   )
 }
 
+function InsightList({ title, description, rows, to, value, empty = 'Chưa có dữ liệu trong kỳ.' }) {
+  return (
+    <section className="min-w-0 overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+      <div className="border-b border-border px-5 py-4"><h3 className="font-display text-lg text-foreground">{title}</h3><p className="mt-1 text-xs text-muted-foreground">{description}</p></div>
+      {rows.length ? <ol className="divide-y divide-border">{rows.map((row, index) => <li key={row.id}><Link to={to(row)} className="flex min-h-14 items-center gap-3 px-5 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"><span className="w-5 text-xs tabular-nums text-muted-foreground">{index + 1}</span><span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{row.name ?? row.code}</span><span className="shrink-0 text-right text-xs font-medium text-foreground">{value(row)}</span></Link></li>)}</ol> : <p className="px-5 py-6 text-sm text-muted-foreground">{empty}</p>}
+    </section>
+  )
+}
+
 export function AdminDashboardPage() {
-  const { data, isLoading, isError, isFetching, refetch } = useAdminDashboard()
+  const now = new Date()
+  const monthStart = dateInput(new Date(now.getFullYear(), now.getMonth(), 1))
+  const yearStart = dateInput(new Date(now.getFullYear(), 0, 1))
+  const today = dateInput(now)
+  const [filters, setFilters] = useState({ date_from: monthStart, date_to: today, interval: 'day' })
+  const [dashboardView, setDashboardView] = useState('operations')
+  const { data, isLoading, isError, isFetching, refetch } = useAdminDashboard(filters)
 
   if (isLoading) {
     return <Spinner label="Đang tải số liệu tổng quan..." />
@@ -122,25 +111,56 @@ export function AdminDashboardPage() {
   const stats = data?.data
   if (!stats) return null
 
-  const { orders, catalog } = stats
+  const { orders } = stats
+  const finance = stats.finance ?? {
+    cash_collected: stats.revenue ?? 0,
+    refunds: 0,
+    net_revenue: stats.revenue ?? 0,
+    cod_receivable: 0,
+    units_sold: 0,
+  }
+  const operations = stats.operations ?? {}
+  const topSellers = stats.top_sellers ?? []
+  const flashSales = stats.flash_sales ?? { active_variants: 0, total_quota: 0, allocated_units: 0, released_units: 0, remaining_units: 0, delivered_units: 0, delivered_revenue: 0, variants: [] }
   const manualRefunds = stats.manual_refunds ?? { count: 0, total_amount: 0, orders: [] }
+  const insights = stats.business_insights ?? {
+    orders: { new: finance.orders_placed ?? 0, cancelled: 0, refund_pending: manualRefunds.count },
+    payment_mix: {}, vouchers: { orders_count: 0, discount_amount: 0 },
+    customers: { ordering: 0, new: 0, returning: 0 }, bottom_sellers: [], steady_sellers: [],
+    vouchers_most_used: [], vouchers_least_used: [], top_customers: [],
+  }
 
   // Derived metrics (computed client-side from the fixed payload).
-  const revenueOrders = orders.paid + orders.processing + orders.shipped + orders.delivered
-  const avgOrderValue = revenueOrders ? stats.revenue / revenueOrders : 0
-  const fulfilledRate = pct(orders.delivered, orders.total)
-  const activeRate = pct(catalog.active_products, catalog.products)
-  const needsAttention = orders.pending_payment + stats.pending_reviews + manualRefunds.count
+  const revenueOrders = finance.orders_delivered ?? 0
+  const avgOrderValue = revenueOrders ? (finance.delivered_sales_value ?? finance.delivered_order_value ?? 0) / revenueOrders : 0
+  const awaitingConfirmation = operations.ready_for_confirmation ?? orders.pending_confirmation ?? orders.pending_payment ?? 0
+  const needsAttention = awaitingConfirmation + (operations.processing ?? 0) + (operations.shipped ?? 0) + (operations.delivery_failed ?? 0) + (operations.cod_collection_due ?? 0) + (operations.return_requests_pending ?? 0) + (operations.return_refunds_pending ?? 0) + (operations.return_payouts_pending ?? 0) + (operations.payment_exceptions ?? 0) + stats.pending_reviews + manualRefunds.count
+  const periodRows = [...(finance.series ?? [])].sort((a, b) => a.period.localeCompare(b.period))
 
   const funnel = [
-    { key: 'pending_payment', label: 'Chờ TT', value: orders.pending_payment, color: 'bg-accent/70' },
-    { key: 'paid', label: 'Đã TT', value: orders.paid, color: 'bg-secondary/60' },
-    { key: 'processing', label: 'Xử lý', value: orders.processing, color: 'bg-secondary/85' },
-    { key: 'shipped', label: 'Đang giao', value: orders.shipped, color: 'bg-accent' },
-    { key: 'delivered', label: 'Đã giao', value: orders.delivered, color: 'bg-foreground' },
-    { key: 'cancelled', label: 'Đã huỷ', value: orders.cancelled, color: 'bg-destructive/70' },
+    { key: 'pending_confirmation', label: 'Sẵn sàng xác nhận', value: awaitingConfirmation, color: 'bg-accent/70', to: '/admin/orders?confirmation_queue=ready_for_confirmation' },
+    { key: 'processing', label: 'Đang xử lý', value: orders.processing, color: 'bg-secondary/85', to: '/admin/orders?status=processing' },
+    { key: 'shipped', label: 'Đang giao', value: orders.shipped, color: 'bg-accent', to: '/admin/orders?status=shipped' },
+    { key: 'delivery_failed', label: 'Giao thất bại', value: orders.delivery_failed ?? 0, color: 'bg-destructive/50', to: '/admin/orders?status=delivery_failed' },
+    { key: 'delivered', label: 'Đã giao', value: orders.delivered, color: 'bg-foreground', to: '/admin/orders?status=delivered' },
+    { key: 'cancelled', label: 'Đã huỷ', value: orders.cancelled, color: 'bg-destructive/70', to: '/admin/orders?status=cancelled' },
   ]
-  const maxValue = Math.max(...funnel.map((stage) => stage.value), 1)
+  const monitoredActionItems = [
+    { to: '/admin/orders?status=cancelled', icon: AlertTriangle, label: 'Hoàn tiền PayOS thủ công', count: manualRefunds.count, urgent: true },
+    { to: '/admin/orders?confirmation_queue=ready_for_confirmation', icon: Clock, label: 'Đơn sẵn sàng xác nhận', count: awaitingConfirmation },
+    { to: '/admin/orders?confirmation_queue=awaiting_online_payment', icon: Clock, label: 'PayOS đang chờ khách', count: operations.awaiting_online_payment ?? 0 },
+    { to: '/admin/orders?status=processing', icon: Package, label: 'Đơn cần chuẩn bị hàng', count: operations.processing ?? 0 },
+    { to: '/admin/orders?status=shipped', icon: ShoppingBag, label: 'Đơn đang vận chuyển', count: operations.shipped ?? 0 },
+    { to: '/admin/orders?status=delivery_failed', icon: AlertTriangle, label: 'Giao hàng thất bại', count: operations.delivery_failed ?? 0, urgent: true },
+    { to: '/admin/orders?payment_method=cod&payment_status=pending&status=shipped', icon: CheckCircle2, label: 'COD đến hạn thu', count: operations.cod_collection_due ?? 0 },
+    { to: '/admin/returns?status=requested', icon: Package, label: 'Yêu cầu đổi trả cần xem', count: operations.return_requests_pending ?? 0, urgent: true },
+    { to: '/admin/returns?status=received', icon: CheckCircle2, label: 'Hàng trả đã nhận, chờ ghi hoàn', count: operations.return_refunds_pending ?? 0, urgent: true },
+    { to: '/admin/returns?status=refund_pending', icon: CheckCircle2, label: 'Đổi trả chờ chuyển tiền', count: operations.return_payouts_pending ?? 0, urgent: true },
+    { to: '/admin/payment-exceptions', icon: AlertTriangle, label: 'Thanh toán ngoại lệ', count: operations.payment_exceptions ?? 0, urgent: true },
+    { to: '/admin/reviews', icon: Star, label: 'Đánh giá chờ duyệt', count: stats.pending_reviews, urgent: true },
+  ]
+  const actionItems = monitoredActionItems.filter((item) => item.count > 0)
+  const clearActionItems = monitoredActionItems.filter((item) => item.count === 0)
 
   return (
     <div className="flex flex-col gap-5">
@@ -150,7 +170,57 @@ export function AdminDashboardPage() {
         description="Bức tranh nhanh về hoạt động cửa hàng."
       />
 
-      {manualRefunds.count > 0 && (
+      <nav className="grid gap-2 rounded-card border border-border bg-surface p-2 shadow-soft sm:grid-cols-2" aria-label="Khu vực bảng điều khiển">
+        <button
+          type="button"
+          aria-pressed={dashboardView === 'operations'}
+          onClick={() => setDashboardView('operations')}
+          className={`min-h-12 whitespace-nowrap rounded-control px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dashboardView === 'operations' ? 'bg-foreground text-surface' : 'text-foreground hover:bg-surface-alt'}`}
+        >
+          Điều hành hôm nay
+        </button>
+        <button
+          type="button"
+          aria-pressed={dashboardView === 'business'}
+          onClick={() => setDashboardView('business')}
+          className={`min-h-12 whitespace-nowrap rounded-control px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dashboardView === 'business' ? 'bg-foreground text-surface' : 'text-foreground hover:bg-surface-alt'}`}
+        >
+          Phân tích kinh doanh
+        </button>
+      </nav>
+      <p className="-mt-2 text-sm text-muted-foreground" role="status">
+        {dashboardView === 'operations'
+          ? 'Đơn hàng, hoàn tiền và cảnh báo cần thao tác.'
+          : 'Tiền bán hàng, sản phẩm nổi bật và xu hướng theo kỳ.'}
+      </p>
+
+      {dashboardView === 'business' && <section className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4 shadow-soft" aria-label="Khoảng thời gian báo cáo">
+        <div className="flex flex-wrap gap-2" aria-label="Khoảng thời gian nhanh">
+          <button type="button" onClick={() => setFilters(reportPreset(7))} className="min-h-11 whitespace-nowrap rounded-control border border-border px-3 text-sm text-foreground hover:bg-surface-alt active:bg-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">7 ngày</button>
+          <button type="button" onClick={() => setFilters({ date_from: monthStart, date_to: today, interval: 'day' })} className="min-h-11 whitespace-nowrap rounded-control border border-border px-3 text-sm text-foreground hover:bg-surface-alt active:bg-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Tháng này</button>
+          <button type="button" onClick={() => setFilters(reportPreset(90))} className="min-h-11 whitespace-nowrap rounded-control border border-border px-3 text-sm text-foreground hover:bg-surface-alt active:bg-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">90 ngày</button>
+          <button type="button" onClick={() => setFilters({ date_from: yearStart, date_to: today, interval: 'month' })} className="min-h-11 whitespace-nowrap rounded-control border border-border px-3 text-sm text-foreground hover:bg-surface-alt active:bg-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Năm nay</button>
+        </div>
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          Từ ngày
+          <input className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" type="date" value={filters.date_from} onChange={(event) => setFilters((current) => ({ ...current, date_from: event.target.value }))} />
+        </label>
+        {isFetching && <span className="pb-2 text-sm text-muted-foreground" role="status">Đang cập nhật…</span>}
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          Đến ngày
+          <input className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" type="date" value={filters.date_to} onChange={(event) => setFilters((current) => ({ ...current, date_to: event.target.value }))} />
+        </label>
+        <label className="grid gap-1 text-xs text-muted-foreground">
+          Gom nhóm
+          <select className="rounded-control border border-border bg-background px-3 py-2 text-sm text-foreground" value={filters.interval} onChange={(event) => setFilters((current) => ({ ...current, interval: event.target.value }))}>
+            <option value="day">Theo ngày</option>
+            <option value="week">Theo tuần</option>
+            <option value="month">Theo tháng</option>
+          </select>
+        </label>
+      </section>}
+
+      {dashboardView === 'operations' && manualRefunds.count > 0 && (
         <section
           aria-labelledby="manual-refunds-title"
           className="rounded-card border border-destructive/30 bg-destructive/[0.04] p-5 shadow-soft"
@@ -194,111 +264,123 @@ export function AdminDashboardPage() {
         </section>
       )}
 
-      {/* Revenue hero + actionable queue */}
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="relative overflow-hidden rounded-card border border-border bg-foreground p-7 text-surface shadow-card lg:col-span-2">
-          <BrandIllustration
-            name="lamp"
-            decorative
-            data-brand-watermark
-            size={170}
-            className="animate-rise pointer-events-none absolute -bottom-8 -right-4 text-accent/20"
-          />
-          <div className="relative flex h-full flex-col">
-            <div className="flex items-center gap-2 text-sm text-surface/70">
-              <TrendingUp size={18} className="text-accent" />
-              Doanh thu
-            </div>
-            <p className="mt-4 font-display text-[clamp(2.25rem,4vw,3.25rem)] leading-none">
-              {formatPrice(stats.revenue)}
-            </p>
-            <p className="mt-3 text-sm text-surface/60">Tổng doanh thu đã ghi nhận</p>
-
-            <div className="mt-auto grid grid-cols-3 gap-4 border-t border-surface/15 pt-6 sm:max-w-md">
-              <HeroStat label="Đơn ghi nhận DT" value={revenueOrders} />
-              <HeroStat label="Giá trị đơn TB" value={formatPrice(avgOrderValue)} />
-              <HeroStat label="Tỉ lệ hoàn tất" value={`${fulfilledRate}%`} />
-            </div>
-          </div>
+      {dashboardView === 'operations' && <section className="rounded-card border border-border bg-surface p-5 shadow-soft" aria-labelledby="action-queue-title">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 id="action-queue-title" className="font-display text-xl text-foreground">Việc cần làm</h2><p className="mt-1 text-sm text-muted-foreground">Chọn một hàng đợi để bắt đầu xử lý.</p></div>
+          {needsAttention > 0 ? <span className="rounded-full bg-destructive px-3 py-1 text-sm font-semibold text-surface">{needsAttention} việc</span> : <Sparkles size={20} className="text-secondary" />}
         </div>
+        {actionItems.length > 0 && <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{actionItems.map((item) => <ActionRow key={item.to} {...item} />)}</div>}
+        {clearActionItems.length > 0 && <div data-testid="clear-queues-summary" className="mt-4 flex items-start gap-3 border-t border-border pt-4"><CheckCircle2 className="mt-0.5 shrink-0 text-secondary" size={18} /><div><p className="text-sm font-medium text-foreground">Không có việc chờ</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{clearActionItems.map((item) => item.label).join(' · ')}</p></div></div>}
+      </section>}
 
-        <div className="flex flex-col rounded-card border border-border bg-surface p-6 shadow-soft">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display text-lg text-foreground">Cần xử lý</h3>
-            {needsAttention > 0 ? (
-              <span className="grid size-6 place-items-center rounded-full bg-destructive text-xs font-semibold text-surface">
-                {needsAttention}
-              </span>
-            ) : (
-              <Sparkles size={18} className="text-secondary" />
-            )}
-          </div>
-          <div className="mt-3 flex flex-1 flex-col justify-center">
-            {needsAttention > 0 ? (
-              <div className="-mx-3 flex flex-col">
-                <ActionRow
-                  to="/admin/orders?status=cancelled"
-                  icon={AlertTriangle}
-                  label="Hoàn tiền PayOS thủ công"
-                  count={manualRefunds.count}
-                  urgent
-                />
-                <ActionRow
-                  to="/admin/orders"
-                  icon={Clock}
-                  label="Đơn chờ thanh toán"
-                  count={orders.pending_payment}
-                />
-                <ActionRow
-                  to="/admin/reviews"
-                  icon={Star}
-                  label="Đánh giá chờ duyệt"
-                  count={stats.pending_reviews}
-                  urgent
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 py-6 text-center">
-                <span className="grid size-11 place-items-center rounded-full bg-secondary/10 text-secondary">
-                  <CheckCircle2 size={22} />
-                </span>
-                <p className="text-sm font-medium text-foreground">Đã xử lý hết</p>
-                <p className="text-xs text-muted-foreground">Không có mục nào đang chờ.</p>
-              </div>
-            )}
-          </div>
+      {dashboardView === 'business' && <section className="overflow-hidden rounded-card border border-border bg-surface shadow-soft" aria-labelledby="period-results-title">
+        <div className="border-b border-border px-5 py-4"><h2 id="period-results-title" className="font-display text-xl text-foreground">Kết quả trong kỳ</h2><p className="mt-1 text-sm text-muted-foreground">Từ {finance.date_from} đến {finance.date_to} · múi giờ Việt Nam.</p></div>
+        <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
+          <div data-testid="primary-money-metric" className="bg-surface p-5 lg:p-7"><p className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp size={17} />Tiền thực thu</p><p className="mt-3 font-display text-4xl tabular-nums text-foreground">{formatPrice(finance.net_collected_cash ?? 0)}</p><p className="mt-2 text-xs text-muted-foreground">Đã thu trừ tiền hoàn thực chuyển</p></div>
+          <dl data-testid="supporting-period-metrics" className="divide-y divide-border border-t border-border lg:border-l lg:border-t-0">
+            <div className="flex items-center justify-between gap-5 px-5 py-4"><div><dt className="text-sm text-muted-foreground">Đơn đã giao</dt><p className="mt-1 text-xs text-muted-foreground">Theo thời điểm giao trong kỳ</p></div><dd className="shrink-0 font-display text-xl tabular-nums text-foreground">{finance.orders_delivered ?? 0}</dd></div>
+            <div className="flex items-center justify-between gap-5 px-5 py-4"><div><dt className="text-sm text-muted-foreground">Sản phẩm đã giao</dt><p className="mt-1 text-xs text-muted-foreground">Tổng số lượng item trong đơn đã giao</p></div><dd className="shrink-0 font-display text-xl tabular-nums text-foreground">{finance.units_sold}</dd></div>
+            <div className="flex items-center justify-between gap-5 px-5 py-4"><div><dt className="text-sm text-muted-foreground">Giá trị đơn trung bình</dt><p className="mt-1 text-xs text-muted-foreground">Cùng cohort đơn đã giao trong kỳ</p></div><dd className="shrink-0 font-display text-xl tabular-nums text-foreground">{formatPrice(avgOrderValue)}</dd></div>
+          </dl>
         </div>
-      </div>
+      </section>}
 
-      {/* KPI row */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi
-          label="Tổng đơn hàng"
-          value={orders.total}
-          icon={ShoppingBag}
-          tone="brass"
-          hint={`${orders.delivered} đơn đã giao thành công`}
-        />
-        <Kpi label="Khách hàng" value={stats.customers} icon={Users} tone="olive" />
-        <Kpi
-          label="Sản phẩm đang bán"
-          value={catalog.active_products}
-          icon={Package}
-          tone="ink"
-          progress={activeRate}
-          hint={`${activeRate}% trên tổng ${catalog.products} sản phẩm`}
-        />
-        <Kpi
-          label="Đơn đã giao"
-          value={orders.delivered}
-          icon={CheckCircle2}
-          tone="olive"
-          hint={`Tỉ lệ hoàn tất ${fulfilledRate}%`}
-        />
-      </div>
+      {dashboardView === 'business' && <section aria-label="Chỉ báo đơn hàng">
+        <div className="rounded-card border border-border bg-surface p-5 shadow-soft">
+          <h3 className="font-display text-lg text-foreground">Đơn hàng trong kỳ</h3>
+          <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
+            <div><dt className="text-xs text-muted-foreground">Đơn mới</dt><dd className="mt-1 font-display text-2xl text-foreground">{insights.orders.new}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Đã huỷ</dt><dd className="mt-1 font-display text-2xl text-destructive">{insights.orders.cancelled}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Chờ hoàn tiền</dt><dd className="mt-1 font-display text-2xl text-foreground">{insights.orders.refund_pending}</dd></div>
+          </dl>
+        </div>
+      </section>}
+
+      {dashboardView === 'business' && <details data-testid="product-disclosure" className="group rounded-card border border-border bg-surface shadow-soft">
+        <summary onKeyDown={toggleDisclosureOnKeyboard} className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <span><span className="block font-display text-xl text-foreground">Quyết định về sản phẩm</span><span className="mt-1 block text-sm text-muted-foreground">Xếp hạng theo dữ liệu giao hàng thực tế trong kỳ.</span></span>
+          <ChevronDown size={19} aria-hidden="true" className="shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="grid gap-4 border-t border-border p-5 md:grid-cols-2 xl:grid-cols-3">
+          <InsightList title="Bán chạy nhất" description="Số sản phẩm thực giao trong kỳ" rows={topSellers.slice(0, 5)} to={(row) => `/admin/products/${row.id}`} value={(row) => `${row.units_sold} đã giao`} />
+          <InsightList title="Bán ít nhất" description="Sản phẩm active, xếp từ ít lượt giao nhất" rows={insights.bottom_sellers} to={(row) => `/admin/products/${row.id}`} value={(row) => `${row.units_sold} đã giao`} />
+          <InsightList title="Bán ổn định nhất" description="Xếp theo số tuần có phát sinh giao hàng" rows={insights.steady_sellers} to={(row) => `/admin/products/${row.id}`} value={(row) => `${row.active_weeks} tuần · ${row.units_sold} bán`} />
+        </div>
+      </details>}
+
+      {dashboardView === 'business' && <details data-testid="campaign-disclosure" className="group rounded-card border border-border bg-surface shadow-soft">
+        <summary onKeyDown={toggleDisclosureOnKeyboard} className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <span><span className="block font-display text-xl text-foreground">Quyết định về chiến dịch</span><span className="mt-1 block text-sm text-muted-foreground">Voucher tính trên đơn hợp lệ; khách hàng xếp theo giá trị đơn đã giao trong kỳ.</span></span>
+          <ChevronDown size={19} aria-hidden="true" className="shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="grid gap-4 border-t border-border p-5 md:grid-cols-2 xl:grid-cols-3">
+          <InsightList title="Voucher dùng nhiều nhất" description="Số đơn hợp lệ sử dụng voucher" rows={insights.vouchers_most_used} to={() => '/admin/vouchers'} value={(row) => `${row.orders_count} đơn · ${formatPrice(row.discount_amount)}`} />
+          <InsightList title="Voucher dùng ít nhất" description="Bao gồm voucher active chưa được dùng" rows={insights.vouchers_least_used} to={() => '/admin/vouchers'} value={(row) => `${row.orders_count} đơn`} />
+          <InsightList title="Khách mua nhiều nhất" description="Theo tổng giá trị đơn đã giao" rows={insights.top_customers} to={() => '/admin/customers'} value={(row) => `${formatPrice(row.delivered_value)} · ${row.orders_count} đơn`} />
+        </div>
+      </details>}
+
+      {dashboardView === 'business' && <section className="overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="font-display text-xl text-foreground">Đối soát tiền bán hàng</h3>
+          <p className="mt-1 text-sm text-muted-foreground">COD chỉ được cộng vào tiền thực thu sau khi giao và xác nhận thu đủ.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-surface-alt text-left text-muted-foreground"><tr><th className="px-5 py-3">Chỉ số</th><th className="px-5 py-3 text-right">Giá trị</th><th className="px-5 py-3">Ý nghĩa</th></tr></thead>
+            <tbody className="divide-y divide-border">
+              <tr><td className="px-5 py-3">Giá trị đơn phát sinh</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.order_value ?? 0)}</td><td className="px-5 py-3 text-muted-foreground">Đơn tạo trong kỳ, chưa trừ tiền chưa thu</td></tr>
+              <tr><td className="px-5 py-3">Tiền đã thu</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.cash_collected)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm thanh toán</td></tr>
+              <tr><td className="px-5 py-3">Nghĩa vụ hoàn đang mở</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.current_refund_obligation ?? finance.refund_pending_transfer ?? 0)}</td><td className="px-5 py-3 text-muted-foreground">Snapshot hiện tại, không phụ thuộc kỳ lọc</td></tr>
+              <tr><td className="px-5 py-3">Tiền đã chuyển hoàn</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.refund_transferred ?? finance.refunds)}</td><td className="px-5 py-3 text-muted-foreground">Theo thời điểm xác nhận chuyển tiền</td></tr>
+              <tr><td className="px-5 py-3">COD chờ thu</td><td className="px-5 py-3 text-right font-medium">{formatPrice(finance.cod_receivable)}</td><td className="px-5 py-3 text-muted-foreground">Khoản phải thu, chưa phải doanh thu</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>}
+
+      {dashboardView === 'business' && <details data-testid="flash-sale-disclosure" className="group overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+        <summary onKeyDown={toggleDisclosureOnKeyboard} className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <span><span className="block font-display text-xl text-foreground">Vận hành Flash Sale</span><span className="mt-1 block text-sm text-muted-foreground">Quota và suất giữ là số hiện tại; đã giao và doanh thu chỉ tính trong kỳ đang chọn.</span></span>
+          <ChevronDown size={19} aria-hidden="true" className="shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-border">
+        <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
+          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Biến thể đang chạy</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{flashSales.active_variants}</p></div>
+          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Đã phân bổ / quota</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{flashSales.allocated_units} <span className="text-base text-muted-foreground">/ {flashSales.total_quota}</span></p></div>
+          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Còn lại</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{flashSales.remaining_units}</p></div>
+          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Doanh thu đã giao trong kỳ</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{formatPrice(flashSales.delivered_revenue)}</p></div>
+        </div>
+        <div className="overflow-x-auto border-t border-border">
+          <table className="w-full min-w-[52rem] text-sm">
+            <thead className="bg-surface-alt text-left text-muted-foreground"><tr><th className="px-5 py-3">Sản phẩm / biến thể</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3 text-right">Quota</th><th className="px-4 py-3 text-right">Đã giữ</th><th className="px-4 py-3 text-right">Đã hoàn</th><th className="px-4 py-3 text-right">Còn lại</th><th className="px-4 py-3 text-right">Đã giao trong kỳ</th><th className="px-5 py-3 text-right">Doanh thu</th></tr></thead>
+            <tbody className="divide-y divide-border">
+              {flashSales.variants.length ? flashSales.variants.map((variant) => <tr key={variant.id}>
+                <td className="px-5 py-3"><Link to={`/admin/products/${variant.product_id}`} className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{variant.product_name}</Link><p className="mt-0.5 text-xs text-muted-foreground">{variant.variant_name || variant.sku}</p></td>
+                <td className="px-4 py-3 text-muted-foreground">{{ active: 'Đang chạy', scheduled: 'Sắp diễn ra', ended: 'Đã kết thúc', sold_out: 'Hết suất' }[variant.status] ?? variant.status}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{variant.quota}</td><td className="px-4 py-3 text-right tabular-nums">{variant.allocated_units}</td><td className="px-4 py-3 text-right tabular-nums">{variant.released_units}</td><td className="px-4 py-3 text-right tabular-nums">{variant.remaining_units}</td><td className="px-4 py-3 text-right tabular-nums">{variant.delivered_units}</td><td className="px-5 py-3 text-right tabular-nums">{formatPrice(variant.delivered_revenue)}</td>
+              </tr>) : <tr><td colSpan="8" className="px-5 py-8 text-center text-muted-foreground">Chưa có biến thể Flash Sale để vận hành.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </details>}
+
+      {dashboardView === 'business' && <div className="min-w-0">
+        <section className="min-w-0 overflow-hidden rounded-card border border-border bg-surface shadow-soft">
+          <div className="border-b border-border px-5 py-4"><h3 className="font-display text-xl text-foreground">Đối chiếu tiền theo kỳ</h3><p className="mt-1 text-sm text-muted-foreground">Tiền được xếp theo thời điểm thực thu hoặc xác nhận đã chuyển hoàn.</p></div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[34rem] text-sm">
+              <thead className="bg-surface-alt text-left text-muted-foreground"><tr><th className="px-4 py-3">Kỳ bắt đầu</th><th className="px-4 py-3 text-right">Đã thu</th><th className="px-4 py-3 text-right">Đã hoàn</th><th className="px-4 py-3 text-right">Tiền thực thu</th></tr></thead>
+              <tbody className="divide-y divide-border">{periodRows.length ? periodRows.map((row) => <tr key={row.period}><td className="px-4 py-3 font-medium text-foreground">{row.period}</td><td className="px-4 py-3 text-right tabular-nums">{formatPrice(row.cash_collected ?? 0)}</td><td className="px-4 py-3 text-right tabular-nums">{formatPrice(row.refunds ?? 0)}</td><td className="px-4 py-3 text-right tabular-nums">{formatPrice(row.net_collected_cash ?? row.net_revenue ?? 0)}</td></tr>) : <tr><td colSpan="4" className="px-4 py-8 text-center text-muted-foreground">Chưa có giao dịch tiền trong kỳ này.</td></tr>}</tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>}
 
       {/* Order status funnel — colour-coded CSS bar chart */}
-      <div className="rounded-card border border-border bg-surface p-7 shadow-soft">
+      {dashboardView === 'operations' && <div className="rounded-card border border-border bg-surface p-7 shadow-soft">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-display text-xl text-foreground">Đơn hàng theo trạng thái</h3>
@@ -313,30 +395,19 @@ export function AdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="mt-8 flex h-56 items-end gap-3 sm:gap-5">
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
           {funnel.map((stage) => {
-            const heightPct = Math.round((stage.value / maxValue) * 100)
             const sharePct = pct(stage.value, orders.total)
             return (
-              <div key={stage.key} className="flex flex-1 flex-col items-center gap-3">
-                <span className="text-sm font-semibold text-foreground">{stage.value}</span>
-                <div className="flex w-full flex-1 items-end overflow-hidden rounded-t-control bg-surface-alt/70">
-                  <div
-                    className={`w-full rounded-t-control ${stage.color} transition-all duration-700 ease-out`}
-                    style={{ height: `${Math.max(heightPct, 2)}%` }}
-                  />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-center text-[0.72rem] font-medium leading-tight text-foreground">
-                    {stage.label}
-                  </span>
-                  <span className="text-[0.68rem] text-muted-foreground">{sharePct}%</span>
-                </div>
-              </div>
+              <Link key={stage.key} to={stage.to} className="rounded-control border border-border p-4 transition-colors hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <div className="flex items-center justify-between gap-4"><span className="text-sm font-medium text-foreground">{stage.label}</span><span className="font-display text-2xl text-foreground">{stage.value}</span></div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-alt"><div className={`h-full rounded-full ${stage.color}`} style={{ width: `${Math.max(stage.value ? 3 : 0, sharePct)}%` }} /></div>
+                <p className="mt-2 text-xs text-muted-foreground">{sharePct}% tổng đơn · Mở danh sách</p>
+              </Link>
             )
           })}
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

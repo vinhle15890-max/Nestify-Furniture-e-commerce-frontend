@@ -9,6 +9,10 @@ export function getRoles() {
   return apiClient.get('/admin/roles')
 }
 
+export function createStaff(payload) {
+  return apiClient.post('/admin/users', payload)
+}
+
 export function assignUserRoles(id, roleIds) {
   return apiClient.patch(`/admin/users/${id}/roles`, { role_ids: roleIds })
 }

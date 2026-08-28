@@ -132,6 +132,9 @@ export function ProductPage() {
     : variants.find((variant) => variant.id === selectedVariantId) ?? variants[0]
   const price = selectedVariant?.price ?? product?.base_price
   const availableStock = selectedVariant?.available_stock ?? 0
+  const purchaseLimit = selectedVariant?.is_flash_sale
+    ? Math.min(availableStock, selectedVariant.flash_sale_remaining, selectedVariant.flash_sale_limit_per_order ?? Number.POSITIVE_INFINITY)
+    : availableStock
   const outOfStock = availableStock < 1
 
   // Wishlist membership for the CURRENTLY selected variant (each variant is tracked
@@ -143,8 +146,8 @@ export function ProductPage() {
   const isWishlisted = Boolean(wishlistItem)
 
   useEffect(() => {
-    setQuantity((current) => Math.min(Math.max(current, 1), Math.max(availableStock, 1)))
-  }, [availableStock])
+    setQuantity((current) => Math.min(Math.max(current, 1), Math.max(purchaseLimit, 1)))
+  }, [purchaseLimit])
 
   useEffect(() => {
     setStockError(null)
@@ -223,7 +226,7 @@ export function ProductPage() {
     [reviewsQuery.data],
   )
 
-  const { data: ordersData } = useOrders({ enabled: !!token })
+  const { data: ordersData } = useOrders(1, { enabled: !!token })
   const createReview = useCreateReview()
 
   const [reviewRating, setReviewRating] = useState(0)
@@ -442,7 +445,7 @@ export function ProductPage() {
           )}
         </section>
 
-        <ProductDecisionRail product={product} variants={variants} variantOptions={variantOptions} selectedOptions={selectedOptions} onSelectOption={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))} selectedVariant={selectedVariant} onSelectVariant={setSelectedVariantId} visibleMedia={visibleMedia} outOfStock={outOfStock} price={price} quantity={quantity} onQuantityChange={(next) => { const max = Math.max(stockError ?? availableStock, 1); setQuantity(Math.min(Math.max(next, 1), max)) }} maxQuantity={Math.max(stockError ?? availableStock, 1)} token={token} staff={staff} onAddToCart={handleAddToCart} adding={addCartItem.isPending} isWishlisted={isWishlisted} onToggleWishlist={handleToggleWishlist} wishlistPending={addWishlistItem.isPending || removeWishlistItem.isPending} stockError={stockError} deliveryFact={deliveryFact} returnsFact={returnsFact} />
+        <ProductDecisionRail product={product} variants={variants} variantOptions={variantOptions} selectedOptions={selectedOptions} onSelectOption={(name, label) => setSelectedOptions((prev) => ({ ...prev, [name]: label }))} selectedVariant={selectedVariant} onSelectVariant={setSelectedVariantId} visibleMedia={visibleMedia} outOfStock={outOfStock} price={price} quantity={quantity} onQuantityChange={(next) => { const max = Math.max(Math.min(stockError ?? purchaseLimit, purchaseLimit), 1); setQuantity(Math.min(Math.max(next, 1), max)) }} maxQuantity={Math.max(Math.min(stockError ?? purchaseLimit, purchaseLimit), 1)} token={token} staff={staff} onAddToCart={handleAddToCart} adding={addCartItem.isPending} isWishlisted={isWishlisted} onToggleWishlist={handleToggleWishlist} wishlistPending={addWishlistItem.isPending || removeWishlistItem.isPending} stockError={stockError} deliveryFact={deliveryFact} returnsFact={returnsFact} />
       </div>
 
       {activeRoom && (

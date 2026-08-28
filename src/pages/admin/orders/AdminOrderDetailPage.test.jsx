@@ -26,6 +26,15 @@ const baseOrder = {
   total: 7500000,
   created_at: '2026-01-10T08:00:00Z',
   user: { id: 1, name: 'Bao Le', email: 'bao@example.com' },
+  shipping_address: {
+    recipient_name: 'Bảo Lê',
+    phone: '0901234567',
+    address_line1: '12 Nguyễn Huệ',
+    address_line2: null,
+    city: 'Quận 1',
+    province: 'TP. Hồ Chí Minh',
+    postal_code: null,
+  },
   items: [
     {
       id: 1,
@@ -80,7 +89,29 @@ describe('AdminOrderDetailPage', () => {
     expect(ordersApi.getOrder).toHaveBeenCalledWith(101)
 
     resolveOrder({ data: { ...baseOrder, status: 'shipped' } })
-    expect(await screen.findByRole('button', { name: 'Đã giao' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Xác nhận đã giao' })).toBeInTheDocument()
+  })
+
+  it('shows the operational summary, recipient and complete item pricing', async () => {
+    renderPage(baseOrder)
+
+    expect(await screen.findByText('Chuẩn bị hàng và nhập thông tin vận chuyển.')).toBeInTheDocument()
+    expect(screen.getByText('Bảo Lê')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '0901234567' })).toHaveAttribute('href', 'tel:0901234567')
+    expect(screen.getByText('12 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh')).toBeInTheDocument()
+    expect(screen.getByText('7.500.000 ₫ × 1')).toBeInTheDocument()
+    expect(screen.getByText('SKU: SOFA-NAU')).toBeInTheDocument()
+  })
+
+  it('places the current operational actions before customer and order evidence', async () => {
+    renderPage(baseOrder)
+
+    const actions = await screen.findByRole('region', { name: 'Thao tác tiếp theo' })
+    const customerHeading = screen.getByRole('heading', { name: 'Khách đặt hàng' })
+    const productsHeading = screen.getByRole('heading', { name: 'Sản phẩm' })
+
+    expect(actions.compareDocumentPosition(customerHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(actions.compareDocumentPosition(productsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('loads a direct order URL without router state or list cache', async () => {
@@ -117,6 +148,51 @@ describe('AdminOrderDetailPage', () => {
     expect(screen.getByRole('link', { name: 'Quay lại danh sách đơn hàng' })).toBeInTheDocument()
   })
 
+  it('reviews a customer return request without changing fulfillment automatically', async () => {
+    ordersApi.reviewReturnRequest.mockResolvedValue({ data: { id: 5, status: 'approved' } })
+    renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'requested', reason_category: 'damaged', reason: 'Mặt bàn bị xước.', resolution_note: null } }, ['manage_orders'])
+
+    expect(await screen.findByText('Nhóm lý do: Sản phẩm bị hư hỏng')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Phản hồi cho khách'), 'Đã duyệt và sẽ liên hệ nhận hàng.')
+    await userEvent.click(screen.getByRole('button', { name: 'Duyệt yêu cầu' }))
+
+    expect(ordersApi.reviewReturnRequest).toHaveBeenCalledWith(5, { status: 'approved', resolution_note: 'Đã duyệt và sẽ liên hệ nhận hàng.' })
+  })
+
+  it('focuses the return task when opened from the return queue anchor', async () => {
+    const order = { ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'requested', reason: 'Mặt bàn bị xước.', resolution_note: null } }
+    renderPage(order, { withState: false, path: `/admin/orders/${order.id}#return-request` })
+
+    await screen.findByLabelText('Phản hồi cho khách')
+    expect(document.activeElement).toHaveAttribute('id', 'return-request')
+  })
+
+  it('receives returned goods and explicitly chooses whether to restock', async () => {
+    ordersApi.receiveReturnRequest.mockResolvedValue({ data: { id: 5, status: 'received' } })
+    renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'in_transit', reason: 'Mặt bàn bị xước.', return_carrier: 'GHTK', return_tracking_number: 'RTN-001' } }, ['manage_orders'])
+
+    await userEvent.type(await screen.findByLabelText('Kết quả kiểm tra hàng'), 'Đã nhận đủ, có thể bán lại.')
+    await userEvent.click(screen.getByText(/Hàng đạt kiểm tra/))
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã nhận hàng' }))
+
+    expect(ordersApi.receiveReturnRequest).toHaveBeenCalledWith(5, { inspection_note: 'Đã nhận đủ, có thể bán lại.', restock: true })
+  })
+
+  it('records and completes return refund as separate money steps', async () => {
+    ordersApi.refundReturnRequest.mockResolvedValue({ data: { id: 5, status: 'refund_pending' } })
+    const { unmount } = renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'received', reason: 'Bị xước', inspection_note: 'Đã nhận đủ.', refund_amount: 0 } }, ['manage_orders', 'refund'])
+    await userEvent.type(await screen.findByLabelText('Lý do hoàn tiền (không bắt buộc)'), 'Hoàn đủ sau đổi trả')
+    await userEvent.click(screen.getByRole('button', { name: /Ghi nhận hoàn/ }))
+    expect(ordersApi.refundReturnRequest).toHaveBeenCalledWith(5, { reason: 'Hoàn đủ sau đổi trả' }, expect.any(String))
+    unmount()
+
+    ordersApi.completeReturnRequest.mockResolvedValue({ data: { id: 5, status: 'completed' } })
+    renderPage({ ...baseOrder, status: 'delivered', return_request: { id: 5, status: 'refund_pending', reason: 'Bị xước', refund_amount: 7500000 } }, ['manage_orders', 'refund'])
+    await userEvent.type(await screen.findByLabelText('Mã tham chiếu chuyển tiền'), 'PAYOS-RETURN-001')
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã chuyển tiền' }))
+    expect(ordersApi.completeReturnRequest).toHaveBeenCalledWith(5, { reference: 'PAYOS-RETURN-001' })
+  })
+
   it('shows a recoverable error and retries a temporary detail failure', async () => {
     ordersApi.getOrder
       .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Mất kết nối đến máy chủ.', null))
@@ -141,27 +217,27 @@ describe('AdminOrderDetailPage', () => {
     renderPage()
     await screen.findByText('Đơn hàng #101')
 
-    expect(screen.getByRole('button', { name: 'Đang giao' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Đã hủy' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Đã giao' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Đang xử lý' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bàn giao vận chuyển' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hủy đơn hàng' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Xác nhận đã giao' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Xác nhận đơn' })).not.toBeInTheDocument()
   })
 
   it('shows both valid transitions for "paid" orders', async () => {
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    expect(screen.getByRole('button', { name: 'Đang xử lý' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Đã hủy' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xác nhận đơn' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hủy đơn hàng' })).toBeInTheDocument()
   })
 
   it('shows no transition buttons for terminal statuses', async () => {
     renderPage({ ...baseOrder, status: 'delivered' })
     await screen.findByText('Đơn hàng #101')
 
-    expect(screen.queryByRole('button', { name: 'Đang giao' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Đã giao' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Đã hủy' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bàn giao vận chuyển' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Xác nhận đã giao' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Hủy đơn hàng' })).not.toBeInTheDocument()
   })
 
   it('transitions the order status when clicking a valid action', async () => {
@@ -170,26 +246,148 @@ describe('AdminOrderDetailPage', () => {
     await screen.findByText('Đơn hàng #101')
 
     ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'shipped' } })
-    await userEvent.click(screen.getByRole('button', { name: 'Đang giao' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Bàn giao vận chuyển' }))
+    const dialog = screen.getByRole('dialog', { name: 'Bàn giao đơn vị vận chuyển' })
+    await userEvent.type(within(dialog).getByLabelText('Đơn vị vận chuyển'), 'Giao Hàng Nhanh')
+    await userEvent.type(within(dialog).getByLabelText('Mã vận đơn (không bắt buộc)'), 'GHN-101')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận đang giao' }))
 
-    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'shipped'))
-    expect(await screen.findByText('Đã giao')).toBeInTheDocument()
+    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'shipped', {
+      carrier_name: 'Giao Hàng Nhanh',
+      tracking_number: 'GHN-101',
+    }))
+    expect(await screen.findByRole('button', { name: 'Xác nhận đã giao' })).toBeInTheDocument()
   })
 
   it('opens a cancellation review and sends nothing when the admin goes back', async () => {
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Đã hủy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn hàng' }))
 
     const dialog = screen.getByRole('dialog', { name: 'Hủy đơn hàng' })
     expect(within(dialog).getByText(/#101/)).toBeInTheDocument()
-    expect(within(dialog).getByText(/không tự chuyển tiền/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/ghi nhận đủ số tiền cần hoàn/)).toBeInTheDocument()
     expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Quay lại' }))
     expect(screen.queryByRole('dialog', { name: 'Hủy đơn hàng' })).not.toBeInTheDocument()
     expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
+  })
+
+  it('requires explicit physical receipt confirmation before restocking a failed delivery', async () => {
+    const failedOrder = { ...baseOrder, status: 'delivery_failed' }
+    ordersApi.updateOrderStatus.mockResolvedValue({ data: { ...failedOrder, status: 'returned_to_store' } })
+    renderPage(failedOrder)
+    await screen.findByText('Đơn hàng #101')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hàng đã về cửa hàng' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận hàng đã về cửa hàng' })
+    expect(within(dialog).getByText(/hoàn số lượng.*vào tồn kho đúng một lần/)).toBeInTheDocument()
+    expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hàng đã về' }))
+    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'returned_to_store'))
+  })
+
+  it('requires confirmation before recording a failed delivery', async () => {
+    const shippedOrder = { ...baseOrder, status: 'shipped' }
+    ordersApi.updateOrderStatus.mockResolvedValue({ data: { ...shippedOrder, status: 'delivery_failed' } })
+    renderPage(shippedOrder)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Ghi nhận giao thất bại' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận giao hàng thất bại' })
+    expect(within(dialog).getByText(/chưa được cộng lại tồn kho/)).toBeInTheDocument()
+    expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
+
+    await userEvent.type(within(dialog).getByLabelText('Lý do giao không thành công'), 'Khách không nhận hàng')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận' }))
+    await waitFor(() => expect(ordersApi.updateOrderStatus).toHaveBeenCalledWith(101, 'delivery_failed', { reason: 'Khách không nhận hàng' }))
+  })
+
+  it('lets staff repair a legacy delivered COD order whose cash is still pending', async () => {
+    const order = {
+      ...baseOrder,
+      status: 'delivered',
+      payment_method: 'cod',
+      payment: { ...baseOrder.payment, gateway: 'cod', status: 'pending' },
+    }
+    ordersApi.collectCod.mockResolvedValue({ data: { ...order, payment: { ...order.payment, status: 'paid' } } })
+    renderPage(order)
+
+    expect(await screen.findByText(/đã được ghi nhận giao hàng nhưng chưa ghi nhận thu/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã thu đủ tiền COD' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận đã thu đủ tiền COD' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận' }))
+
+    await waitFor(() => expect(ordersApi.collectCod).toHaveBeenCalledWith(101, { collected_amount: 7500000 }))
+  })
+
+  it('uses one combined delivery and collection action for a shipped COD order', async () => {
+    const order = {
+      ...baseOrder,
+      status: 'shipped',
+      payment_method: 'cod',
+      payment: { ...baseOrder.payment, gateway: 'cod', status: 'pending' },
+    }
+    ordersApi.collectCod.mockResolvedValue({ data: { ...order, status: 'delivered', payment: { ...order.payment, status: 'paid' } } })
+    renderPage(order)
+
+    const combinedAction = await screen.findByRole('button', { name: /Xác nhận giao và thu đủ 7\.500\.000\s*₫/ })
+    expect(screen.queryByRole('button', { name: 'Xác nhận đã giao' })).not.toBeInTheDocument()
+
+    await userEvent.click(combinedAction)
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Xác nhận đã thu đủ tiền COD' })).getByRole('button', { name: 'Xác nhận' }))
+
+    await waitFor(() => expect(ordersApi.collectCod).toHaveBeenCalledWith(101, { collected_amount: 7500000 }))
+  })
+
+  it('shows the fulfillment actor and evidence from the server timeline', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'shipped',
+      timeline: [{ id: 9, action: 'order.status_transition', status: 'shipped', actor: { id: 2, name: 'Nhân viên Lan' }, carrier_name: 'GHN', tracking_number: 'GHN-101', occurred_at: '2026-01-11T08:00:00Z' }],
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Tiến trình đơn hàng' })).toBeInTheDocument()
+    expect(screen.getByText(/Nhân viên Lan/)).toBeInTheDocument()
+    expect(screen.getByText('GHN · GHN-101')).toBeInTheDocument()
+  })
+
+  it('lets staff add missing tracking evidence without transitioning the shipped order', async () => {
+    const shippedOrder = {
+      ...baseOrder,
+      status: 'shipped',
+      fulfillment: { carrier_name: 'GHN', tracking_number: null },
+    }
+    ordersApi.updateShipmentMetadata.mockResolvedValue({
+      data: { ...shippedOrder, fulfillment: { carrier_name: 'GHN', tracking_number: 'GHN-101' } },
+    })
+    renderPage(shippedOrder)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bổ sung mã vận đơn' }))
+    const dialog = screen.getByRole('dialog', { name: 'Bổ sung mã vận đơn' })
+    expect(within(dialog).getByLabelText('Đơn vị vận chuyển')).toHaveValue('GHN')
+    await userEvent.type(within(dialog).getByLabelText('Mã vận đơn'), 'GHN-101')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Lưu mã vận đơn' }))
+
+    await waitFor(() => expect(ordersApi.updateShipmentMetadata).toHaveBeenCalledWith(101, {
+      carrier_name: 'GHN',
+      tracking_number: 'GHN-101',
+    }))
+    expect(ordersApi.updateOrderStatus).not.toHaveBeenCalled()
+    expect(screen.getAllByText('Đang giao')).not.toHaveLength(0)
+  })
+
+  it('does not show the add-tracking action when shipment evidence already exists', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'shipped',
+      fulfillment: { carrier_name: 'GHN', tracking_number: 'GHN-101' },
+    })
+
+    await screen.findByText('Đơn hàng #101')
+    expect(screen.queryByRole('button', { name: 'Bổ sung mã vận đơn' })).not.toBeInTheDocument()
   })
 
   it('cancels only after explicit confirmation', async () => {
@@ -198,7 +396,7 @@ describe('AdminOrderDetailPage', () => {
     renderPage(paidOrder)
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Đã hủy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn hàng' }))
     const dialog = screen.getByRole('dialog', { name: 'Hủy đơn hàng' })
     ordersApi.getOrder.mockResolvedValue({ data: { ...paidOrder, status: 'cancelled' } })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hủy đơn' }))
@@ -214,7 +412,7 @@ describe('AdminOrderDetailPage', () => {
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Đã hủy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn hàng' }))
     const dialog = screen.getByRole('dialog', { name: 'Hủy đơn hàng' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hủy đơn' }))
 
@@ -227,7 +425,7 @@ describe('AdminOrderDetailPage', () => {
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Đã hủy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy đơn hàng' }))
     const dialog = screen.getByRole('dialog', { name: 'Hủy đơn hàng' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hủy đơn' }))
 
@@ -243,17 +441,16 @@ describe('AdminOrderDetailPage', () => {
 
   it('reviews a frozen refund payload before submitting and shows the result', async () => {
     ordersApi.refundOrder.mockResolvedValue({
-      data: { order_id: 101, payment_id: 5, status: 'refunded', refunded_amount: 1000000 },
+      data: { id: 9, order_id: 101, payment_id: 5, status: 'requested', amount: 7500000 },
     })
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.type(screen.getByLabelText('Số tiền hoàn'), '1000000')
     await userEvent.type(screen.getByLabelText('Lý do (không bắt buộc)'), 'Khách đổi ý')
-    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục hoàn tiền' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo nghĩa vụ hoàn tiền' }))
 
     const dialog = screen.getByRole('dialog', { name: 'Xác nhận hoàn tiền' })
-    expect(within(dialog).getAllByText(/1.000.000/)).toHaveLength(2)
+    expect(within(dialog).getAllByText(/7.500.000/)).toHaveLength(2)
     expect(within(dialog).getByText('Khách đổi ý')).toBeInTheDocument()
     expect(within(dialog).getByText(/không chuyển tiền tự động qua PayOS/)).toBeInTheDocument()
     expect(ordersApi.refundOrder).not.toHaveBeenCalled()
@@ -261,42 +458,39 @@ describe('AdminOrderDetailPage', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: /Xác nhận hoàn/ }))
 
     await waitFor(() =>
-      expect(ordersApi.refundOrder).toHaveBeenCalledWith(101, { amount: 1000000, reason: 'Khách đổi ý' }),
+      expect(ordersApi.refundOrder).toHaveBeenCalledWith(101, { amount: 7500000, reason: 'Khách đổi ý' }, expect.any(String)),
     )
-    expect(await screen.findByText(/1.000.000/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/7.500.000/)).length).toBeGreaterThan(0)
   })
 
-  it('preserves refund form values when the admin goes back', async () => {
+  it('preserves refund reason when the admin goes back', async () => {
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.type(screen.getByLabelText('Số tiền hoàn'), '250000')
     await userEvent.type(screen.getByLabelText('Lý do (không bắt buộc)'), 'Điều chỉnh')
-    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục hoàn tiền' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo nghĩa vụ hoàn tiền' }))
 
     const dialog = screen.getByRole('dialog', { name: 'Xác nhận hoàn tiền' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Quay lại' }))
 
-    expect(screen.getByLabelText('Số tiền hoàn')).toHaveValue(250000)
     expect(screen.getByLabelText('Lý do (không bắt buộc)')).toHaveValue('Điều chỉnh')
     expect(ordersApi.refundOrder).not.toHaveBeenCalled()
   })
 
   it('omits an empty refund reason from the confirmed payload', async () => {
     ordersApi.refundOrder.mockResolvedValue({
-      data: { order_id: 101, payment_id: 5, status: 'partially_refunded', refunded_amount: 100000 },
+      data: { id: 9, order_id: 101, payment_id: 5, status: 'requested', amount: 7500000 },
     })
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.type(screen.getByLabelText('Số tiền hoàn'), '100000')
-    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục hoàn tiền' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo nghĩa vụ hoàn tiền' }))
     await userEvent.click(
       within(screen.getByRole('dialog', { name: 'Xác nhận hoàn tiền' }))
         .getByRole('button', { name: /Xác nhận hoàn/ }),
     )
 
-    await waitFor(() => expect(ordersApi.refundOrder).toHaveBeenCalledWith(101, { amount: 100000 }))
+    await waitFor(() => expect(ordersApi.refundOrder).toHaveBeenCalledWith(101, { amount: 7500000 }, expect.any(String)))
   })
 
   it('keeps the refund review open and announces an API error', async () => {
@@ -306,8 +500,7 @@ describe('AdminOrderDetailPage', () => {
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.type(screen.getByLabelText('Số tiền hoàn'), '100000000')
-    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục hoàn tiền' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo nghĩa vụ hoàn tiền' }))
     const dialog = screen.getByRole('dialog', { name: 'Xác nhận hoàn tiền' })
     await userEvent.click(within(dialog).getByRole('button', { name: /Xác nhận hoàn/ }))
 
@@ -322,8 +515,7 @@ describe('AdminOrderDetailPage', () => {
     renderPage({ ...baseOrder, status: 'paid' })
     await screen.findByText('Đơn hàng #101')
 
-    await userEvent.type(screen.getByLabelText('Số tiền hoàn'), '100000')
-    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục hoàn tiền' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo nghĩa vụ hoàn tiền' }))
     const dialog = screen.getByRole('dialog', { name: 'Xác nhận hoàn tiền' })
     await userEvent.click(within(dialog).getByRole('button', { name: /Xác nhận hoàn/ }))
 
@@ -353,18 +545,19 @@ describe('AdminOrderDetailPage', () => {
         reason: 'Không còn nhu cầu',
         refund_recorded: true,
       },
+      refunds: [{ id: 6, amount: 10000, status: 'requested', requested_at: '2026-08-24T10:00:00Z' }],
     })
 
-    expect(await screen.findByText('Yêu cầu hoàn tiền của khách')).toBeInTheDocument()
-    expect(screen.getByText('Không còn nhu cầu')).toBeInTheDocument()
-    expect(screen.getAllByText(/10.000/)).toHaveLength(2)
-    expect(screen.getByText(/cần chuyển trả thủ công qua PayOS/)).toBeInTheDocument()
+    const refundSection = (await screen.findByText('Yêu cầu hoàn tiền của khách')).parentElement
+    expect(within(refundSection).queryByText('Không còn nhu cầu')).not.toBeInTheDocument()
+    expect(within(refundSection).queryByText(/10.000/)).not.toBeInTheDocument()
+    expect(within(refundSection).getByRole('link', { name: 'Mở khoản hoàn tiền' })).toHaveAttribute('href', '#refunds')
+    expect(document.querySelector('#refunds')).toContainElement(screen.getByText('Hoàn tiền #6 · 10.000 ₫'))
     expect(screen.queryByLabelText('Số tiền hoàn')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Tiếp tục hoàn tiền' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo nghĩa vụ hoàn tiền' })).not.toBeInTheDocument()
   })
 
-  it('closes a manual refund with a required transaction reference', async () => {
-    ordersApi.completeManualRefund.mockResolvedValue({ data: { reference: 'PAYOS-REF-001' } })
+  it('does not expose the legacy direct-completion shortcut', async () => {
     renderPage({
       ...baseOrder,
       status: 'cancelled',
@@ -372,19 +565,129 @@ describe('AdminOrderDetailPage', () => {
       cancellation: { reason: 'Đổi ý', refund_recorded: true },
     })
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận đã chuyển tiền' }))
-    const submit = screen.getByRole('button', { name: 'Xác nhận đã chuyển tiền' })
-    expect(submit).toBeDisabled()
-    await userEvent.type(screen.getByLabelText('Mã giao dịch hoặc tham chiếu'), 'PAYOS-REF-001')
-    await userEvent.click(submit)
+    expect(await screen.findByRole('link', { name: 'Mở khoản hoàn tiền' })).toHaveAttribute('href', '#refunds')
+    expect(screen.queryByRole('button', { name: 'Xác nhận đã chuyển tiền' })).not.toBeInTheDocument()
+  })
 
-    await waitFor(() => expect(ordersApi.completeManualRefund).toHaveBeenCalledWith(101, { reference: 'PAYOS-REF-001' }))
+  it.each([
+    ['requested', 'Bắt đầu chuyển tiền'],
+    ['processing', 'Ghi nhận kết quả chuyển tiền'],
+    ['needs_review', 'Xác minh kết quả chuyển tiền'],
+    ['failed', 'Thử chuyển lại'],
+    ['succeeded', 'Xem khoản hoàn tiền'],
+  ])('surfaces one top refund action for %s refunds', async (status, actionLabel) => {
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{
+        id: 6,
+        amount: 10000,
+        status,
+        requested_at: '2026-08-24T10:00:00Z',
+        payout_destination: { status: 'verified', bank_name: 'MB Bank', account_number_masked: '******6789' },
+      }],
+    })
+
+    const topAction = await screen.findByRole('link', { name: actionLabel })
+    expect(topAction).toHaveAttribute('href', '#refunds')
+    expect(topAction.closest('#order-actions')).not.toBeNull()
+    expect(screen.getAllByRole('link', { name: actionLabel })).toHaveLength(1)
+  })
+
+  it('moves a requested refund into processing before staff records the transfer result', async () => {
+    ordersApi.startRefund.mockResolvedValue({ data: { id: 6, status: 'processing' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'requested', requested_at: '2026-08-24T10:00:00Z', payout_destination: { status: 'verified', bank_name: 'MB Bank', account_holder_name: 'NGUYEN VAN A', account_number: '0123456789', account_number_masked: '******6789' } }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu chuyển tiền' }))
+
+    await waitFor(() => expect(ordersApi.startRefund).toHaveBeenCalledWith(6))
+  })
+
+  it('requires payout details verification before transfer can start', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'requested', requested_at: '2026-08-24T10:00:00Z', payout_destination: null }],
+    })
+
+    expect(await screen.findByText('Đang chờ khách cung cấp tài khoản nhận hoàn.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bắt đầu chuyển tiền' })).not.toBeInTheDocument()
+  })
+
+  it('lets refund staff verify submitted payout details', async () => {
+    ordersApi.verifyRefundPayoutDetails.mockResolvedValue({ data: { id: 6, payout_destination: { status: 'verified' } } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'requested', requested_at: '2026-08-24T10:00:00Z', payout_destination: { status: 'submitted', bank_name: 'MB Bank', account_holder_name: 'NGUYEN VAN A', account_number: '0123456789', account_number_masked: '******6789' } }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xác minh tài khoản' }))
+    await waitFor(() => expect(ordersApi.verifyRefundPayoutDetails).toHaveBeenCalledWith(6))
+  })
+
+  it('records the result against the selected refund with transfer evidence', async () => {
+    ordersApi.completeRefund.mockResolvedValue({ data: { id: 6, status: 'succeeded' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'processing', requested_at: '2026-08-24T10:00:00Z' }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận đã chuyển' }))
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận đã chuyển tiền' })
+    expect(within(dialog).getByRole('button', { name: 'Xác nhận đã chuyển' })).toBeDisabled()
+    await userEvent.type(within(dialog).getByLabelText('Mã giao dịch hoặc tham chiếu'), 'FT-REFUND-006')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận đã chuyển' }))
+
+    await waitFor(() => expect(ordersApi.completeRefund).toHaveBeenCalledWith(6, { reference: 'FT-REFUND-006' }))
+  })
+
+  it('puts the uncertain refund result first and visually separates transfer success', async () => {
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'processing', requested_at: '2026-08-24T10:00:00Z' }],
+    })
+
+    const uncertain = await screen.findByRole('button', { name: 'Chưa rõ kết quả' })
+    const success = screen.getByRole('button', { name: 'Xác nhận đã chuyển' })
+
+    expect(uncertain.compareDocumentPosition(success) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(success.closest('[data-refund-success-action]')).toHaveClass('border-t')
+  })
+
+  it('protects an uncertain transfer from being retried blindly', async () => {
+    ordersApi.markRefundNeedsReview.mockResolvedValue({ data: { id: 6, status: 'needs_review' } })
+    renderPage({
+      ...baseOrder,
+      status: 'cancelled',
+      payment: { ...baseOrder.payment, status: 'refunded', refunded_amount: 10000 },
+      refunds: [{ id: 6, amount: 10000, status: 'processing', requested_at: '2026-08-24T10:00:00Z' }],
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Chưa rõ kết quả' }))
+    const dialog = screen.getByRole('dialog', { name: 'Ghi nhận kết quả chưa rõ' })
+    await userEvent.type(within(dialog).getByText('Thông tin cần xác minh').closest('label').querySelector('textarea'), 'Đã gửi lệnh nhưng ngân hàng chưa trả kết quả')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Chuyển sang cần xác minh' }))
+
+    await waitFor(() => expect(ordersApi.markRefundNeedsReview).toHaveBeenCalledWith(6, { note: 'Đã gửi lệnh nhưng ngân hàng chưa trả kết quả' }))
   })
 
   it('ẩn nút Hoàn tiền khi user không có quyền refund', () => {
     renderPage(baseOrder, { permissions: [] })
 
-    expect(screen.queryByRole('button', { name: 'Tiếp tục hoàn tiền' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Tạo nghĩa vụ hoàn tiền' })).toBeNull()
   })
 
 })

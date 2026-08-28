@@ -15,8 +15,8 @@ function labels(groups) {
 }
 
 describe('visibleGroups', () => {
-  it('order_staff chỉ thấy Tổng quan + Đơn hàng', () => {
-    expect(labels(visibleGroups(orderStaff))).toEqual(['Tổng quan', 'Đơn hàng'])
+  it('order_staff chỉ thấy Tổng quan + nghiệp vụ đơn hàng', () => {
+    expect(labels(visibleGroups(orderStaff))).toEqual(['Tổng quan', 'Đơn hàng', 'Đổi trả'])
   })
   it('moderator chỉ thấy Tổng quan + Đánh giá', () => {
     expect(labels(visibleGroups(moderator))).toEqual(['Tổng quan', 'Đánh giá'])
@@ -25,6 +25,7 @@ describe('visibleGroups', () => {
     expect(labels(visibleGroups(superAdmin))).toContain('Voucher')
     expect(labels(visibleGroups(superAdmin))).toContain('Nhật ký')
     expect(labels(visibleGroups(superAdmin))).toContain('Thư viện ảnh')
+    expect(labels(visibleGroups(superAdmin))).not.toContain('Tồn kho')
   })
   it('loại bỏ group rỗng (không có tiêu đề mồ côi)', () => {
     const groups = visibleGroups(orderStaff)

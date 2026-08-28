@@ -193,19 +193,12 @@ export function CategoryPage() {
           />
         )}
 
-        <div className="mt-7 flex items-center justify-between gap-4 border-y border-unbuilt py-3"><p role="status" aria-live="polite" className="text-sm text-ink/65">{resultLabel}</p><CatalogFilterDrawer open={lensOpen} onOpenChange={setLensOpen} activeCount={activeConstraints.length}><CatalogFilterFields search={search} onSearchChange={setSearch} currentCategoryValue={currentCategoryValue} onCategoryChange={handleCategoryChange} categories={flatCategories} categoryFallback={hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null} priceKey={priceKey} onPriceChange={setPriceKey} priceOptions={PRICE_RANGES} sort={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} /></CatalogFilterDrawer></div>
+        <div className="mt-7 flex items-center justify-between gap-4 border-y border-unbuilt py-3"><p role="status" aria-live="polite" className="text-sm text-ink/65">{resultLabel}</p><CatalogFilterDrawer open={lensOpen} onOpenChange={setLensOpen} activeCount={activeConstraints.length}><CatalogFilterFields search={search} onSearchChange={setSearch} currentCategoryValue={currentCategoryValue} onCategoryChange={handleCategoryChange} categories={flatCategories} categoryFallback={hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null} priceKey={priceKey} onPriceChange={setPriceKey} priceOptions={PRICE_RANGES} sort={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} journeyOrderActive={canUseJourneyOrder} onUseDefaultOrder={() => setJourneyOrder(false)} /></CatalogFilterDrawer></div>
 
         {activeConstraints.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-2">{activeConstraints.map((constraint) => <button key={constraint.key} type="button" aria-label={`Bỏ lọc ${constraint.label}`} onClick={constraint.onRemove} className="rounded-full border border-unbuilt px-3 py-1 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{constraint.label} <span aria-hidden="true">×</span></button>)}<button type="button" onClick={clearAll} className="text-xs text-ink/65 underline underline-offset-4">Xóa tất cả</button></div>}
 
-        {canUseJourneyOrder && (
-          <div className="mt-4 flex flex-col gap-2 border-l-2 border-emerging pl-4 text-sm sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-foreground">Một số lựa chọn liên quan đến hành trình của bạn được đưa lên trước; toàn bộ sản phẩm vẫn ở đây.</p>
-            <button type="button" onClick={() => setJourneyOrder(false)} className="min-h-11 w-fit whitespace-nowrap text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Dùng thứ tự mặc định</button>
-          </div>
-        )}
-
         <div className="mt-6 grid items-start gap-8 md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
-          <aside aria-label="Lọc và sắp xếp sản phẩm" className="sticky top-28 hidden md:block"><CatalogFilterFields search={search} onSearchChange={setSearch} currentCategoryValue={currentCategoryValue} onCategoryChange={handleCategoryChange} categories={flatCategories} categoryFallback={hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null} priceKey={priceKey} onPriceChange={setPriceKey} priceOptions={PRICE_RANGES} sort={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} /></aside>
+          <aside aria-label="Lọc và sắp xếp sản phẩm" className="sticky top-28 hidden md:block"><CatalogFilterFields search={search} onSearchChange={setSearch} currentCategoryValue={currentCategoryValue} onCategoryChange={handleCategoryChange} categories={flatCategories} categoryFallback={hasCategoryFallback ? { slug: categorySlug, name: category?.name ?? 'Danh mục hiện tại' } : null} priceKey={priceKey} onPriceChange={setPriceKey} priceOptions={PRICE_RANGES} sort={sort} onSortChange={setSort} sortOptions={SORT_OPTIONS} journeyOrderActive={canUseJourneyOrder} onUseDefaultOrder={() => setJourneyOrder(false)} /></aside>
           <div className="min-w-0">
 
         {productsQuery.isError && hasProductData && (

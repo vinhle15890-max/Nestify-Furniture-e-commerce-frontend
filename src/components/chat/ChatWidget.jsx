@@ -1,19 +1,14 @@
 import { useEffect } from 'react'
 import { MessageCircle, X } from 'lucide-react'
-import { useAuthStore } from '../../store/authStore'
 import { useChatStore } from '../../store/chatStore'
 import { ChatPanel } from './ChatPanel'
 
-// Floating, non-modal AI assistant. Only mounted for verified users — the
-// /ai/chat endpoint requires Sanctum auth + a verified email, so showing it to
-// anyone else would only ever produce 401/403.
+// Floating, non-modal AI assistant. The public endpoint applies IP/user budgets,
+// so guests can explore furniture before deciding whether to create an account.
 export function ChatWidget() {
-  const user = useAuthStore((state) => state.user)
   const isOpen = useChatStore((state) => state.isOpen)
   const toggle = useChatStore((state) => state.toggle)
   const close = useChatStore((state) => state.close)
-
-  const isVerified = Boolean(user?.email_verified_at)
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -23,8 +18,6 @@ export function ChatWidget() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [isOpen, close])
-
-  if (!isVerified) return null
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">

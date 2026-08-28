@@ -117,6 +117,7 @@ export function AdminProductsPage() {
                   <th className="px-4 py-3">Giá</th>
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3">Biến thể</th>
+                  <th className="px-4 py-3">Tuyển chọn</th>
                   <th className="px-4 py-3"><span className="sr-only">Thao tác</span></th>
                 </tr>
               </thead>
@@ -143,6 +144,9 @@ export function AdminProductsPage() {
                         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
                       </td>
                       <td className="px-4 py-3 text-foreground">{product.variants?.length ?? 0}</td>
+                      <td className="px-4 py-3 text-foreground">
+                        {product.is_featured ? `#${product.featured_position ?? 'sau'}` : '—'}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <Link
                           to={`/admin/products/${product.id}`}

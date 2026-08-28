@@ -1,20 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from './AdminLayout'
 import { useAuthStore } from '../../store/authStore'
 import { usePreviewStore } from '../../store/previewStore'
 
-const { mockUseMe } = vi.hoisted(() => ({ mockUseMe: vi.fn(() => ({ data: undefined })) }))
+const { mockUseMe, mockLogout } = vi.hoisted(() => ({
+  mockUseMe: vi.fn(() => ({ data: undefined })),
+  mockLogout: { mutateAsync: vi.fn() },
+}))
 
 vi.mock('../../features/auth/hooks', () => ({
-  useLogout: () => ({ mutate: vi.fn() }),
-  useMe: mockUseMe,
+  useAdminLogout: () => mockLogout,
+  useAdminMe: mockUseMe,
 }))
 
 function renderLayout(user) {
-  useAuthStore.setState({ token: 't', user })
+  useAuthStore.setState({ adminToken: 't', adminUser: user })
   return render(
     <MemoryRouter initialEntries={['/admin']}>
       <AdminLayout />
@@ -24,7 +27,7 @@ function renderLayout(user) {
 
 describe('AdminLayout sidebar gating', () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null })
+    useAuthStore.setState({ adminToken: null, adminUser: null })
     usePreviewStore.setState({ previewRole: null })
     mockUseMe.mockReturnValue({ data: undefined })
   })
@@ -84,5 +87,23 @@ describe('AdminLayout sidebar gating', () => {
     await userEvent.click(screen.getByRole('button', { name: /Thoát xem thử/ }))
 
     expect(usePreviewStore.getState().previewRole).toBeNull()
+  })
+
+  it('đăng xuất khỏi admin chuyển về /admin/login', async () => {
+    mockLogout.mutateAsync.mockResolvedValue({})
+    useAuthStore.setState({ adminToken: 't', adminUser: { name: 'Bao', email: 'bao@example.com', permissions: [] } })
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />} />
+          <Route path="/admin/login" element={<p>Admin login</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /Bao/ }))
+    await userEvent.click(screen.getByRole('menuitem', { name: /Đăng xuất/ }))
+
+    expect(await screen.findByText('Admin login')).toBeInTheDocument()
   })
 })

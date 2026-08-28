@@ -4,13 +4,14 @@ import { SearchInput } from '../../components/SearchInput'
 
 const selectClass = 'w-full rounded-control border border-unbuilt bg-canvas px-3 py-2.5 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
-export function CatalogFilterFields({ search, onSearchChange, currentCategoryValue, onCategoryChange, categories, categoryFallback, priceKey, onPriceChange, priceOptions, sort, onSortChange, sortOptions }) {
+export function CatalogFilterFields({ search, onSearchChange, currentCategoryValue, onCategoryChange, categories, categoryFallback, priceKey, onPriceChange, priceOptions, sort, onSortChange, sortOptions, journeyOrderActive = false, onUseDefaultOrder }) {
   return (
     <div className="space-y-5">
       <div><span className="mb-1.5 block text-sm font-medium text-ink">Tìm trong danh mục</span><SearchInput initialValue={search} placeholder="Tên sản phẩm…" onDebouncedChange={onSearchChange} /></div>
       <label className="block text-sm font-medium text-ink">Danh mục<select value={currentCategoryValue} onChange={(event) => onCategoryChange(event.target.value)} className={`mt-1.5 ${selectClass}`}><option value="all">Tất cả sản phẩm</option>{categoryFallback && <option value={categoryFallback.slug}>{categoryFallback.name}</option>}{categories.map((category) => <option key={category.slug} value={category.slug}>{`${'— '.repeat(category.depth)}${category.name}`}</option>)}</select></label>
       <label className="block text-sm font-medium text-ink">Khoảng giá<select value={priceKey} onChange={(event) => onPriceChange(event.target.value)} className={`mt-1.5 ${selectClass}`}>{priceOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       <label className="block text-sm font-medium text-ink">Sắp xếp<select value={sort} onChange={(event) => onSortChange(event.target.value)} className={`mt-1.5 ${selectClass}`}>{sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+      {journeyOrderActive && <div role="status" className="border-l-2 border-emerging pl-3 text-xs leading-relaxed text-ink/65"><p>Một số lựa chọn liên quan đến hành trình của bạn được đưa lên trước.</p><button type="button" onClick={onUseDefaultOrder} className="mt-2 min-h-11 text-ink/65 underline underline-offset-4 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Dùng thứ tự mặc định</button></div>}
     </div>
   )
 }

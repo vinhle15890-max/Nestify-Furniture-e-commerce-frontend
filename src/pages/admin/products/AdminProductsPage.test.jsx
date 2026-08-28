@@ -23,6 +23,8 @@ const productsPage1 = {
       category: { id: 1, name: 'Phòng khách', slug: 'phong-khach' },
       variants: [{ id: 1 }, { id: 2 }],
       media: [],
+      is_featured: true,
+      featured_position: 2,
     },
   ],
   meta: { total: 30, page: 1, last_page: 3 },
@@ -64,6 +66,8 @@ describe('AdminProductsPage', () => {
     expect(screen.getByText('5.000.000 ₫')).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Danh sách sản phẩm' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Tuyển chọn' })).toBeInTheDocument()
+    expect(screen.getByText('#2')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sửa sản phẩm Ghế Sofa' })).toBeInTheDocument()
   })
 

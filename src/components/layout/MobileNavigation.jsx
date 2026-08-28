@@ -70,6 +70,7 @@ export function MobileNavigation() {
               <h2 id="mobile-discover" className="text-sm font-medium text-muted-foreground">Khám phá</h2>
               <div className="mt-2">
                 <NavigationLink to="/c/all" onClick={close}>Tất cả sản phẩm</NavigationLink>
+                <NavigationLink to="/vouchers" onClick={close}>Voucher đang mở</NavigationLink>
                 <NavigationLink to="/" onClick={close}>Trang chủ</NavigationLink>
               </div>
             </section>

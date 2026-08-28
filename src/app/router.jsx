@@ -7,6 +7,7 @@ import { RequirePermission } from '../routes/RequirePermission'
 import { Spinner } from '../components/Spinner'
 import { DiagnosticRouteErrorBoundary } from '../pages/dev/DiagnosticRouteErrorBoundary'
 import { RootRoute } from '../routes/RootRoute'
+import { HomeEntryRoute } from '../routes/HomeEntryRoute'
 
 // Route-level code splitting: pages load on demand so the initial bundle stays small
 // (admin pages, in particular, ship in their own chunks behind the AdminRoute guard).
@@ -20,14 +21,18 @@ const PrivacyPage = named(() => import('../pages/support/SupportPages'), 'Privac
 const ContactPage = named(() => import('../pages/support/SupportPages'), 'ContactPage')
 const CategoryPage = named(() => import('../pages/catalog/CategoryPage'), 'CategoryPage')
 const ProductPage = named(() => import('../pages/product/ProductPage'), 'ProductPage')
+const CollectionPage = named(() => import('../pages/catalog/CollectionPage'), 'CollectionPage')
 const CartPage = named(() => import('../pages/cart/CartPage'), 'CartPage')
 const WishlistPage = named(() => import('../pages/wishlist/WishlistPage'), 'WishlistPage')
 const LoginPage = named(() => import('../pages/auth/LoginPage'), 'LoginPage')
+const AdminLoginPage = named(() => import('../pages/auth/AdminLoginPage'), 'AdminLoginPage')
 const RegisterPage = named(() => import('../pages/auth/RegisterPage'), 'RegisterPage')
 const ForgotPasswordPage = named(() => import('../pages/auth/ForgotPasswordPage'), 'ForgotPasswordPage')
 const ResetPasswordPage = named(() => import('../pages/auth/ResetPasswordPage'), 'ResetPasswordPage')
 const VerifyEmailPage = named(() => import('../pages/auth/VerifyEmailPage'), 'VerifyEmailPage')
 const AccountPage = named(() => import('../pages/account/AccountPage'), 'AccountPage')
+const VoucherWalletPage = named(() => import('../pages/account/VoucherWalletPage'), 'VoucherWalletPage')
+const VoucherCampaignsPage = named(() => import('../pages/promotions/VoucherCampaignsPage'), 'VoucherCampaignsPage')
 const AddressesPage = named(() => import('../pages/account/AddressesPage'), 'AddressesPage')
 const MyRoomsPage = named(() => import('../pages/account/MyRoomsPage'), 'MyRoomsPage')
 const CheckoutPage = named(() => import('../pages/checkout/CheckoutPage'), 'CheckoutPage')
@@ -38,12 +43,16 @@ const AdminLayout = named(() => import('../pages/admin/AdminLayout'), 'AdminLayo
 const AdminHome = named(() => import('../pages/admin/AdminHome'), 'AdminHome')
 const AdminCategoriesPage = named(() => import('../pages/admin/categories/AdminCategoriesPage'), 'AdminCategoriesPage')
 const AdminProductsPage = named(() => import('../pages/admin/products/AdminProductsPage'), 'AdminProductsPage')
+const AdminCollectionsPage = named(() => import('../pages/admin/collections/AdminCollectionsPage'), 'AdminCollectionsPage')
 const AdminProductCreatePage = named(() => import('../pages/admin/products/AdminProductCreatePage'), 'AdminProductCreatePage')
 const AdminProductEditPage = named(() => import('../pages/admin/products/AdminProductEditPage'), 'AdminProductEditPage')
 const AdminSeoReviewPage = named(() => import('../pages/admin/products/AdminSeoReviewPage'), 'AdminSeoReviewPage')
+const AdminInventoryPage = named(() => import('../pages/admin/products/AdminInventoryPage'), 'AdminInventoryPage')
 const AdminMediaLibraryPage = named(() => import('../pages/admin/media/AdminMediaLibraryPage'), 'AdminMediaLibraryPage')
 const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPage'), 'AdminOrdersPage')
+const AdminReturnsPage = named(() => import('../pages/admin/orders/AdminReturnsPage'), 'AdminReturnsPage')
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
+const AdminPaymentExceptionsPage = named(() => import('../pages/admin/orders/AdminPaymentExceptionsPage'), 'AdminPaymentExceptionsPage')
 const AdminReviewsPage = named(() => import('../pages/admin/reviews/AdminReviewsPage'), 'AdminReviewsPage')
 const AdminVouchersPage = named(() => import('../pages/admin/vouchers/AdminVouchersPage'), 'AdminVouchersPage')
 const AdminEmployeesPage = named(() => import('../pages/admin/users/AdminEmployeesPage'), 'AdminEmployeesPage')
@@ -74,14 +83,16 @@ const appRoutes = [
     path: '/',
     element: <Layout />,
     children: [
-      { index: true, element: lazyPage(<HomePage />) },
+      { index: true, element: <HomeEntryRoute>{lazyPage(<HomePage />)}</HomeEntryRoute> },
       { path: 'about', element: lazyPage(<AboutPage />) },
       { path: 'shipping', element: lazyPage(<ShippingPage />) },
       { path: 'returns', element: lazyPage(<ReturnsPage />) },
       { path: 'privacy', element: lazyPage(<PrivacyPage />) },
       { path: 'contact', element: lazyPage(<ContactPage />) },
+      { path: 'vouchers', element: lazyPage(<VoucherCampaignsPage />) },
       { path: 'c/:categorySlug', element: lazyPage(<CategoryPage />) },
       { path: 'p/:productSlug', element: lazyPage(<ProductPage />) },
+      { path: 'collections/:collectionSlug', element: lazyPage(<CollectionPage />) },
       { path: 'cart', element: lazyPage(<CartPage />) },
       { path: 'login', element: lazyPage(<LoginPage />) },
       { path: 'register', element: lazyPage(<RegisterPage />) },
@@ -94,6 +105,7 @@ const appRoutes = [
           { path: 'account', element: lazyPage(<AccountPage />) },
           { path: 'account/addresses', element: lazyPage(<AddressesPage />) },
           { path: 'account/rooms', element: lazyPage(<MyRoomsPage />) },
+          { path: 'account/vouchers', element: lazyPage(<VoucherWalletPage />) },
           { path: 'wishlist', element: lazyPage(<WishlistPage />) },
           { path: 'checkout', element: lazyPage(<CheckoutPage />) },
           { path: 'checkout/return', element: lazyPage(<CheckoutReturnPage />) },
@@ -122,6 +134,15 @@ const appRoutes = [
     element: lazyPage(<SharedRoomPage />),
   },
   {
+    path: '/admin/login',
+    element: lazyPage(<AdminLoginPage />),
+  },
+  {
+    // There is intentionally no public staff registration journey.
+    path: '/admin/register',
+    element: <Navigate to="/admin/login" replace />,
+  },
+  {
     // Admin is a standalone back-office shell (no storefront Header/Footer).
     path: '/admin',
     element: <AdminRoute />,
@@ -138,8 +159,10 @@ const appRoutes = [
             element: <RequirePermission slug="manage_products" />,
             children: [
               { path: 'products', element: lazyPage(<AdminProductsPage />) },
+              { path: 'collections', element: lazyPage(<AdminCollectionsPage />) },
               { path: 'products/new', element: lazyPage(<AdminProductCreatePage />) },
               { path: 'products/seo', element: lazyPage(<AdminSeoReviewPage />) },
+              { path: 'inventory', element: lazyPage(<AdminInventoryPage />) },
               { path: 'products/:id', element: lazyPage(<AdminProductEditPage />) },
             ],
           },
@@ -151,12 +174,17 @@ const appRoutes = [
             element: <RequirePermission slug="manage_orders" />,
             children: [
               { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
+              { path: 'returns', element: lazyPage(<AdminReturnsPage />) },
               { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
             ],
           },
           {
             element: <RequirePermission slug="manage_vouchers" />,
             children: [{ path: 'vouchers', element: lazyPage(<AdminVouchersPage />) }],
+          },
+          {
+            element: <RequirePermission slug="refund" />,
+            children: [{ path: 'payment-exceptions', element: lazyPage(<AdminPaymentExceptionsPage />) }],
           },
           {
             element: <RequirePermission slug="moderate_reviews" />,

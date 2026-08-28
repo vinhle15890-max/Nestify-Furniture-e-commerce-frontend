@@ -8,7 +8,7 @@ import { usePreviewStore } from '../../store/previewStore'
 vi.mock('./AdminDashboardPage', () => ({ AdminDashboardPage: () => <div>Bảng tổng quan</div> }))
 
 function renderHome(user) {
-  useAuthStore.setState({ token: 't', user })
+  useAuthStore.setState({ adminToken: 't', adminUser: user })
   return render(
     <MemoryRouter initialEntries={['/admin']}>
       <Routes>
@@ -21,7 +21,7 @@ function renderHome(user) {
 
 describe('AdminHome', () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null })
+    useAuthStore.setState({ token: null, user: null, adminToken: null, adminUser: null })
     usePreviewStore.setState({ previewRole: null })
   })
 

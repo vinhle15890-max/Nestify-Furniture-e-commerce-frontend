@@ -26,4 +26,11 @@ describe('VariantOptionsPanel', () => {
     expect(swatch).toHaveAttribute('type', 'color')
     expect(swatch.value.toLowerCase()).toBe('#c0392b')
   })
+
+  it('cho nhập loại vật liệu và ảnh cho swatch bề mặt', async () => {
+    const onChange = vi.fn()
+    render(<VariantOptionsPanel value={[{ name: 'Bề mặt', type: 'surface', values: [] }]} onChange={onChange} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm giá trị' }))
+    expect(onChange).toHaveBeenCalledWith([{ name: 'Bề mặt', type: 'surface', values: [{ label: '', material_kind: 'wood', image_url: '' }] }])
+  })
 })

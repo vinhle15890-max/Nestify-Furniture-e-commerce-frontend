@@ -1,3 +1,5 @@
+/* Hallmark · component: admin commerce form · genre: modern-minimal · theme: Nestify Design DNA */
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 · contrast/mobile/tokens: pass */
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -5,7 +7,7 @@ import * as yup from 'yup'
 import { Modal } from '../../../components/Modal'
 import { Input } from '../../../components/Input'
 import { Button } from '../../../components/Button'
-import { useCreateVariant, useUpdateVariant } from '../../../features/admin/products/hooks'
+import { useAdjustVariantStock, useCreateVariant, useUpdateVariant } from '../../../features/admin/products/hooks'
 import { useToastStore } from '../../../store/toastStore'
 import { applyServerErrors } from '../../../lib/formErrors'
 import { variantSignature } from '../../../lib/variantOptions'
@@ -21,14 +23,22 @@ const priceStockShape = {
 }
 const nameShape = { name: yup.string().required('Vui lòng nhập tên biến thể.').max(255, 'Tối đa 255 ký tự.') }
 const skuShape = { sku: yup.string().max(100, 'Tối đa 100 ký tự.') }
+const saleShape = {
+  sale_price: yup.number().nullable().transform((value, original) => original === '' ? null : value).min(0, 'Giá sale không được âm.'),
+  sale_starts_at: yup.string(),
+  sale_ends_at: yup.string(),
+  flash_sale_enabled: yup.boolean(),
+  flash_sale_stock: yup.number().nullable().transform((value, original) => original === '' ? null : value).integer('Số lượng Flash Sale phải là số nguyên.').min(1, 'Tối thiểu 1 sản phẩm.'),
+  flash_sale_limit_per_order: yup.number().nullable().transform((value, original) => original === '' ? null : value).integer('Giới hạn phải là số nguyên.').min(1, 'Tối thiểu 1 sản phẩm.'),
+}
 
 // Sản phẩm CÓ thuộc tính → tên biến thể được suy ra từ tổ hợp, không nhập tay.
 // Sản phẩm KHÔNG thuộc tính → biến thể tự do, bắt buộc nhập tên.
 const schemas = {
-  createSimple: yup.object({ ...skuShape, ...nameShape, ...priceStockShape }),
-  createOption: yup.object({ ...skuShape, ...priceStockShape }),
-  updateSimple: yup.object({ ...nameShape, ...priceStockShape, is_active: yup.boolean() }),
-  updateOption: yup.object({ ...priceStockShape, is_active: yup.boolean() }),
+  createSimple: yup.object({ ...skuShape, ...nameShape, ...priceStockShape, ...saleShape }),
+  createOption: yup.object({ ...skuShape, ...priceStockShape, ...saleShape }),
+  updateSimple: yup.object({ ...nameShape, price: priceStockShape.price, is_active: yup.boolean(), ...saleShape }),
+  updateOption: yup.object({ price: priceStockShape.price, is_active: yup.boolean(), ...saleShape }),
 }
 
 const emptyValues = {
@@ -37,7 +47,11 @@ const emptyValues = {
   price: '',
   stock_quantity: '',
   is_active: true,
+  sale_price: '', sale_starts_at: '', sale_ends_at: '',
+  flash_sale_enabled: false, flash_sale_stock: '', flash_sale_limit_per_order: '',
 }
+
+const toDateTimeInput = (value) => value ? value.slice(0, 16) : ''
 
 function toFormValues(variant) {
   return {
@@ -46,6 +60,12 @@ function toFormValues(variant) {
     price: variant.price ?? '',
     stock_quantity: variant.available_stock ?? '',
     is_active: variant.is_active ?? true,
+    sale_price: variant.configured_sale_price ?? variant.sale_price ?? '',
+    sale_starts_at: toDateTimeInput(variant.sale_starts_at),
+    sale_ends_at: toDateTimeInput(variant.sale_ends_at),
+    flash_sale_enabled: variant.flash_sale_enabled ?? false,
+    flash_sale_stock: variant.flash_sale_stock ?? '',
+    flash_sale_limit_per_order: variant.flash_sale_limit_per_order ?? '',
   }
 }
 
@@ -62,27 +82,36 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
   const hasOptions = (options ?? []).length > 0
   const createVariant = useCreateVariant()
   const updateVariant = useUpdateVariant()
+  const adjustStock = useAdjustVariantStock()
   const addToast = useToastStore((state) => state.addToast)
 
   // Tổ hợp thuộc tính đang chọn (chỉ dùng khi hasOptions).
   const [selectedAttrs, setSelectedAttrs] = useState({})
   const [attrError, setAttrError] = useState(null)
+  const [stockDelta, setStockDelta] = useState('')
+  const [stockReason, setStockReason] = useState('')
+  const [stockError, setStockError] = useState(null)
 
   const schemaKey = `${isEditing ? 'update' : 'create'}${hasOptions ? 'Option' : 'Simple'}`
 
   const {
     register,
     handleSubmit,
+    watch,
     setError,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(schemas[schemaKey]), defaultValues: emptyValues })
+  const flashSaleEnabled = watch('flash_sale_enabled')
 
   useEffect(() => {
     if (open) {
       reset(variant ? toFormValues(variant) : emptyValues)
       setSelectedAttrs(variant?.attributes ?? {})
       setAttrError(null)
+      setStockDelta('')
+      setStockReason('')
+      setStockError(null)
     }
   }, [open, variant, reset])
 
@@ -115,14 +144,31 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
 
   const onSubmit = async (values) => {
     if (hasOptions && !validateAttributes()) return
+    if (values.sale_price !== null && values.sale_price !== '' && Number(values.sale_price) >= Number(values.price)) {
+      setError('sale_price', { message: 'Giá sale phải thấp hơn giá thường.' })
+      return
+    }
+    if (values.sale_starts_at && values.sale_ends_at && new Date(values.sale_ends_at) <= new Date(values.sale_starts_at)) {
+      setError('sale_ends_at', { message: 'Thời điểm kết thúc phải sau thời điểm bắt đầu.' })
+      return
+    }
+    if (values.flash_sale_enabled && (!values.sale_price || !values.sale_starts_at || !values.sale_ends_at || !values.flash_sale_stock)) {
+      setError('flash_sale_enabled', { message: 'Điền đủ giá, thời gian và số lượng trước khi bật Flash Sale.' })
+      return
+    }
 
     try {
       if (isEditing) {
         const payload = {
           id: variant.id,
           price: Number(values.price),
-          stock_quantity: Number(values.stock_quantity),
           is_active: values.is_active,
+          sale_price: values.sale_price === null || values.sale_price === '' ? null : Number(values.sale_price),
+          sale_starts_at: values.sale_starts_at || null,
+          sale_ends_at: values.sale_ends_at || null,
+          flash_sale_enabled: values.flash_sale_enabled,
+          flash_sale_stock: values.flash_sale_stock === null || values.flash_sale_stock === '' ? null : Number(values.flash_sale_stock),
+          flash_sale_limit_per_order: values.flash_sale_limit_per_order === null || values.flash_sale_limit_per_order === '' ? null : Number(values.flash_sale_limit_per_order),
         }
         // Có thuộc tính → gửi attributes (BE tự suy tên + options_key). Không thì gửi tên tự do.
         if (hasOptions) payload.attributes = selectedAttrs
@@ -137,6 +183,12 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           sku: values.sku?.trim() || undefined,
           price: Number(values.price),
           stock_quantity: Number(values.stock_quantity),
+          sale_price: values.sale_price === null || values.sale_price === '' ? null : Number(values.sale_price),
+          sale_starts_at: values.sale_starts_at || null,
+          sale_ends_at: values.sale_ends_at || null,
+          flash_sale_enabled: values.flash_sale_enabled,
+          flash_sale_stock: values.flash_sale_stock === null || values.flash_sale_stock === '' ? null : Number(values.flash_sale_stock),
+          flash_sale_limit_per_order: values.flash_sale_limit_per_order === null || values.flash_sale_limit_per_order === '' ? null : Number(values.flash_sale_limit_per_order),
         }
         if (hasOptions) payload.attributes = selectedAttrs
         else payload.name = values.name
@@ -149,6 +201,33 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
     } catch (error) {
       if (applyServerErrors(error, setError)) return
       addToast({ title: 'Có lỗi xảy ra.', description: error.message, variant: 'error' })
+    }
+  }
+
+  const handleAdjustStock = async () => {
+    const delta = Number(stockDelta)
+    if (!Number.isInteger(delta) || delta === 0) {
+      setStockError('Nhập số nguyên khác 0; dùng số âm để giảm tồn.')
+      return
+    }
+    if (stockReason.trim().length < 3) {
+      setStockError('Vui lòng ghi lý do điều chỉnh kho.')
+      return
+    }
+    setStockError(null)
+    try {
+      const response = await adjustStock.mutateAsync({
+        id: variant.id,
+        quantity_delta: delta,
+        reason: stockReason.trim(),
+        idempotency_key: `admin:${variant.id}:${crypto.randomUUID()}`,
+      })
+      onSaved?.(response.data)
+      setStockDelta('')
+      setStockReason('')
+      addToast({ title: 'Đã ghi nhận điều chỉnh kho.', variant: 'success' })
+    } catch (error) {
+      setStockError(error.message)
     }
   }
 
@@ -226,13 +305,46 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
         )}
 
         <Input label="Giá" id="variant-price" type="number" error={errors.price?.message} {...register('price')} />
-        <Input
-          label="Số lượng kho"
-          id="variant-stock_quantity"
-          type="number"
-          error={errors.stock_quantity?.message}
-          {...register('stock_quantity')}
-        />
+        <section className="grid gap-3 rounded-control border border-border p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><h3 className="font-medium text-foreground">Lịch giảm giá</h3><p className="mt-1 text-xs text-muted-foreground">Server tự áp dụng trong khoảng thời gian này; để trống giá sale để tắt.</p></div>
+          <Input label="Giá sale" id="sale_price" type="number" error={errors.sale_price?.message} {...register('sale_price')} />
+          <div />
+          <Input label="Bắt đầu" id="sale_starts_at" type="datetime-local" error={errors.sale_starts_at?.message} {...register('sale_starts_at')} />
+          <Input label="Kết thúc" id="sale_ends_at" type="datetime-local" error={errors.sale_ends_at?.message} {...register('sale_ends_at')} />
+          <div className="sm:col-span-2 border-t border-border pt-3">
+            <label className="flex items-start gap-3 text-sm text-foreground" htmlFor="flash-sale-enabled">
+              <input id="flash-sale-enabled" type="checkbox" {...register('flash_sale_enabled')} />
+              <span><strong className="block font-medium">Giới hạn thành Flash Sale</strong><span className="text-xs text-muted-foreground">Tách một quota có giới hạn và phân bổ nguyên tử khi checkout.</span></span>
+            </label>
+            {errors.flash_sale_enabled?.message && <p role="alert" className="mt-2 text-sm text-destructive">{errors.flash_sale_enabled.message}</p>}
+          </div>
+          {flashSaleEnabled && <>
+            <Input label="Số lượng dành cho Flash Sale" id="flash_sale_stock" type="number" error={errors.flash_sale_stock?.message} {...register('flash_sale_stock')} />
+            <Input label="Tối đa mỗi đơn" id="flash_sale_limit_per_order" type="number" error={errors.flash_sale_limit_per_order?.message} {...register('flash_sale_limit_per_order')} />
+            {isEditing && <p className="sm:col-span-2 text-xs text-muted-foreground">Đã phân bổ {variant.flash_sale_reserved_quantity ?? 0} sản phẩm. Không thể giảm quota thấp hơn con số này.</p>}
+          </>}
+        </section>
+        {!isEditing && (
+          <Input
+            label="Số lượng kho"
+            id="variant-stock_quantity"
+            type="number"
+            error={errors.stock_quantity?.message}
+            {...register('stock_quantity')}
+          />
+        )}
+        {isEditing && (
+          <section className="flex flex-col gap-3 rounded-control border border-border bg-surface-alt p-4">
+            <div>
+              <h3 className="font-medium text-foreground">Điều chỉnh tồn kho</h3>
+              <p className="mt-1 text-xs text-muted-foreground">On-hand {variant.stock_quantity ?? '—'} · Đang giữ {variant.reserved_quantity ?? '—'} · Có thể bán {variant.available_stock ?? '—'}</p>
+            </div>
+            <Input id="stock-delta" label="Số lượng tăng/giảm" type="number" value={stockDelta} onChange={(event) => setStockDelta(event.target.value)} placeholder="Ví dụ: 5 hoặc -2" />
+            <Input id="stock-reason" label="Lý do kiểm kê" value={stockReason} onChange={(event) => setStockReason(event.target.value)} maxLength={500} />
+            {stockError && <p role="alert" className="text-sm text-destructive">{stockError}</p>}
+            <div><Button type="button" variant="secondary" onClick={handleAdjustStock} disabled={adjustStock.isPending}>{adjustStock.isPending ? 'Đang ghi nhận...' : 'Ghi nhận điều chỉnh'}</Button></div>
+          </section>
+        )}
         {isEditing ? (
           <VariantModelScaleFlow variant={variant} onConfirmed={onSaved} />
         ) : (

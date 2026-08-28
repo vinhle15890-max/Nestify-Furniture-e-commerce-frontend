@@ -13,7 +13,11 @@ export function updateItem(itemId, { quantity }) {
 }
 
 export function removeItem(itemId) {
-  return apiClient.delete(`/cart/items/${itemId}`)
+  return apiClient.post(`/cart/items/${itemId}/removal`)
+}
+
+export function restoreRemovedItem(token) {
+  return apiClient.post(`/cart/removals/${token}/restore`)
 }
 
 export function applyVoucher(code) {

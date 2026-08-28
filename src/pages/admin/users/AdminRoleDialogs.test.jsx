@@ -13,6 +13,7 @@ const user = { id: 2, name: 'Bao Le', email: 'bao@example.com', role_ids: [10] }
 beforeEach(() => {
   vi.clearAllMocks()
   hooks.useAssignUserRoles.mockReturnValue(mutation)
+  hooks.useCreateStaff.mockReturnValue(mutation)
 })
 
 describe('admin role-assignment dialogs', () => {
@@ -28,15 +29,13 @@ describe('admin role-assignment dialogs', () => {
     expect(refetch).toHaveBeenCalledTimes(1)
   })
 
-  it('AddEmployeeDialog distinguishes a candidate-query failure from no matching users', async () => {
+  it('AddEmployeeDialog blocks account creation when role catalogue cannot load', async () => {
     const refetch = vi.fn()
-    hooks.useAdminUsers.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, isError: true, refetch })
-    hooks.useRoles.mockReturnValue({ data: { data: [] }, isLoading: false, isError: false })
+    hooks.useRoles.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, isError: true, refetch })
 
     render(<AddEmployeeDialog open onOpenChange={() => {}} />)
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể tìm người dùng')
-    expect(screen.queryByText('Nhập tên hoặc email để tìm.')).toBeNull()
+    expect(screen.getByRole('alert')).toHaveTextContent('Chưa thể tải vai trò')
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
     expect(refetch).toHaveBeenCalledTimes(1)
   })

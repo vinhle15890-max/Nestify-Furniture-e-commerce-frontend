@@ -78,6 +78,7 @@ as each phase lands rather than creating duplicates.
 - [x] `features/auth/api.js` — `register`, `login`, `logout`, `me`, `forgotPassword`, `resetPassword`, `verifyEmail`
 - [x] `features/auth/hooks.js` — TanStack Query mutations/queries wrapping the above; on login success call `authStore.login(token, user)`
 - [x] `/login` page — form (React Hook Form + Yup), map `VALIDATION_FAILED` → field errors, distinct messages for `401` (bad credentials) vs `403 ACCOUNT_INACTIVE`
+- [x] Tách auth intent: `/login` chỉ Customer; `/admin/login` chỉ Staff/Admin và redirect `/admin`. Admin logout quay về `/admin/login`; không có public `/admin/register`.
 - [x] `/register` page — same pattern
 - [x] `/forgot-password`, `/reset-password` pages
 - [x] `/verify-email` landing page (consumes link token)
@@ -115,7 +116,7 @@ as each phase lands rather than creating duplicates.
 
 - [x] `features/cart/api.js` — `getCart`, `addItem`, `updateItem`, `removeItem`, `applyVoucher`
 - [x] `features/cart/hooks.js` — `useCart`, mutations invalidate `['cart']`; voucher preview as separate non-persisted query
-- [x] `/cart` page — guest-visible shell, item list, qty controls, voucher input + preview (discount/final total)
+- [x] `/cart` page — guest-visible shell, item list, qty controls; danh sách voucher chỉ gồm mã hợp lệ cho giỏ hiện tại, xếp theo tiết kiệm thực, hiện tổng còn trả/hạn/lượt còn lại và cho chọn hoặc bỏ mã trước Checkout
 - [x] `409 INSUFFICIENT_STOCK` handling — inline message using `details.available`, clamp qty input
 - [x] `features/wishlist/api.js` + `hooks.js` — list, add/remove, `notify_on_restock` toggle (`PATCH`, boolean only), `move-to-cart`
 - [x] `/wishlist` page — list, toggle restock notify, move-to-cart; handle `409 INSUFFICIENT_STOCK` và `409 INACTIVE_VARIANT` bằng trạng thái rõ ràng, giữ item để khách tự quyết định xóa
@@ -202,8 +203,9 @@ replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
 - [x] Variant CRUD (`POST /admin/products/{id}/variants`, `PATCH /admin/variants/{id}`)
 - [x] Media: pick from the **Media Library** picker + reorder + per-image variant tag + **detach** ("Gỡ") — direct product upload now happens inside the picker's upload tab
 - [x] **Media Library** (`/admin/media`, `features/admin/media/`) — reusable image assets (WordPress-style): browse/search + offset pagination, upload-once-reuse, per-asset `usage_count`, hard-delete blocked while in use (`409 MEDIA_IN_USE`). Shared `MediaLibraryModal` picker reused by product edit (multi-select, attach) + category form (single-select, `media_asset_id`). BE splits `media_assets` from the `product_media` junction. Refs: BE `14-workflows.md` §10d, FE spec `docs/superpowers/specs/2026-07-08-media-library-design.md`.
-- [x] `/admin/orders`, `/admin/orders/:id` — offset list + detail
-- [x] Order status transitions — render only valid next states per forward state machine (`processing → shipped → delivered`, or `cancelled`)
+- [x] `/admin/orders`, `/admin/orders/:id` — offset list + canonical detail endpoint; filter/page nằm trên URL, link chi tiết giữ đường quay lại đúng danh sách đã lọc
+- [x] Order status transitions — chỉ render bước hợp lệ, giải thích trạng thái terminal/thiếu quyền, xác nhận trước các bước có hậu quả và hiển thị timeline audit actor/time/carrier/tracking/reason
+- [x] Return workflow — customer thấy hạn 7 ngày do server tính, chỉ được mở form khi `return_policy.can_request`; admin duyệt/từ chối, nhận hàng/restock và ghi/hoàn tất refund theo từng trạng thái riêng
 - [x] Refund — `POST /admin/orders/{id}/refund` (**synchronous**: submit amount+reason → show result immediately)
 - [x] Tests: admin product list + create form validation, order status transition options match current status
 
@@ -214,13 +216,10 @@ replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
    `{ids: [...]}` (a flat, ordered array of media IDs; `sort_order` = position in the array),
    not `media_order: [{id, sort_order}]` as documented. Confirmed against
    `ProductMediaController::reorder`'s validation rules. FE sends `{ids}`.
-2. **No admin detail endpoints** — `GET /admin/products/{id}` and `GET /admin/orders/{id}` are
-   not implemented (only `index`/`store`/`update`/`destroy` and
-   `index`/`updateStatus`/`refund` respectively). `AdminProductEditPage` and
-   `AdminOrderDetailPage` hydrate from `location.state` (passed by the list pages' "Sửa"/"Xem"
-   links) and fall back to searching the `['admin','products']` / `['admin','orders']` query
-   cache for a matching `id`; if neither yields data, the page shows a "not found" message with
-   a link back to the list.
+2. **Admin order detail đã có endpoint canonical** — `GET /admin/orders/{id}` trả latest payment,
+   cancellation, fulfillment và timeline audit allow-list. `AdminOrderDetailPage` vẫn hydrate tức thì
+   từ `location.state`/list cache, sau đó reconcile bằng endpoint; direct URL vì vậy tải được độc lập.
+   `GET /admin/products/{id}` vẫn chưa có và product edit tiếp tục dựa vào state/cache.
 
 ---
 
@@ -232,6 +231,7 @@ replace cart/`convert-to-order`. Xem `docs/CURRENT-STATE-MECHANISMS.md`.
 - [x] `/admin/vouchers` — full CRUD (`type: percentage|fixed`, usage limits, date range); form validation mirrors BE constraints (`min_order_value`, `max_discount` shown only for `percentage` as a UX nicety)
 - [x] `/admin/users` — list (id, name, email, status, roles, email-verified) + role assignment (`AssignRolesDialog`, `PATCH /admin/users/{id}/roles`) — **open question #2 resolved**: `GET /api/admin/roles` shipped in RBAC Sub-project 1 (`docs/superpowers/specs/2026-07-*-rbac-*`, cross-repo, not tracked as a numbered Phase here); this Phase-9 entry originally shipped read-only and is superseded
 - [x] `/admin/roles` — **RBAC Sub-project 2** (dynamic role management, 2026-07-10): full CRUD for custom roles — list (`display_name`, `name`, permission count, `users_count`, "Hệ thống" badge for locked roles), create/edit via `RoleFormDialog` (permission checkbox matrix from `GET /admin/permissions`), delete with confirm + `ROLE_IN_USE` (409) toast reading `details.users_count`. `super_admin`/`customer` are `locked` (view-only, no edit/delete). `features/admin/roles/{api,hooks}.js`; nav entry "Vai trò" under "Nhân sự" in `adminNav.js`, gated `manage_users`. See spec/plan under `docs/superpowers/{specs,plans}/2026-07-10-rbac-dynamic-role-management*`.
+- [x] `/admin/employees` tạo tài khoản Staff/Admin mới bằng role phía server, gửi email đặt mật khẩu qua reset flow; không còn âm thầm promote Customer trong dialog “Thêm nhân viên”.
 - [x] `/admin/roles` — **RBAC Sub-project 3** (role × permission matrix, 2026-07-10, pure FE, no BE contract change): `AdminRolesPage` adds a **Bảng | Ma trận** view toggle (local state, no new route/nav). Matrix view = `pages/admin/roles/RolePermissionMatrix.jsx`, a read-only grid (rows = roles from `useRoles`, columns = permissions from `usePermissions` — zero new API calls, `customer` row hidden), "has permission" cell = accessible Check icon (`role="img"` + `aria-label`), `super_admin` row shows a "Toàn quyền (bypass)" note instead of per-column ticks. Sửa/Xem still opens SP2's `RoleFormDialog` (locked roles stay read-only) — matrix never writes; all edits still flow through SP2's write path. See spec/plan under `docs/superpowers/{specs,plans}/2026-07-10-rbac-role-permission-matrix*`.
 - [x] `/admin/audit-logs` — read-only paginated table (offset), expandable `old_values`/`new_values` diff per row
 - [x] `/admin/audit-logs` — **RBAC Sub-project 4** (audit action filter + denied-access logging UI, 2026-07-10,
@@ -335,3 +335,9 @@ From spec Section I:
 - Run `npm run lint` and `npm test -- --run` before opening a PR — both must be clean.
 - Reuse design tokens (`src/styles/tokens.css`) and shared components — don't introduce raw hex colors or duplicate Button/Card/etc. variants.
 - Vietnamese-language UI throughout (per spec — no i18n in scope).
+## Completed sales remediation — 2026-08-24
+
+- Added immutable multi-refund presentation and manual-transfer evidence flow.
+- Added urgent paid-after-cancellation exception queue and order warning.
+- Corrected dashboard labels/cohorts for collected cash, pending/transferred refunds, net collected cash, and AOV.
+- Kept one-shipment and whole-order-return scope; no marketplace/accounting expansion.

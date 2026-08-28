@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import * as dashboardApi from './api'
 
-export function useAdminDashboard() {
+export function useAdminDashboard(filters = {}) {
   return useQuery({
-    queryKey: ['admin', 'dashboard'],
-    queryFn: dashboardApi.getDashboard,
+    queryKey: ['admin', 'dashboard', filters],
+    queryFn: () => dashboardApi.getDashboard(filters),
   })
 }

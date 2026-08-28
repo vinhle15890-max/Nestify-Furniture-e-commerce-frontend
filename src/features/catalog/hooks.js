@@ -18,6 +18,18 @@ export function useCategory(slug) {
   })
 }
 
+export function useCollections() {
+  return useQuery({ queryKey: ['collections'], queryFn: catalogApi.getCollections })
+}
+
+export function useCollection(slug) {
+  return useQuery({
+    queryKey: ['collections', slug],
+    queryFn: () => catalogApi.getCollection(slug),
+    enabled: !!slug,
+  })
+}
+
 export function useInfiniteProducts(filters = {}, { enabled = true } = {}) {
   return useCursorQuery({
     queryKey: ['products', filters],
@@ -30,6 +42,13 @@ export function useBestSellers(limit = 8) {
   return useQuery({
     queryKey: ['products', 'best-sellers', limit],
     queryFn: () => catalogApi.getBestSellers({ limit }),
+  })
+}
+
+export function useFeaturedProducts(limit = 8) {
+  return useQuery({
+    queryKey: ['products', 'featured', limit],
+    queryFn: () => catalogApi.getFeaturedProducts({ limit }),
   })
 }
 

@@ -26,15 +26,15 @@ describe('ChatWidget', () => {
     useChatStore.setState({ isOpen: false, messages: [] })
   })
 
-  it('renders nothing for a guest', () => {
-    const { container } = renderWidget()
-    expect(container).toBeEmptyDOMElement()
+  it('shows the assistant to a guest', () => {
+    renderWidget()
+    expect(screen.getByRole('button', { name: 'Mở trợ lý mua sắm' })).toBeInTheDocument()
   })
 
-  it('renders nothing for an unverified user', () => {
+  it('shows the assistant to an unverified user', () => {
     useAuthStore.setState({ token: 't', user: { id: 1, name: 'Bao', email_verified_at: null } })
-    const { container } = renderWidget()
-    expect(container).toBeEmptyDOMElement()
+    renderWidget()
+    expect(screen.getByRole('button', { name: 'Mở trợ lý mua sắm' })).toBeInTheDocument()
   })
 
   it('shows the bubble for a verified user and opens the panel on click', async () => {

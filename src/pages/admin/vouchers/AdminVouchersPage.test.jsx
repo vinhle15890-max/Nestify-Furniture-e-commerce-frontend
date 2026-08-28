@@ -85,6 +85,11 @@ describe('AdminVouchersPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Thêm voucher' }))
 
+    const dialog = screen.getByRole('dialog', { name: 'Thêm voucher mới' })
+    expect(dialog).toHaveClass('max-h-[calc(100dvh-2rem)]', 'overflow-hidden')
+    expect(dialog.querySelector('.overflow-y-auto')).not.toBeNull()
+    expect(screen.getByText(/đường dẫn \/vouchers/)).toBeInTheDocument()
+
     expect(screen.queryByLabelText(/Giảm tối đa/)).not.toBeInTheDocument()
 
     await userEvent.selectOptions(screen.getByLabelText('Loại'), 'percentage')

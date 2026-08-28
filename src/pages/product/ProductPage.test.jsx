@@ -231,10 +231,10 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    const handoff = screen.getByRole('link', { name: 'Thử trong phòng của bạn' })
+    const handoff = screen.getByRole('link', { name: 'Xem trong phòng của bạn' })
     expect(handoff).toHaveAttribute('href', '/room-planner?product=ghe-sofa-da&variant=1')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Thử trong phòng của bạn' })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: 'Xem trong phòng của bạn' })).toHaveLength(1)
   })
 
   it('keeps the real-Planner handoff available for a single implicit variant', async () => {
@@ -244,7 +244,66 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByRole('link', { name: 'Thử trong phòng của bạn' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Xem trong phòng của bạn' })).toHaveAttribute(
+      'href',
+      '/room-planner?product=ghe-sofa-da&variant=1',
+    )
+    expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Thêm vào yêu thích' })).toBeEnabled()
+  })
+
+  it('keeps the Planner action disabled until an explicit variant is resolved', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        variant_options: [
+          {
+            name: 'Màu sắc',
+            type: 'text',
+            values: [{ label: 'Nâu' }, { label: 'Xám' }],
+          },
+        ],
+        variants: productResponse.data.variants.map((variant) => ({
+          ...variant,
+          attributes: { 'Màu sắc': variant.name },
+        })),
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    expect(screen.getByText('Chọn phiên bản để thử trong phòng')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByRole('link', { name: 'Xem trong phòng của bạn' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Thêm vào yêu thích' })).toBeDisabled()
+  })
+
+  it('keeps purchase actions disabled for a partial choice and enables them after one variant resolves', async () => {
+    catalogApi.getProduct.mockResolvedValue({
+      data: {
+        ...productResponse.data,
+        variant_options: [
+          { name: 'Màu sắc', type: 'text', values: [{ label: 'Nâu' }, { label: 'Xám' }] },
+          { name: 'Kích thước', type: 'text', values: [{ label: 'Nhỏ' }, { label: 'Lớn' }] },
+        ],
+        variants: [
+          { ...productResponse.data.variants[0], attributes: { 'Màu sắc': 'Nâu', 'Kích thước': 'Nhỏ' } },
+          { ...productResponse.data.variants[1], attributes: { 'Màu sắc': 'Xám', 'Kích thước': 'Lớn' } },
+        ],
+      },
+    })
+    renderPage()
+    await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nâu' }))
+    expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Thêm vào yêu thích' })).toBeDisabled()
+    expect(screen.getByText('Chọn phiên bản để thử trong phòng')).toHaveAttribute('aria-disabled', 'true')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nhỏ' }))
+    expect(screen.getByRole('button', { name: 'Thêm vào giỏ' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Thêm vào yêu thích' })).toBeEnabled()
+    expect(screen.getByRole('link', { name: 'Xem trong phòng của bạn' })).toHaveAttribute(
       'href',
       '/room-planner?product=ghe-sofa-da&variant=1',
     )
@@ -322,7 +381,7 @@ describe('ProductPage', () => {
     renderPage()
     await screen.findByRole('heading', { name: 'Ghế sofa da', level: 1 })
 
-    expect(screen.getByRole('link', { name: 'Thử trong phòng của bạn' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Xem trong phòng của bạn' })).toHaveAttribute(
       'href',
       '/room-planner?product=ghe-sofa-da&variant=1',
     )
@@ -348,11 +407,13 @@ describe('ProductPage', () => {
     const evidence = screen.getByTestId('measured-suitability-field')
     const planner = screen.getByTestId('planner-handoff')
     const transaction = screen.getByTestId('transaction-runway')
+    const addToCart = screen.getByRole('button', { name: 'Thêm vào giỏ' })
 
     expect(identity.compareDocumentPosition(mediaField) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(mediaField.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(evidence.compareDocumentPosition(planner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(planner.compareDocumentPosition(transaction) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(planner.compareDocumentPosition(addToCart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('hides the add-to-cart button and shows a notice for staff users', async () => {

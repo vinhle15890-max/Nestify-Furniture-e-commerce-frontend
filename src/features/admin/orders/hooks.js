@@ -6,10 +6,10 @@ export const adminOrderKeys = {
   detail: (id) => ['admin', 'orders', 'detail', id],
 }
 
-export function useAdminOrders(page, status) {
+export function useAdminOrders(page, status, paymentMethod, paymentStatus, returnStatus, { q = '', statusGroup = '', paymentQueue = '', confirmationQueue = '', hasReturn = false } = {}) {
   return useQuery({
-    queryKey: ['admin', 'orders', { page, status }],
-    queryFn: () => ordersApi.getOrders({ page, status }),
+    queryKey: ['admin', 'orders', { page, q, status, statusGroup, paymentMethod, paymentStatus, paymentQueue, confirmationQueue, returnStatus, hasReturn }],
+    queryFn: () => ordersApi.getOrders({ page, ...(q ? { q } : {}), status, statusGroup, paymentMethod, paymentStatus, paymentQueue, ...(confirmationQueue ? { confirmationQueue } : {}), returnStatus, hasReturn }),
     placeholderData: (previousData) => previousData,
   })
 }
@@ -30,7 +30,9 @@ export function useUpdateOrderStatus() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, status }) => ordersApi.updateOrderStatus(id, status),
+    mutationFn: ({ id, status, ...metadata }) => Object.keys(metadata).length
+      ? ordersApi.updateOrderStatus(id, status, metadata)
+      : ordersApi.updateOrderStatus(id, status),
     onSuccess: (response, { id }) => {
       queryClient.setQueryData(adminOrderKeys.detail(id), (current) => {
         if (!current) return response
@@ -44,11 +46,26 @@ export function useUpdateOrderStatus() {
   })
 }
 
+export function useUpdateShipmentMetadata() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.updateShipmentMetadata(id, payload),
+    onSuccess: (response, { id }) => {
+      queryClient.setQueryData(adminOrderKeys.detail(id), (current) => {
+        if (!current) return response
+        return { ...current, data: { ...current.data, ...response.data } }
+      })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+    },
+  })
+}
+
 export function useRefundOrder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, ...payload }) => ordersApi.refundOrder(id, payload),
+    mutationFn: ({ id, idempotencyKey, ...payload }) => ordersApi.refundOrder(id, payload, idempotencyKey),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: adminOrderKeys.all }),
   })
 }
@@ -64,4 +81,92 @@ export function useCompleteManualRefund() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
     },
   })
+}
+
+export function useRefundWorkflow(orderId) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ refundId, action, payload = {} }) => {
+      if (action === 'processing') return ordersApi.startRefund(refundId)
+      if (action === 'succeeded') return ordersApi.completeRefund(refundId, payload)
+      if (action === 'failed') return ordersApi.failRefund(refundId, payload)
+      if (action === 'needs_review') return ordersApi.markRefundNeedsReview(refundId, payload)
+      throw new Error('Thao tác hoàn tiền không hợp lệ.')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useRefundPayoutDetails(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ refundId, action, reason }) => action === 'verify'
+      ? ordersApi.verifyRefundPayoutDetails(refundId)
+      : ordersApi.requestRefundPayoutCorrection(refundId, { reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useCollectCod() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.collectCod(id, payload),
+    onSuccess: (_response, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useReviewReturnRequest(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.reviewReturnRequest(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+    },
+  })
+}
+
+export function useReceiveReturnRequest(orderId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => ordersApi.receiveReturnRequest(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+function useReturnMoneyMutation(orderId, mutationFn) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(orderId) })
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
+export function useRefundReturnRequest(orderId) {
+  return useReturnMoneyMutation(orderId, ({ id, idempotencyKey, ...payload }) => ordersApi.refundReturnRequest(id, payload, idempotencyKey))
+}
+
+export function useCompleteReturnRequest(orderId) {
+  return useReturnMoneyMutation(orderId, ({ id, ...payload }) => ordersApi.completeReturnRequest(id, payload))
 }

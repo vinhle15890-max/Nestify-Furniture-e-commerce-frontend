@@ -150,6 +150,19 @@ describe('AdminProductEditPage', () => {
     )
   })
 
+  it('saves staff-curated placement independently from sales ranking', async () => {
+    productsApi.updateProduct.mockResolvedValue({ data: { ...baseProduct, is_featured: true, featured_position: 2 } })
+    renderPage()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Đưa sản phẩm vào danh sách do Nestify tuyển chọn' }))
+    await userEvent.type(screen.getByLabelText('Thứ tự ưu tiên'), '2')
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu sản phẩm' }))
+
+    await waitFor(() => expect(productsApi.updateProduct).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ is_featured: true, featured_position: 2 }),
+    ))
+  })
+
   it('offers AI variations and fills fields from the chosen one', async () => {
     productsApi.generateProductDescription.mockResolvedValue({
       data: {

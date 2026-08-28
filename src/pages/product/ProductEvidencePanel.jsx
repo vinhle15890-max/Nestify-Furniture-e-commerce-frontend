@@ -1,6 +1,4 @@
-import { ArrowRight } from 'lucide-react'
 import { describeModelFidelity } from '../../features/roomPlanner/modelFidelity'
-import { ButtonLink } from '../../components/Button'
 
 function EvidenceRow({ label, children }) {
   return (
@@ -11,12 +9,9 @@ function EvidenceRow({ label, children }) {
   )
 }
 
-export function ProductEvidencePanel({ product, selectedVariant, outOfStock }) {
+export function ProductEvidencePanel({ selectedVariant, outOfStock }) {
   const modelFidelity = describeModelFidelity(selectedVariant)
   const variantAttributes = Object.entries(selectedVariant?.attributes ?? {})
-  const plannerHref = selectedVariant
-    ? `/room-planner?product=${encodeURIComponent(product.slug)}&variant=${selectedVariant.id}`
-    : null
 
   return (
     <aside
@@ -51,27 +46,6 @@ export function ProductEvidencePanel({ product, selectedVariant, outOfStock }) {
         </EvidenceRow>
       </dl>
 
-      <div data-testid="planner-handoff" className="mt-3 border-t-2 border-ink/15 pt-3">
-        {plannerHref ? (
-          <ButtonLink
-            to={plannerHref}
-            variant="secondary"
-          >
-            Thử trong phòng của bạn
-            <ArrowRight size={16} aria-hidden="true" />
-          </ButtonLink>
-        ) : (
-          <span
-            aria-disabled="true"
-            className="inline-flex rounded-control bg-unbuilt px-5 py-3 text-sm font-medium text-ink/60"
-          >
-            Chọn phiên bản để thử trong phòng
-          </span>
-        )}
-        <p className="mt-2.5 text-xs leading-4 text-ink/60">
-          Phiên bản bạn chọn sẽ được mang theo. Bạn có thể thử, đổi vị trí hoặc quay lại bất cứ lúc nào.
-        </p>
-      </div>
     </aside>
   )
 }

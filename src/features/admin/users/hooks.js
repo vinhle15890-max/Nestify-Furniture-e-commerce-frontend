@@ -27,6 +27,11 @@ export function useAssignUserRoles() {
   })
 }
 
+export function useCreateStaff() {
+  const queryClient = useQueryClient()
+  return useMutation({ mutationFn: usersApi.createStaff, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }) })
+}
+
 export function useUpdateUserStatus() {
   const queryClient = useQueryClient()
 

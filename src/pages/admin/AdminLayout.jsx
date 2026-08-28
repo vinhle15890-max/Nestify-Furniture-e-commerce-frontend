@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Store, Menu, X, ChevronsUpDown, LogOut, Eye } from 'lucide-react'
-import { useLogout, useMe } from '../../features/auth/hooks'
+import { useAdminLogout, useAdminMe } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
 import { usePreviewStore, useEffectiveUser } from '../../store/previewStore'
 import { navGroups, visibleGroups } from './adminNav'
@@ -106,7 +106,7 @@ function UserMenu({ user, onLogout }) {
       {open && (
         <div role="menu" className="absolute bottom-full left-0 z-20 mb-2 w-full rounded-card border border-border bg-surface p-1.5 shadow-card">
           <Link
-            to="/"
+            to="/c/all"
             role="menuitem"
             className="flex items-center gap-2.5 rounded-control px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground"
           >
@@ -146,9 +146,9 @@ function PreviewBanner({ role, onExit }) {
 }
 
 export function AdminLayout() {
-  const logout = useLogout()
-  const user = useAuthStore((state) => state.user)
-  const setUser = useAuthStore((state) => state.setUser)
+  const logout = useAdminLogout()
+  const user = useAuthStore((state) => state.adminUser)
+  const setUser = useAuthStore((state) => state.setAdminUser)
   const effectiveUser = useEffectiveUser()
   const previewRole = usePreviewStore((state) => state.previewRole)
   const clearPreview = usePreviewStore((state) => state.clearPreview)
@@ -157,7 +157,15 @@ export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const title = activeTitle(pathname)
-  const handleLogout = () => logout.mutate()
+  const handleLogout = async () => {
+    try {
+      await logout.mutateAsync()
+    } finally {
+      // useLogout clears the local session even when the server is unavailable.
+      // Keep the back-office redirect separate from the customer login journey.
+      navigate('/admin/login', { replace: true })
+    }
+  }
   const groups = visibleGroups(effectiveUser)
 
   function handleExitPreview() {
@@ -168,7 +176,7 @@ export function AdminLayout() {
   // Legacy persisted sessions may predate `user.permissions`. Sync `/auth/me`
   // on entering the admin area so the sidebar/route guards reflect current
   // permissions instead of locking the user out with a stale/empty set.
-  const { data: meData } = useMe()
+  const { data: meData } = useAdminMe()
   useEffect(() => {
     if (meData?.data) setUser(meData.data)
   }, [meData, setUser])

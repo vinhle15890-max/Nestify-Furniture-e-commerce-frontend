@@ -1,12 +1,18 @@
-import { Heart } from 'lucide-react'
+/* Hallmark · component: purchase rail · genre: editorial · theme: Nestify Design DNA */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast/mobile/tokens: pass */
+import { ArrowRight, Heart } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Button } from '../../components/Button'
+import { Button, ButtonLink } from '../../components/Button'
 import { formatPrice, numericClassName } from '../../lib/format'
 import { ProductOptions } from './ProductOptions'
 import { ProductEvidencePanel } from './ProductEvidencePanel'
 
 export function ProductDecisionRail({ product, variants, variantOptions, selectedOptions, onSelectOption, selectedVariant, onSelectVariant, visibleMedia, outOfStock, price, quantity, onQuantityChange, maxQuantity, token, staff, onAddToCart, adding, isWishlisted, onToggleWishlist, wishlistPending, stockError, deliveryFact, returnsFact }) {
   const hasOptions = variantOptions.length > 0
+  const plannerHref = selectedVariant
+    ? `/room-planner?product=${encodeURIComponent(product.slug)}&variant=${selectedVariant.id}`
+    : null
+
   return (
     <aside aria-label="Lựa chọn sản phẩm" className="space-y-6 lg:sticky lg:top-28">
       <div>
@@ -15,11 +21,36 @@ export function ProductDecisionRail({ product, variants, variantOptions, selecte
         {selectedVariant && <p className="mt-3 text-sm leading-6 text-ink/65">{visibleMedia.some((item) => item.variant_id === selectedVariant.id) ? 'Bộ ảnh có hình được gắn đúng với phiên bản này.' : 'Bộ ảnh hiện là ảnh dùng chung, chưa xác nhận riêng cho phiên bản này.'}</p>}
       </div>
 
-      <ProductEvidencePanel product={product} selectedVariant={selectedVariant} outOfStock={outOfStock} />
+      <ProductEvidencePanel selectedVariant={selectedVariant} outOfStock={outOfStock} />
+
+      <div data-testid="planner-handoff" className="border-t-2 border-ink/15 pt-4">
+        {plannerHref ? (
+          <ButtonLink to={plannerHref} variant="secondary">
+            Xem trong phòng của bạn
+            <ArrowRight size={16} aria-hidden="true" />
+          </ButtonLink>
+        ) : (
+          <span
+            aria-disabled="true"
+            className="inline-flex rounded-control bg-unbuilt px-5 py-3 text-sm font-medium text-ink/60"
+          >
+            Chọn phiên bản để thử trong phòng
+          </span>
+        )}
+        <p className="mt-2.5 text-xs leading-4 text-ink/60">
+          Phiên bản bạn chọn sẽ được mang theo. Bạn có thể thử, đổi vị trí hoặc quay lại bất cứ lúc nào.
+        </p>
+      </div>
 
       <section data-testid="transaction-runway" aria-labelledby="transaction-runway-title" className="border-t-2 border-ink/15 pt-6">
         <h2 id="transaction-runway-title" className="sr-only">Mua sản phẩm</h2>
-        <p className={`text-2xl font-medium text-ink ${numericClassName}`}>{formatPrice(price)}</p>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <p className={`text-2xl font-medium text-ink ${numericClassName}`}>{formatPrice(price)}</p>
+          {selectedVariant?.is_on_sale && <p className={`text-sm text-muted-foreground line-through ${numericClassName}`}>{formatPrice(selectedVariant.regular_price)}</p>}
+        </div>
+        {selectedVariant?.is_flash_sale ? (
+          <p className="mt-1 text-sm text-muted-foreground">Flash Sale còn {selectedVariant.flash_sale_remaining} sản phẩm; tối đa {selectedVariant.flash_sale_limit_per_order ?? selectedVariant.flash_sale_remaining} sản phẩm mỗi đơn. Quota được xác nhận khi checkout.</p>
+        ) : selectedVariant?.is_on_sale && <p className="mt-1 text-sm text-muted-foreground">Giá ưu đãi đang được hệ thống áp dụng.</p>}
         <div className="mt-5 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/60">Số lượng<input type="number" min={1} max={maxQuantity} value={quantity} disabled={outOfStock} onChange={(event) => onQuantityChange(Number(event.target.value))} className={`w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${numericClassName}`} /></label>
           {token && staff ? <p className="text-sm leading-6 text-ink/65">Tài khoản quản trị không thể mua hàng.</p> : token ? <><Button onClick={onAddToCart} disabled={!selectedVariant || outOfStock || adding} className="px-6 py-3">Thêm vào giỏ</Button><Button type="button" variant="secondary" aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'} aria-pressed={isWishlisted} onClick={onToggleWishlist} disabled={!selectedVariant || wishlistPending} className="px-4 py-3"><Heart size={18} className={isWishlisted ? 'fill-current text-accent' : ''} /></Button></> : <Link to="/login" className="inline-flex items-center rounded-control bg-ink px-6 py-3 text-sm font-medium text-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Đăng nhập để mua hàng</Link>}

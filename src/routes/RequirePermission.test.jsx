@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/authStore'
 import { usePreviewStore } from '../store/previewStore'
 
 function renderGuarded({ slug, anyOf }, user) {
-  useAuthStore.setState({ token: 't', user })
+  useAuthStore.setState({ adminToken: 't', adminUser: user })
   return render(
     <MemoryRouter initialEntries={['/admin/thing']}>
       <Routes>
@@ -20,7 +20,7 @@ function renderGuarded({ slug, anyOf }, user) {
 
 describe('RequirePermission', () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null })
+    useAuthStore.setState({ token: null, user: null, adminToken: null, adminUser: null })
     usePreviewStore.setState({ previewRole: null })
   })
 
