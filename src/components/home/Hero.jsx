@@ -53,7 +53,7 @@ export function Hero() {
             <span aria-hidden="true" className="h-2.5 w-10 rounded-full bg-primary" />
             Bắt đầu từ điều bạn muốn nhìn thấy rõ hơn
           </p>
-          <h1 className="min-w-0 [overflow-wrap:anywhere] font-display text-[clamp(3rem,4.8vw,4.75rem)] font-normal leading-[1.02] tracking-[-0.035em]">
+          <h1 className="min-w-0 max-w-[13ch] [overflow-wrap:anywhere] [text-wrap:balance] font-display text-[clamp(2.4rem,8vw,2.7rem)] font-normal leading-[1.06] tracking-[-0.035em] sm:max-w-none sm:text-[clamp(3rem,4.8vw,4.75rem)] sm:leading-[1.02]">
             {hero.title}
           </h1>
           <p className="mt-7 max-w-[30rem] text-[clamp(1rem,1.25vw,1.16rem)] leading-[1.75] text-ink/70 xl:max-w-[34rem]">

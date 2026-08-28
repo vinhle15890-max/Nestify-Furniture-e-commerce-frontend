@@ -70,7 +70,7 @@ describe('App routes', () => {
     ).toBeInTheDocument()
   })
 
-  it('resumes the admin area when a staff session reopens the domain root', async () => {
+  it('keeps the domain root as storefront when only an admin session exists', async () => {
     renderAt('/', {
       id: 1,
       name: 'NV',
@@ -78,7 +78,9 @@ describe('App routes', () => {
       permissions: ['view_dashboard'],
     })
 
-    expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Điều gì phù hợp với căn phòng của bạn?', level: 1 }),
+    ).toBeInTheDocument()
   })
 
   it('keeps the root as storefront when customer and admin sessions coexist', async () => {
