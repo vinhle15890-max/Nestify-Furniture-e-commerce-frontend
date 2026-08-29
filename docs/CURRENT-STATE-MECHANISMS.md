@@ -373,8 +373,11 @@ tổ hợp active nhưng hết hàng vẫn chọn được để lưu wishlist, 
 được trình bày như lựa chọn lịch sử nhưng không cho chuyển giỏ; variant inactive mới bị BE từ chối khi add. Chỉ customer đăng nhập mới record view/query wishlist; suggested
 category là slug xuất hiện nhiều nhất trong recently-viewed, hòa lấy slug gặp trước, không phải ML.
 
-Review eligibility client tìm order `delivered` chứa variant product rồi gửi `order_id`; server phải xác minh
-ownership/delivery/duplicate. Comment trim rỗng và map field errors; review list dùng cursor.
+Review eligibility không còn suy đoán từ page đầu danh sách order. Product page gọi endpoint authenticated theo
+product; server trả `can_review`, review hiện có hoặc `order_id` của lần mua delivered mới nhất. Form chỉ mount khi
+`can_review=true`; trạng thái `already_reviewed` hiện thông báo tĩnh. Chi tiết đơn nhận `item.review` nên đơn mua lại
+hiện “Đã đánh giá” thay vì link vào form chắc chắn lỗi. Server vẫn xác minh ownership/delivery/duplicate khi POST.
+Comment trim rỗng và map field errors; review list dùng cursor.
 
 ## Cart, checkout, payment và order
 

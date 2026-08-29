@@ -286,7 +286,11 @@ export function OrderDetailPage() {
                     <ProductThumb src={snapshot.thumbnail} alt="" size="h-12 w-12" />
                     <p className="min-w-0 font-medium text-foreground">{title}</p>
                   </div>
-                  {snapshot.product_slug ? (
+                  {item.review ? (
+                    <span className="inline-flex min-h-11 shrink-0 items-center px-4 text-sm font-medium text-muted-foreground">
+                      Đã đánh giá
+                    </span>
+                  ) : snapshot.product_slug ? (
                     <Link
                       to={`/p/${snapshot.product_slug}#reviews`}
                       className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-control border border-border-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-alt active:bg-unbuilt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -11,8 +11,7 @@ import { LoadErrorState } from '../../components/LoadErrorState'
 import { useProduct, useProductReviews } from '../../features/catalog/hooks'
 import { useAddCartItem } from '../../features/cart/hooks'
 import { useWishlist, useAddWishlistItem, useRemoveWishlistItem } from '../../features/wishlist/hooks'
-import { useOrders } from '../../features/orders/hooks'
-import { useCreateReview } from '../../features/reviews/hooks'
+import { useCreateReview, useReviewEligibility } from '../../features/reviews/hooks'
 import { focusFirstError, formLevelMessage } from '../../lib/formErrors'
 import { useJourneyContext, useRecordProductView } from '../../features/personalization/hooks'
 import { RecentlyViewedStrip } from '../../components/personalization/RecentlyViewedStrip'
@@ -226,7 +225,8 @@ export function ProductPage() {
     [reviewsQuery.data],
   )
 
-  const { data: ordersData } = useOrders(1, { enabled: !!token })
+  const reviewEligibilityQuery = useReviewEligibility(product?.id, { enabled: isCustomer && !!product?.id })
+  const reviewEligibility = reviewEligibilityQuery.data?.data
   const createReview = useCreateReview()
 
   const [reviewRating, setReviewRating] = useState(0)
@@ -242,15 +242,6 @@ export function ProductPage() {
   const [reviewFieldErrors, setReviewFieldErrors] = useState({ rating: null, title: null, body: null })
   const reviewFormRef = useRef(null)
 
-  const variantIds = useMemo(() => new Set(variants.map((variant) => variant.id)), [variants])
-  const verifiedOrder = useMemo(
-    () =>
-      ordersData?.data?.find(
-        (order) => order.status === 'delivered' && order.items.some((item) => variantIds.has(item.variant_id)),
-      ),
-    [ordersData, variantIds],
-  )
-
   async function handleSubmitReview(event) {
     event.preventDefault()
     setReviewError(null)
@@ -258,7 +249,7 @@ export function ProductPage() {
     try {
       const response = await createReview.mutateAsync({
         productId: product.id,
-        order_id: verifiedOrder.id,
+        order_id: reviewEligibility.order_id,
         rating: reviewRating,
         title: reviewTitle.trim() || undefined,
         body: reviewBody.trim(),
@@ -269,6 +260,7 @@ export function ProductPage() {
         usage_duration: reviewUsageDuration || undefined,
       })
       setReviewSubmissionStatus(response.data.status)
+      await reviewEligibilityQuery.refetch()
       if (response.data.status === 'approved') await reviewsQuery.refetch()
     } catch (error) {
       if (error?.code === 'VALIDATION_FAILED' && error.details?.fields) {
@@ -473,7 +465,7 @@ export function ProductPage() {
       <section id="reviews" className="mt-20 scroll-mt-24 border-t border-border pt-16">
         <h2 className="font-display text-[clamp(1.6rem,2.6vw,2.2rem)] text-foreground">Đánh giá</h2>
 
-        {token && verifiedOrder && !reviewSubmissionStatus && (
+        {isCustomer && reviewEligibility?.can_review && !reviewSubmissionStatus && (
           <form
             ref={reviewFormRef}
             onSubmit={handleSubmitReview}
@@ -611,10 +603,16 @@ export function ProductPage() {
         )}
 
         {reviewSubmissionStatus && (
-          <p className="mt-8 border-l-2 border-emerging pl-4 text-sm text-muted-foreground" role="status">
+          <p className="mt-8 border-y border-border py-4 text-sm text-muted-foreground" role="status">
             {reviewSubmissionStatus === 'approved'
               ? 'Đánh giá đã được đăng với dấu hiệu Đã mua hàng.'
               : 'Đánh giá đang chờ kiểm duyệt vì hệ thống phát hiện tín hiệu cần xem lại.'}
+          </p>
+        )}
+
+        {!reviewSubmissionStatus && reviewEligibility?.reason === 'already_reviewed' && (
+          <p className="mt-8 border-y border-border py-4 text-sm text-muted-foreground" role="status">
+            Bạn đã đánh giá sản phẩm này.
           </p>
         )}
 

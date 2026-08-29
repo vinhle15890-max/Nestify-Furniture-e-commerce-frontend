@@ -453,13 +453,15 @@ hoàn chỉnh dù resource có `meta`. Đây là gap cần sửa hoặc phải d
 
 > **Liên kết bảo vệ `J11`:** [Kịch bản Chương 2](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §8](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#8-review--moderation) · Tài/BE2 ↔ FE2/FE4.
 
-**Actor:** Customer (đã mua). **Entry:** khu vực “Đánh giá sản phẩm” ở chi tiết đơn đã giao (`/orders/:id`) dẫn thẳng tới form ở `ProductPage` (`/p/:slug#reviews`). **Feature:** `features/reviews`.
+**Actor:** Customer (đã mua). **Entry:** khu vực “Đánh giá sản phẩm” ở chi tiết đơn đã giao (`/orders/:id`) chỉ dẫn tới form ở `ProductPage` (`/p/:slug#reviews`) khi sản phẩm chưa được khách đánh giá. **Feature:** `features/reviews`.
 
 ### 8.1 Tạo review
 
-`ProductPage`/review form → `useCreateReview()` → `POST /products/{productId}/reviews` với rating/body và evidence
-tuỳ chọn về màu, kích thước, chất liệu, giao nhận, thời gian dùng. “Đã mua”, verified và uniqueness một review/sản
-phẩm phải do BE kiểm tra; việc FE ẩn form chỉ là affordance. Response `approved` được refetch để hiện ngay trong public
+`ProductPage` → `useReviewEligibility()` → `GET /products/{productId}/review-eligibility`. Form chỉ mount khi API trả
+`can_review=true` và dùng đúng `order_id` do server chọn; `already_reviewed` hiện trạng thái tĩnh. Sau đó
+`useCreateReview()` → `POST /products/{productId}/reviews` với rating/body và evidence tuỳ chọn về màu, kích thước,
+chất liệu, giao nhận, thời gian dùng. “Đã mua”, verified và uniqueness một review/sản phẩm vẫn do BE kiểm tra; việc FE
+ẩn form chỉ là affordance. Response `approved` được refetch để hiện ngay trong public
 list; response `pending` chỉ hiện copy đang xem lại, không append local vào danh sách công khai.
 
 ### 8.2 Moderation boundary
@@ -469,9 +471,9 @@ Public list chỉ nhận approved review và render dấu `Đã mua hàng` cùng
 hiện risk flag + product + order context trước hai quyết định “Giữ công khai”/“Ẩn đánh giá”; storefront không được tự
 lọc pending như một biện pháp bảo mật vì pending vốn không nên được API public serialize.
 
-> **Phản biện:** `/orders/:id` dùng `variant_snapshot.product_slug` để đưa khách tới đúng form nhưng không tự gửi review,
-> vì snapshot không mang `product_id`; `ProductPage` resolve product hiện tại rồi gửi `productId + order_id` để BE vẫn kiểm
-> verified purchase. Nếu slug không còn tồn tại trong snapshot, UI không tạo link hỏng. Response review vẫn cần kèm
+> **Phản biện:** `/orders/:id` trả thêm `product_id` và `review` cho từng item từ variant/review runtime; review được tìm
+> theo user + product trên toàn bộ lịch sử, không chỉ đơn đang xem. Vì vậy đơn mua lại không tạo CTA trùng. ProductPage
+> resolve product hiện tại rồi hỏi eligibility trước khi mount form; nếu slug không còn trong snapshot, UI không tạo link hỏng. Response review vẫn cần kèm
 > `product` để danh sách moderation gắn review với đúng sản phẩm.
 
 **Code evidence:** `features/reviews/{api,hooks}.js`, `features/catalog/hooks.js`, Product review components,

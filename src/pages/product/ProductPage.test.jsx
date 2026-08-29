@@ -104,6 +104,7 @@ describe('ProductPage', () => {
     wishlistApi.removeItem.mockResolvedValue({})
     wishlistApi.getWishlist.mockResolvedValue({ data: { items: [] } })
     ordersApi.getOrders.mockResolvedValue({ data: [] })
+    reviewsApi.getReviewEligibility.mockResolvedValue({ data: { can_review: false, reason: 'not_delivered', order_id: null, review: null } })
     personalizationHooks.useRecordProductView.mockReturnValue({ mutate: vi.fn() })
     personalizationHooks.useRecentlyViewed.mockReturnValue({ data: { data: [] } })
     personalizationHooks.useJourneyContext.mockReturnValue({ data: { data: { continuation: null } } })
@@ -517,15 +518,7 @@ describe('ProductPage', () => {
   })
 
   it('shows a review form for a verified purchase and submits a pending review', async () => {
-    ordersApi.getOrders.mockResolvedValue({
-      data: [
-        {
-          id: 55,
-          status: 'delivered',
-          items: [{ id: 1, variant_id: 1, variant_snapshot: {}, quantity: 1, unit_price: 5000000, subtotal: 5000000 }],
-        },
-      ],
-    })
+    reviewsApi.getReviewEligibility.mockResolvedValue({ data: { can_review: true, reason: null, order_id: 55, review: null } })
     reviewsApi.createReview.mockResolvedValue({ data: { id: 10, status: 'pending' } })
 
     renderPage()
@@ -567,16 +560,19 @@ describe('ProductPage', () => {
 
   // A verified purchase unlocks the review form for these tests.
   function withVerifiedOrder() {
-    ordersApi.getOrders.mockResolvedValue({
-      data: [
-        {
-          id: 55,
-          status: 'delivered',
-          items: [{ id: 1, variant_id: 1, variant_snapshot: {}, quantity: 1, unit_price: 5000000, subtotal: 5000000 }],
-        },
-      ],
-    })
+    reviewsApi.getReviewEligibility.mockResolvedValue({ data: { can_review: true, reason: null, order_id: 55, review: null } })
   }
+
+  it('shows an already-reviewed state instead of a review form', async () => {
+    reviewsApi.getReviewEligibility.mockResolvedValue({
+      data: { can_review: false, reason: 'already_reviewed', order_id: null, review: { id: 9, status: 'approved' } },
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Bạn đã đánh giá sản phẩm này.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Gửi đánh giá' })).not.toBeInTheDocument()
+  })
 
   it('maps a 422 review error to the body field without losing the entered text', async () => {
     withVerifiedOrder()

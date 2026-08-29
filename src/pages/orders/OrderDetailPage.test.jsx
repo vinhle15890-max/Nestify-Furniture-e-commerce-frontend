@@ -155,6 +155,23 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Yêu cầu đổi trả' })).not.toBeInTheDocument()
   })
 
+  it('replaces the review link when the product was already reviewed from another order', async () => {
+    ordersApi.getOrder.mockResolvedValue({ data: {
+      ...baseOrder,
+      status: 'delivered',
+      items: [{
+        ...baseOrder.items[0],
+        review: { id: 41, status: 'approved' },
+        variant_snapshot: { ...baseOrder.items[0].variant_snapshot, product_name: 'Sofa Mây', product_slug: 'sofa-may' },
+      }],
+    } })
+    renderPage()
+
+    expect((await screen.findAllByText('Sofa Mây')).length).toBeGreaterThan(0)
+    expect(screen.getByText('Đã đánh giá')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Viết đánh giá' })).not.toBeInTheDocument()
+  })
+
   it('surfaces shipment as the next action without merging payment status', async () => {
     ordersApi.getOrder.mockResolvedValue({ data: {
       ...baseOrder,
