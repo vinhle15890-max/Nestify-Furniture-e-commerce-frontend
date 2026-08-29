@@ -16,7 +16,7 @@ function labels(groups) {
 
 describe('visibleGroups', () => {
   it('order_staff chỉ thấy Tổng quan + nghiệp vụ đơn hàng', () => {
-    expect(labels(visibleGroups(orderStaff))).toEqual(['Tổng quan', 'Đơn hàng', 'Đổi trả'])
+    expect(labels(visibleGroups(orderStaff))).toEqual(['Tổng quan', 'Đơn hàng'])
   })
   it('moderator chỉ thấy Tổng quan + Đánh giá', () => {
     expect(labels(visibleGroups(moderator))).toEqual(['Tổng quan', 'Đánh giá'])

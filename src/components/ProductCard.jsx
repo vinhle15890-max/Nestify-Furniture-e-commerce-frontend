@@ -31,8 +31,6 @@ export function ProductCard({ product }) {
       if (Number(variant.price) === Number(selected.price) && variant.id < selected.id) return variant
       return selected
     }, null)
-  const flashVariant = product.variants?.find((variant) => variant.is_flash_sale)
-
   async function handleWishlist() {
     if (!token) {
       navigate('/login', { state: { from: location } })
@@ -64,7 +62,6 @@ export function ProductCard({ product }) {
         className="group flex flex-col rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
       >
         <div className="flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-card bg-unbuilt/40">
-          {flashVariant && <span className="absolute left-3 top-3 z-10 rounded-control bg-ink px-2.5 py-1 text-xs font-medium text-canvas">Flash Sale · còn {flashVariant.flash_sale_remaining}</span>}
           {product.thumbnail ? (
             <img
               src={product.thumbnail}

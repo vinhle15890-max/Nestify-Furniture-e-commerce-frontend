@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from './AdminLayout'
+import { PageHeader } from '../../components/admin/PageHeader'
 import { useAuthStore } from '../../store/authStore'
 import { usePreviewStore } from '../../store/previewStore'
 
@@ -59,6 +60,32 @@ describe('AdminLayout sidebar gating', () => {
   it('không preview → không có banner "Xem thử"', () => {
     renderLayout({ permissions: ['view_dashboard', 'manage_orders'] })
     expect(screen.queryByText(/Đang xem thử giao diện/)).toBeNull()
+  })
+
+  it('không cung cấp lối về cửa hàng trong admin shell', async () => {
+    renderLayout({ name: 'Bao', email: 'bao@example.com', permissions: ['view_dashboard'] })
+
+    expect(screen.queryByRole('link', { name: 'Về cửa hàng' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: /Bao/ }))
+    expect(screen.queryByRole('menuitem', { name: 'Về cửa hàng' })).toBeNull()
+  })
+
+  it('không lặp tiêu đề Tổng quan giữa top bar và nội dung dashboard', () => {
+    useAuthStore.setState({
+      adminToken: 't',
+      adminUser: { permissions: ['view_dashboard'] },
+    })
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<PageHeader title="Tổng quan" />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getAllByRole('heading', { name: 'Tổng quan' })).toHaveLength(1)
   })
 
   it('đang preview → banner hiện tên vai trò + sidebar lọc theo quyền của role preview, không phải user thật', () => {

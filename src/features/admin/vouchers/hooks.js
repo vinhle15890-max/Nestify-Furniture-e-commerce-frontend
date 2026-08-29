@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOffsetQuery } from '../../../lib/pagination'
 import * as vouchersApi from './api'
 
@@ -33,6 +33,20 @@ export function useDeleteVoucher() {
 
   return useMutation({
     mutationFn: (id) => vouchersApi.deleteVoucher(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'vouchers'] }),
+  })
+}
+
+export const useAssignableVouchers = (enabled = true) => useQuery({
+  queryKey: ['admin', 'vouchers', 'assignable'],
+  queryFn: vouchersApi.getAssignableVouchers,
+  enabled,
+})
+
+export function useGrantVoucher() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ voucherId, userId }) => vouchersApi.grantVoucher(voucherId, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'vouchers'] }),
   })
 }

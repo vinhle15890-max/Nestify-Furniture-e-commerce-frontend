@@ -534,7 +534,7 @@ export function AdminOrderDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">Tạo lúc {formatDate(order.created_at)}</p>
-          <h2 className="mt-1 [overflow-wrap:anywhere] font-display text-2xl text-foreground">Đơn hàng {orderLabel}</h2>
+          <h1 className="mt-1 [overflow-wrap:anywhere] font-display text-2xl text-foreground">Đơn hàng {orderLabel}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>

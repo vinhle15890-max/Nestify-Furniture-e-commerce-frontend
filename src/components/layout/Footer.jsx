@@ -24,7 +24,7 @@ const groups = [
     title: 'Hỗ trợ',
     links: [
       { label: 'Giao hàng', to: '/shipping' },
-      { label: 'Đổi trả và hủy đơn', to: '/returns' },
+      { label: 'Hủy đơn và hỗ trợ sau bán', to: '/returns' },
       { label: 'Quyền riêng tư', to: '/privacy' },
       { label: 'Liên hệ', to: '/contact' },
     ],

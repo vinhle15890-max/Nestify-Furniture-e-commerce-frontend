@@ -183,7 +183,7 @@ describe('CartPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Tăng số lượng' }))
 
     expect(await screen.findByText('Kho hiện có 1 sản phẩm. Số lượng trong giỏ chưa bị thay đổi.')).toBeInTheDocument()
-    expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(2)
+    expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue('2')
   })
 
   it('warns and blocks checkout when a saved line exceeds current stock', async () => {
@@ -322,7 +322,7 @@ describe('CartPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Tăng số lượng' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Chưa cập nhật được số lượng.')
-    expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(2)
+    expect(screen.getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue('2')
     expect(screen.getAllByText('10.000.000 ₫')).toHaveLength(2)
   })
 
@@ -430,7 +430,7 @@ describe('CartPage', () => {
     expect(within(item).getByText('Sofa Mây')).toBeInTheDocument()
     expect(within(item).getByText(/Nâu · SOFA-NAU/)).toBeInTheDocument()
     expect(within(item).getByText('Đơn giá')).toBeInTheDocument()
-    expect(within(item).getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue(2)
+    expect(within(item).getByRole('spinbutton', { name: 'Số lượng' })).toHaveValue('2')
     expect(within(item).getByText('Thành tiền dòng')).toBeInTheDocument()
     expect(within(item).getByRole('button', { name: 'Xóa Sofa Mây' })).toBeInTheDocument()
     expect(within(item).getByRole('button', { name: 'Xóa Sofa Mây' }).parentElement).toContainElement(within(item).getByText('Sofa Mây'))

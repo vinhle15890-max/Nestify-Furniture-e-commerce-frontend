@@ -183,9 +183,10 @@ describe('AdminOrdersPage', () => {
     }))
   })
 
-  it('redirects legacy return links to the dedicated return flow', async () => {
+  it('ignores legacy return filters and keeps order management in one place', async () => {
     renderPage('/admin/orders?return_status=requested')
-    expect(await screen.findByText('Trang đổi trả riêng')).toBeInTheDocument()
+    expect(await screen.findByText('Bao Le')).toBeInTheDocument()
+    expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({ returnStatus: '' }))
   })
 
   it('keeps page and filters in the URL and explains active filters', async () => {

@@ -146,95 +146,13 @@ describe('OrderDetailPage', () => {
     expect(screen.queryByText(/Những món này đang trên đường/)).not.toBeInTheDocument()
   })
 
-  it('submits a return request for a delivered order', async () => {
+  it('routes delivered-order support to the official phone instead of a self-service return form', async () => {
     ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'delivered', return_request: null } })
-    ordersApi.createReturnRequest.mockResolvedValue({ data: { id: 4, status: 'requested' } })
     renderPage()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Yêu cầu đổi trả' }))
-    expect(screen.getByRole('button', { name: 'Gửi yêu cầu' })).toBeDisabled()
-    await userEvent.selectOptions(screen.getByLabelText('Nhóm lý do'), 'damaged')
-    await userEvent.type(screen.getByLabelText('Mô tả tình trạng sản phẩm'), 'Sản phẩm bị trầy xước khi nhận hàng.')
-    await userEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu' }))
-
-    expect(ordersApi.createReturnRequest).toHaveBeenCalledWith(99, { reason_category: 'damaged', reason: 'Sản phẩm bị trầy xước khi nhận hàng.' })
-  })
-
-  it('shows the return deadline while a delivered order is still eligible', async () => {
-    ordersApi.getOrder.mockResolvedValue({
-      data: {
-        ...baseOrder,
-        status: 'delivered',
-        return_request: null,
-        return_policy: {
-          window_days: 7,
-          eligible_until: '2026-01-22T10:30:00Z',
-          can_request: true,
-          ineligible_reason: null,
-        },
-      },
-    })
-    renderPage()
-
-    expect(await screen.findByText(/Hạn gửi yêu cầu:/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Yêu cầu đổi trả' })).toBeInTheDocument()
-  })
-
-  it('does not offer a return request after the policy window expires', async () => {
-    ordersApi.getOrder.mockResolvedValue({
-      data: {
-        ...baseOrder,
-        status: 'delivered',
-        return_request: null,
-        return_policy: {
-          window_days: 7,
-          eligible_until: '2026-01-22T10:30:00Z',
-          can_request: false,
-          ineligible_reason: 'window_expired',
-        },
-      },
-    })
-    renderPage()
-
-    expect(await screen.findByText(/Thời hạn yêu cầu đổi trả đã kết thúc/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Hỗ trợ sau khi nhận hàng' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Gọi 0945691309' })).toHaveAttribute('href', 'tel:0945691309')
     expect(screen.queryByRole('button', { name: 'Yêu cầu đổi trả' })).not.toBeInTheDocument()
-  })
-
-  it('records the return shipment after approval', async () => {
-    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'delivered', return_request: { id: 4, status: 'approved', reason: 'Bị xước', resolution_note: 'Đồng ý nhận lại.' } } })
-    ordersApi.shipReturnRequest.mockResolvedValue({ data: { id: 4, status: 'in_transit' } })
-    renderPage()
-
-    expect(await screen.findByRole('link', { name: 'Gửi thông tin trả hàng' })).toHaveAttribute('href', '#return-request')
-    await userEvent.type(await screen.findByLabelText('Đơn vị vận chuyển'), 'GHTK')
-    await userEvent.type(screen.getByLabelText('Mã vận đơn gửi trả'), 'RTN-001')
-    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã gửi hàng' }))
-
-    expect(ordersApi.shipReturnRequest).toHaveBeenCalledWith(4, { return_carrier: 'GHTK', return_tracking_number: 'RTN-001' })
-  })
-
-  it('saves a return carrier before a tracking number is available', async () => {
-    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'delivered', return_request: { id: 4, status: 'approved', reason: 'Bị xước', resolution_note: 'Đồng ý nhận lại.' } } })
-    ordersApi.shipReturnRequest.mockResolvedValue({ data: { id: 4, status: 'approved', return_carrier: 'GHTK', return_tracking_number: null } })
-    renderPage()
-
-    await userEvent.type(await screen.findByLabelText('Đơn vị vận chuyển'), 'GHTK')
-    expect(screen.getByRole('button', { name: 'Xác nhận đã gửi hàng' })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu đơn vị vận chuyển' }))
-
-    expect(ordersApi.shipReturnRequest).toHaveBeenCalledWith(4, { return_carrier: 'GHTK' })
-  })
-
-  it('uses a previously saved carrier when the customer later adds tracking', async () => {
-    ordersApi.getOrder.mockResolvedValue({ data: { ...baseOrder, status: 'delivered', return_request: { id: 4, status: 'approved', reason: 'Bị xước', resolution_note: 'Đồng ý nhận lại.', return_carrier: 'GHTK', return_tracking_number: null } } })
-    ordersApi.shipReturnRequest.mockResolvedValue({ data: { id: 4, status: 'in_transit', return_carrier: 'GHTK', return_tracking_number: 'RTN-003' } })
-    renderPage()
-
-    expect(await screen.findByText('Đã lưu: GHTK')).toBeInTheDocument()
-    await userEvent.type(screen.getByLabelText('Mã vận đơn gửi trả'), 'RTN-003')
-    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận đã gửi hàng' }))
-
-    expect(ordersApi.shipReturnRequest).toHaveBeenCalledWith(4, { return_carrier: 'GHTK', return_tracking_number: 'RTN-003' })
   })
 
   it('surfaces shipment as the next action without merging payment status', async () => {

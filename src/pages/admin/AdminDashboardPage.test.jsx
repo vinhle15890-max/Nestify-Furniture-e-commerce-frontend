@@ -165,15 +165,12 @@ describe('AdminDashboardPage', () => {
     expect(screen.queryByRole('columnheader', { name: 'Xuất' })).not.toBeInTheDocument()
   })
 
-  it('shows current Flash Sale capacity separately from delivered period revenue', async () => {
+  it('does not expose Flash Sale reporting in the dashboard', async () => {
     renderPage()
     await openBusinessView()
-    await openDisclosure('Vận hành Flash Sale')
 
-    expect(await screen.findByText('Vận hành Flash Sale')).toBeInTheDocument()
-    expect(screen.getByText('Đã phân bổ / quota')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Sofa Flash' })).toHaveAttribute('href', '/admin/products/8')
-    expect(screen.getByText('Đang chạy')).toBeInTheDocument()
+    expect(screen.queryByText(/Flash Sale/)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('flash-sale-disclosure')).not.toBeInTheDocument()
   })
 
   it('keeps secondary business analysis collapsed by default and keyboard-expandable', async () => {
@@ -182,10 +179,8 @@ describe('AdminDashboardPage', () => {
 
     const product = screen.getByTestId('product-disclosure')
     const campaign = screen.getByTestId('campaign-disclosure')
-    const flashSale = screen.getByTestId('flash-sale-disclosure')
     expect(product).not.toHaveAttribute('open')
     expect(campaign).not.toHaveAttribute('open')
-    expect(flashSale).not.toHaveAttribute('open')
     expect(screen.getByText('Kết quả trong kỳ')).toBeVisible()
     expect(screen.getByText('Đơn hàng trong kỳ')).toBeVisible()
     expect(screen.getByText('Đối soát tiền bán hàng')).toBeVisible()
@@ -219,9 +214,7 @@ describe('AdminDashboardPage', () => {
 
     expect(await screen.findByRole('link', { name: /Đơn cần chuẩn bị hàng/ })).toHaveAttribute('href', '/admin/orders?status=processing')
     expect(screen.getByRole('link', { name: /COD đến hạn thu/ })).toHaveAttribute('href', '/admin/orders?payment_method=cod&payment_status=pending&status=shipped')
-    expect(screen.getByRole('link', { name: /Yêu cầu đổi trả cần xem/ })).toHaveAttribute('href', '/admin/returns?status=requested')
-    expect(screen.getByRole('link', { name: /Hàng trả đã nhận, chờ ghi hoàn/ })).toHaveAttribute('href', '/admin/returns?status=received')
-    expect(screen.getByRole('link', { name: /Đổi trả chờ chuyển tiền/ })).toHaveAttribute('href', '/admin/returns?status=refund_pending')
+    expect(screen.queryByRole('link', { name: /đổi trả/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Đã giao.*Mở danh sách/ })).toHaveAttribute('href', '/admin/orders?status=delivered')
   })
 

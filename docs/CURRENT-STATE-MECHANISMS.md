@@ -18,9 +18,9 @@ security boundary. Tương tự, FE ẩn purchase với staff nhưng backend m�
   tồn tại khi `import.meta.env.DEV`; shared-room public không cần auth. Account/wishlist/checkout/order/planner
   editor cần token và client thấy `email_verified_at`.
 - Storefront có bốn route hỗ trợ công khai lazy-loaded: `/shipping`, `/returns`, `/privacy`, `/contact`.
-  Footer điều hướng nội bộ đến các route này. Đây là nội dung tĩnh, không gọi API: giao hàng và đổi trả phải
-  nói theo dữ liệu cấp sản phẩm/current order state; trang liên hệ mở `mailto:support@nestify.vn`, không giả
-  lập form gửi khi chưa có endpoint tiếp nhận.
+  Footer điều hướng nội bộ đến các route này. `/returns` hiện là trang hủy đơn và hỗ trợ sau bán: website không
+  nhận yêu cầu đổi trả tự phục vụ; khách gọi `0945691309` và cung cấp mã đơn để nhân viên trao đổi trước khi gửi
+  hàng. Trang liên hệ vẫn mở `mailto:support@nestify.vn` cho nội dung cần đính kèm, không dựng form gửi giả.
 - `apiClient` chọn token mới nhất theo intent trước từng request: storefront dùng Customer token, `/admin/*`
   và request auth có `authScope=admin` dùng Staff/Admin token. 401 chỉ xóa đúng phiên tương ứng; response vẫn
   được unwrap và lỗi được chuẩn hóa. Login/register/logout clear cache tại session boundary.
@@ -387,7 +387,7 @@ tab restore, storage bị chặn thì degrade memory. POST order gửi `Idempote
 declaration để retry; chống duplicate thật nằm ở backend.
 
 Trước submit, client khóa declaration gồm cart basis (item/variant/qty/price/subtotal/total), địa chỉ, payment
-và voucher. Cart tải các voucher áp dụng được cho subtotal/user hiện tại và là nơi duy nhất cho khách chọn mã; mã bắt buộc claim chỉ xuất hiện sau khi lưu vào ví và mã không `stack_with_sale` bị loại khi cart có sale. Checkout nhận mã qua query string rồi xác minh lại, không lặp editor. CTA Cart và Checkout nằm trong action bar cố định theo viewport, có khoảng đệm đáy để không che nội dung. Địa chỉ chỉ thành snapshot sau server create; stock chưa reserve. Recovery record giữ order ID để
+và voucher. Cart tải các voucher áp dụng được cho subtotal/user hiện tại và là nơi duy nhất cho khách chọn mã; voucher công khai áp dụng cho mọi khách đủ điều kiện, voucher riêng chỉ xuất hiện sau khi admin cấp vào ví, và mã không `stack_with_sale` bị loại khi cart có sale. Checkout nhận mã qua query string rồi xác minh lại, không lặp editor. CTA Cart và Checkout nằm trong action bar cố định theo viewport, có khoảng đệm đáy để không che nội dung. Địa chỉ chỉ thành snapshot sau server create; stock chưa reserve. Recovery record giữ order ID để
 reload fetch chính order cũ thay vì POST lại. COD dừng ở order created. PayOS tạo order pending trước, rồi mở
 session; FE chỉ gửi `gateway`, còn backend tự tạo PayOS return/cancel URL từ cấu hình + order ID. Session lỗi/rate-limit
 giữ order và retry chỉ gọi payment-session, không tạo order thứ hai.
@@ -416,7 +416,7 @@ Category/product/voucher/role/user/review/order/audit/media CRUD đều qua API 
 permission là UX-only; protected-role, self-lock, last-admin, delete-in-use và transition invariant phải do
 server reject. Dashboard chỉ render aggregate server; audit action chưa map vẫn cần fallback dữ liệu thô.
 
-Promotion public nằm ở `/vouchers`; customer claim idempotent qua `features/promotions` và xem `/account/vouchers`. Guest được dẫn đăng nhập, staff không được mua/claim. UI nói rõ khả năng kết hợp sale-voucher, không countdown/fake urgency. Admin variant form cấu hình `sale_price/sale_starts_at/sale_ends_at`; admin voucher form cấu hình public/claim-required/stack-with-sale, còn mọi hiệu lực vẫn do API xác nhận.
+Promotion public nằm ở `/vouchers` và không cần claim. Admin có quyền voucher cấp mã riêng idempotent từ hồ sơ khách; quan hệ được lưu trong `user_vouchers`, email chỉ thông báo, và khách xem tại `/account/vouchers`. Staff không được nhận voucher mua hàng. Admin voucher form cấu hình public/private và stack-with-sale; mọi hiệu lực vẫn do API xác nhận.
 
 Flash Sale là chế độ quota của lịch sale, không phải countdown phía client. Admin nhập tổng quota và giới hạn mỗi đơn; catalog/detail chỉ hiện `is_flash_sale/remaining/limit` do API trả. FE giới hạn input để hỗ trợ người dùng nhưng checkout backend vẫn quyết định allocation và có thể yêu cầu refresh khi quota vừa thay đổi.
 
@@ -553,9 +553,8 @@ inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn l�
 
 - Checkout/chi tiết đơn đọc fulfillment và payment độc lập, có fallback legacy trong migration. Danh sách đơn dùng shipment summary sẵn có trên list resource để hiện carrier/tracking và link “Xem vận chuyển”, không fan-out request detail.
 - Admin chuyển sang shipped qua modal bắt buộc đơn vị vận chuyển; shipped COD có action riêng giao và thu đủ tiền.
-- Dashboard có preset 7 ngày/tháng hiện tại/90 ngày và khoảng tùy chọn; tách giá trị đơn, tiền đã thu, hoàn đã chuyển và **tiền thực thu** (tiền đã thu trừ hoàn đã chuyển), cùng COD chờ thu theo timezone Việt Nam. Nó đồng thời hiển thị on-hand/reserved/available, nhập–xuất theo ledger, bảng đối chiếu day/week/month và top seller chỉ từ đơn delivered. Workbench Flash Sale phân biệt quota/allocated/released/remaining hiện tại với số lượng và doanh thu đã giao trong kỳ, từng dòng link về sản phẩm quản trị. Operations queue truyền bộ lọc qua URL: đơn/thanh toán vào `/admin/orders`, đổi trả vào `/admin/returns`; API vẫn là nguồn số liệu duy nhất.
-- Chi tiết đơn delivered cho phép owner gửi yêu cầu đổi trả toàn đơn trong 7 ngày và hiển thị phản hồi. Admin xử lý `requested -> approved|rejected` ngay trong order workbench; UI nói rõ duyệt chưa tự hoàn tiền/cộng tồn để không nhập nhằng intake với nhận hàng thực tế.
-- Khi đã duyệt, khách có thể lưu đơn vị vận chuyển trước; yêu cầu vẫn ở `approved` cho tới khi có mã vận đơn và chỉ lúc đó mới chuyển `in_transit`. Admin xem vận đơn, ghi kết quả kiểm tra và chủ động chọn có restock hay không. Danh sách đơn có filter đổi trả, dashboard link thẳng tới `requested`. Màn hình không ngụ ý đã gửi hàng hoặc hoàn tiền chỉ vì mới lưu carrier hay kho đã nhận lại hàng.
+- Dashboard có preset 7 ngày/tháng hiện tại/90 ngày và khoảng tùy chọn; tách giá trị đơn, tiền đã thu, hoàn đã chuyển và **tiền thực thu** (tiền đã thu trừ hoàn đã chuyển), cùng COD chờ thu theo timezone Việt Nam. Operations queue chỉ quảng bá công việc thuộc phạm vi hiện hành; hoàn tiền đi vào `/admin/orders`, không có hàng đợi đổi trả riêng.
+- Chi tiết đơn delivered không còn form đổi trả tự phục vụ. Nó hiển thị số `0945691309` và yêu cầu khách cung cấp mã đơn để nhân viên trao đổi trực tiếp. API/schema return cũ được giữ tương thích nhưng không xuất hiện trong menu, dashboard hoặc hành trình storefront.
 - Sau receipt, workbench chỉ hiện action tiền cho quyền `refund`: ghi hoàn chuyển sang `refund_pending`, rồi nhập mã tham chiếu sau payout thật để `completed`. Dashboard và filter tách `received` khỏi `refund_pending`; khách thấy số tiền/mã tham chiếu khi có.
 - Form biến thể tách cập nhật thông tin khỏi điều chỉnh kho; adjustment bắt buộc delta/lý do và hiển thị on-hand/reserved/available.
 - Manual collections dùng `features/admin/collections` cho CRUD và `features/catalog` cho public reads; `/admin/collections` quản lý membership có thứ tự, `/collections/:collectionSlug` là landing page, Home chỉ render item `show_on_home`.
@@ -571,7 +570,7 @@ order nhưng PayOS session lỗi có POST order lần hai không; (6) emoji làm
 
 - Admin order detail thực thi chuỗi `delivery_failed -> returned_to_store -> cancelled`; bước xác nhận hàng về có modal nêu rõ đây là thời điểm hoàn kho vật lý.
 - Danh sách `/admin/orders` hiển thị hai hàng nút lọc độc lập cho trạng thái đơn và trạng thái thanh toán, 12 dòng/trang. Nhóm giao thất bại/hàng đã về/đã hủy được trình bày chung dưới “Đã hủy / giao thất bại”, nhưng không làm mất các trạng thái vật lý dùng để bảo vệ tồn kho. Lý do giao thất bại là bắt buộc và hiện ngay trong danh sách.
-- `/admin/returns` là hàng đợi đổi trả riêng, dùng cùng quyền `manage_orders`; các URL dashboard cũ có `return_status` được chuyển sang luồng này.
+- `/admin/returns` chỉ còn redirect tương thích về `/admin/orders`. Hoàn tiền được tạo, theo dõi và xác nhận ngay trong chi tiết đơn; không có trang hoàn tiền hoặc đổi trả độc lập trong menu.
 - COD `pending` có hành động xác nhận thu tiền khi đơn đang giao; dữ liệu legacy `delivered + COD pending` cũng có hành động đối chiếu/ghi nhận tiền mà không mở lại fulfillment.
 - Tồn theo biến thể tiếp tục bảo vệ checkout và vòng đời đơn; công cụ ledger `/admin/inventory` chỉ giữ ở trạng thái nội bộ, không hiện trong menu/dashboard và không được mô tả như một phân hệ kho hoàn chỉnh.
 - Bộ lọc payment tách `PayOS chờ thanh toán` (chỉ order còn khả năng thanh toán) khỏi `Đơn cũ cần đối soát` (cancelled + legacy pending). Danh sách không gọi order đã hủy là đang chờ khách trả tiền. Sau khi backend mới được deploy, `delivered + COD pending` dùng endpoint thu COD tương thích legacy và không gửi transition `delivered -> delivered`.
@@ -581,7 +580,7 @@ order nhưng PayOS session lỗi có POST order lần hai không; (6) emoji làm
 
 Sales Admin now renders order, payment, return, refunds, and payment exceptions as separate facts. Refund creation uses a stable per-operation idempotency key; each logical refund displays its own amount, status, reason, request actor/time, transfer reference, and completion actor/time. “Transferred” is shown only for a succeeded refund with recorded evidence. Dashboard values distinguish order value, collected cash, refund pending transfer, refund transferred, and net collected cash; AOV uses one delivered-order commercial cohort.
 
-Voucher discovery is an in-product journey: desktop navigation exposes `Ưu đãi`, mobile navigation exposes `Voucher đang mở`, both lead to public `/vouchers`, and claimed vouchers remain available at `/account/vouchers`. The admin voucher form names that destination explicitly. Its long form is viewport-bounded with an internal scroll region so create/edit controls remain reachable on short screens.
+Voucher discovery is an in-product journey: desktop navigation exposes `Ưu đãi`, mobile navigation exposes `Voucher đang mở`, both lead to public `/vouchers`; privately granted vouchers remain available at `/account/vouchers`. The admin voucher form distinguishes public campaigns from private grants. Its long form is viewport-bounded with an internal scroll region so create/edit controls remain reachable on short screens.
 
 The domain-root entry is role-intent aware. Reopening `/` with only a persisted staff/admin session resumes `/admin`; when Customer and Admin sessions coexist, `/` remains the storefront and `/admin` remains the back office. Staff can deliberately inspect the storefront through the Admin user menu, whose `Về cửa hàng` action targets `/c/all`.
 

@@ -88,7 +88,7 @@ describe('AdminVouchersPage', () => {
     const dialog = screen.getByRole('dialog', { name: 'Thêm voucher mới' })
     expect(dialog).toHaveClass('max-h-[calc(100dvh-2rem)]', 'overflow-hidden')
     expect(dialog.querySelector('.overflow-y-auto')).not.toBeNull()
-    expect(screen.getByText(/đường dẫn \/vouchers/)).toBeInTheDocument()
+    expect(screen.getByText(/Nếu tắt, voucher chỉ dùng được sau khi admin tặng/)).toBeInTheDocument()
 
     expect(screen.queryByLabelText(/Giảm tối đa/)).not.toBeInTheDocument()
 

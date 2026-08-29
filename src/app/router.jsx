@@ -50,7 +50,6 @@ const AdminSeoReviewPage = named(() => import('../pages/admin/products/AdminSeoR
 const AdminInventoryPage = named(() => import('../pages/admin/products/AdminInventoryPage'), 'AdminInventoryPage')
 const AdminMediaLibraryPage = named(() => import('../pages/admin/media/AdminMediaLibraryPage'), 'AdminMediaLibraryPage')
 const AdminOrdersPage = named(() => import('../pages/admin/orders/AdminOrdersPage'), 'AdminOrdersPage')
-const AdminReturnsPage = named(() => import('../pages/admin/orders/AdminReturnsPage'), 'AdminReturnsPage')
 const AdminOrderDetailPage = named(() => import('../pages/admin/orders/AdminOrderDetailPage'), 'AdminOrderDetailPage')
 const AdminPaymentExceptionsPage = named(() => import('../pages/admin/orders/AdminPaymentExceptionsPage'), 'AdminPaymentExceptionsPage')
 const AdminReviewsPage = named(() => import('../pages/admin/reviews/AdminReviewsPage'), 'AdminReviewsPage')
@@ -174,7 +173,7 @@ const appRoutes = [
             element: <RequirePermission slug="manage_orders" />,
             children: [
               { path: 'orders', element: lazyPage(<AdminOrdersPage />) },
-              { path: 'returns', element: lazyPage(<AdminReturnsPage />) },
+              { path: 'returns', element: <Navigate to="/admin/orders" replace /> },
               { path: 'orders/:id', element: lazyPage(<AdminOrderDetailPage />) },
             ],
           },

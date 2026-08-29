@@ -15,3 +15,6 @@ export function updateVoucher(id, payload) {
 export function deleteVoucher(id) {
   return apiClient.delete(`/admin/vouchers/${id}`)
 }
+
+export const getAssignableVouchers = () => apiClient.get('/admin/vouchers/assignable')
+export const grantVoucher = (voucherId, userId) => apiClient.post(`/admin/vouchers/${voucherId}/grant`, { user_id: userId })

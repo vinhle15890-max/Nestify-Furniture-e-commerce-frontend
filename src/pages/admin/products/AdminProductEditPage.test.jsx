@@ -274,6 +274,8 @@ describe('AdminProductEditPage', () => {
 
     await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
     await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
+    expect(screen.queryByText(/Flash Sale/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Số lượng dành cho Flash Sale')).not.toBeInTheDocument()
     await userEvent.type(screen.getByLabelText('SKU'), 'SOFA-XAM')
     await userEvent.type(screen.getByLabelText('Tên biến thể'), 'Xám')
     await userEvent.type(screen.getByLabelText('Giá'), '5500000')

@@ -378,7 +378,7 @@ function ProductEditor({ initialProduct }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="truncate font-display text-2xl text-foreground">{product.name}</h2>
+            <h1 className="truncate font-display text-2xl text-foreground">{product.name}</h1>
             <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
           </div>
           <p className="mt-1 truncate text-sm text-muted-foreground">/{product.slug}</p>

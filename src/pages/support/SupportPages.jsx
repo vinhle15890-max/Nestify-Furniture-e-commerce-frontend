@@ -5,7 +5,7 @@ import { Link, NavLink } from 'react-router-dom'
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4 */
 const supportNavigation = [
   { label: 'Giao hàng', to: '/shipping' },
-  { label: 'Đổi trả và hủy đơn', to: '/returns' },
+  { label: 'Hủy đơn và hỗ trợ sau bán', to: '/returns' },
   { label: 'Quyền riêng tư', to: '/privacy' },
   { label: 'Liên hệ', to: '/contact' },
 ]
@@ -41,13 +41,13 @@ const pages = {
   },
   returns: {
     eyebrow: 'Hỗ trợ đơn hàng',
-    title: 'Đổi trả và hủy đơn',
+    title: 'Hủy đơn và hỗ trợ sau bán',
     intro:
-      'Hủy đơn và đổi trả là hai thời điểm khác nhau. Trang này tách rõ điều hệ thống đang hỗ trợ và phần cần được Nestify xác nhận theo từng sản phẩm.',
+      'Bạn có thể tự hủy đơn khi hệ thống còn cho phép. Sau khi nhận hàng, Nestify trao đổi trực tiếp để hiểu tình trạng thực tế trước khi thống nhất phương án hỗ trợ.',
     icon: RotateCcw,
-    calloutTitle: 'Có thể tự hủy khi nào?',
+    calloutTitle: 'Cần hỗ trợ sau khi nhận hàng?',
     callout:
-      'Bạn có thể yêu cầu hủy trước khi đơn chuyển sang trạng thái đang giao. Khi thao tác không còn khả dụng trên trang đơn hàng, hãy liên hệ Nestify để được kiểm tra.',
+      'Gọi 0945691309 và cung cấp mã đơn hàng. Nhân viên sẽ kiểm tra cùng bạn trước khi hướng dẫn gửi sản phẩm hoặc thực hiện bước tiếp theo.',
     sections: [
       {
         title: 'Hủy đơn chưa giao',
@@ -60,12 +60,12 @@ const pages = {
           'Với đơn đã thanh toán, yêu cầu hủy được ghi nhận để Nestify xử lý hoàn tiền. Việc chuyển tiền hoàn không diễn ra tự động trong PayOS, vì vậy trạng thái xử lý cần được đối chiếu bởi quản trị viên.',
       },
       {
-        title: 'Đổi trả sau khi nhận',
+        title: 'Trao đổi trực tiếp sau khi nhận',
         body:
-          'Điều kiện đổi trả có thể khác theo sản phẩm và chỉ có giá trị khi được nêu trong mục “Đổi trả và hủy đơn” trên trang sản phẩm. Nếu chưa có thông tin, hãy gửi mã đơn hàng để Nestify kiểm tra trước khi gửi hàng ngược lại.',
+          'Nestify không tiếp nhận yêu cầu đổi trả tự động trên website. Hãy gọi 0945691309, chuẩn bị mã đơn và mô tả tình trạng sản phẩm; nhân viên sẽ thống nhất phương án trước khi bạn gửi hàng ngược lại.',
       },
     ],
-    action: { label: 'Xem đơn hàng của tôi', to: '/orders' },
+    action: { label: 'Gọi 0945691309', href: 'tel:0945691309' },
   },
   privacy: {
     eyebrow: 'Thông tin của bạn',
@@ -108,7 +108,7 @@ const pages = {
     icon: Mail,
     calloutTitle: 'Kênh hỗ trợ hiện có',
     callout:
-      'Email support@nestify.vn là kênh liên hệ hỗ trợ của Nestify. Trang này không dựng một biểu mẫu gửi giả khi chưa có luồng tiếp nhận phía máy chủ.',
+      'Gọi 0945691309 để trao đổi trực tiếp về đơn hàng và hỗ trợ sau bán. Email support@nestify.vn dành cho nội dung cần gửi kèm hình ảnh hoặc tài liệu.',
     sections: [
       {
         title: 'Về đơn hàng',

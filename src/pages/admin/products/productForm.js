@@ -6,7 +6,7 @@ export const PRODUCT_ATTRIBUTE_FIELDS = [
   { key: 'style', label: 'Phong cách', placeholder: 'Ví dụ: Hiện đại tối giản', group: 'specification' },
   { key: 'origin', label: 'Xuất xứ', placeholder: 'Ví dụ: Việt Nam', group: 'specification' },
   { key: 'delivery', label: 'Giao hàng', placeholder: 'Ví dụ: 3–5 ngày tại TP.HCM', group: 'policy', multiline: true },
-  { key: 'returns', label: 'Đổi trả và hủy đơn', placeholder: 'Điều kiện, thời hạn và chi phí áp dụng', group: 'policy', multiline: true },
+  { key: 'returns', label: 'Hủy đơn và hỗ trợ sau bán', placeholder: 'Điều kiện và cách liên hệ hỗ trợ áp dụng', group: 'policy', multiline: true },
   { key: 'care', label: 'Chăm sóc', placeholder: 'Cách vệ sinh và bảo quản sản phẩm', group: 'policy', multiline: true },
   { key: 'assembly', label: 'Lắp ráp', placeholder: 'Sản phẩm giao nguyên kiện hay cần lắp ráp', group: 'policy', multiline: true },
   { key: 'warranty', label: 'Bảo hành', placeholder: 'Ví dụ: 24 tháng cho khung sản phẩm', group: 'policy', multiline: true },

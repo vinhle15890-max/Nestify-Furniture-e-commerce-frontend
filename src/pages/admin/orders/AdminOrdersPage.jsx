@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Receipt } from 'lucide-react'
 import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
@@ -58,7 +58,6 @@ export function AdminOrdersPage() {
   const confirmationQueue = searchParams.get('confirmation_queue') ?? ''
   const query = searchParams.get('q') ?? ''
   const [searchDraft, setSearchDraft] = useState(query)
-  const legacyReturnStatus = searchParams.get('return_status') ?? ''
   const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status, paymentMethod, paymentStatus, '', { q: query, statusGroup, paymentQueue, confirmationQueue })
   const orders = data?.data ?? []
   const meta = data?.meta?.pagination ?? data?.meta ?? { last_page: 1 }
@@ -66,8 +65,6 @@ export function AdminOrdersPage() {
   const selectedPaymentFilter = paymentFilterValue(paymentMethod, paymentStatus, paymentQueue)
 
   useEffect(() => setSearchDraft(query), [query])
-
-  if (legacyReturnStatus) return <Navigate to={`/admin/returns?status=${encodeURIComponent(legacyReturnStatus)}`} replace />
 
   const updateFilter = (mutate) => setSearchParams((current) => {
     const next = new URLSearchParams(current)

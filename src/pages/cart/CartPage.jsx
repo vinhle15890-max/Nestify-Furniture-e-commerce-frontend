@@ -18,7 +18,7 @@ const MAX_QUANTITY = 100
 const VOUCHER_RESULT_LIMIT = 6
 
 const stepperButton =
-  'flex h-10 w-10 items-center justify-center rounded-control border border-border-strong text-foreground transition-colors duration-200 hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border-strong'
+  'flex h-11 w-11 shrink-0 items-center justify-center text-foreground transition-colors duration-200 hover:bg-unbuilt/20 active:bg-unbuilt/30 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:text-muted-foreground disabled:opacity-40 disabled:hover:bg-transparent'
 
 function productName(item) {
   return item.variant?.product_name ?? item.variant?.name ?? 'Sản phẩm'
@@ -213,10 +213,10 @@ function CartLineItem({
           </div>
 
           <div>
-            <label htmlFor={`cart-quantity-${item.id}`} className="text-sm text-muted-foreground">
+            <label htmlFor={`cart-quantity-${item.id}`} className="block text-sm text-muted-foreground">
               Số lượng
             </label>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 inline-flex h-11 items-center overflow-hidden rounded-control border border-border-strong bg-canvas">
               <button
                 type="button"
                 aria-label="Giảm số lượng"
@@ -224,22 +224,34 @@ function CartLineItem({
                 disabled={itemPending || Number(quantity) <= 1}
                 className={stepperButton}
               >
-                <Minus size={16} />
+                <Minus aria-hidden="true" size={16} />
               </button>
               <input
                 id={`cart-quantity-${item.id}`}
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                role="spinbutton"
                 aria-label="Số lượng"
-                min={1}
-                max={Math.max(maxQuantity, 1)}
+                aria-valuemin={1}
+                aria-valuemax={Math.max(maxQuantity, 1)}
+                aria-valuenow={Number(quantity) || 1}
                 value={quantity}
                 disabled={itemPending}
                 onChange={(event) => onQuantityDraft(item.id, event.target.value)}
                 onBlur={() => onQuantityCommit(item, quantity)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') event.currentTarget.blur()
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault()
+                    onQuantityCommit(item, Math.max(1, (Number(quantity) || 1) - 1))
+                  }
+                  if (event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    onQuantityCommit(item, Math.min(maxQuantity, (Number(quantity) || 0) + 1))
+                  }
                 }}
-                className="h-10 w-14 rounded-control border border-border-strong bg-canvas text-center tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-11 w-14 border-x border-border-strong bg-canvas px-1 text-center tabular-nums text-foreground outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               />
               <button
                 type="button"
@@ -248,7 +260,7 @@ function CartLineItem({
                 disabled={itemPending || Number(quantity) >= maxQuantity}
                 className={stepperButton}
               >
-                <Plus size={16} />
+                <Plus aria-hidden="true" size={16} />
               </button>
             </div>
             {hasDraft && !itemPending && (

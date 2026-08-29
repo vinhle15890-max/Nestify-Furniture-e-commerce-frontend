@@ -19,7 +19,7 @@ export function PermissionDenied({ missing }) {
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-alt text-muted-foreground">
         <ShieldAlert size={22} aria-hidden="true" />
       </div>
-      <h2 className="font-display text-2xl text-foreground">Bạn không có quyền truy cập</h2>
+      <h1 className="font-display text-2xl text-foreground">Bạn không có quyền truy cập</h1>
       {labels.length > 0 && (
         <p className="mt-2 text-sm text-muted-foreground">
           Mục này cần quyền: <span className="font-medium text-foreground">{labels.join(', ')}</span>.

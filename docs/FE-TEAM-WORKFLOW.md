@@ -13,7 +13,7 @@
 ### Bản đồ nối với kịch bản và Backend
 
 Tài liệu này là lớp giải thích **phía giao diện**. Thứ tự nói/demo nằm trong
-[Kịch bản bảo vệ 6 thành viên](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md); transaction, concurrency và
+[Kịch bản bảo vệ 6 thành viên](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md); transaction, concurrency và
 DB invariant nằm trong [BE `14-workflows.md`](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md).
 
 | Mã | Hành trình | Kịch bản | Mục FE hiện tại | Mục BE đào sâu |
@@ -115,11 +115,12 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 - Đây là bốn trang nội dung tĩnh, không có `features/api.js`, hook hoặc request server.
 - Trang giao hàng không tự ước tính thời gian/phí; nó hướng người dùng đến dữ liệu `delivery` đã xác nhận ở từng
   sản phẩm và nói rõ checkout hiện chưa hiển thị phí giao hàng riêng.
-- Trang đổi trả phân biệt hủy trước khi `shipped` với đổi trả sau khi nhận. Điều kiện tự hủy và side effect hoàn
+- Trang hỗ trợ sau bán phân biệt hủy trước khi `shipped` với hỗ trợ sau khi nhận. Điều kiện tự hủy và side effect hoàn
   tiền vẫn do order state machine ở backend quyết định; frontend chỉ dẫn đến `/orders`.
 - Trang quyền riêng tư mô tả các nhóm dữ liệu tương ứng với chức năng hiện có, không tuyên bố retention hoặc
   biện pháp pháp lý chưa có bằng chứng runtime.
-- Trang liên hệ dùng `mailto:support@nestify.vn`; không render form vì chưa có endpoint tiếp nhận. Đây là chủ ý
+- Sau khi nhận hàng, website không tạo return request tự phục vụ; khách gọi `0945691309` và cung cấp mã đơn để
+  nhân viên trao đổi trực tiếp. Trang liên hệ dùng `mailto:support@nestify.vn` cho nội dung cần đính kèm; không render form vì chưa có endpoint tiếp nhận. Đây là chủ ý
   tránh một biểu mẫu có vẻ hoạt động nhưng không thể gửi.
 
 > **Phản biện:** Vì sao không lấy chính sách giao hàng chung từ ảnh/mô tả hoặc hard-code một con số? Vì dữ liệu
@@ -130,7 +131,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 
 ## 1. Tài khoản & xác thực
 
-> **Liên kết bảo vệ `J1`:** [Kịch bản Chương 2 và 4B](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-2--ai-tham-gia-và-hệ-thống-ghi-nhớ-gì) · [BE §1, §12, §13b](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#1-tài-khoản--xác-thực--chi-tiết) · Tài/BE2 ↔ FE3/FE4.
+> **Liên kết bảo vệ `J1`:** [Kịch bản Chương 2 và 4B](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §1, §12, §13b](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#1-tài-khoản--xác-thực--chi-tiết) · Tài/BE2 ↔ FE3/FE4.
 
 **Actor:** Guest → Customer. **Entry:** `pages/auth/*` (`/login`, `/register`, `/forgot-password`, `/reset-password`,
 `/verify-email`), `pages/account/*`. **Feature:** `features/auth`, `features/addresses`.
@@ -187,7 +188,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 
 ## 2. Catalog (trang chủ · danh mục · breadcrumb) — CHI TIẾT
 
-> **Liên kết bảo vệ `J2`:** [Kịch bản Chương 2 và 4A](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4a--an-khám-phá) · [BE §2](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#2-catalog-duyệt-sản-phẩm--chi-tiết-từng-operation) · Tài/BE2 ↔ FE1.
+> **Liên kết bảo vệ `J2`:** [Kịch bản Chương 2 và 4A](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §2](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#2-catalog-duyệt-sản-phẩm--chi-tiết-từng-operation) · Tài/BE2 ↔ FE1.
 
 **Actor:** Guest+. **Entry:** `pages/home`, `pages/catalog/CategoryPage` (`/c/:categorySlug`, `/c/all`).
 **Feature:** `features/catalog`.
@@ -282,7 +283,7 @@ phản biện một operation, phải chỉ ra đủ các lớp sau:
 
 ## 4. Giỏ hàng & Voucher
 
-> **Liên kết bảo vệ `J7`:** [Kịch bản Chương 6](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-6--từ-căn-phòng-đến-đơn-hàng) · [BE §3](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#3-giỏ-hàng--voucher) · Tài/BE2 ↔ FE2.
+> **Liên kết bảo vệ `J7`:** [Kịch bản Chương 6](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §3](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#3-giỏ-hàng--voucher) · Tài/BE2 ↔ FE2.
 
 **Actor:** Customer. **Entry:** `pages/cart/CartPage` + drawer giỏ (`uiStore.openCart`). **Feature:** `features/cart`.
 
@@ -353,7 +354,7 @@ vẫn gọi. Move-to-cart kiểm tra lại variant và stock; thành công mới
 
 ## 6. Thanh toán (Checkout) & trang trả về
 
-> **Liên kết bảo vệ `J8–J9`:** [Kịch bản Chương 5–6](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-5--quyết-định-được-bảo-vệ) · [BE §4.1 create order](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#41-create-order) · [BE §5 PayOS](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#5-thanh-toán-payos--callback) · Bảo/BE1 ↔ FE2.
+> **Liên kết bảo vệ `J8–J9`:** [Kịch bản Chương 5–6](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §4.1 create order](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#41-create-order) · [BE §5 PayOS](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#5-thanh-toán-payos--callback) · Bảo/BE1 ↔ FE2.
 
 **Actor:** Customer. **Entry:** `pages/checkout/CheckoutPage` (`/checkout`), `CheckoutReturnPage` (`/checkout/return`).
 **Feature:** `features/checkout`, `features/orders`.
@@ -408,7 +409,7 @@ ngụy trang thành pending; user có nút retry rõ ràng.
 
 ## 7. Đơn hàng (lịch sử & chi tiết)
 
-> **Liên kết bảo vệ `J10`:** [Kịch bản Chương 5–6](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-5--quyết-định-được-bảo-vệ) · [BE §4b cancel và §13 inventory](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#4b-khách-tự-hủy-đơn-trước-khi-giao-orderservicecancelid-user-reason) · Bảo/BE1 ↔ FE2.
+> **Liên kết bảo vệ `J10`:** [Kịch bản Chương 5–6](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §4b cancel và §13 inventory](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#4b-khách-tự-hủy-đơn-trước-khi-giao-orderservicecancelid-user-reason) · Bảo/BE1 ↔ FE2.
 
 **Actor:** Customer. **Entry:** `pages/orders/OrdersPage` (`/orders`), `OrderDetailPage` (`/orders/:id`). **Feature:** `features/orders`.
 
@@ -450,7 +451,7 @@ hoàn chỉnh dù resource có `meta`. Đây là gap cần sửa hoặc phải d
 
 ## 8. Đánh giá (Review)
 
-> **Liên kết bảo vệ `J11`:** [Kịch bản Chương 2](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-2--ai-tham-gia-và-hệ-thống-ghi-nhớ-gì) · [BE §8](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#8-review--moderation) · Tài/BE2 ↔ FE2/FE4.
+> **Liên kết bảo vệ `J11`:** [Kịch bản Chương 2](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §8](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#8-review--moderation) · Tài/BE2 ↔ FE2/FE4.
 
 **Actor:** Customer (đã mua). **Entry:** khu vực “Đánh giá sản phẩm” ở chi tiết đơn đã giao (`/orders/:id`) dẫn thẳng tới form ở `ProductPage` (`/p/:slug#reviews`). **Feature:** `features/reviews`.
 
@@ -480,7 +481,7 @@ lọc pending như một biện pháp bảo mật vì pending vốn không nên 
 
 ## 9. AI Chatbot (RAG) — phía FE
 
-> **Liên kết bảo vệ `J4`:** [Kịch bản Chương 4B–5](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4b--an-tìm-hiểu-và-thử-nghiệm) · [BE §10](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10-ai-chatbot-rag-tính-năng-phân-biệt-2) · Bảo/BE1 ↔ FE3.
+> **Liên kết bảo vệ `J4`:** [Kịch bản Chương 4B–5](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §10](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10-ai-chatbot-rag-tính-năng-phân-biệt-2) · Bảo/BE1 ↔ FE3.
 
 **Actor:** Khách vãng lai hoặc Customer. **Entry:** floating bubble `ChatWidget`/`ChatPanel`. **Feature:** `features/chat`, `store/chatStore`.
 
@@ -511,7 +512,7 @@ BE `14-workflows.md` §10.
 
 ## 9b. Personalization (cá nhân hoá — recently viewed & suggestions)
 
-> **Liên kết bảo vệ `J3`:** [Kịch bản Chương 4A](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4a--an-khám-phá) · [BE §10b](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10b-personalization--recently-viewed-tính-năng-cá-nhân-hoá) · Tài/BE2 ↔ FE1.
+> **Liên kết bảo vệ `J3`:** [Kịch bản Chương 4A](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §10b](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10b-personalization--recently-viewed-tính-năng-cá-nhân-hoá) · Tài/BE2 ↔ FE1.
 
 **Actor:** Customer (logged-in + verified only). **Entry:** `ProductPage` → ghi xem + hiện "Bạn vừa xem"; `HomePage` → `JourneyContinuation` sau Featured Categories.
 
@@ -561,7 +562,7 @@ BE `14-workflows.md` §10.
 
 ## 10. Khu vực Admin (back-office)
 
-> **Liên kết bảo vệ `J6`, `J12`:** [Kịch bản Chương 2–3](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-3--một-khả-năng-được-chuẩn-bị) · [BE §10d–§10e và §11–§12](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10d-media-library-thư-viện-ảnh-dùng-chung--đã-build-2026-07-08) · Tài/BE2 phụ trách Admin–audit; Bảo/BE1 phụ trách RBAC ↔ FE4.
+> **Liên kết bảo vệ `J6`, `J12`:** [Kịch bản Chương 2–3](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §10d–§10e và §11–§12](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#10d-media-library-thư-viện-ảnh-dùng-chung--đã-build-2026-07-08) · Tài/BE2 phụ trách Admin–audit; Bảo/BE1 phụ trách RBAC ↔ FE4.
 
 **Actor:** Staff (role ≠ customer). **Entry:** `/admin/*` sau `AdminRoute`. **Feature:** `features/admin/*`, `pages/admin/*`.
 
@@ -705,7 +706,7 @@ token/quyền thật).
 
 ## 10b. Thiết kế phòng 3D (Room Planner) — chức năng nâng cao
 
-> **Liên kết bảo vệ `J5`:** [Kịch bản Chương 3–5](../../Nestify-Furniture-e-commerce-backend/docs/KICH-BAN-BAO-VE-NESTIFY-6-THANH-VIEN.md#chương-4b--an-tìm-hiểu-và-thử-nghiệm) · [BE §9](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#9-3d-room-planner-be-persistenceorder-bridge--chi-tiết-từng-operation) · Bảo/BE1 ↔ FE3/FE4.
+> **Liên kết bảo vệ `J5`:** [Kịch bản Chương 3–5](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md) · [BE §9](../../Nestify-Furniture-e-commerce-backend/docs/14-workflows.md#9-3d-room-planner-be-persistenceorder-bridge--chi-tiết-từng-operation) · Bảo/BE1 ↔ FE3/FE4.
 
 **Actor:** Customer (đã đăng nhập). **Entry:** link header "Thiết kế phòng 3D" → `/room-planner` (tạo mới) và
 `/room-planner/:id` (mở scene đã lưu), **sau `ProtectedRoute`**, route **top-level đứng riêng** (KHÔNG nằm trong storefront
