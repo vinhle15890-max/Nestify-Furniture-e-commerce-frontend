@@ -70,7 +70,7 @@ describe('App routes', () => {
     ).toBeInTheDocument()
   })
 
-  it('resumes the admin area when a staff session reopens the domain root', async () => {
+  it('keeps the domain root as storefront when only an admin session exists', async () => {
     renderAt('/', {
       id: 1,
       name: 'NV',
@@ -78,7 +78,9 @@ describe('App routes', () => {
       permissions: ['view_dashboard'],
     })
 
-    expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Điều gì phù hợp với căn phòng của bạn?', level: 1 }),
+    ).toBeInTheDocument()
   })
 
   it('keeps the root as storefront when customer and admin sessions coexist', async () => {
@@ -161,12 +163,11 @@ describe('App routes', () => {
 
   it('renders the admin dashboard for a super_admin user', async () => {
     renderAt('/admin', { id: 1, name: 'Admin', roles: ['super_admin'] })
-    // The admin shell's top bar shows the active section title.
-    expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Mở menu' })).toBeInTheDocument()
   })
 
   it('renders the admin dashboard for a non-super-admin staff user', async () => {
     renderAt('/admin', { id: 1, name: 'NV', roles: ['order_staff'], permissions: ['view_dashboard'] })
-    expect(await screen.findByRole('heading', { name: 'Tổng quan', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Mở menu' })).toBeInTheDocument()
   })
 })

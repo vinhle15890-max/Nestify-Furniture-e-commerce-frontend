@@ -17,10 +17,10 @@ export function PlannerInvite() {
   return (
     <section data-home-section="planner" className="relative overflow-hidden bg-ink text-canvas">
       <div aria-hidden="true" className="absolute -right-24 -top-36 size-[30rem] rounded-full bg-primary/25 blur-3xl" />
-      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-24 md:py-28 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:px-10">
-        <Reveal className="max-w-xl">
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 py-24 md:py-28 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16 lg:px-10">
+        <Reveal className="min-w-0 max-w-2xl">
           <p className="text-sm font-medium text-primary">{plannerInvite.eyebrow}</p>
-          <h2 className="mt-4 font-display text-[clamp(1.9rem,3.6vw,3.2rem)] font-normal leading-[1.06] text-canvas">
+          <h2 className="mt-4 font-display text-[clamp(1.9rem,3.35vw,3.05rem)] font-normal leading-[1.08] text-canvas [overflow-wrap:anywhere] [text-wrap:balance]">
             {plannerInvite.title}
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-canvas/70">{plannerInvite.intro}</p>

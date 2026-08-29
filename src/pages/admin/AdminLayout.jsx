@@ -1,20 +1,11 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Store, Menu, X, ChevronsUpDown, LogOut, Eye } from 'lucide-react'
+import { Menu, X, ChevronsUpDown, LogOut, Eye } from 'lucide-react'
 import { useAdminLogout, useAdminMe } from '../../features/auth/hooks'
 import { useAuthStore } from '../../store/authStore'
 import { usePreviewStore, useEffectiveUser } from '../../store/previewStore'
-import { navGroups, visibleGroups } from './adminNav'
-
-const allItems = navGroups.flatMap((group) => group.items)
-
-function activeTitle(pathname) {
-  const match = allItems
-    .filter((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to)))
-    .sort((a, b) => b.to.length - a.to.length)[0]
-  return match?.label ?? 'Quản trị'
-}
+import { visibleGroups } from './adminNav'
 
 function initials(name = '') {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -105,13 +96,6 @@ function UserMenu({ user, onLogout }) {
 
       {open && (
         <div role="menu" className="absolute bottom-full left-0 z-20 mb-2 w-full rounded-card border border-border bg-surface p-1.5 shadow-card">
-          <Link
-            to="/c/all"
-            role="menuitem"
-            className="flex items-center gap-2.5 rounded-control px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground"
-          >
-            <Store size={16} /> Về cửa hàng
-          </Link>
           <button
             type="button"
             role="menuitem"
@@ -152,11 +136,9 @@ export function AdminLayout() {
   const effectiveUser = useEffectiveUser()
   const previewRole = usePreviewStore((state) => state.previewRole)
   const clearPreview = usePreviewStore((state) => state.clearPreview)
-  const { pathname } = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const title = activeTitle(pathname)
   const handleLogout = async () => {
     try {
       await logout.mutateAsync()
@@ -229,22 +211,15 @@ export function AdminLayout() {
         {previewRole && <PreviewBanner role={previewRole} onExit={handleExitPreview} />}
 
         {/* Sticky top bar */}
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-md lg:px-8">
+        <header className="sticky top-0 z-20 flex h-14 items-center border-b border-border bg-surface/80 px-4 backdrop-blur-md lg:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
             aria-label="Mở menu"
-            className="rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground lg:hidden"
+            className="rounded-control p-1.5 text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground"
           >
             <Menu size={20} />
           </button>
-          <h1 className="truncate font-display text-lg text-foreground">{title}</h1>
-          <Link
-            to="/"
-            className="ml-auto hidden items-center gap-1.5 rounded-control px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-alt hover:text-foreground sm:flex"
-          >
-            <Store size={15} /> Về cửa hàng
-          </Link>
         </header>
 
         <main className="flex-1">

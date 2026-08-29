@@ -15,7 +15,11 @@ function renderHero() {
 describe('Hero (Threshold)', () => {
   it('renders the approved open proposition and value-proposition subtitle', () => {
     renderHero()
-    expect(screen.getByRole('heading', { name: hero.title, level: 1 })).toBeInTheDocument()
+    const heading = screen.getByRole('heading', { name: hero.title, level: 1 })
+    expect(heading).toBeInTheDocument()
+    expect(heading).toHaveClass('[text-wrap:balance]', '[overflow-wrap:anywhere]')
+    expect(heading.className).toContain('text-[clamp(2.4rem,8vw,2.7rem)]')
+    expect(heading.className).toContain('sm:text-[clamp(3rem,4.8vw,4.75rem)]')
     expect(screen.getByText(hero.subtitle)).toBeInTheDocument()
   })
 

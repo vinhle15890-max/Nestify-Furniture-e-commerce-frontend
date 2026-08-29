@@ -17,10 +17,6 @@ export function customerOrderNextAction(order) {
   const payout = payoutAction(order)
   if (payout) return payout
 
-  if (order.return_request?.status === 'approved') {
-    return { kind: 'return_shipment', label: 'Gửi thông tin trả hàng', hash: '#return-request' }
-  }
-
   const pendingPayos = (order.payment_method ?? 'payos') === 'payos' && (
     order.payment?.status === 'pending'
     || (!order.payment && order.status === 'pending_payment')

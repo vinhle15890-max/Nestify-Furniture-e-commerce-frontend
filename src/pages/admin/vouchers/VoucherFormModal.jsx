@@ -80,7 +80,7 @@ const schema = yup.object({
     },
   ),
   status: yup.string().oneOf(['active', 'inactive']),
-  is_public: yup.boolean(), claim_required: yup.boolean(), stack_with_sale: yup.boolean(),
+  is_public: yup.boolean(), stack_with_sale: yup.boolean(),
 })
 
 const emptyValues = {
@@ -94,7 +94,7 @@ const emptyValues = {
   starts_at: '',
   expires_at: '',
   status: 'active',
-  is_public: false, claim_required: false, stack_with_sale: false,
+  is_public: false, stack_with_sale: false,
 }
 
 function toDateInput(value) {
@@ -114,7 +114,6 @@ function toFormValues(voucher) {
     expires_at: toDateInput(voucher.expires_at),
     status: voucher.status ?? 'active',
     is_public: voucher.is_public ?? false,
-    claim_required: voucher.claim_required ?? false,
     stack_with_sale: voucher.stack_with_sale ?? false,
   }
 }
@@ -168,7 +167,7 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
       expires_at: values.expires_at || null,
       status: values.status,
       is_public: Boolean(values.is_public),
-      claim_required: Boolean(values.claim_required),
+      claim_required: false,
       stack_with_sale: Boolean(values.stack_with_sale),
     }
 
@@ -272,8 +271,7 @@ export function VoucherFormModal({ open, onOpenChange, voucher }) {
 
         <fieldset className="space-y-3 rounded-control border border-border p-4">
           <legend className="px-1 text-sm font-medium text-foreground">Phân phối và kết hợp</legend>
-          <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('is_public')} /><span><strong className="block font-medium">Hiển thị tại trang Ưu đãi</strong><span className="text-muted-foreground">Khách có thể tìm voucher tại mục Ưu đãi trên menu và đường dẫn /vouchers.</span></span></label>
-          <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('claim_required')} /><span><strong className="block font-medium">Phải lưu vào ví trước khi dùng</strong><span className="text-muted-foreground">Không chấp nhận chỉ nhập mã khi chưa nhận.</span></span></label>
+          <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('is_public')} /><span><strong className="block font-medium">Voucher công khai</strong><span className="text-muted-foreground">Mọi khách đủ điều kiện đều thấy trong trang Ưu đãi và giỏ hàng. Nếu tắt, voucher chỉ dùng được sau khi admin tặng cho khách.</span></span></label>
           <label className="flex items-start gap-3 text-sm"><input type="checkbox" {...register('stack_with_sale')} /><span><strong className="block font-medium">Cho phép dùng cùng giá sale</strong><span className="text-muted-foreground">Nếu tắt, giỏ có sản phẩm sale sẽ không áp dụng mã này.</span></span></label>
         </fieldset>
 

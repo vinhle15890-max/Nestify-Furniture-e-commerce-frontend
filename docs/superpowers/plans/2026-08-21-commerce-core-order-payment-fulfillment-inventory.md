@@ -142,7 +142,7 @@ Sau từng slice, và audit tổng cuối:
 - BE `docs/14-workflows.md`, `docs/04-database.md`, `docs/06-api.md`, `docs/12-payment.md`,
   `docs/FE_AI_CONTEXT.md`, defense question bank.
 - FE `docs/CURRENT-STATE-MECHANISMS.md`, `docs/FE-TEAM-WORKFLOW.md`, `docs/TASKS.md` nếu task tracking dùng file này.
-- Root `NestifyBaoCao_v2.md`, ERD drawio, `slides.md` đồng bộ cùng logic.
+- Root `NestifyBaoCao_v2.md`, ERD drawio, `../../../../slides.md` đồng bộ cùng logic.
 - Thêm mọi runtime bug xác nhận thành test case trong `NestifyBaoCao_v2.md`.
 
 ## Verification gate mỗi slice

@@ -134,7 +134,7 @@ export function AdminProductCreatePage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="truncate font-display text-2xl text-foreground">Sản phẩm mới</h2>
+            <h1 className="truncate font-display text-2xl text-foreground">Sản phẩm mới</h1>
             <Badge tone="neutral">Bản nháp</Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Điền thông tin rồi lưu để thêm biến thể và hình ảnh.</p>

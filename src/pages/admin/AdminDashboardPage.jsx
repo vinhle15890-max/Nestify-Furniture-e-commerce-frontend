@@ -121,7 +121,6 @@ export function AdminDashboardPage() {
   }
   const operations = stats.operations ?? {}
   const topSellers = stats.top_sellers ?? []
-  const flashSales = stats.flash_sales ?? { active_variants: 0, total_quota: 0, allocated_units: 0, released_units: 0, remaining_units: 0, delivered_units: 0, delivered_revenue: 0, variants: [] }
   const manualRefunds = stats.manual_refunds ?? { count: 0, total_amount: 0, orders: [] }
   const insights = stats.business_insights ?? {
     orders: { new: finance.orders_placed ?? 0, cancelled: 0, refund_pending: manualRefunds.count },
@@ -134,7 +133,7 @@ export function AdminDashboardPage() {
   const revenueOrders = finance.orders_delivered ?? 0
   const avgOrderValue = revenueOrders ? (finance.delivered_sales_value ?? finance.delivered_order_value ?? 0) / revenueOrders : 0
   const awaitingConfirmation = operations.ready_for_confirmation ?? orders.pending_confirmation ?? orders.pending_payment ?? 0
-  const needsAttention = awaitingConfirmation + (operations.processing ?? 0) + (operations.shipped ?? 0) + (operations.delivery_failed ?? 0) + (operations.cod_collection_due ?? 0) + (operations.return_requests_pending ?? 0) + (operations.return_refunds_pending ?? 0) + (operations.return_payouts_pending ?? 0) + (operations.payment_exceptions ?? 0) + stats.pending_reviews + manualRefunds.count
+  const needsAttention = awaitingConfirmation + (operations.processing ?? 0) + (operations.shipped ?? 0) + (operations.delivery_failed ?? 0) + (operations.cod_collection_due ?? 0) + (operations.payment_exceptions ?? 0) + stats.pending_reviews + manualRefunds.count
   const periodRows = [...(finance.series ?? [])].sort((a, b) => a.period.localeCompare(b.period))
 
   const funnel = [
@@ -153,9 +152,6 @@ export function AdminDashboardPage() {
     { to: '/admin/orders?status=shipped', icon: ShoppingBag, label: 'Đơn đang vận chuyển', count: operations.shipped ?? 0 },
     { to: '/admin/orders?status=delivery_failed', icon: AlertTriangle, label: 'Giao hàng thất bại', count: operations.delivery_failed ?? 0, urgent: true },
     { to: '/admin/orders?payment_method=cod&payment_status=pending&status=shipped', icon: CheckCircle2, label: 'COD đến hạn thu', count: operations.cod_collection_due ?? 0 },
-    { to: '/admin/returns?status=requested', icon: Package, label: 'Yêu cầu đổi trả cần xem', count: operations.return_requests_pending ?? 0, urgent: true },
-    { to: '/admin/returns?status=received', icon: CheckCircle2, label: 'Hàng trả đã nhận, chờ ghi hoàn', count: operations.return_refunds_pending ?? 0, urgent: true },
-    { to: '/admin/returns?status=refund_pending', icon: CheckCircle2, label: 'Đổi trả chờ chuyển tiền', count: operations.return_payouts_pending ?? 0, urgent: true },
     { to: '/admin/payment-exceptions', icon: AlertTriangle, label: 'Thanh toán ngoại lệ', count: operations.payment_exceptions ?? 0, urgent: true },
     { to: '/admin/reviews', icon: Star, label: 'Đánh giá chờ duyệt', count: stats.pending_reviews, urgent: true },
   ]
@@ -338,33 +334,6 @@ export function AdminDashboardPage() {
           </table>
         </div>
       </section>}
-
-      {dashboardView === 'business' && <details data-testid="flash-sale-disclosure" className="group overflow-hidden rounded-card border border-border bg-surface shadow-soft">
-        <summary onKeyDown={toggleDisclosureOnKeyboard} className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-          <span><span className="block font-display text-xl text-foreground">Vận hành Flash Sale</span><span className="mt-1 block text-sm text-muted-foreground">Quota và suất giữ là số hiện tại; đã giao và doanh thu chỉ tính trong kỳ đang chọn.</span></span>
-          <ChevronDown size={19} aria-hidden="true" className="shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="border-t border-border">
-        <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
-          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Biến thể đang chạy</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{flashSales.active_variants}</p></div>
-          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Đã phân bổ / quota</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{flashSales.allocated_units} <span className="text-base text-muted-foreground">/ {flashSales.total_quota}</span></p></div>
-          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Còn lại</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{flashSales.remaining_units}</p></div>
-          <div className="bg-surface p-5"><p className="text-sm text-muted-foreground">Doanh thu đã giao trong kỳ</p><p className="mt-2 font-display text-3xl tabular-nums text-foreground">{formatPrice(flashSales.delivered_revenue)}</p></div>
-        </div>
-        <div className="overflow-x-auto border-t border-border">
-          <table className="w-full min-w-[52rem] text-sm">
-            <thead className="bg-surface-alt text-left text-muted-foreground"><tr><th className="px-5 py-3">Sản phẩm / biến thể</th><th className="px-4 py-3">Trạng thái</th><th className="px-4 py-3 text-right">Quota</th><th className="px-4 py-3 text-right">Đã giữ</th><th className="px-4 py-3 text-right">Đã hoàn</th><th className="px-4 py-3 text-right">Còn lại</th><th className="px-4 py-3 text-right">Đã giao trong kỳ</th><th className="px-5 py-3 text-right">Doanh thu</th></tr></thead>
-            <tbody className="divide-y divide-border">
-              {flashSales.variants.length ? flashSales.variants.map((variant) => <tr key={variant.id}>
-                <td className="px-5 py-3"><Link to={`/admin/products/${variant.product_id}`} className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{variant.product_name}</Link><p className="mt-0.5 text-xs text-muted-foreground">{variant.variant_name || variant.sku}</p></td>
-                <td className="px-4 py-3 text-muted-foreground">{{ active: 'Đang chạy', scheduled: 'Sắp diễn ra', ended: 'Đã kết thúc', sold_out: 'Hết suất' }[variant.status] ?? variant.status}</td>
-                <td className="px-4 py-3 text-right tabular-nums">{variant.quota}</td><td className="px-4 py-3 text-right tabular-nums">{variant.allocated_units}</td><td className="px-4 py-3 text-right tabular-nums">{variant.released_units}</td><td className="px-4 py-3 text-right tabular-nums">{variant.remaining_units}</td><td className="px-4 py-3 text-right tabular-nums">{variant.delivered_units}</td><td className="px-5 py-3 text-right tabular-nums">{formatPrice(variant.delivered_revenue)}</td>
-              </tr>) : <tr><td colSpan="8" className="px-5 py-8 text-center text-muted-foreground">Chưa có biến thể Flash Sale để vận hành.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        </div>
-      </details>}
 
       {dashboardView === 'business' && <div className="min-w-0">
         <section className="min-w-0 overflow-hidden rounded-card border border-border bg-surface shadow-soft">

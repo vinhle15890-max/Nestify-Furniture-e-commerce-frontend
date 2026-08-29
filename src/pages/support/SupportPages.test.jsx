@@ -19,7 +19,7 @@ function renderPage(Page) {
 describe('Support pages', () => {
   it.each([
     [ShippingPage, 'Giao hàng, rõ từ trước khi đặt'],
-    [ReturnsPage, 'Đổi trả và hủy đơn'],
+    [ReturnsPage, 'Hủy đơn và hỗ trợ sau bán'],
     [PrivacyPage, 'Quyền riêng tư của bạn'],
     [ContactPage, 'Liên hệ Nestify'],
   ])('renders a dedicated page with its primary heading', (Page, heading) => {
@@ -35,8 +35,8 @@ describe('Support pages', () => {
 
   it('states the implemented order cancellation boundary', () => {
     renderPage(ReturnsPage)
-    expect(screen.getByText(/trước khi đơn chuyển sang trạng thái đang giao/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Xem đơn hàng của tôi' })).toHaveAttribute('href', '/orders')
+    expect(screen.getByText(/Hệ thống không cho tự hủy đơn đã chuyển sang đang giao/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Gọi 0945691309' })).toHaveAttribute('href', 'tel:0945691309')
   })
 
   it('offers direct, usable contact paths without a fake form', () => {

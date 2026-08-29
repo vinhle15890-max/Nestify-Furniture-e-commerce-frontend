@@ -48,15 +48,13 @@ export function ProductDecisionRail({ product, variants, variantOptions, selecte
           <p className={`text-2xl font-medium text-ink ${numericClassName}`}>{formatPrice(price)}</p>
           {selectedVariant?.is_on_sale && <p className={`text-sm text-muted-foreground line-through ${numericClassName}`}>{formatPrice(selectedVariant.regular_price)}</p>}
         </div>
-        {selectedVariant?.is_flash_sale ? (
-          <p className="mt-1 text-sm text-muted-foreground">Flash Sale còn {selectedVariant.flash_sale_remaining} sản phẩm; tối đa {selectedVariant.flash_sale_limit_per_order ?? selectedVariant.flash_sale_remaining} sản phẩm mỗi đơn. Quota được xác nhận khi checkout.</p>
-        ) : selectedVariant?.is_on_sale && <p className="mt-1 text-sm text-muted-foreground">Giá ưu đãi đang được hệ thống áp dụng.</p>}
+        {selectedVariant?.is_on_sale && <p className="mt-1 text-sm text-muted-foreground">Giá ưu đãi đang được hệ thống áp dụng.</p>}
         <div className="mt-5 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-ink/60">Số lượng<input type="number" min={1} max={maxQuantity} value={quantity} disabled={outOfStock} onChange={(event) => onQuantityChange(Number(event.target.value))} className={`w-20 rounded-control border border-unbuilt bg-canvas px-3 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${numericClassName}`} /></label>
           {token && staff ? <p className="text-sm leading-6 text-ink/65">Tài khoản quản trị không thể mua hàng.</p> : token ? <><Button onClick={onAddToCart} disabled={!selectedVariant || outOfStock || adding} className="px-6 py-3">Thêm vào giỏ</Button><Button type="button" variant="secondary" aria-label={isWishlisted ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích'} aria-pressed={isWishlisted} onClick={onToggleWishlist} disabled={!selectedVariant || wishlistPending} className="px-4 py-3"><Heart size={18} className={isWishlisted ? 'fill-current text-accent' : ''} /></Button></> : <Link to="/login" className="inline-flex items-center rounded-control bg-ink px-6 py-3 text-sm font-medium text-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Đăng nhập để mua hàng</Link>}
         </div>
         {stockError !== null && <p role="alert" className="mt-3 text-sm text-destructive">Kho chỉ đủ {stockError} sản phẩm cho lựa chọn này</p>}
-        <dl className="mt-5 grid gap-4 border-t border-unbuilt/70 pt-5"><div><dt className="text-sm font-medium text-ink">Giao hàng</dt><dd className="mt-1 text-sm leading-6 text-ink/65">{deliveryFact ?? 'Chưa có thời gian giao hàng. Liên hệ Nestify trước khi đặt.'}</dd></div><div><dt className="text-sm font-medium text-ink">Đổi trả và hủy đơn</dt><dd className="mt-1 text-sm leading-6 text-ink/65">{returnsFact ?? 'Chính sách cho sản phẩm này chưa được cung cấp.'}</dd></div></dl>
+        <dl className="mt-5 grid gap-4 border-t border-unbuilt/70 pt-5"><div><dt className="text-sm font-medium text-ink">Giao hàng</dt><dd className="mt-1 text-sm leading-6 text-ink/65">{deliveryFact ?? 'Chưa có thời gian giao hàng. Liên hệ Nestify trước khi đặt.'}</dd></div><div><dt className="text-sm font-medium text-ink">Hủy đơn và hỗ trợ sau bán</dt><dd className="mt-1 text-sm leading-6 text-ink/65">{returnsFact ?? 'Thông tin hỗ trợ cho sản phẩm này chưa được cung cấp.'}</dd></div></dl>
       </section>
     </aside>
   )

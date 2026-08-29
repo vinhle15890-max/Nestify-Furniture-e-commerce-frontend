@@ -55,8 +55,9 @@ describe('OrdersPage', () => {
 
     expect(await screen.findByRole('link', { name: 'Xem vận chuyển' })).toHaveAttribute('href', '/orders/3#shipment')
     expect(screen.getByText('Vận chuyển: GHTK · GHTK-0099')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Gửi thông tin trả hàng' })).toHaveAttribute('href', '/orders/2#return-request')
-    expect(screen.getByRole('link', { name: 'Mở chi tiết' })).toHaveAttribute('href', '/orders/1')
+    const detailLinks = screen.getAllByRole('link', { name: 'Mở chi tiết' })
+    expect(detailLinks).toHaveLength(2)
+    expect(detailLinks.map((link) => link.getAttribute('href'))).toEqual(['/orders/2', '/orders/1'])
   })
 
   it('shows an empty state when there are no orders', async () => {

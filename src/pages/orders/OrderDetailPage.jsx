@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { useOrder, useCancelOrder, useCreateReturnRequest, useShipReturnRequest, useSubmitRefundPayoutDetails } from '../../features/orders/hooks'
+import { useOrder, useCancelOrder, useSubmitRefundPayoutDetails } from '../../features/orders/hooks'
 import { useCreatePaymentSession } from '../../features/checkout/hooks'
 import { ORDER_STATUS_LABELS } from '../../features/orders/statusLabels'
 import { redirectToExternal } from '../../lib/navigation'
@@ -15,32 +15,25 @@ import { ProductThumb } from '../../components/ProductThumb'
 import { formatPrice, formatDate } from '../../lib/format'
 import { useToastStore } from '../../store/toastStore'
 import { customerOrderNextAction } from './customerOrderNextAction'
-import { RETURN_REASON_CATEGORIES } from '../../features/orders/returnReasonCategories'
 
 // Orders can be cancelled by their owner any time before they ship.
 const CANCELLABLE_STATUSES = ['pending_confirmation', 'pending_payment', 'paid', 'processing']
 
 const sectionClass = 'rounded-card border border-border bg-surface p-6'
 const CANCELLATION_REASONS = ['Đặt nhầm', 'Muốn đổi sản phẩm', 'Không còn nhu cầu']
+const SUPPORT_PHONE = '0945691309'
 
 export function OrderDetailPage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
   const { data, error, isLoading, isError, isFetching, refetch } = useOrder(id)
   const cancelOrder = useCancelOrder()
-  const createReturnRequest = useCreateReturnRequest()
-  const shipReturnRequest = useShipReturnRequest(id)
   const submitRefundPayoutDetails = useSubmitRefundPayoutDetails(id)
   const createPaymentSession = useCreatePaymentSession()
   const addToast = useToastStore((state) => state.addToast)
   const gateway = 'payos' // PayOS is the only payment gateway
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
-  const [returnOpen, setReturnOpen] = useState(false)
-  const [returnReason, setReturnReason] = useState('')
-  const [returnReasonCategory, setReturnReasonCategory] = useState('')
-  const [returnCarrier, setReturnCarrier] = useState('')
-  const [returnTracking, setReturnTracking] = useState('')
   const [payoutRefund, setPayoutRefund] = useState(null)
   const [payoutBank, setPayoutBank] = useState('')
   const [payoutHolder, setPayoutHolder] = useState('')
@@ -96,10 +89,6 @@ export function OrderDetailPage() {
   )
   const isFullyDiscounted = Number(order.total) === 0
   const canCancel = CANCELLABLE_STATUSES.includes(order.status)
-  const returnPolicy = order.return_policy
-  // Keep compatibility while the additive backend field rolls out.
-  const canRequestReturn = returnPolicy?.can_request ?? !order.return_request
-  const returnDeadline = returnPolicy?.eligible_until ? formatDate(returnPolicy.eligible_until) : null
   // A cancelled order refunds money only when an online payment was captured.
   const willRefund = !isFullyDiscounted && (
     order.payment?.status === 'paid'
@@ -107,8 +96,6 @@ export function OrderDetailPage() {
   )
   const address = order.shipping_address
   const nextAction = customerOrderNextAction(order)
-  const savedReturnCarrier = order.return_request?.return_carrier ?? ''
-  const resolvedReturnCarrier = returnCarrier.trim() || savedReturnCarrier
 
   async function handleCancel() {
     try {
@@ -133,39 +120,6 @@ export function OrderDetailPage() {
     }
   }
 
-  async function handleReturnRequest() {
-    try {
-      await createReturnRequest.mutateAsync({ id: order.id, reason_category: returnReasonCategory, reason: returnReason.trim() })
-      setReturnOpen(false)
-      setReturnReasonCategory('')
-      setReturnReason('')
-      addToast({ title: 'Đã gửi yêu cầu đổi trả.', variant: 'success' })
-    } catch (error) {
-      addToast({ title: 'Không thể gửi yêu cầu đổi trả.', description: error.message, variant: 'error' })
-    }
-  }
-
-  async function handleReturnShipment(event) {
-    event.preventDefault()
-    try {
-      await shipReturnRequest.mutateAsync({ id: order.return_request.id, return_carrier: resolvedReturnCarrier, return_tracking_number: returnTracking.trim() })
-      setReturnCarrier('')
-      setReturnTracking('')
-      addToast({ title: 'Đã ghi nhận vận đơn gửi trả.', variant: 'success' })
-    } catch (error) {
-      addToast({ title: 'Không thể ghi nhận vận đơn.', description: error.message, variant: 'error' })
-    }
-  }
-
-  async function handleSaveReturnCarrier() {
-    if (!returnCarrier.trim()) return
-    try {
-      await shipReturnRequest.mutateAsync({ id: order.return_request.id, return_carrier: returnCarrier.trim() })
-      addToast({ title: 'Đã lưu đơn vị vận chuyển.', variant: 'success' })
-    } catch (error) {
-      addToast({ title: 'Không thể lưu đơn vị vận chuyển.', description: error.message, variant: 'error' })
-    }
-  }
 
   function openPayoutDetails(refund) {
     setPayoutRefund(refund)
@@ -332,7 +286,11 @@ export function OrderDetailPage() {
                     <ProductThumb src={snapshot.thumbnail} alt="" size="h-12 w-12" />
                     <p className="min-w-0 font-medium text-foreground">{title}</p>
                   </div>
-                  {snapshot.product_slug ? (
+                  {item.review ? (
+                    <span className="inline-flex min-h-11 shrink-0 items-center px-4 text-sm font-medium text-muted-foreground">
+                      Đã đánh giá
+                    </span>
+                  ) : snapshot.product_slug ? (
                     <Link
                       to={`/p/${snapshot.product_slug}#reviews`}
                       className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-control border border-border-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-alt active:bg-unbuilt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -383,65 +341,15 @@ export function OrderDetailPage() {
       )}
 
       {order.status === 'delivered' && (
-        <section id="return-request" className={`mt-6 scroll-mt-24 ${sectionClass}`} aria-labelledby="return-request-heading">
-          <h2 id="return-request-heading" className="font-display text-xl text-foreground">Đổi trả sau giao hàng</h2>
-          {order.return_request ? (
-            <div className="mt-3 text-sm">
-              <p className="font-medium text-foreground">{{ requested: 'Đang chờ Nestify xem xét', approved: 'Yêu cầu đã được duyệt', rejected: 'Yêu cầu không được duyệt', in_transit: 'Hàng đang gửi về Nestify', received: 'Nestify đã nhận và kiểm tra hàng', refund_pending: 'Khoản hoàn đang chờ chuyển tiền', completed: 'Đổi trả và hoàn tiền đã hoàn tất' }[order.return_request.status]}</p>
-              <p className="mt-2 text-muted-foreground">Lý do: {order.return_request.reason}</p>
-              {order.return_request.resolution_note && <p className="mt-2 text-muted-foreground">Phản hồi: {order.return_request.resolution_note}</p>}
-              {order.return_request.status === 'approved' && (
-                <form onSubmit={handleReturnShipment} className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
-                  <label>
-                    <span className="text-muted-foreground">Đơn vị vận chuyển</span>
-                    <input
-                      value={returnCarrier}
-                      onChange={(event) => setReturnCarrier(event.target.value)}
-                      placeholder={savedReturnCarrier || undefined}
-                      maxLength={255}
-                      required={!savedReturnCarrier}
-                      className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                    {savedReturnCarrier && <span className="mt-1 block text-xs text-muted-foreground">Đã lưu: {savedReturnCarrier}</span>}
-                  </label>
-                  <label>
-                    <span className="text-muted-foreground">Mã vận đơn gửi trả</span>
-                    <input value={returnTracking} onChange={(event) => setReturnTracking(event.target.value)} maxLength={255} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-                  </label>
-                  <div className="flex flex-wrap gap-3 sm:col-span-2">
-                    <Button type="button" variant="secondary" onClick={handleSaveReturnCarrier} disabled={!returnCarrier.trim() || shipReturnRequest.isPending}>
-                      {shipReturnRequest.isPending ? 'Đang lưu...' : 'Lưu đơn vị vận chuyển'}
-                    </Button>
-                    <Button type="submit" disabled={!resolvedReturnCarrier || !returnTracking.trim() || shipReturnRequest.isPending}>
-                      {shipReturnRequest.isPending ? 'Đang lưu...' : 'Xác nhận đã gửi hàng'}
-                    </Button>
-                  </div>
-                </form>
-              )}
-              {order.return_request.return_tracking_number && <p className="mt-3 text-muted-foreground">Vận đơn: {order.return_request.return_carrier} · {order.return_request.return_tracking_number}</p>}
-              {order.return_request.inspection_note && <p className="mt-2 text-muted-foreground">Kết quả kiểm tra: {order.return_request.inspection_note}</p>}
-              {order.return_request.refund_amount > 0 && <p className="mt-2 text-muted-foreground">Số tiền hoàn: {formatPrice(order.return_request.refund_amount)}</p>}
-              {order.return_request.refund_reference && <p className="mt-2 text-muted-foreground">Mã tham chiếu: {order.return_request.refund_reference}</p>}
-            </div>
-          ) : (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-              <div className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-                {canRequestReturn ? (
-                  <>
-                    <p>Bạn có thể gửi yêu cầu trong {returnPolicy?.window_days ?? 7} ngày từ lúc nhận hàng. Gửi yêu cầu chưa đồng nghĩa đã được hoàn tiền hoặc nhận lại hàng.</p>
-                    {returnDeadline && <p className="mt-2 font-medium text-foreground">Hạn gửi yêu cầu: {returnDeadline}</p>}
-                  </>
-                ) : returnPolicy?.ineligible_reason === 'window_expired' ? (
-                  <p>Thời hạn yêu cầu đổi trả đã kết thúc{returnDeadline ? ` vào ${returnDeadline}` : ''}. Nếu sản phẩm có lỗi cần hỗ trợ, hãy liên hệ Nestify và cung cấp mã đơn hàng.</p>
-                ) : returnPolicy?.ineligible_reason === 'missing_delivery_evidence' ? (
-                  <p>Chưa có mốc giao hàng để xác định thời hạn đổi trả. Hãy liên hệ Nestify để được kiểm tra trước khi gửi hàng.</p>
-                ) : (
-                  <p>Đơn hàng này hiện không đủ điều kiện tạo yêu cầu đổi trả mới.</p>
-                )}
-              </div>
-              {canRequestReturn && <Button variant="secondary" onClick={() => setReturnOpen(true)}>Yêu cầu đổi trả</Button>}
-            </div>
-          )}
+        <section id="after-sales-support" className={`mt-6 scroll-mt-24 ${sectionClass}`} aria-labelledby="after-sales-support-heading">
+          {/* Hallmark · pre-emit critique: P5 H4 E5 S5 R5 V5 */}
+          <h2 id="after-sales-support-heading" className="font-display text-xl text-foreground">Hỗ trợ sau khi nhận hàng</h2>
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">Nếu sản phẩm cần được kiểm tra hoặc trao đổi phương án đổi trả, hãy gọi trực tiếp cho Nestify và cung cấp mã đơn <span className="font-medium text-foreground">{order.order_number ?? `#${order.id}`}</span>. Nhân viên sẽ xác nhận tình trạng và hướng dẫn trước khi bạn gửi hàng.</p>
+            <a href={`tel:${SUPPORT_PHONE}`} className="inline-flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap rounded-control border border-border-strong px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-surface-alt active:bg-unbuilt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Gọi {SUPPORT_PHONE}
+            </a>
+          </div>
         </section>
       )}
 
@@ -471,21 +379,6 @@ export function OrderDetailPage() {
           </Button>
         </div>
       )}
-
-      <BecomingModal open={returnOpen} onOpenChange={setReturnOpen} title="Yêu cầu đổi trả" description="Nestify sẽ xem xét và phản hồi trước khi bạn gửi hàng ngược lại.">
-        <label className="block text-sm">
-          <span className="text-muted-foreground">Nhóm lý do</span>
-          <select value={returnReasonCategory} onChange={(event) => setReturnReasonCategory(event.target.value)} required className="mt-1 min-h-11 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <option value="">Chọn nhóm lý do</option>
-            {RETURN_REASON_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="text-muted-foreground">Mô tả tình trạng sản phẩm</span>
-          <textarea value={returnReason} onChange={(event) => setReturnReason(event.target.value)} rows={4} minLength={10} maxLength={1000} className="mt-1 w-full rounded-control border border-border bg-surface p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-        </label>
-        <div className="mt-4 flex justify-end gap-3"><Button variant="ghost" onClick={() => setReturnOpen(false)}>Đóng</Button><Button onClick={handleReturnRequest} disabled={!returnReasonCategory || returnReason.trim().length < 10 || createReturnRequest.isPending}>{createReturnRequest.isPending ? 'Đang gửi...' : 'Gửi yêu cầu'}</Button></div>
-      </BecomingModal>
 
       <BecomingModal
         open={payoutRefund !== null}
