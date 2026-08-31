@@ -560,7 +560,8 @@ inventory đã chốt. Tổng unique frontend là **188**; **142** entry còn l�
 - Chi tiết đơn delivered không còn form đổi trả tự phục vụ. Nó hiển thị số `0945691309` và yêu cầu khách cung cấp mã đơn để nhân viên trao đổi trực tiếp. API/schema return cũ được giữ tương thích nhưng không xuất hiện trong menu, dashboard hoặc hành trình storefront.
 - Sau receipt, workbench chỉ hiện action tiền cho quyền `refund`: ghi hoàn chuyển sang `refund_pending`, rồi nhập mã tham chiếu sau payout thật để `completed`. Dashboard và filter tách `received` khỏi `refund_pending`; khách thấy số tiền/mã tham chiếu khi có.
 - Form biến thể tách cập nhật thông tin khỏi điều chỉnh kho; adjustment bắt buộc delta/lý do và hiển thị on-hand/reserved/available.
-- Manual collections dùng `features/admin/collections` cho CRUD và `features/catalog` cho public reads; `/admin/collections` quản lý membership có thứ tự, `/collections/:collectionSlug` là landing page, Home chỉ render item `show_on_home`.
+- Manual collections vẫn giữ route/API tương thích nhưng entry quản trị đã được ẩn khỏi sidebar và không nằm trong phạm vi báo cáo hiện tại.
+- Thẻ **Hình ảnh & Video** của sản phẩm dùng chung Media Library: quản trị viên có thể chọn tệp đã có hoặc tải ảnh (`jpg/jpeg/png/webp`, tối đa 5 MB) và video (`mp4/mov/webm`, tối đa 100 MB) rồi gắn vào gallery chung hoặc theo biến thể.
 - Variant option UI phân biệt `color` (hex) và `surface` (ảnh thư viện/URL + loại vân). Product detail render surface bằng ảnh và label; không suy vân gỗ/đá từ một màu phẳng.
 
 ## Self-check reconciliation 2026-07-17

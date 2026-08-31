@@ -69,7 +69,7 @@ export function AdminProductCreatePage() {
   const onSubmit = async (values) => {
     try {
       const response = await createProduct.mutateAsync(toProductPayload(values))
-      addToast({ title: 'Đã tạo sản phẩm. Thêm biến thể và hình ảnh ngay nào.', variant: 'success' })
+      addToast({ title: 'Đã tạo sản phẩm. Thêm biến thể, hình ảnh và video ngay nào.', variant: 'success' })
       navigate(`/admin/products/${response.data.id}`, { state: { product: response.data } })
     } catch (error) {
       if (applyServerErrors(error, setError)) return
@@ -137,7 +137,7 @@ export function AdminProductCreatePage() {
             <h1 className="truncate font-display text-2xl text-foreground">Sản phẩm mới</h1>
             <Badge tone="neutral">Bản nháp</Badge>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Điền thông tin rồi lưu để thêm biến thể và hình ảnh.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Điền thông tin rồi lưu để thêm biến thể, hình ảnh và video.</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button variant="secondary" onClick={() => navigate('/admin/products')}>
@@ -152,7 +152,7 @@ export function AdminProductCreatePage() {
           <Tab value="thong-so">Thông số &amp; chính sách</Tab>
           <Tab value="bien-the" disabled>Biến thể</Tab>
           <Tab value="mo-ta-seo">Mô tả &amp; SEO</Tab>
-          <Tab value="hinh-anh" disabled>Hình ảnh</Tab>
+          <Tab value="hinh-anh" disabled>Hình ảnh &amp; Video</Tab>
         </TabList>
 
         {/* THÔNG TIN */}

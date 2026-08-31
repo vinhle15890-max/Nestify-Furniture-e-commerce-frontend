@@ -126,7 +126,7 @@ describe('AdminProductEditPage', () => {
       </QueryClientProvider>,
     )
 
-    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh & Video' }))
     expect(await screen.findByText('Ảnh · Thứ tự 1')).toBeInTheDocument()
     expect(screen.getByText('Ảnh · Thứ tự 2')).toBeInTheDocument()
     expect(productsApi.getProduct).toHaveBeenCalledWith(1)
@@ -417,8 +417,8 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh / video' }))
 
     const image = await screen.findByAltText('Ảnh thư viện')
     await userEvent.click(image.closest('button'))
@@ -434,7 +434,7 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
 
     const detachButtons = screen.getAllByRole('button', { name: 'Gỡ' })
     await userEvent.click(detachButtons[0])
@@ -452,7 +452,7 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
 
     const moveDownButtons = screen.getAllByRole('button', { name: 'Xuống' })
     await userEvent.click(moveDownButtons[0])
@@ -467,9 +467,9 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
 
-    const selects = screen.getAllByLabelText('Phạm vi ảnh')
+    const selects = screen.getAllByLabelText('Phạm vi ảnh/video')
     await userEvent.selectOptions(selects[0], '100')
 
     await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, { variant_id: 100 }))
@@ -480,13 +480,13 @@ describe('AdminProductEditPage', () => {
       data: { ...baseProduct.media[0], variant_id: null, is_thumbnail: true },
     })
     renderPage()
-    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh & Video' }))
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Đặt làm ảnh đại diện' })[0])
 
     await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, { is_thumbnail: true }))
     expect((await screen.findAllByText('Ảnh đại diện')).length).toBeGreaterThanOrEqual(2)
-    expect(screen.getAllByLabelText('Phạm vi ảnh')[0]).toHaveValue('')
+    expect(screen.getAllByLabelText('Phạm vi ảnh/video')[0]).toHaveValue('')
   })
 
   it('switches to the info tab and flags it when a required field is missing on submit', async () => {

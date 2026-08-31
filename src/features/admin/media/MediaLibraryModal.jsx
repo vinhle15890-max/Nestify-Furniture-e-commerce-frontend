@@ -20,12 +20,16 @@ export function MediaLibraryModal({
   attachedAssetIds = [],
   onSelect,
 }) {
+  const allowsImages = accept.includes('image')
+  const allowsVideos = accept.includes('video')
+  const mediaLabel = allowsImages && allowsVideos ? 'ảnh và video' : allowsVideos ? 'video' : 'ảnh'
+  const type = allowsImages && allowsVideos ? undefined : allowsVideos ? 'video' : 'image'
   const [tab, setTab] = useState('library')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState([]) // asset objects
 
-  const { data, isLoading } = useMediaLibrary({ page, search, enabled: open })
+  const { data, isLoading } = useMediaLibrary({ page, search, type, enabled: open })
   const items = data?.data ?? []
   const lastPage = data?.meta?.pagination?.last_page ?? 1
 
@@ -57,8 +61,8 @@ export function MediaLibraryModal({
       onOpenChange={(next) => {
         if (!next) onClose()
       }}
-      title="Thư viện ảnh"
-      description="Chọn ảnh có sẵn trong thư viện hoặc tải ảnh mới lên."
+      title={`Thư viện ${mediaLabel}`}
+      description={`Chọn ${mediaLabel} có sẵn trong thư viện hoặc tải tệp mới lên.`}
       contentClassName="!w-[calc(100vw-2rem)] !max-w-3xl"
     >
       <div className="flex gap-2 border-b border-border">
@@ -92,12 +96,12 @@ export function MediaLibraryModal({
                 setSearch(value)
                 setPage(1)
               }}
-              placeholder="Tìm theo tên hoặc mô tả ảnh"
+              placeholder={`Tìm theo tên hoặc mô tả ${mediaLabel}`}
               className="w-full"
             />
             <div className="mt-4">
               {isLoading ? null : items.length === 0 ? (
-                <EmptyState title="Chưa có ảnh nào." />
+                <EmptyState title={`Chưa có ${mediaLabel} nào.`} />
               ) : (
                 <MediaGrid
                   items={items}

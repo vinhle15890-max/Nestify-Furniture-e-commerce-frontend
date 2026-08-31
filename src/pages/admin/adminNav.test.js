@@ -26,6 +26,7 @@ describe('visibleGroups', () => {
     expect(labels(visibleGroups(superAdmin))).toContain('Nhật ký')
     expect(labels(visibleGroups(superAdmin))).toContain('Thư viện ảnh')
     expect(labels(visibleGroups(superAdmin))).not.toContain('Tồn kho')
+    expect(labels(visibleGroups(superAdmin))).not.toContain('Bộ sưu tập')
   })
   it('loại bỏ group rỗng (không có tiêu đề mồ côi)', () => {
     const groups = visibleGroups(orderStaff)
