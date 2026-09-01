@@ -73,7 +73,7 @@ describe('Card', () => {
 describe('Badge', () => {
   it('renders the sale (in-progress) tone as an emerging outline', () => {
     render(<Badge tone="sale">Sale</Badge>)
-    expect(screen.getByText('Sale')).toHaveClass('border-emerging')
+    expect(screen.getByText('Sale')).toHaveClass('border-emerging', 'whitespace-nowrap')
   })
 
   it('renders the in-stock (done) tone as a solid ink fill', () => {

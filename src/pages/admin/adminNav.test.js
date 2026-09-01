@@ -22,11 +22,13 @@ describe('visibleGroups', () => {
     expect(labels(visibleGroups(moderator))).toEqual(['Tổng quan', 'Đánh giá'])
   })
   it('super_admin thấy mọi mục', () => {
-    expect(labels(visibleGroups(superAdmin))).toContain('Voucher')
-    expect(labels(visibleGroups(superAdmin))).toContain('Nhật ký')
-    expect(labels(visibleGroups(superAdmin))).toContain('Thư viện ảnh')
-    expect(labels(visibleGroups(superAdmin))).not.toContain('Tồn kho')
-    expect(labels(visibleGroups(superAdmin))).not.toContain('Bộ sưu tập')
+    const visibleLabels = labels(visibleGroups(superAdmin))
+    expect(visibleLabels).toContain('Voucher')
+    expect(visibleLabels).toContain('Nhật ký')
+    expect(visibleLabels).toContain('Thư viện ảnh')
+    expect(visibleLabels).not.toContain('Duyệt SEO')
+    expect(visibleLabels).not.toContain('Tồn kho')
+    expect(visibleLabels).not.toContain('Bộ sưu tập')
   })
   it('loại bỏ group rỗng (không có tiêu đề mồ côi)', () => {
     const groups = visibleGroups(orderStaff)

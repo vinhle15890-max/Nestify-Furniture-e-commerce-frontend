@@ -7,10 +7,10 @@ function invalidateProductMedia(queryClient, productId) {
   queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] })
 }
 
-export function useAdminProducts(page) {
+export function useAdminProducts({ page = 1, search = '' } = {}) {
   return useOffsetQuery({
-    queryKey: ['admin', 'products'],
-    queryFn: productsApi.getProducts,
+    queryKey: ['admin', 'products', { search }],
+    queryFn: (currentPage) => productsApi.getProducts({ page: currentPage, search: search || undefined }),
     page,
   })
 }

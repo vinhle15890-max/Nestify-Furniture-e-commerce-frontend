@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Layers, Pencil, Plus, ImagePlus } from 'lucide-react'
+import { AlertTriangle, Layers, Pencil, ImagePlus } from 'lucide-react'
 import { BackLink } from '../../../components/BackLink'
 import { Button } from '../../../components/Button'
 import { Badge } from '../../../components/Badge'
@@ -270,11 +270,6 @@ function ProductEditor({ initialProduct }) {
     }
   }
 
-  const openCreateVariantModal = () => {
-    setEditingVariant(null)
-    setVariantModalOpen(true)
-  }
-
   const openEditVariantModal = (variant) => {
     setEditingVariant(variant)
     setVariantModalOpen(true)
@@ -483,7 +478,7 @@ function ProductEditor({ initialProduct }) {
         <TabPanel value="bien-the">
           <div className="flex flex-col gap-6">
             <Panel padded={false}>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+              <div className="border-b border-border px-5 py-4">
                 <div className="min-w-0">
                   <h3 className="flex items-center gap-2 font-display text-lg text-foreground">
                     <Layers size={18} className="text-accent" aria-hidden="true" />
@@ -493,10 +488,6 @@ function ProductEditor({ initialProduct }) {
                     {allVariants.length} biến thể · giá &amp; tồn kho
                   </p>
                 </div>
-                <Button onClick={openCreateVariantModal}>
-                  <Plus size={16} aria-hidden="true" />
-                  Thêm biến thể
-                </Button>
               </div>
 
               {allVariants.length === 0 ? (
@@ -504,13 +495,7 @@ function ProductEditor({ initialProduct }) {
                   illustration="package"
                   icon={Layers}
                   title="Chưa có biến thể nào"
-                  description="Thêm biến thể đầu tiên để thiết lập SKU, giá bán và tồn kho cho sản phẩm này."
-                  action={
-                    <Button onClick={openCreateVariantModal}>
-                      <Plus size={16} aria-hidden="true" />
-                      Thêm biến thể
-                    </Button>
-                  }
+                  description="Thêm thuộc tính và nhập giá, tồn kho ở phần bên dưới để tạo các biến thể phù hợp."
                 />
               ) : (
                 <>

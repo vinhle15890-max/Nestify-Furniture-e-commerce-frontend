@@ -77,7 +77,18 @@ describe('AdminProductsPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: '2' }))
 
-    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalledWith(2))
+    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalledWith({ page: 2, search: undefined }))
+  })
+
+  it('searches products through the server and resets pagination', async () => {
+    renderPage()
+    await screen.findByText('Ghế Sofa')
+    await userEvent.click(screen.getByRole('button', { name: '2' }))
+    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalledWith({ page: 2, search: undefined }))
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Tìm theo tên hoặc slug sản phẩm' }), 'sofa')
+
+    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalledWith({ page: 1, search: 'sofa' }))
   })
 
   it('navigates to the new-product page when adding a product', async () => {

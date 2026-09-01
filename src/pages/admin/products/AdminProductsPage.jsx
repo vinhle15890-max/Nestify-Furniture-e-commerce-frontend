@@ -5,6 +5,7 @@ import { Card } from '../../../components/Card'
 import { Badge } from '../../../components/Badge'
 import { Button } from '../../../components/Button'
 import { Pagination } from '../../../components/Pagination'
+import { SearchInput } from '../../../components/SearchInput'
 import { Spinner } from '../../../components/Spinner'
 import { LoadErrorState } from '../../../components/LoadErrorState'
 import { PageHeader } from '../../../components/admin/PageHeader'
@@ -21,8 +22,9 @@ const STATUS_LABELS = {
 
 export function AdminProductsPage() {
   const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(() => new Set())
-  const { data, isLoading, isError, isFetching, refetch } = useAdminProducts(page)
+  const { data, isLoading, isError, isFetching, refetch } = useAdminProducts({ page, search })
   const bulk = useBulkGenerateSeo()
   const addToast = useToastStore((state) => state.addToast)
   const navigate = useNavigate()
@@ -85,7 +87,18 @@ export function AdminProductsPage() {
         </div>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 max-w-md">
+        <SearchInput
+          placeholder="Tìm theo tên hoặc slug sản phẩm"
+          onDebouncedChange={(value) => {
+            setSearch(value)
+            setPage(1)
+            setSelected(new Set())
+          }}
+        />
+      </div>
+
+      <div className="mt-3">
         {isLoading ? (
           <Spinner label="Đang tải sản phẩm..." />
         ) : isError && !data ? (
@@ -94,8 +107,8 @@ export function AdminProductsPage() {
           <Card>
             <EmptyState
               illustration="sofa"
-              title="Chưa có sản phẩm nào"
-              description="Thêm sản phẩm đầu tiên để bắt đầu bán."
+              title={search ? 'Không tìm thấy sản phẩm' : 'Chưa có sản phẩm nào'}
+              description={search ? `Không có sản phẩm phù hợp với “${search}”.` : 'Thêm sản phẩm đầu tiên để bắt đầu bán.'}
             />
           </Card>
         ) : (
