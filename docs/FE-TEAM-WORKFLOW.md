@@ -10,7 +10,7 @@
 > `../../Nestify-Furniture-e-commerce-backend/docs/defense-question-bank.md` (ngân hàng câu hỏi phản biện).
 > Dated specs/plans và `TASKS.md` là work records, không cần đọc để hiểu current state trong tài liệu này.
 
-### Bản đồ nối với kịch bản và Backend
+### Bản đồ nối với kịch bản và Backend.
 
 Tài liệu này là lớp giải thích **phía giao diện**. Thứ tự nói/demo nằm trong
 [Kịch bản bảo vệ 6 thành viên](../../Nestify-Furniture-e-commerce-backend/docs/KICH_BAN_THUYET_TRINH_NESTIFY_THEO_SLIDE_MOI.md); transaction, concurrency và
