@@ -53,6 +53,19 @@ describe('ProductCard', () => {
     expect(screen.getByText('5.990.000 ₫')).toBeInTheDocument()
   })
 
+  it('shows the original price beside an active sale price', () => {
+    renderCard({
+      ...product,
+      base_price: 4990000,
+      variants: [
+        { id: 42, price: 4990000, regular_price: 5990000, is_on_sale: true, is_active: true },
+      ],
+    })
+
+    expect(screen.getByText('4.990.000 ₫')).toBeInTheDocument()
+    expect(screen.getByText('5.990.000 ₫').tagName).toBe('DEL')
+  })
+
   it('adds to the wishlist directly from the catalog card without navigating', async () => {
     useAuthStore.setState({ token: 'customer-token', user: { id: 7, roles: ['customer'] } })
     wishlistApi.addItem.mockResolvedValue({ data: { id: 9 } })

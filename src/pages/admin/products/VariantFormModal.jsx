@@ -209,6 +209,7 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
     try {
       const response = await adjustStock.mutateAsync({
         id: variant.id,
+        operation: delta > 0 ? 'inventory_gain' : 'inventory_loss',
         quantity_delta: delta,
         reason: stockReason.trim(),
         idempotency_key: `admin:${variant.id}:${crypto.randomUUID()}`,
@@ -295,9 +296,9 @@ export function VariantFormModal({ open, onOpenChange, productId, variant, onSav
           <Input label="Tên biến thể" id="variant-name" error={errors.name?.message} {...register('name')} />
         )}
 
-        <Input label="Giá" id="variant-price" type="number" error={errors.price?.message} {...register('price')} />
+        <Input label="Giá gốc" id="variant-price" type="number" error={errors.price?.message} {...register('price')} />
         <section className="grid gap-3 rounded-control border border-border p-4 sm:grid-cols-2">
-          <div className="sm:col-span-2"><h3 className="font-medium text-foreground">Lịch giảm giá</h3><p className="mt-1 text-xs text-muted-foreground">Server tự áp dụng trong khoảng thời gian này; để trống giá sale để tắt.</p></div>
+          <div className="sm:col-span-2"><h3 className="font-medium text-foreground">Lịch giảm giá</h3><p className="mt-1 text-xs text-muted-foreground">Giá gốc sẽ được gạch cạnh giá sale trên storefront. Server tự áp dụng trong khoảng thời gian này; để trống giá sale để tắt.</p></div>
           <Input label="Giá sale" id="sale_price" type="number" error={errors.sale_price?.message} {...register('sale_price')} />
           <div />
           <Input label="Bắt đầu" id="sale_starts_at" type="datetime-local" error={errors.sale_starts_at?.message} {...register('sale_starts_at')} />

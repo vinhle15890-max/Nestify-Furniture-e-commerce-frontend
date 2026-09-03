@@ -28,4 +28,15 @@ describe('DiscoverProductUnit', () => {
     expect(screen.getByText('Từ 3.200.000 ₫')).toBeInTheDocument()
     expect(screen.queryByText(/Chất liệu:/)).not.toBeInTheDocument()
   })
+
+  it('keeps the original price visible when the lowest variant is on sale', () => {
+    render(<DiscoverProductUnit product={{
+      ...product,
+      base_price: 2800000,
+      variants: [{ id: 9, price: 2800000, regular_price: 3200000, is_on_sale: true, is_active: true }],
+    }} />, { wrapper: MemoryRouter })
+
+    expect(screen.getByText('Từ 2.800.000 ₫')).toBeInTheDocument()
+    expect(screen.getByText('3.200.000 ₫').tagName).toBe('DEL')
+  })
 })
