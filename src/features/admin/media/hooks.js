@@ -2,10 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useOffsetQuery } from '../../../lib/pagination'
 import * as mediaApi from './api'
 
-export function useMediaLibrary({ page = 1, search = '', enabled = true } = {}) {
+export function useMediaLibrary({ page = 1, search = '', type, enabled = true } = {}) {
   return useOffsetQuery({
-    queryKey: ['admin', 'media', { search }],
-    queryFn: (p) => mediaApi.listMedia({ page: p, search: search || undefined }),
+    queryKey: ['admin', 'media', { search, type }],
+    queryFn: (p) => mediaApi.listMedia({ page: p, search: search || undefined, type }),
     page,
     enabled,
   })

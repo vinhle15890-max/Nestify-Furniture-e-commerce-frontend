@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Layers, Pencil, Plus, ImagePlus } from 'lucide-react'
+import { AlertTriangle, Layers, Pencil, ImagePlus } from 'lucide-react'
 import { BackLink } from '../../../components/BackLink'
 import { Button } from '../../../components/Button'
 import { Badge } from '../../../components/Badge'
@@ -270,11 +270,6 @@ function ProductEditor({ initialProduct }) {
     }
   }
 
-  const openCreateVariantModal = () => {
-    setEditingVariant(null)
-    setVariantModalOpen(true)
-  }
-
   const openEditVariantModal = (variant) => {
     setEditingVariant(variant)
     setVariantModalOpen(true)
@@ -297,9 +292,9 @@ function ProductEditor({ initialProduct }) {
     try {
       const response = await attachMedia.mutateAsync({ productId: product.id, mediaAssetIds: assets.map((a) => a.id) })
       setProduct((current) => ({ ...current, media: response.data }))
-      addToast({ title: 'Đã thêm ảnh vào sản phẩm.', variant: 'success' })
+      addToast({ title: 'Đã thêm ảnh hoặc video vào sản phẩm.', variant: 'success' })
     } catch (error) {
-      addToast({ title: 'Không thể thêm ảnh.', description: error.message, variant: 'error' })
+      addToast({ title: 'Không thể thêm ảnh hoặc video.', description: error.message, variant: 'error' })
     }
   }
 
@@ -307,9 +302,9 @@ function ProductEditor({ initialProduct }) {
     try {
       await deleteMedia.mutateAsync({ productId: product.id, mediaId: media.id })
       setProduct((current) => ({ ...current, media: (current.media ?? []).filter((item) => item.id !== media.id) }))
-      addToast({ title: 'Đã gỡ ảnh khỏi sản phẩm.', variant: 'success' })
+      addToast({ title: 'Đã gỡ ảnh hoặc video khỏi sản phẩm.', variant: 'success' })
     } catch (error) {
-      addToast({ title: 'Không thể gỡ ảnh.', description: error.message, variant: 'error' })
+      addToast({ title: 'Không thể gỡ ảnh hoặc video.', description: error.message, variant: 'error' })
     }
   }
 
@@ -399,7 +394,7 @@ function ProductEditor({ initialProduct }) {
           <Tab value="thong-so" hasError={erroredTabs.has('thong-so')}>Thông số &amp; chính sách</Tab>
           <Tab value="bien-the">Biến thể</Tab>
           <Tab value="mo-ta-seo" hasError={erroredTabs.has('mo-ta-seo')}>Mô tả &amp; SEO</Tab>
-          <Tab value="hinh-anh">Hình ảnh</Tab>
+          <Tab value="hinh-anh">Hình ảnh &amp; Video</Tab>
         </TabList>
 
         {/* THÔNG TIN — metadata fields (no inner <form>; Save is global) */}
@@ -483,7 +478,7 @@ function ProductEditor({ initialProduct }) {
         <TabPanel value="bien-the">
           <div className="flex flex-col gap-6">
             <Panel padded={false}>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+              <div className="border-b border-border px-5 py-4">
                 <div className="min-w-0">
                   <h3 className="flex items-center gap-2 font-display text-lg text-foreground">
                     <Layers size={18} className="text-accent" aria-hidden="true" />
@@ -493,10 +488,6 @@ function ProductEditor({ initialProduct }) {
                     {allVariants.length} biến thể · giá &amp; tồn kho
                   </p>
                 </div>
-                <Button onClick={openCreateVariantModal}>
-                  <Plus size={16} aria-hidden="true" />
-                  Thêm biến thể
-                </Button>
               </div>
 
               {allVariants.length === 0 ? (
@@ -504,13 +495,7 @@ function ProductEditor({ initialProduct }) {
                   illustration="package"
                   icon={Layers}
                   title="Chưa có biến thể nào"
-                  description="Thêm biến thể đầu tiên để thiết lập SKU, giá bán và tồn kho cho sản phẩm này."
-                  action={
-                    <Button onClick={openCreateVariantModal}>
-                      <Plus size={16} aria-hidden="true" />
-                      Thêm biến thể
-                    </Button>
-                  }
+                  description="Thêm thuộc tính và nhập giá, tồn kho ở phần bên dưới để tạo các biến thể phù hợp."
                 />
               ) : (
                 <>
@@ -648,8 +633,8 @@ function ProductEditor({ initialProduct }) {
 
             <div className="p-5">
               <div className="mb-5 rounded-card border border-border bg-surface-alt/50 px-4 py-3 text-sm leading-6 text-muted-foreground">
-                <strong className="font-medium text-foreground">Phạm vi ảnh</strong> chỉ quyết định gallery: ảnh dùng chung xuất hiện
-                cùng ảnh riêng sau khi khách chọn phiên bản. <strong className="font-medium text-foreground">Ảnh đại diện</strong> là
+                <strong className="font-medium text-foreground">Phạm vi media</strong> chỉ quyết định gallery: tệp dùng chung xuất hiện
+                cùng tệp riêng sau khi khách chọn phiên bản. <strong className="font-medium text-foreground">Ảnh đại diện</strong> là
                 lựa chọn độc lập dùng cho card sản phẩm và trạng thái chưa chọn.
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
@@ -680,13 +665,13 @@ function ProductEditor({ initialProduct }) {
                     ) : null}
                     {product.variants?.length > 0 && (
                       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                        Phạm vi ảnh
+                        Phạm vi ảnh/video
                         <select
                           value={media.variant_id ?? ''}
                           onChange={(event) => handleTagMedia(media, event.target.value)}
                           className="rounded-control border border-border bg-background px-2 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          <option value="">Ảnh dùng chung</option>
+                          <option value="">Dùng chung</option>
                           {product.variants.map((variant) => (
                             <option key={variant.id} value={variant.id}>
                               {variant.name}
@@ -731,13 +716,14 @@ function ProductEditor({ initialProduct }) {
 
               <div className="mt-4">
                 <Button type="button" variant="secondary" onClick={() => setPickerOpen(true)}>
-                  Thêm ảnh
+                  Thêm ảnh / video
                 </Button>
               </div>
               <MediaLibraryModal
                 open={pickerOpen}
                 onClose={() => setPickerOpen(false)}
                 multiple
+                accept="image/*,video/mp4,video/quicktime,video/webm"
                 attachedAssetIds={attachedAssetIds}
                 onSelect={handleAttachMedia}
               />

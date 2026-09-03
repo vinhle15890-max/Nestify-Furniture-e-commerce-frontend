@@ -1,8 +1,8 @@
 import { apiClient } from '../../../lib/apiClient'
 import axios from 'axios'
 
-export function getProducts(page) {
-  return apiClient.get('/admin/products', { params: { page } })
+export function getProducts({ page = 1, search } = {}) {
+  return apiClient.get('/admin/products', { params: { page, search } })
 }
 
 export function getProduct(id) {

@@ -126,7 +126,7 @@ describe('AdminProductEditPage', () => {
       </QueryClientProvider>,
     )
 
-    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh & Video' }))
     expect(await screen.findByText('Ảnh · Thứ tự 1')).toBeInTheDocument()
     expect(screen.getByText('Ảnh · Thứ tự 2')).toBeInTheDocument()
     expect(productsApi.getProduct).toHaveBeenCalledWith(1)
@@ -265,115 +265,13 @@ describe('AdminProductEditPage', () => {
     expect(await screen.findAllByRole('button', { name: 'Dùng bản này' })).toHaveLength(2)
   })
 
-  it('adds a new variant', async () => {
-    productsApi.createVariant.mockResolvedValue({
-      data: { id: 200, sku: 'SOFA-XAM', name: 'Xám', price: 5500000, available_stock: 3, is_active: true, model_3d_url: null },
-    })
+  it('uses the attribute matrix as the only way to add variants', async () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
     await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-    expect(screen.queryByText(/Flash Sale/)).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Số lượng dành cho Flash Sale')).not.toBeInTheDocument()
-    await userEvent.type(screen.getByLabelText('SKU'), 'SOFA-XAM')
-    await userEvent.type(screen.getByLabelText('Tên biến thể'), 'Xám')
-    await userEvent.type(screen.getByLabelText('Giá'), '5500000')
-    await userEvent.type(screen.getByLabelText('Số lượng kho'), '3')
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-
-    await waitFor(() =>
-      expect(productsApi.createVariant).toHaveBeenCalledWith(
-        1,
-        expect.objectContaining({ sku: 'SOFA-XAM', name: 'Xám', price: 5500000, stock_quantity: 3 }),
-      ),
-    )
-    expect(await screen.findByText('SOFA-XAM')).toBeInTheDocument()
-  })
-
-  it('omits SKU so the server auto-generates it when left blank', async () => {
-    productsApi.createVariant.mockResolvedValue({
-      data: { id: 201, sku: 'GHE-SOFA-01', name: 'Be', price: 5000000, available_stock: 2, is_active: true, model_3d_url: null },
-    })
-    renderPage()
-    await screen.findByLabelText('Tên sản phẩm')
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-    // SKU left blank on purpose
-    await userEvent.type(screen.getByLabelText('Tên biến thể'), 'Be')
-    await userEvent.type(screen.getByLabelText('Giá'), '5000000')
-    await userEvent.type(screen.getByLabelText('Số lượng kho'), '2')
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-
-    await waitFor(() => expect(productsApi.createVariant).toHaveBeenCalledTimes(1))
-    expect(productsApi.createVariant.mock.calls[0][1].sku).toBeUndefined()
-    expect(productsApi.createVariant.mock.calls[0][1]).toEqual(expect.objectContaining({ name: 'Be', stock_quantity: 2 }))
-  })
-
-  it('adds a variant by selecting attribute values when the product has options', async () => {
-    const productWithOptions = {
-      ...baseProduct,
-      id: 2,
-      variant_options: [
-        { name: 'Màu sắc', type: 'color', values: [{ label: 'Đỏ', hex: '#C0392B' }, { label: 'Xanh', hex: '#2E5FCC' }] },
-        { name: 'Kích thước', type: 'text', values: [{ label: 'S' }, { label: 'M' }] },
-      ],
-      variants: [
-        { id: 150, sku: 'X-M', name: 'Xanh / M', attributes: { 'Màu sắc': 'Xanh', 'Kích thước': 'M' }, price: 1000, available_stock: 1, is_active: true, model_3d_url: null },
-      ],
-    }
-    productsApi.createVariant.mockResolvedValue({
-      data: { id: 300, sku: 'D-S', name: 'Đỏ / S', price: 1200, available_stock: 4, is_active: true, model_3d_url: null },
-    })
-    renderPage(productWithOptions)
-    await screen.findByLabelText('Tên sản phẩm')
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-
-    // Sản phẩm có thuộc tính → KHÔNG có ô nhập tên tự do, thay bằng selector từng thuộc tính.
-    expect(screen.queryByLabelText('Tên biến thể')).not.toBeInTheDocument()
-    await userEvent.selectOptions(screen.getByLabelText('Màu sắc'), 'Đỏ')
-    await userEvent.selectOptions(screen.getByLabelText('Kích thước'), 'S')
-    await userEvent.type(screen.getByLabelText('Giá'), '1200')
-    await userEvent.type(screen.getByLabelText('Số lượng kho'), '4')
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-
-    await waitFor(() =>
-      expect(productsApi.createVariant).toHaveBeenCalledWith(
-        2,
-        expect.objectContaining({ attributes: { 'Màu sắc': 'Đỏ', 'Kích thước': 'S' }, price: 1200, stock_quantity: 4 }),
-      ),
-    )
-    // Không gửi name tự do khi có thuộc tính (BE tự suy ra tên).
-    expect(productsApi.createVariant.mock.calls[0][1].name).toBeUndefined()
-  })
-
-  it('blocks a duplicate attribute combination in the variant modal', async () => {
-    const productWithOptions = {
-      ...baseProduct,
-      id: 3,
-      variant_options: [
-        { name: 'Màu sắc', type: 'color', values: [{ label: 'Đỏ', hex: '#C0392B' }, { label: 'Xanh', hex: '#2E5FCC' }] },
-      ],
-      variants: [
-        { id: 160, sku: 'DO', name: 'Đỏ', attributes: { 'Màu sắc': 'Đỏ' }, price: 1000, available_stock: 1, is_active: true, model_3d_url: null },
-      ],
-    }
-    renderPage(productWithOptions)
-    await screen.findByLabelText('Tên sản phẩm')
-
-    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-
-    await userEvent.selectOptions(screen.getByLabelText('Màu sắc'), 'Đỏ')
-    await userEvent.type(screen.getByLabelText('Giá'), '1200')
-    await userEvent.type(screen.getByLabelText('Số lượng kho'), '4')
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm biến thể' }))
-
-    expect(await screen.findByText('Tổ hợp thuộc tính này đã có biến thể.')).toBeInTheDocument()
-    expect(productsApi.createVariant).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Thêm biến thể' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Thêm thuộc tính' })).toBeInTheDocument()
   })
 
   it('edits an existing variant', async () => {
@@ -417,8 +315,8 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm ảnh / video' }))
 
     const image = await screen.findByAltText('Ảnh thư viện')
     await userEvent.click(image.closest('button'))
@@ -434,7 +332,7 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
 
     const detachButtons = screen.getAllByRole('button', { name: 'Gỡ' })
     await userEvent.click(detachButtons[0])
@@ -452,7 +350,7 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
 
     const moveDownButtons = screen.getAllByRole('button', { name: 'Xuống' })
     await userEvent.click(moveDownButtons[0])
@@ -467,9 +365,9 @@ describe('AdminProductEditPage', () => {
     renderPage()
     await screen.findByLabelText('Tên sản phẩm')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Hình ảnh & Video' }))
 
-    const selects = screen.getAllByLabelText('Phạm vi ảnh')
+    const selects = screen.getAllByLabelText('Phạm vi ảnh/video')
     await userEvent.selectOptions(selects[0], '100')
 
     await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, { variant_id: 100 }))
@@ -480,13 +378,13 @@ describe('AdminProductEditPage', () => {
       data: { ...baseProduct.media[0], variant_id: null, is_thumbnail: true },
     })
     renderPage()
-    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh' }))
+    await userEvent.click(await screen.findByRole('tab', { name: 'Hình ảnh & Video' }))
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Đặt làm ảnh đại diện' })[0])
 
     await waitFor(() => expect(productsApi.updateMedia).toHaveBeenCalledWith(1, 10, { is_thumbnail: true }))
     expect((await screen.findAllByText('Ảnh đại diện')).length).toBeGreaterThanOrEqual(2)
-    expect(screen.getAllByLabelText('Phạm vi ảnh')[0]).toHaveValue('')
+    expect(screen.getAllByLabelText('Phạm vi ảnh/video')[0]).toHaveValue('')
   })
 
   it('switches to the info tab and flags it when a required field is missing on submit', async () => {

@@ -149,6 +149,7 @@ describe('AdminOrdersPage', () => {
     expect(screen.getByText('COD · Không thu được tiền')).toBeInTheDocument()
     expect(screen.getByText('PayOS · Chờ khách thanh toán')).toBeInTheDocument()
     expect(screen.getByText('PayOS · Thanh toán thất bại / hết hạn')).toBeInTheDocument()
+    expect(screen.getByText('PayOS · Thanh toán thất bại / hết hạn').closest('td')).toHaveClass('whitespace-nowrap')
     expect(screen.queryByText(/Chưa thu \/ thất bại/)).not.toBeInTheDocument()
   })
 

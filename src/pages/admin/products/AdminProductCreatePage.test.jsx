@@ -117,6 +117,6 @@ describe('AdminProductCreatePage', () => {
   it('locks the variants and images tabs until the product is saved', async () => {
     renderPage()
     expect(await screen.findByRole('tab', { name: 'Biến thể' })).toBeDisabled()
-    expect(screen.getByRole('tab', { name: 'Hình ảnh' })).toBeDisabled()
+    expect(screen.getByRole('tab', { name: 'Hình ảnh & Video' })).toBeDisabled()
   })
 })

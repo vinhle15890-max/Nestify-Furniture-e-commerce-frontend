@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MediaLibraryModal } from './MediaLibraryModal'
@@ -14,6 +14,7 @@ function renderModal(props = {}) {
       <MediaLibraryModal
         open
         multiple
+        accept={props.accept}
         onClose={props.onClose ?? (() => {})}
         onSelect={props.onSelect ?? (() => {})}
       />
@@ -68,5 +69,29 @@ describe('MediaLibraryModal', () => {
     expect(screen.getByRole('searchbox', { name: 'Tìm theo tên hoặc mô tả ảnh' }))
       .toHaveClass('w-full')
     expect(screen.getByRole('dialog')).toHaveClass('!max-w-3xl')
+  })
+
+  it('exposes video upload copy and accepted formats when the caller allows video', async () => {
+    mediaApi.uploadMedia.mockResolvedValue({
+      data: { id: 2, url: 'demo.mp4', type: 'video', usage_count: 0 },
+    })
+    renderModal({ accept: 'image/*,video/mp4,video/quicktime,video/webm' })
+
+    expect(screen.getByRole('heading', { name: 'Thư viện ảnh và video' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Tải lên' }))
+
+    expect(screen.getByRole('button', { name: 'Chọn ảnh hoặc video để tải lên' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Tệp ảnh hoặc video')).toHaveAttribute(
+      'accept',
+      'image/*,video/mp4,video/quicktime,video/webm',
+    )
+
+    const video = new File(['video'], 'demo.mp4', { type: 'video/mp4' })
+    await userEvent.upload(screen.getByLabelText('Tệp ảnh hoặc video'), video)
+
+    await waitFor(() => expect(mediaApi.uploadMedia).toHaveBeenCalled())
+    const payload = mediaApi.uploadMedia.mock.calls[0][0]
+    expect(payload.get('type')).toBe('video')
+    expect(payload.get('file')).toEqual(video)
   })
 })
