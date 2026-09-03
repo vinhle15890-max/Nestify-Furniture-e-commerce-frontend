@@ -77,7 +77,12 @@ export function ProductCard({ product }) {
           <h3 className="pr-12 text-lg font-medium leading-snug text-ink transition-colors duration-200 group-hover:text-ink/60">
             {product.name}
           </h3>
-          <p className="mt-auto pt-1 text-base font-medium text-ink">{formatPrice(product.base_price)}</p>
+          <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-1 tabular-nums">
+            <p className="text-base font-medium text-ink">{formatPrice(product.base_price)}</p>
+            {wishlistVariant?.is_on_sale && Number(wishlistVariant.regular_price) > Number(product.base_price) && (
+              <del className="text-sm text-ink/50">{formatPrice(wishlistVariant.regular_price)}</del>
+            )}
+          </div>
         </div>
       </Link>
       {wishlistVariant && !isStaff(user) && (

@@ -276,6 +276,7 @@ function ProductEditor({ initialProduct }) {
   }
 
   const handleVariantSaved = (variant) => {
+    setEditingVariant((current) => current?.id === variant.id ? variant : current)
     setProduct((current) => {
       const variants = current.variants ?? []
       const index = variants.findIndex((item) => item.id === variant.id)

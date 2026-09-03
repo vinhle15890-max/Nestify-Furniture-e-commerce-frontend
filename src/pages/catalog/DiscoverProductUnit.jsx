@@ -17,6 +17,15 @@ function productDifferentiator(product) {
 
 export function DiscoverProductUnit({ product }) {
   const differentiator = productDifferentiator(product)
+  const lowestVariant = product.variants
+    ?.filter((variant) => variant.is_active !== false)
+    .reduce((selected, variant) => (
+      !selected || Number(variant.price) < Number(selected.price) ? variant : selected
+    ), null)
+  const originalPrice = lowestVariant?.is_on_sale
+    && Number(lowestVariant.regular_price) > Number(product.base_price)
+    ? lowestVariant.regular_price
+    : null
 
   return (
     <article data-testid="discover-product-unit" className="group min-w-0">
@@ -50,7 +59,10 @@ export function DiscoverProductUnit({ product }) {
             <Heart size={18} aria-hidden="true" />
           </Link>
         </div>
-        <p className={`mt-1.5 text-sm text-ink/75 ${numericClassName}`}>Từ {formatPrice(product.base_price)}</p>
+        <div className={`mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm ${numericClassName}`}>
+          <p className="font-medium text-ink">Từ {formatPrice(product.base_price)}</p>
+          {originalPrice != null && <del className="text-xs text-ink/50">{formatPrice(originalPrice)}</del>}
+        </div>
         {differentiator && <p className="mt-1 line-clamp-1 text-xs text-ink/55">{differentiator}</p>}
       </div>
     </article>

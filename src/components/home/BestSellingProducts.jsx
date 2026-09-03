@@ -7,6 +7,28 @@ import { Link } from 'react-router-dom'
 import { useBestSellers } from '../../features/catalog/hooks'
 import { formatPrice } from '../../lib/format'
 
+function originalPrice(product) {
+  const lowestVariant = product.variants
+    ?.filter((variant) => variant.is_active !== false)
+    .reduce((selected, variant) => (
+      !selected || Number(variant.price) < Number(selected.price) ? variant : selected
+    ), null)
+
+  return lowestVariant?.is_on_sale && Number(lowestVariant.regular_price) > Number(product.base_price)
+    ? lowestVariant.regular_price
+    : null
+}
+
+function ProductPrice({ product, compact = false }) {
+  const regularPrice = originalPrice(product)
+  return (
+    <span className={`mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 tabular-nums ${compact ? 'text-sm' : 'text-base'}`}>
+      <span className={compact ? 'text-ink/65' : 'font-medium text-ink'}>{formatPrice(product.base_price)}</span>
+      {regularPrice != null && <del className="text-xs text-ink/45">{formatPrice(regularPrice)}</del>}
+    </span>
+  )
+}
+
 function ProductImage({ product, className }) {
   if (!product.thumbnail) {
     return (
@@ -63,7 +85,7 @@ export function BestSellingProducts() {
             <div className="mt-5 flex min-w-0 items-start justify-between gap-5">
               <div className="min-w-0">
                 <h3 className="text-xl font-medium leading-snug text-ink transition-colors duration-200 group-hover:text-ink/60">{leader.name}</h3>
-                <p className="mt-1 text-base font-medium tabular-nums text-ink">{formatPrice(leader.base_price)}</p>
+                <ProductPrice product={leader} />
               </div>
               <ArrowUpRight size={21} className="mt-1 shrink-0 text-ink transition-transform duration-200 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
             </div>
@@ -83,7 +105,7 @@ export function BestSellingProducts() {
                     <ProductImage product={product} className="aspect-square w-full rounded-control transition-opacity duration-200 group-hover:opacity-80" />
                     <span className="min-w-0">
                       <span className="block text-base font-medium leading-snug text-ink">{product.name}</span>
-                      <span className="mt-1 block text-sm tabular-nums text-ink/65">{formatPrice(product.base_price)}</span>
+                      <ProductPrice product={product} compact />
                     </span>
                     <ArrowUpRight size={18} className="shrink-0 text-ink/55 transition-transform duration-200 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
                   </Link>

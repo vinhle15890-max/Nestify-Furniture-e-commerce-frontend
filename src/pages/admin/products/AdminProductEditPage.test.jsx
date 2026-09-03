@@ -301,6 +301,35 @@ describe('AdminProductEditPage', () => {
     expect(await screen.findByRole('cell', { name: 'Nâu đậm' })).toBeInTheDocument()
   })
 
+  it('adjusts stock with the matching inventory operation and refreshes the modal balance', async () => {
+    productsApi.adjustVariantStock.mockResolvedValue({
+      data: {
+        ...baseProduct.variants[0],
+        stock_quantity: 8,
+        reserved_quantity: 2,
+        available_stock: 6,
+      },
+    })
+    renderPage({
+      ...baseProduct,
+      variants: [{ ...baseProduct.variants[0], stock_quantity: 5, reserved_quantity: 2, available_stock: 3 }],
+    })
+    await screen.findByLabelText('Tên sản phẩm')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Biến thể' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa biến thể' }))
+    await userEvent.type(await screen.findByLabelText('Số lượng tăng/giảm'), '3')
+    await userEvent.type(screen.getByLabelText('Lý do kiểm kê'), 'Kiểm kê bổ sung')
+    await userEvent.click(screen.getByRole('button', { name: 'Ghi nhận điều chỉnh' }))
+
+    await waitFor(() => expect(productsApi.adjustVariantStock).toHaveBeenCalledWith(100, expect.objectContaining({
+      operation: 'inventory_gain',
+      quantity_delta: 3,
+      reason: 'Kiểm kê bổ sung',
+    })))
+    expect(await screen.findByText(/On-hand 8 · Đang giữ 2 · Có thể bán 6/)).toBeInTheDocument()
+  })
+
   it('attaches media picked from the library modal', async () => {
     mediaApi.listMedia.mockResolvedValue({
       data: [{ id: 5, url: 'https://example.com/lib.jpg', alt_text: 'Ảnh thư viện', usage_count: 0 }],
