@@ -30,7 +30,10 @@ describe('App routes', () => {
     vi.clearAllMocks()
     useAuthStore.setState({ token: null, user: null, adminToken: null, adminUser: null })
     catalogApi.getCategories.mockResolvedValue({ data: [] })
+    catalogApi.getFeaturedProducts.mockResolvedValue({ data: [] })
     catalogApi.getBestSellers.mockResolvedValue({ data: [] })
+    catalogApi.getCollections.mockResolvedValue({ data: [] })
+    catalogApi.getProductReviews.mockResolvedValue({ data: [] })
     catalogApi.getCategory.mockResolvedValue({
       data: { id: 1, name: 'Phòng khách', slug: 'phong-khach', children: [] },
     })
