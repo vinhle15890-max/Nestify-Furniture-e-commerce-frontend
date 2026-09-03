@@ -67,4 +67,29 @@ describe('AccountPage', () => {
 
     await waitFor(() => expect(useAuthStore.getState().token).toBeNull())
   })
+
+  it('shows the public order number while keeping the internal id in the detail link', async () => {
+    useAuthStore.setState({
+      token: 'abc123',
+      user: { id: 1, name: 'Bao', email: 'bao@example.com', email_verified_at: '2026-06-01T00:00:00Z' },
+    })
+    authApi.getMe.mockResolvedValue({
+      data: { id: 1, name: 'Bao', email: 'bao@example.com', email_verified_at: '2026-06-01T00:00:00Z' },
+    })
+    ordersApi.getOrders.mockResolvedValue({
+      data: [{
+        id: 24,
+        order_number: 'NES-260903-0024',
+        status: 'cancelled',
+        created_at: '2026-09-03T17:53:00Z',
+        total: 10000,
+      }],
+    })
+
+    renderPage()
+
+    const orderLink = await screen.findByRole('link', { name: /Đơn NES-260903-0024/ })
+    expect(orderLink).toHaveAttribute('href', '/orders/24')
+    expect(screen.queryByText('Đơn #24')).not.toBeInTheDocument()
+  })
 })

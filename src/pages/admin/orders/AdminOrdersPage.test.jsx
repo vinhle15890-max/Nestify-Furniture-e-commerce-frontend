@@ -132,6 +132,21 @@ describe('AdminOrdersPage', () => {
     })
   })
 
+  it.each([
+    ['/admin/orders?confirmation_queue=awaiting_online_payment&status_group=closed', { statusGroup: 'closed' }],
+    ['/admin/orders?confirmation_queue=awaiting_online_payment&status=delivered', { status: 'delivered' }],
+  ])('drops a conflicting dashboard confirmation queue from %s', async (url, expectedFilter) => {
+    renderPage(url)
+
+    await screen.findByText('Bao Le')
+    await waitFor(() => expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.objectContaining({
+      ...expectedFilter,
+    })))
+    expect(ordersApi.getOrders).toHaveBeenCalledWith(expect.not.objectContaining({
+      confirmationQueue: expect.anything(),
+    }))
+  })
+
   it('keeps pending payment separate from failed collection outcomes', async () => {
     ordersApi.getOrders.mockResolvedValue({
       ...ordersResponse,

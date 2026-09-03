@@ -23,7 +23,9 @@ import { returnReasonCategoryLabel } from '../../../features/orders/returnReason
 function findOrderInCache(queryClient, orderId) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['admin', 'orders'] })
   for (const query of queries) {
-    const found = query.state.data?.data?.find((item) => item.id === orderId)
+    const cachedOrders = query.state.data?.data
+    if (!Array.isArray(cachedOrders)) continue
+    const found = cachedOrders.find((item) => item.id === orderId)
     if (found) return found
   }
   return null
@@ -212,7 +214,7 @@ export function AdminOrderDetailPage() {
     ? Number(payment.refundable_amount ?? Math.max(0, Number(payment.amount) - Number(payment.refunded_amount) - Number(payment.refund_pending_amount ?? 0)))
     : 0
   const refundRecordedByCancellation = order.cancellation?.refund_recorded === true
-  const refunds = order.refunds ?? []
+  const refunds = Array.isArray(order.refunds) ? order.refunds : Object.values(order.refunds ?? {})
   const refundPriority = ['needs_review', 'processing', 'requested', 'failed', 'succeeded']
   const focusedRefund = refundPriority
     .map((status) => refunds.find((refund) => refund.status === status))
