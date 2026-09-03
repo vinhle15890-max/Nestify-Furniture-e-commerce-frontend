@@ -55,8 +55,10 @@ export function AdminOrdersPage() {
   const paymentMethod = searchParams.get('payment_method') ?? ''
   const paymentStatus = searchParams.get('payment_status') ?? ''
   const paymentQueue = searchParams.get('payment_queue') ?? ''
-  const confirmationQueue = searchParams.get('confirmation_queue') ?? ''
+  const requestedConfirmationQueue = searchParams.get('confirmation_queue') ?? ''
   const query = searchParams.get('q') ?? ''
+  const hasExplicitOperationalFilter = Boolean(status || statusGroup || paymentMethod || paymentStatus || paymentQueue)
+  const confirmationQueue = hasExplicitOperationalFilter ? '' : requestedConfirmationQueue
   const [searchDraft, setSearchDraft] = useState(query)
   const { data, isLoading, isError, isFetching, refetch } = useAdminOrders(page, status, paymentMethod, paymentStatus, '', { q: query, statusGroup, paymentQueue, confirmationQueue })
   const orders = data?.data ?? []
@@ -66,6 +68,16 @@ export function AdminOrdersPage() {
 
   useEffect(() => setSearchDraft(query), [query])
 
+  useEffect(() => {
+    if (!requestedConfirmationQueue || !hasExplicitOperationalFilter) return
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      next.delete('confirmation_queue')
+      next.delete('page')
+      return next
+    }, { replace: true })
+  }, [hasExplicitOperationalFilter, requestedConfirmationQueue, setSearchParams])
+
   const updateFilter = (mutate) => setSearchParams((current) => {
     const next = new URLSearchParams(current)
     mutate(next)
@@ -73,11 +85,13 @@ export function AdminOrdersPage() {
     return next
   })
   const selectOrderFilter = (filter) => updateFilter((next) => {
+    next.delete('confirmation_queue')
     next.delete('status')
     next.delete('status_group')
     if (filter.value) next.set(filter.group ? 'status_group' : 'status', filter.value)
   })
   const selectPaymentFilter = (filter) => updateFilter((next) => {
+    next.delete('confirmation_queue')
     next.delete('payment_method')
     next.delete('payment_status')
     next.delete('payment_queue')

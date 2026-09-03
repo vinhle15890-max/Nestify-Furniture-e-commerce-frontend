@@ -84,7 +84,7 @@ export function AccountPage() {
                 <h2 className="text-xl font-semibold text-foreground">Đơn hàng hiện tại</h2>
                 {currentOrder ? (
                   <Link to={`/orders/${currentOrder.id}`} className="mt-5 block rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <div className="flex items-center justify-between gap-3"><span className="font-medium text-foreground">Đơn #{currentOrder.id}</span><Badge tone={orderStatus.tone}>{orderStatus.label}</Badge></div>
+                    <div className="flex items-center justify-between gap-3"><span className="font-medium text-foreground">Đơn {currentOrder.order_number ?? `#${currentOrder.id}`}</span><Badge tone={orderStatus.tone}>{orderStatus.label}</Badge></div>
                     <p className="mt-2 text-sm text-muted-foreground">{formatDate(currentOrder.created_at)}</p>
                     <p className={`mt-3 font-semibold text-foreground ${numericClassName}`}>{formatPrice(currentOrder.total)}</p>
                   </Link>
