@@ -4,6 +4,8 @@ import { BecomingStates } from '../../components/home/BecomingStates'
 import { FeaturedProducts } from '../../components/home/BestSellers'
 import { PlannerInvite } from '../../components/home/PlannerInvite'
 import { CuratedCollections } from '../../components/home/CuratedCollections'
+import { BestSellingProducts } from '../../components/home/BestSellingProducts'
+import { ReviewEvidence } from '../../components/home/ReviewEvidence'
 import { JourneyContinuation } from '../../components/personalization/JourneyContinuation'
 import { SeoHead } from '../../components/SeoHead'
 import { createHomeJsonLd, HOME_SEO } from './homeSeo'
@@ -19,6 +21,8 @@ import { createHomeJsonLd, HOME_SEO } from './homeSeo'
  *   → FeaturedCategories (Chapter 1 — Possibility)
  *   → JourneyContinuation (customer-only echo — unfinished work first)
  *   → FeaturedProducts   (Chapter 2 — Discover, staff-curated without social-proof claims)
+ *   → BestSellingProducts (Chapter 2 evidence — delivered-order ranking, no urgency)
+ *   → ReviewEvidence      (verified-purchase evidence, not marketing testimonials)
  *   → BecomingStates     (Chapter 3→4 — clarity proof after products)
  *   → PlannerInvite      (Chapter 4 pointer — closes the arc: Home → Planner)
  *
@@ -46,6 +50,8 @@ export function HomePage() {
       <FeaturedCategories />
       <JourneyContinuation />
       <FeaturedProducts />
+      <BestSellingProducts />
+      <ReviewEvidence />
       <CuratedCollections />
       <BecomingStates />
       <PlannerInvite />

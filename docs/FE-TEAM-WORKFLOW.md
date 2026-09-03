@@ -795,22 +795,110 @@ mới; chỉ admin (storefront không thay đổi).
 
 ---
 
-## 12. Phân công 4 FE — theo miền tính năng
+## 12. Phân công 4 FE — theo trang đang sử dụng
 
-Chia theo **miền** để mỗi người sở hữu một mảng *end-to-end* (api → hooks → page → test), dễ học sâu & bảo vệ phần của mình.
-Điền tên vào cột "Người phụ trách". Mỗi người **phụ trách đúng các §chức năng** liệt kê dưới.
+Chia theo **chủ sở hữu trang** và miền nghiệp vụ end-to-end (`api.js → hooks.js → page/component → test`).
+Danh sách dưới đây lấy điều hướng thực tế làm chuẩn, không mặc định mọi route còn trong `app/router.jsx` đều là
+một trang đang được người dùng sử dụng hoặc cần đưa vào demo.
 
-| Track | Người phụ trách | Chức năng phụ trách (mục §) | Thư mục sở hữu chính |
-|---|---|---|---|
-| **FE1 — Khám phá storefront** | _Võ Thành Công_ | §2 Catalog · §3 Chi tiết SP & biến thể · §9b Personalization (recently viewed & gợi ý) | `pages/{home,catalog,product}`, `features/{catalog,personalization}`, `components/{home,layout}`, `Breadcrumb`, `ProductCard` |
-| **FE2 — Phễu mua hàng** | _Lê Kiến Tấn_ | §4 Giỏ · §5 Wishlist · §6 Checkout · §7 Đơn hàng · §8 Review | `pages/{cart,wishlist,checkout,orders}`, `features/{cart,wishlist,checkout,orders,reviews}` |
-| **FE3 — Tài khoản & Nền tảng** | _Lê Thành Vinh_ | §1 Auth/Account · §9 AI Chat · §10b Room Planner 3D · §11 Hạ tầng dùng chung | `pages/{auth,account}`, `features/{auth,addresses,chat,roomPlanner}`, `lib/`, `store/`, `routes/`, `app/router.jsx` |
-| **FE4 — Quản trị & Chất lượng** | _ Trần Đặng Chính Phước_ | §10 Admin (gồm §10a Khóa/mở-khóa người dùng · §10c Form sản phẩm admin · §10d Brand layer) · a11y/responsive/performance · testing | `pages/admin/*`, `features/admin/*` |
+### FE1 — Võ Thành Công: Catalog và quản trị nội dung sản phẩm
 
-> **Lưu ý nền tảng (FE3):** vì sở hữu `lib/`, `store/`, `router`, `AuthLayout` — mọi thay đổi ảnh hưởng cả nhóm → **PR review kỹ,
-> báo trước nhóm**. **3D Room Planner (§10b)** đã làm **MVP** (tạo phòng + thêm/biến đổi nội thất + lưu/sửa) bằng `three` +
-> `@react-three/fiber@8` + `drei@9`; danh sách scene, public share và scene→cart hiện đã nối. Customer không
-> scale model; “chuyển-đơn” cũ được thay bằng add-to-cart rồi checkout thông thường.
+| Trang | Trang có những gì |
+|---|---|
+| `/` | Hero, danh mục/bộ sưu tập nổi bật, sản phẩm nổi bật/bán chạy, gợi ý theo hành trình. |
+| `/c/:categorySlug` | Danh sách sản phẩm, tìm kiếm, lọc danh mục/giá, sắp xếp, load thêm và breadcrumb. |
+| `/collections/:collectionSlug` | Nội dung bộ sưu tập công khai và các sản phẩm trong bộ sưu tập. |
+| `/p/:productSlug` | Gallery, biến thể, giá/tồn kho, thông số, bằng chứng sản phẩm, giao hàng, thêm giỏ/wishlist và điểm gắn form review. |
+| `/admin/categories` | Danh sách và CRUD danh mục, chọn ảnh đại diện. |
+| `/admin/products` | Danh sách, tìm kiếm, phân trang, chọn nhiều sản phẩm, tạo sản phẩm và mở màn duyệt SEO. |
+| `/admin/products/new` | Tạo sản phẩm, nội dung/SEO, thuộc tính và bước khởi tạo biến thể. |
+| `/admin/products/:id` | Chỉnh sửa sản phẩm, variant options, variant CRUD, media, model 3D và kích thước thật. |
+| `/admin/media` | Upload, tìm kiếm, phân trang, tái sử dụng và xoá tài nguyên ảnh khi không được sử dụng. |
+| `/admin/products/seo` | Trang phụ mở từ quản lý sản phẩm: duyệt, sửa, áp dụng, bỏ hoặc sinh lại bản nháp SEO. |
+
+**Sở hữu chính:** `pages/{home,catalog,product}`, `features/catalog`, `components/home`, `ProductCard`,
+`Breadcrumb`, `pages/admin/{categories,products,media}` và feature admin tương ứng.
+
+### FE2 — Lê Kiến Tấn: Giỏ hàng, thanh toán và vận hành đơn
+
+| Trang | Trang có những gì |
+|---|---|
+| `/vouchers` | Các chiến dịch voucher công khai và thao tác nhận voucher. |
+| `/account/vouchers` | Voucher được cấp riêng cho tài khoản và hạn sử dụng. |
+| `/cart` | Danh sách giỏ, đổi số lượng, xoá/hoàn tác, lỗi tồn kho, voucher preview và tổng tiền. |
+| `/wishlist` | Sản phẩm đã lưu, bật thông báo có hàng, xoá hoặc chuyển sang giỏ. |
+| `/checkout` | Chọn/sửa địa chỉ, voucher, COD/PayOS, tạo đơn idempotent và phục hồi lần checkout dở. |
+| `/checkout/return` | Reconcile PayOS, hiển thị thành công/thất bại/timeout và thử xác minh lại. |
+| `/orders` | Lịch sử đơn hàng và phân trang. |
+| `/orders/:id` | Chi tiết đơn, bước tiếp theo, vận chuyển, huỷ, thanh toán lại, review, return/refund và thông tin nhận tiền hoàn. |
+| `/admin/orders` | Tìm kiếm và lọc độc lập trạng thái đơn, thanh toán và hàng đợi vận hành. |
+| `/admin/orders/:id` | Chuyển trạng thái, metadata vận chuyển, thu COD, return, refund và timeline audit. |
+| `/admin/payment-exceptions` | Trang vận hành có điều kiện từ Dashboard khi PayOS đã thu tiền nhưng đơn không tự phục hồi. |
+| `/admin/vouchers` | CRUD voucher, khoảng hiệu lực, giới hạn dùng, giá trị đơn tối thiểu và giảm tối đa. |
+| `/admin/reviews` | Hàng chờ kiểm duyệt, duyệt hoặc từ chối đánh giá. |
+
+**Sở hữu chính:** `pages/{cart,wishlist,checkout,orders,promotions}`, `features/{cart,wishlist,checkout,orders,promotions,reviews}`,
+`pages/admin/{orders,vouchers,reviews}` và feature admin tương ứng.
+
+### FE3 — Lê Thành Vinh: Tài khoản, cá nhân hoá và Room Planner
+
+| Trang | Trang có những gì |
+|---|---|
+| `/login`, `/register` | Đăng nhập/đăng ký khách hàng, validation và session khách hàng. |
+| `/forgot-password`, `/reset-password`, `/verify-email` | Khôi phục mật khẩu, xác minh và gửi lại email xác minh. |
+| `/account` | Hồ sơ, đơn gần nhất, phòng gần nhất, các lối vào wishlist/voucher/địa chỉ và tuỳ chọn cá nhân hoá. |
+| `/account/addresses` | Danh sách, thêm, sửa, xoá và đặt địa chỉ mặc định. |
+| `/account/rooms` | Danh sách phòng đã lưu, giới hạn số phòng, đổi tên, xoá, chia sẻ và mở lại. |
+| `/room-planner` | Guest draft, thiết lập phòng, catalog nội thất, canvas/fallback, thêm/di chuyển/xoay đồ và lưu scene. |
+| `/room-planner/:id` | Mở và chỉnh sửa scene thuộc tài khoản. |
+| `/room-planner/shared/:token` | Scene công khai chỉ đọc và danh sách sản phẩm trong phòng. |
+| Chat widget | Gửi câu hỏi AI theo phiên, hiện nguồn sản phẩm và xử lý giới hạn token/lỗi dịch vụ. |
+
+**Sở hữu chính:** `pages/{auth,account,roomPlanner}`, `features/{auth,addresses,personalization,roomPlanner,chat}`,
+`store/chatStore` và toàn bộ component/scene của Room Planner. Customer chỉ translate/rotate model; scene→cart
+đi qua giỏ và checkout thông thường.
+
+### FE4 — Trần Đặng Chính Phước: Admin nhân sự, RBAC và nền tảng chung
+
+| Trang | Trang có những gì |
+|---|---|
+| `/admin/login` | Đăng nhập staff; không có luồng đăng ký staff công khai. |
+| `/admin` | Dashboard điều hành/kinh doanh, cảnh báo và lối vào hàng đợi cần xử lý. |
+| `/admin/employees` | Danh sách/tìm kiếm/lọc nhân viên, tạo nhân viên và gán vai trò. |
+| `/admin/customers` | Danh sách/tìm kiếm khách hàng, xem chi tiết, cấp voucher, khoá/mở khoá và thăng thành nhân viên. |
+| `/admin/roles` | CRUD role, permission matrix và xem thử giao diện theo vai trò. |
+| `/admin/audit-logs` | Phân trang, lọc action, xem diff old/new values và tô nổi bật `access.denied`. |
+| `/shipping`, `/returns`, `/privacy`, `/contact` | Các trang hỗ trợ công khai, nội dung tĩnh và đường liên hệ thực tế. |
+| `*` | Trang không tìm thấy. |
+
+**Sở hữu chính:** `pages/admin/{AdminHome,AdminLayout,users,roles,auditLogs}`, feature admin tương ứng,
+`lib/`, `store/`, `routes/`, `app/router.jsx`, shared UI và chất lượng chung (a11y, responsive, performance,
+lint/test/build). Thay đổi nền tảng ảnh hưởng nhiều track phải báo nhóm và được review chéo.
+
+### Route phụ, route ẩn và redirect — không tính như trang chính khi chia/demo
+
+| Route | Trạng thái hiện tại | Cách xử lý trong phân công |
+|---|---|---|
+| `/admin/products/seo` | Không nằm trong sidebar nhưng có link từ `/admin/products`. | Trang phụ đang dùng, thuộc FE1. |
+| `/admin/payment-exceptions` | Không nằm trong sidebar; Dashboard chỉ hiện link khi có ngoại lệ. | Trang vận hành có điều kiện, thuộc FE2. |
+| `/admin/collections` | Route và code còn tồn tại nhưng không có trong sidebar hay luồng điều hướng hiện hành. | Route ẩn, không đưa vào demo/phần trang chính; FE1 chỉ bảo trì nếu cần. |
+| `/admin/inventory` | Route và code còn tồn tại nhưng không có trong sidebar hay Dashboard. | Route ẩn, không đưa vào demo/phần trang chính; FE1 chỉ bảo trì nếu cần. |
+| `/admin/returns` | Redirect sang `/admin/orders`. | Không tính là một trang riêng. |
+| `/admin/users` | Redirect sang `/admin/employees`. | Không tính là một trang riêng. |
+| `/admin/register` | Redirect sang `/admin/login`. | Không tính là một trang riêng. |
+| `/__dev/r2-model` | Chỉ được khai báo trong môi trường development. | Công cụ chẩn đoán, không phải trang sản phẩm/demo. |
+
+> **Ẩn menu không đồng nghĩa vô hiệu hoá route:** `/admin/collections` và `/admin/inventory` hiện vẫn mở được bằng
+> URL trực tiếp đối với staff có `manage_products`. Nếu yêu cầu sản phẩm là tắt hoàn toàn, cần gỡ/redirect route
+> hoặc thêm feature gate; chỉ bỏ khỏi `adminNav.js` chưa phải enforcement.
+
+### Quy tắc giao nhau giữa các track
+
+- Mỗi route có đúng một chủ trang như bảng trên; chủ trang chịu trách nhiệm loading/empty/error/permission state và test.
+- `ProductPage` thuộc FE1; FE2 sở hữu nghiệp vụ cart/wishlist/review gắn vào trang và cần FE1 review khi đổi bố cục.
+- `CheckoutPage` thuộc FE2; FE3 cung cấp address hooks/modal. `AccountPage` thuộc FE3; FE2 cung cấp dữ liệu đơn/voucher.
+- `AdminHome` thuộc FE4; FE1/FE2 chịu trách nhiệm giải thích số liệu từ domain của mình.
+- `app/router.jsx`, shared store và `apiClient` thuộc FE4; các track khác báo trước khi sửa để tránh ảnh hưởng toàn hệ thống.
 
 ---
 
@@ -857,7 +945,7 @@ chống tạo đơn trùng thế nào (Idempotency-Key) · vì sao admin detail 
 
 ---
 
-_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Lần cập nhật gần nhất: 2026-07-27._
+_Tài liệu sống — cập nhật khi đổi logic, phân công, hoặc quy trình. Phân công theo trang được rà lại ngày 2026-09-03._
 ## Sales Admin contract update — 2026-08-24
 
 When changing Sales Admin, preserve the independent order/payment/return/refund/exception presentation. A refund request owns one stable client idempotency key across HTTP retries. UI status and buttons are projections only: backend transition checks, refund capacity, authorization, and transfer evidence remain authoritative. Payment exceptions are operational P0 work and must remain visible until audited resolution.

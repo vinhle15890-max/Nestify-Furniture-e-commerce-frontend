@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { useCursorQuery } from '../../lib/pagination'
 import * as catalogApi from './api'
 
@@ -50,6 +50,27 @@ export function useFeaturedProducts(limit = 8) {
     queryKey: ['products', 'featured', limit],
     queryFn: () => catalogApi.getFeaturedProducts({ limit }),
   })
+}
+
+export function useBestSellerReviewEvidence(productLimit = 4, reviewLimit = 5) {
+  const bestSellers = useBestSellers(productLimit)
+  const products = bestSellers.data?.data ?? []
+  const reviewQueries = useQueries({
+    queries: products.map((product) => ({
+      queryKey: ['products', product.slug, 'reviews', 'home-evidence', reviewLimit],
+      queryFn: () => catalogApi.getProductReviews(product.slug, { limit: reviewLimit }),
+    })),
+  })
+
+  return {
+    groups: products.map((product, index) => ({
+      product,
+      reviews: (reviewQueries[index]?.data?.data ?? [])
+        .filter((review) => review.verified_purchase === true),
+    })),
+    isLoading: bestSellers.isLoading || reviewQueries.some((query) => query.isLoading),
+    isError: bestSellers.isError || (reviewQueries.length > 0 && reviewQueries.every((query) => query.isError)),
+  }
 }
 
 export function useProduct(slug) {
