@@ -114,7 +114,11 @@ export function CheckoutReturnPage() {
     && paymentStatus === 'pending'
     && followUpAttempts >= MAX_FOLLOW_UP_ATTEMPTS
     && !isFetching
-  const succeeded = status && SUCCESS_STATUSES.includes(status)
+  // New PayOS orders keep their fulfillment state at pending_confirmation after
+  // payment. The reconcile metadata is the authoritative payment conclusion;
+  // order.status alone cannot represent that successful combination.
+  const succeeded = paymentStatus === 'success'
+    || (status && SUCCESS_STATUSES.includes(status))
 
   const orderLabel = data?.data?.order_number || `#${orderId}`
 
