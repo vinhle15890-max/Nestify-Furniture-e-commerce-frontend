@@ -583,6 +583,7 @@ order nhưng PayOS session lỗi có POST order lần hai không; (6) emoji làm
 ## Sales remediation state — 2026-08-24
 
 Sales Admin now renders order, payment, return, refunds, and payment exceptions as separate facts. Refund creation uses a stable per-operation idempotency key; each logical refund displays its own amount, status, reason, request actor/time, transfer reference, and completion actor/time. “Transferred” is shown only for a succeeded refund with recorded evidence. Dashboard values distinguish order value, collected cash, refund pending transfer, refund transferred, and net collected cash; AOV uses one delivered-order commercial cohort.
+Admin order detail only reads list-shaped cache entries when deriving its initial snapshot; detail-shaped entries share the `['admin','orders']` query prefix but are objects and must never receive array operations. Refund collections are normalized from either JSON arrays or keyed legacy objects before priority/render operations, so direct links such as `#refunds` cannot crash the route.
 
 Voucher discovery is an in-product journey: desktop navigation exposes `Ưu đãi`, mobile navigation exposes `Voucher đang mở`, both lead to public `/vouchers`; privately granted vouchers remain available at `/account/vouchers`. The admin voucher form distinguishes public campaigns from private grants. Its long form is viewport-bounded with an internal scroll region so create/edit controls remain reachable on short screens.
 

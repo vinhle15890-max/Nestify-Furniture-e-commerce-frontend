@@ -54,9 +54,11 @@ function renderPage(
     path = `/admin/orders/${order.id}`,
     permissions = ['refund'],
     preserveGetOrderMock = false,
+    cachedDetail = null,
   } = {},
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  if (cachedDetail) queryClient.setQueryData(['admin', 'orders', 'detail', cachedDetail.id], { data: cachedDetail })
   useAuthStore.setState({ token: 't', user: { permissions } })
   if (!preserveGetOrderMock) {
     ordersApi.getOrder.mockResolvedValue({ data: order })
@@ -120,6 +122,13 @@ describe('AdminOrderDetailPage', () => {
     expect(await screen.findByText('Đơn hàng #101')).toBeInTheDocument()
     expect(screen.getByText('Bao Le')).toBeInTheDocument()
     expect(ordersApi.getOrder).toHaveBeenCalledWith(101)
+  })
+
+  it('does not treat a cached detail response as an order list', async () => {
+    renderPage(baseOrder, { withState: false, cachedDetail: baseOrder })
+
+    expect(await screen.findByText('Đơn hàng #101')).toBeInTheDocument()
+    expect(screen.getByText('Bao Le')).toBeInTheDocument()
   })
 
   it('keeps an initial snapshot visible when its background refresh fails', async () => {
