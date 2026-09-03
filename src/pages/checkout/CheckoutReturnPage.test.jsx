@@ -82,6 +82,18 @@ describe('CheckoutReturnPage', () => {
     expect(checkoutApi.reconcilePayment).toHaveBeenCalledTimes(1)
   })
 
+  it('shows payment success while a new order awaits fulfillment confirmation', async () => {
+    checkoutApi.reconcilePayment.mockResolvedValue({
+      data: { id: 99, order_number: 'NES-99', status: 'pending_confirmation' },
+      meta: { payment_status: 'success' },
+    })
+    renderPage('/checkout/return?order_id=99')
+
+    expect(await screen.findByText(/Thanh toán thành công/)).toBeInTheDocument()
+    expect(screen.queryByText(/Chưa thể kết luận trạng thái thanh toán/)).not.toBeInTheDocument()
+    expect(checkoutApi.reconcilePayment).toHaveBeenCalledTimes(1)
+  })
+
   it('shows a cancelled message when the order was cancelled', async () => {
     checkoutApi.reconcilePayment.mockResolvedValue({ data: { id: 99, status: 'cancelled' } })
     renderPage('/checkout/return?order_id=99')
